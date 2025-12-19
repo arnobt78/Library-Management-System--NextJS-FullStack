@@ -1,4 +1,4 @@
-# University Library Management System - Next.js, PostgreSQL, Redis, Upstash, Resend, ImageKit FullStack Project
+# University Library Management System - Next.js, PostgreSQL, Redis, Upstash, Brevo, Resend, ImageKit FullStack Project
 
 A modern, full-stack university library management solution built with Next.js 15, TypeScript, and Drizzle ORM. BookWise provides comprehensive book borrowing, user management, and administrative features for educational institutions.
 
@@ -53,7 +53,7 @@ Built with Next.js, TypeScript, Postgres, the University Library Management Syst
 - **API Documentation** - Interactive Swagger-style API docs
 - **Admin Request System** - Users can request admin privileges
 - **Fine Management** - Automated overdue fine calculations
-- **Email Notifications** - Automated reminders and notifications
+- **Email Notifications** - Automated reminders and notifications (Multi-provider: Brevo primary, Resend fallback)
 - **Performance Analytics** - System performance monitoring
 - **Export Functionality** - Data export for analytics and reporting
 
@@ -92,7 +92,8 @@ Built with Next.js, TypeScript, Postgres, the University Library Management Syst
 ### **External Services**
 
 - **ImageKit** - Image storage and optimization
-- **Resend** - Email delivery service
+- **Brevo (Sendinblue)** - Primary email delivery service (supports all email providers including Yahoo, Outlook, etc.)
+- **Resend** - Email delivery service (fallback for Gmail)
 - **Upstash** - Redis and QStash for background jobs
 - **Vercel** - Deployment platform
 
@@ -282,7 +283,13 @@ UPSTASH_REDIS_TOKEN="your-redis-token"
 QSTASH_URL="https://qstash.upstash.io/v2"
 QSTASH_TOKEN="your-qstash-token"
 
-# Email Service (Resend)
+# Email Service Configuration
+# Brevo (Primary - supports all email providers including Yahoo, Outlook, etc.)
+BREVO_API_KEY="your-brevo-api-key"
+BREVO_SENDER_EMAIL="your-email@gmail.com"
+BREVO_SENDER_NAME="BookWise Library"
+
+# Resend (Fallback - currently limited to Gmail)
 RESEND_TOKEN="your-resend-token"
 
 # API Endpoints
@@ -628,7 +635,7 @@ The application includes a comprehensive monitoring system accessible at `/api-s
 - **Database** - Connection pool and query performance
 - **File Storage** - ImageKit CDN status
 - **Authentication** - NextAuth.js service health
-- **Email Service** - SMTP configuration status
+- **Email Service** - Multi-provider email service status (Brevo primary, Resend fallback)
 - **External APIs** - Third-party service monitoring
 
 #### **System Metrics**
@@ -795,6 +802,11 @@ NEXT_PUBLIC_PROD_API_ENDPOINT="https://your-domain.vercel.app"
 # Production Services
 NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/your-id"
 UPSTASH_REDIS_URL="your-production-redis-url"
+
+# Email Service (Production)
+BREVO_API_KEY="your-production-brevo-api-key"
+BREVO_SENDER_EMAIL="your-production-email@gmail.com"
+BREVO_SENDER_NAME="BookWise Library"
 RESEND_TOKEN="your-production-resend-token"
 ```
 
@@ -990,7 +1002,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Neon** - For PostgreSQL hosting
 - **Upstash** - For Redis and background jobs
 - **ImageKit** - For image optimization
-- **Resend** - For email delivery
+- **Brevo (Sendinblue)** - For email delivery (primary provider, supports all email providers)
+- **Resend** - For email delivery (fallback provider)
 
 ---
 
