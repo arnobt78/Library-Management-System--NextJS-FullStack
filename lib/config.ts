@@ -14,6 +14,12 @@ const config = {
       qstashUrl: process.env.QSTASH_URL!,
       qstashToken: process.env.QSTASH_TOKEN!,
     },
+    // Email Service Configuration
+    brevo: {
+      apiKey: process.env.BREVO_API_KEY!,
+      senderEmail: process.env.BREVO_SENDER_EMAIL!,
+      senderName: process.env.BREVO_SENDER_NAME || "BookWise Library",
+    },
     resendToken: process.env.RESEND_TOKEN!,
   },
 };

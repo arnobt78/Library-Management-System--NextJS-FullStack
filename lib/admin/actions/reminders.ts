@@ -1,34 +1,31 @@
 import { db } from "@/database/drizzle";
 import { borrowRecords, users, books } from "@/database/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { Resend } from "resend";
-
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_TOKEN);
+import { sendEmailWithFallback } from "@/lib/services/email-service";
 
 // Email service for sending reminders
 export class EmailService {
   static async sendReminderEmail(to: string, subject: string, body: string) {
     try {
-      // Send email using Resend API
-      const { data, error } = await resend.emails.send({
-        from: "BookWise Library <onboarding@resend.dev>",
-        to: [to],
-        subject: subject,
-        html: this.generateEmailTemplate(subject, body),
-        text: body, // Plain text fallback
-      });
+      // Send email using multi-provider service (Brevo primary, Resend fallback)
+      const htmlContent = this.generateEmailTemplate(subject, body);
+      const result = await sendEmailWithFallback(
+        to,
+        subject,
+        htmlContent,
+        body
+      );
 
-      if (error) {
-        console.error("Resend email error:", error);
-        return { success: false, error: error.message };
+      if (!result.success) {
+        console.error("Email sending failed:", result.error);
+        return { success: false, error: result.error || "Unknown error" };
       }
 
-      console.log(`📧 Email sent successfully to ${to}`);
+      console.log(`📧 Email sent successfully to ${to} via ${result.provider}`);
       console.log(`Subject: ${subject}`);
-      console.log(`Message ID: ${data?.id}`);
+      console.log(`Message ID: ${result.messageId}`);
 
-      return { success: true, messageId: data?.id };
+      return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error("Email sending failed:", error);
       return {
