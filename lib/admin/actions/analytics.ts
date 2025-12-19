@@ -88,6 +88,9 @@ export async function getOverdueAnalysis() {
   const { getDailyFineAmount } = await import("./config");
   const dailyFineAmount = await getDailyFineAmount();
 
+  // Create SQL fragment for daily fine amount with explicit numeric cast
+  const dailyFineAmountSql = sql.raw(`${dailyFineAmount}::numeric`);
+
   const overdueBooks = await db
     .select({
       recordId: borrowRecords.id,
@@ -104,7 +107,7 @@ export async function getOverdueAnalysis() {
       END`,
       fineAmount: sql<string>`CASE 
         WHEN ${borrowRecords.dueDate} IS NOT NULL AND ${borrowRecords.dueDate} < ${now}
-        THEN ((${now}::date - ${borrowRecords.dueDate}::date) * ${dailyFineAmount})::text
+        THEN ((${now}::date - ${borrowRecords.dueDate}::date) * ${dailyFineAmountSql})::text
         ELSE '0.00'
       END`,
     })
@@ -130,10 +133,13 @@ export async function getOverdueStats() {
   const { getDailyFineAmount } = await import("./config");
   const dailyFineAmount = await getDailyFineAmount();
 
+  // Create SQL fragment for daily fine amount with explicit numeric cast
+  const dailyFineAmountSql = sql.raw(`${dailyFineAmount}::numeric`);
+
   const stats = await db
     .select({
       totalOverdue: sql<number>`count(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then 1 end)`,
-      totalFines: sql<number>`COALESCE(sum(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then ((${now}::date - ${borrowRecords.dueDate}::date) * ${dailyFineAmount}) end), 0)`,
+      totalFines: sql<number>`COALESCE(sum(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then ((${now}::date - ${borrowRecords.dueDate}::date) * ${dailyFineAmountSql}) end), 0)`,
       avgDaysOverdue: sql<number>`COALESCE(AVG(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then (${now}::date - ${borrowRecords.dueDate}::date) end), 0)`,
     })
     .from(borrowRecords);
