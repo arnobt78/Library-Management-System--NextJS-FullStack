@@ -10,6 +10,7 @@ import {
   UseFormReturn,
 } from "react-hook-form";
 import { ZodType } from "zod";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +22,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 import { FIELD_NAMES, FIELD_TYPES } from "@/constants";
 import FileUpload from "@/components/FileUpload";
 import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
-import { CopyButton } from "@/components/CopyButton";
 
 interface Props<T extends FieldValues> {
   schema: ZodType<T>;
@@ -44,11 +51,39 @@ const AuthForm = <T extends FieldValues>({
   const router = useRouter();
 
   const isSignIn = type === "SIGN_IN";
+  const [selectedRole, setSelectedRole] = useState<string>("");
 
   const form: UseFormReturn<T> = useForm({
     resolver: zodResolver(schema),
     defaultValues: defaultValues as DefaultValues<T>,
   });
+
+  // Test account credentials
+  const testAccounts = {
+    "guest-user": {
+      email: "test@user.com",
+      password: "12345678",
+    },
+    "guest-admin": {
+      email: "test@admin.com",
+      password: "12345678",
+    },
+  };
+
+  const handleRoleSelect = (value: string) => {
+    if (value === "clear") {
+      setSelectedRole("");
+      form.setValue("email" as Path<T>, "" as T[Path<T>]);
+      form.setValue("password" as Path<T>, "" as T[Path<T>]);
+    } else {
+      setSelectedRole(value);
+      const account = testAccounts[value as keyof typeof testAccounts];
+      if (account) {
+        form.setValue("email" as Path<T>, account.email as T[Path<T>]);
+        form.setValue("password" as Path<T>, account.password as T[Path<T>]);
+      }
+    }
+  };
 
   const handleSubmit: SubmitHandler<T> = async (data) => {
     const result = await onSubmit(data);
@@ -83,6 +118,44 @@ const AuthForm = <T extends FieldValues>({
           onSubmit={form.handleSubmit(handleSubmit)}
           className="w-full space-y-6"
         >
+          {/* Role Based Test Account Selector - Only for Sign In */}
+          {isSignIn && (
+            <div className="space-y-2">
+              <FormLabel className="text-white">Select Test Account</FormLabel>
+              <Select
+                key={`select-${selectedRole || "empty"}`}
+                value={selectedRole || undefined}
+                onValueChange={handleRoleSelect}
+              >
+                <SelectTrigger className="form-input border-gray-600 bg-transparent text-white">
+                  <SelectValue placeholder="Select Role Based Test Account" />
+                </SelectTrigger>
+                <SelectContent className="border-gray-600 bg-gray-800">
+                  <SelectItem
+                    value="guest-user"
+                    className="cursor-pointer text-white focus:bg-gray-700 focus:text-white"
+                  >
+                    Guest User
+                  </SelectItem>
+                  <SelectItem
+                    value="guest-admin"
+                    className="cursor-pointer text-white focus:bg-gray-700 focus:text-white"
+                  >
+                    Guest Admin
+                  </SelectItem>
+                  {selectedRole && (
+                    <SelectItem
+                      value="clear"
+                      className="cursor-pointer text-gray-400 opacity-60 focus:bg-gray-700 focus:text-gray-400"
+                    >
+                      Clear Selection
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {Object.keys(defaultValues).map((field) => (
             <FormField
               key={field}
@@ -136,32 +209,6 @@ const AuthForm = <T extends FieldValues>({
           {isSignIn ? "Create an account" : "Sign in"}
         </Link>
       </p>
-
-      {/* Test Credentials Section - Only for Sign In */}
-      {isSignIn && (
-        <div className=" rounded-lg border border-gray-600 bg-gray-800/30 px-4 py-2">
-          <p className="mb-1 text-sm font-medium text-gray-300">
-            To test the admin panel, you can login with:
-          </p>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between rounded-md bg-gray-700/50 px-3 py-2">
-              <span className="text-sm text-gray-200">test@admin.com</span>
-              <CopyButton
-                text="test@admin.com"
-                className="size-8 bg-gray-700/50"
-              />
-            </div>
-            <div className="flex items-center justify-between rounded-md bg-gray-700/50 px-3 py-2">
-              <span className="text-sm text-gray-200">12345678</span>
-              <CopyButton text="12345678" className="size-8 bg-gray-700/50" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-gray-300">
-            ⚠️ Please try not to mess up the current books, users and the admin
-            panel setup!
-          </p>
-        </div>
-      )}
     </div>
   );
 };
