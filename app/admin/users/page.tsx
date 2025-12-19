@@ -1,6 +1,5 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { getAllUsers } from "@/lib/admin/actions/user";
 import { updateUserRole, updateUserStatus } from "@/lib/admin/actions/user";
 import {
@@ -104,11 +103,6 @@ const Page = async ({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">All Users ({users.length})</h2>
-        <Button className="bg-primary-admin" asChild>
-          <Link href="/admin/users/create" className="text-white">
-            + Create Admin User
-          </Link>
-        </Button>
       </div>
 
       {/* Admin Requests Section - Only shows PENDING requests */}
