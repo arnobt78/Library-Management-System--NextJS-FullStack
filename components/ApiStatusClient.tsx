@@ -110,23 +110,23 @@ const ApiStatusClient = ({
     }
   };
 
-  // Get service icon
+  // Get service icon with colors
   const getServiceIcon = (serviceName: string) => {
     switch (serviceName) {
       case "API Server":
-        return <Server className="size-5" />;
+        return <Server className="size-5 text-blue-500" />;
       case "Database":
-        return <Database className="size-5" />;
+        return <Database className="size-5 text-green-500" />;
       case "File Storage":
-        return <FileText className="size-5" />;
+        return <FileText className="size-5 text-purple-500" />;
       case "Authentication":
-        return <Lock className="size-5" />;
+        return <Lock className="size-5 text-yellow-500" />;
       case "Email Service":
-        return <Wifi className="size-5" />;
+        return <Wifi className="size-5 text-pink-500" />;
       case "External APIs":
-        return <Globe className="size-5" />;
+        return <Globe className="size-5 text-cyan-500" />;
       default:
-        return <Activity className="size-5" />;
+        return <Activity className="size-5 text-gray-500" />;
     }
   };
 
@@ -361,13 +361,13 @@ const ApiStatusClient = ({
       </div>
 
       {/* Overall System Status */}
-      <Card className="mb-8">
+      <Card className="mb-8 border-gray-700 bg-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-light-100">
             <Server className="size-5" />
             Overall System Status
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-light-200">
             Last checked:{" "}
             {lastChecked ? lastChecked.toLocaleString() : "Loading..."}
           </p>
@@ -378,7 +378,7 @@ const ApiStatusClient = ({
               <div className="mb-2 flex justify-center">
                 {getStatusIcon(overallStatus)}
               </div>
-              <p className="text-sm text-gray-600">System Status</p>
+              <p className="text-sm text-light-200">System Status</p>
               <Badge className={`mt-1 ${getStatusColor(overallStatus)}`}>
                 {overallStatus}
               </Badge>
@@ -387,15 +387,15 @@ const ApiStatusClient = ({
               <div className="mb-2 flex justify-center">
                 <Zap className="size-4 text-blue-600" />
               </div>
-              <p className="text-sm text-gray-600">Response Time</p>
-              <p className="text-2xl font-bold">{responseTime}ms</p>
+              <p className="text-sm text-light-200">Response Time</p>
+              <p className="text-2xl font-bold text-light-100">{responseTime}ms</p>
             </div>
             <div className="text-center">
               <div className="mb-2 flex justify-center">
                 <Clock className="size-4 text-green-600" />
               </div>
-              <p className="text-sm text-gray-600">Uptime</p>
-              <p className="text-2xl font-bold">
+              <p className="text-sm text-light-200">Uptime</p>
+              <p className="text-2xl font-bold text-light-100">
                 {uptime.hours}h {uptime.minutes}m {uptime.seconds}s
               </p>
             </div>
@@ -403,15 +403,15 @@ const ApiStatusClient = ({
               <div className="mb-2 flex justify-center">
                 <TrendingUp className="size-4 text-purple-600" />
               </div>
-              <p className="text-sm text-gray-600">Health Score</p>
-              <p className="text-2xl font-bold">{healthScore.toFixed(1)}%</p>
+              <p className="text-sm text-light-200">Health Score</p>
+              <p className="text-2xl font-bold text-light-100">{healthScore.toFixed(1)}%</p>
             </div>
           </div>
 
           <div className="mt-6">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium">Overall Health</span>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm font-medium text-light-100">Overall Health</span>
+              <span className="text-sm text-light-200">
                 {healthScore.toFixed(1)}%
               </span>
             </div>
@@ -421,48 +421,48 @@ const ApiStatusClient = ({
       </Card>
 
       {/* Service Status */}
-      <Card className="mb-8">
+      <Card className="mb-8 border-gray-700 bg-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="size-5" />
+          <CardTitle className="flex items-center gap-2 text-light-100">
+            <Activity className="size-5 text-green-500" />
             Service Status
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {services.map((service, index) => (
-              <Card key={index} className="relative">
+              <Card key={index} className="relative border-gray-600 bg-gray-700">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {service.icon}
-                      <CardTitle className="text-lg">{service.name}</CardTitle>
+                      {getServiceIcon(service.name)}
+                      <CardTitle className="text-lg text-light-100">{service.name}</CardTitle>
                     </div>
                     <Badge className={getStatusColor(service.status)}>
                       {service.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{service.description}</p>
+                  <p className="text-sm text-light-200">{service.description}</p>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-light-200">
                         Response Time:
                       </span>
-                      <span className="font-semibold">
+                      <span className="font-semibold text-light-100">
                         {service.responseTime}ms
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Endpoint:</span>
-                      <span className="font-mono text-sm">
+                      <span className="text-sm text-light-200">Endpoint:</span>
+                      <span className="font-mono text-sm text-light-100">
                         {service.endpoint}
                       </span>
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between">
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-light-200">
                           Performance:
                         </span>
                         <span
@@ -485,37 +485,57 @@ const ApiStatusClient = ({
       </Card>
 
       {/* System Metrics */}
-      <Card>
+      <Card className="border-gray-700 bg-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="size-5" />
+          <CardTitle className="flex items-center gap-2 text-light-100">
+            <TrendingUp className="size-5 text-purple-500" />
             System Metrics
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {systemMetrics.map((metric, index) => (
-              <Card key={index} className="relative">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className={`${getMetricStatusColor(metric.status)}`}>
-                      {metric.icon}
+            {systemMetrics.map((metric, index) => {
+              // Get colorful icon based on metric title
+              const getMetricIcon = () => {
+                if (metric.title.includes("Database")) {
+                  return <Database className="size-5 text-green-500" />;
+                } else if (metric.title.includes("API Performance")) {
+                  return <TrendingUp className="size-5 text-blue-500" />;
+                } else if (metric.title.includes("Error Rate")) {
+                  return <AlertCircle className="size-5 text-red-500" />;
+                } else if (metric.title.includes("Storage")) {
+                  return <HardDrive className="size-5 text-orange-500" />;
+                } else if (metric.title.includes("Active Users")) {
+                  return <Users className="size-5 text-cyan-500" />;
+                } else if (metric.title.includes("SSL")) {
+                  return <Shield className="size-5 text-yellow-500" />;
+                }
+                return metric.icon;
+              };
+              
+              return (
+                <Card key={index} className="relative border-gray-600 bg-gray-700">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        {getMetricIcon()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-light-100">{metric.title}</p>
+                        <p
+                          className={`text-lg font-bold ${getMetricStatusColor(metric.status)}`}
+                        >
+                          {metric.value}
+                        </p>
+                        <p className="text-xs text-light-200">
+                          {metric.description}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{metric.title}</p>
-                      <p
-                        className={`text-lg font-bold ${getMetricStatusColor(metric.status)}`}
-                      >
-                        {metric.value}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {metric.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

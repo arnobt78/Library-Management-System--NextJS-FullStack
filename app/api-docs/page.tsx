@@ -399,30 +399,30 @@ const ApiDocsPage = async () => {
               </div>
 
               {/* Base URL */}
-              <Card className="mb-8">
+              <Card className="mb-8 border-gray-700 bg-gray-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-light-100">
                     <Code className="size-5" />
                     Base URL
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded bg-gray-100 px-3 py-2 font-mono text-sm">
+                    <code className="flex-1 rounded bg-gray-700 px-3 py-2 font-mono text-sm text-light-100">
                       {baseUrl}
                     </code>
                     <CopyButton text={baseUrl} />
                   </div>
-                  <p className="mt-2 text-sm text-gray-600">
+                  <p className="mt-2 text-sm text-light-200">
                     All API endpoints are relative to this base URL
                   </p>
                 </CardContent>
               </Card>
 
               {/* API Endpoints with Tabs */}
-              <Card className="mb-8">
+              <Card className="mb-8 border-gray-700 bg-gray-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-light-100">
                     <Code className="size-5" />
                     API Endpoints
                   </CardTitle>
@@ -434,14 +434,14 @@ const ApiDocsPage = async () => {
                       .replace(/\s+/g, "-")}
                     className="w-full"
                   >
-                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-3 bg-gray-700 border-gray-600 lg:grid-cols-6">
                       {apiEndpoints.map((category) => (
                         <TabsTrigger
                           key={category.category}
                           value={category.category
                             .toLowerCase()
                             .replace(/\s+/g, "-")}
-                          className="flex items-center gap-2 text-xs"
+                          className="flex items-center gap-2 text-xs text-light-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md"
                         >
                           {category.icon}
                           <span className="hidden sm:inline">
@@ -462,10 +462,10 @@ const ApiDocsPage = async () => {
                         <div className="space-y-4">
                           <div className="mb-4 flex items-center gap-2">
                             {category.icon}
-                            <h3 className="text-xl font-semibold">
+                            <h3 className="text-xl font-semibold text-light-100">
                               {category.category}
                             </h3>
-                            <Badge variant="outline" className="ml-auto">
+                            <Badge variant="outline" className="ml-auto border-gray-600 bg-gray-700 text-light-200">
                               {category.endpoints.length} endpoints
                             </Badge>
                           </div>
@@ -491,9 +491,9 @@ const ApiDocsPage = async () => {
               </Card>
 
               {/* Status Codes */}
-              <Card className="mb-8">
+              <Card className="mb-8 border-gray-700 bg-gray-800">
                 <CardHeader>
-                  <CardTitle>HTTP Status Codes</CardTitle>
+                  <CardTitle className="text-light-100">HTTP Status Codes</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -502,31 +502,31 @@ const ApiDocsPage = async () => {
                         <Badge className="bg-green-100 text-green-800">
                           200
                         </Badge>
-                        <span className="text-sm">Success</span>
+                        <span className="text-sm text-light-200">Success</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-blue-100 text-blue-800">201</Badge>
-                        <span className="text-sm">Created</span>
+                        <span className="text-sm text-light-200">Created</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-yellow-100 text-yellow-800">
                           400
                         </Badge>
-                        <span className="text-sm">Bad Request</span>
+                        <span className="text-sm text-light-200">Bad Request</span>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Badge className="bg-red-100 text-red-800">401</Badge>
-                        <span className="text-sm">Unauthorized</span>
+                        <span className="text-sm text-light-200">Unauthorized</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-red-100 text-red-800">403</Badge>
-                        <span className="text-sm">Forbidden</span>
+                        <span className="text-sm text-light-200">Forbidden</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-red-100 text-red-800">500</Badge>
-                        <span className="text-sm">Internal Server Error</span>
+                        <span className="text-sm text-light-200">Internal Server Error</span>
                       </div>
                     </div>
                   </div>
@@ -534,17 +534,17 @@ const ApiDocsPage = async () => {
               </Card>
 
               {/* Authentication */}
-              <Card className="mb-8">
+              <Card className="mb-8 border-gray-700 bg-gray-800">
                 <CardHeader>
-                  <CardTitle>Authentication</CardTitle>
+                  <CardTitle className="text-light-100">Authentication</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-4 text-sm text-gray-700">
+                  <p className="mb-4 text-sm text-light-200">
                     This API uses NextAuth.js for authentication. Include the
                     session cookie in your requests for authenticated endpoints.
                   </p>
-                  <div className="rounded bg-gray-50 p-3">
-                    <pre className="text-sm">
+                  <div className="rounded bg-gray-700 p-3">
+                    <pre className="text-sm text-light-200">
                       {`// Example: Making an authenticated request
 fetch('${baseUrl}/api/reviews/book-id', {
   method: 'POST',
@@ -564,11 +564,11 @@ fetch('${baseUrl}/api/reviews/book-id', {
 
               {/* Footer */}
               <div className="mt-12 text-center">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-light-200">
                   BookWise University Library Management System API
                   Documentation
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-light-300">
                   Generated automatically • Last updated:{" "}
                   {new Date().toLocaleDateString()}
                 </p>

@@ -38,14 +38,14 @@ const ApiEndpointCard = ({
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-gray-600 bg-gray-700 p-4">
       <div className="mb-3 flex items-center gap-3">
         <Badge className={`${getMethodColor(method)} border`}>{method}</Badge>
-        <code className="flex-1 font-mono text-sm">{path}</code>
+        <code className="flex-1 font-mono text-sm text-light-100">{path}</code>
         <CopyButton text={`${baseUrl}${path}`} />
       </div>
 
-      <p className="mb-3 text-sm text-gray-700">{description}</p>
+      <p className="mb-3 text-sm text-light-200">{description}</p>
 
       <div className="mb-3 flex gap-2">
         {auth && (
@@ -69,9 +69,9 @@ const ApiEndpointCard = ({
       {/* Request Body */}
       {requestBody && (
         <div className="mb-3">
-          <h4 className="mb-2 font-semibold text-gray-900">Request Body:</h4>
-          <div className="rounded bg-gray-50 p-3">
-            <pre className="text-sm">
+          <h4 className="mb-2 font-semibold text-light-100">Request Body:</h4>
+          <div className="rounded bg-gray-600 p-3">
+            <pre className="text-sm text-light-200">
               {JSON.stringify(requestBody, null, 2)}
             </pre>
           </div>
@@ -81,9 +81,9 @@ const ApiEndpointCard = ({
       {/* Response */}
       {response && (
         <div>
-          <h4 className="mb-2 font-semibold text-gray-900">Response:</h4>
-          <div className="rounded bg-gray-50 p-3">
-            <pre className="text-sm">
+          <h4 className="mb-2 font-semibold text-light-100">Response:</h4>
+          <div className="rounded bg-gray-600 p-3">
+            <pre className="text-sm text-light-200">
               {typeof response === "string"
                 ? response
                 : JSON.stringify(response, null, 2)}

@@ -430,19 +430,19 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         <TabsList className="grid h-auto w-full grid-cols-3 border-2 border-gray-600 bg-gray-800/30 p-0">
           <TabsTrigger
             value="active"
-            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-100 data-[state=active]:border-b-0 data-[state=active]:bg-white data-[state=active]:text-dark-100"
+            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             Active Borrows ({activeBorrows.length})
           </TabsTrigger>
           <TabsTrigger
             value="pending"
-            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-100 data-[state=active]:border-b-0 data-[state=active]:bg-white data-[state=active]:text-dark-100"
+            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-yellow-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             Pending Requests ({pendingRequests.length})
           </TabsTrigger>
           <TabsTrigger
             value="history"
-            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-100 data-[state=active]:border-b-0 data-[state=active]:bg-white data-[state=active]:text-dark-100"
+            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             Borrow History ({borrowHistory.length})
           </TabsTrigger>
