@@ -8,7 +8,11 @@
 import { db } from "@/database/drizzle";
 import { sql } from "drizzle-orm";
 
-async function applyEmailTrackingMigration() {
+/**
+ * Applies email tracking fields migration to change UUID foreign keys to TEXT (email addresses)
+ * @returns Promise<void>
+ */
+async function applyEmailTrackingMigration(): Promise<void> {
   try {
     console.log("🔄 Applying email tracking fields migration...");
 
@@ -24,7 +28,8 @@ async function applyEmailTrackingMigration() {
         sql`ALTER TABLE "borrow_records" DROP CONSTRAINT IF EXISTS "borrow_records_updated_by_fkey"`
       );
       console.log("✅ Dropped foreign key constraints");
-    } catch (error) {
+    } catch {
+      // Error is intentionally ignored - constraints may not exist
       console.log(
         "ℹ️  Some foreign key constraints may not exist, continuing..."
       );
@@ -54,7 +59,7 @@ async function applyEmailTrackingMigration() {
     );
 
     process.exit(0);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("❌ Error applying migration:", error);
     process.exit(1);
   }

@@ -1,17 +1,58 @@
+/**
+ * Review Eligibility API Route
+ * 
+ * GET /api/reviews/eligibility/[bookId]
+ * 
+ * Purpose: Check if the current user is eligible to review a specific book
+ * 
+ * Business Rules:
+ * 1. User must be logged in
+ * 2. User must have borrowed the book before (status = RETURNED)
+ * 3. User cannot have already reviewed the book (one review per user per book)
+ * 
+ * Returns:
+ * - canReview: boolean - Whether user can submit a review
+ * - hasExistingReview: boolean - Whether user already reviewed this book
+ * - isCurrentlyBorrowed: boolean - Whether user currently has the book borrowed
+ * - reason: string - Human-readable explanation
+ * 
+ * IMPORTANT: This route uses Node.js runtime (not Edge) because it needs database access
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { bookReviews, borrowRecords } from "@/database/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/auth";
 
+/**
+ * Explicitly set runtime to Node.js
+ * 
+ * WHY?
+ * - This route uses 'pg' (PostgreSQL client) which requires Node.js runtime
+ * - Edge runtime doesn't support Node.js modules like 'crypto', 'fs', etc.
+ * - Without this, you'll get "crypto module not supported" errors
+ */
 export const runtime = "nodejs";
 
-// GET /api/reviews/eligibility/[bookId] - Check if user can review a book
+/**
+ * Check if user can review a book
+ * 
+ * Eligibility Criteria:
+ * 1. User must be authenticated
+ * 2. User must have previously borrowed AND returned the book
+ * 3. User must not have already reviewed the book
+ * 
+ * @param request - Next.js request object
+ * @param params - Route parameters containing bookId
+ * @returns JSON response with eligibility status
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ bookId: string }> }
 ) {
   try {
+    // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({
@@ -24,7 +65,13 @@ export async function GET(
 
     const { bookId } = await params;
 
-    // Check if user has borrowed this book before (for eligibility)
+    /**
+     * Check if user has borrowed this book before (for eligibility)
+     * 
+     * Only counts RETURNED books because:
+     * - User needs to have actually read the book to review it
+     * - PENDING or BORROWED books don't count (book not yet returned)
+     */
     const userBorrows = await db
       .select()
       .from(borrowRecords)
@@ -32,12 +79,17 @@ export async function GET(
         and(
           eq(borrowRecords.userId, session.user.id),
           eq(borrowRecords.bookId, bookId),
-          eq(borrowRecords.status, "RETURNED")
+          eq(borrowRecords.status, "RETURNED") // Must have returned the book
         )
       )
       .limit(1);
 
-    // Check if user currently has this book borrowed (not returned)
+    /**
+     * Check if user currently has this book borrowed (not returned)
+     * 
+     * This is informational - doesn't affect eligibility
+     * Used to show different UI messages (e.g., "Return book to review")
+     */
     const currentBorrow = await db
       .select()
       .from(borrowRecords)
@@ -45,12 +97,17 @@ export async function GET(
         and(
           eq(borrowRecords.userId, session.user.id),
           eq(borrowRecords.bookId, bookId),
-          eq(borrowRecords.status, "BORROWED")
+          eq(borrowRecords.status, "BORROWED") // Currently borrowed
         )
       )
       .limit(1);
 
-    // Check if user already has a review for this book
+    /**
+     * Check if user already has a review for this book
+     * 
+     * Business rule: One review per user per book
+     * Prevents spam and ensures quality reviews
+     */
     const existingReview = await db
       .select()
       .from(bookReviews)
@@ -62,8 +119,9 @@ export async function GET(
       )
       .limit(1);
 
+    // Calculate eligibility
     const hasExistingReview = existingReview.length > 0;
-    const canReview = userBorrows.length > 0 && !hasExistingReview;
+    const canReview = userBorrows.length > 0 && !hasExistingReview; // Must have borrowed AND not already reviewed
     const isCurrentlyBorrowed = currentBorrow.length > 0;
 
     return NextResponse.json({

@@ -119,7 +119,7 @@ const Page = async ({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <h4 className="font-medium text-yellow-900">
                         {request.userFullName}
                       </h4>
@@ -127,7 +127,7 @@ const Page = async ({
                         ({request.userEmail})
                       </span>
                     </div>
-                    <p className="text-sm text-yellow-800 mb-2">
+                    <p className="mb-2 text-sm text-yellow-800">
                       <strong>Reason:</strong> {request.requestReason}
                     </p>
                     <p className="text-xs text-yellow-600">
@@ -135,13 +135,17 @@ const Page = async ({
                       {new Date(request.createdAt).toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="ml-4 flex gap-2">
                     <form
                       action={async () => {
                         "use server";
+                        const adminId = session?.user?.id;
+                        if (!adminId) {
+                          redirect("/admin/users?error=unauthorized");
+                        }
                         const result = await approveAdminRequest(
                           request.id,
-                          session.user?.id!
+                          adminId
                         );
                         if (result.success) {
                           redirect("/admin/users?success=admin-approved");
@@ -160,9 +164,13 @@ const Page = async ({
                     <form
                       action={async () => {
                         "use server";
+                        const adminId = session?.user?.id;
+                        if (!adminId) {
+                          redirect("/admin/users?error=unauthorized");
+                        }
                         const result = await rejectAdminRequest(
                           request.id,
-                          session.user?.id!,
+                          adminId,
                           "Rejected by admin"
                         );
                         if (result.success) {
@@ -261,9 +269,13 @@ const Page = async ({
                           <form
                             action={async () => {
                               "use server";
+                              const adminId = session?.user?.id;
+                              if (!adminId) {
+                                redirect("/admin/users?error=unauthorized");
+                              }
                               const result = await removeAdminPrivileges(
                                 user.id,
-                                session.user?.id!
+                                adminId
                               );
                               if (result.success) {
                                 redirect("/admin/users?success=admin-removed");

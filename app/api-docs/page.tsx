@@ -434,7 +434,7 @@ const ApiDocsPage = async () => {
                       .replace(/\s+/g, "-")}
                     className="w-full"
                   >
-                    <TabsList className="grid w-full grid-cols-3 bg-gray-700 border-gray-600 lg:grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-3 border-gray-600 bg-gray-700 lg:grid-cols-6">
                       {apiEndpoints.map((category) => (
                         <TabsTrigger
                           key={category.category}
@@ -465,7 +465,10 @@ const ApiDocsPage = async () => {
                             <h3 className="text-xl font-semibold text-light-100">
                               {category.category}
                             </h3>
-                            <Badge variant="outline" className="ml-auto border-gray-600 bg-gray-700 text-light-200">
+                            <Badge
+                              variant="outline"
+                              className="ml-auto border-gray-600 bg-gray-700 text-light-200"
+                            >
                               {category.endpoints.length} endpoints
                             </Badge>
                           </div>
@@ -493,7 +496,9 @@ const ApiDocsPage = async () => {
               {/* Status Codes */}
               <Card className="mb-8 border-gray-700 bg-gray-800">
                 <CardHeader>
-                  <CardTitle className="text-light-100">HTTP Status Codes</CardTitle>
+                  <CardTitle className="text-light-100">
+                    HTTP Status Codes
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -512,21 +517,29 @@ const ApiDocsPage = async () => {
                         <Badge className="bg-yellow-100 text-yellow-800">
                           400
                         </Badge>
-                        <span className="text-sm text-light-200">Bad Request</span>
+                        <span className="text-sm text-light-200">
+                          Bad Request
+                        </span>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Badge className="bg-red-100 text-red-800">401</Badge>
-                        <span className="text-sm text-light-200">Unauthorized</span>
+                        <span className="text-sm text-light-200">
+                          Unauthorized
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-red-100 text-red-800">403</Badge>
-                        <span className="text-sm text-light-200">Forbidden</span>
+                        <span className="text-sm text-light-200">
+                          Forbidden
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-red-100 text-red-800">500</Badge>
-                        <span className="text-sm text-light-200">Internal Server Error</span>
+                        <span className="text-sm text-light-200">
+                          Internal Server Error
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -536,7 +549,9 @@ const ApiDocsPage = async () => {
               {/* Authentication */}
               <Card className="mb-8 border-gray-700 bg-gray-800">
                 <CardHeader>
-                  <CardTitle className="text-light-100">Authentication</CardTitle>
+                  <CardTitle className="text-light-100">
+                    Authentication
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="mb-4 text-sm text-light-200">

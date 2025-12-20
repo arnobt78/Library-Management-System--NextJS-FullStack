@@ -73,7 +73,12 @@ const FileUpload = ({
     text: variant === "dark" ? "text-light-100" : "text-dark-400",
   };
 
-  const onError = (error: unknown) => {
+  /**
+   * Handle file upload errors
+   *
+   * @param error - Error object from ImageKit upload
+   */
+  const onError = (error: unknown): void => {
     console.log(error);
 
     toast({
@@ -83,28 +88,51 @@ const FileUpload = ({
     });
   };
 
+  /**
+   * Upload success response type from ImageKit
+   * Note: imagekitio-next types may not fully match, so we use a flexible interface
+   */
   interface UploadSuccessResponse {
     filePath: string;
     [key: string]: unknown;
   }
 
-  const onSuccess = (res: UploadSuccessResponse) => {
-    // Construct full ImageKit URL from the relative filePath
-    const fullUrl = `${urlEndpoint}${res.filePath}`;
+  /**
+   * Handle successful file upload
+   *
+   * @param res - Upload success response from ImageKit containing filePath
+   * Note: Using type assertion because imagekitio-next's IKUploadResponse type
+   * doesn't match the actual response structure at runtime
+   */
+  const onSuccess = (res: unknown): void => {
+    // Type guard: Check if response has filePath property
+    const response = res as UploadSuccessResponse;
 
-    // @ts-expect-error: imagekitio-next types are not exported, but res has filePath
+    if (!response.filePath || typeof response.filePath !== "string") {
+      console.error("Upload response missing filePath:", res);
+      onError(new Error("Upload response missing filePath"));
+      return;
+    }
+
+    // Construct full ImageKit URL from the relative filePath
+    const fullUrl = `${urlEndpoint}${response.filePath}`;
+
     setFile({ filePath: fullUrl });
-    // @ts-expect-error: imagekitio-next types are not exported, but res has filePath
     onFileChange(fullUrl);
 
     toast({
       title: `✅ ${type === "image" ? "Image" : "Video"} Uploaded Successfully!`,
-      // @ts-expect-error: imagekitio-next types are not exported, but res has filePath
-      description: `${res.filePath} has been uploaded and is ready to use.`,
+      description: `${response.filePath} has been uploaded and is ready to use.`,
     });
   };
 
-  const onValidate = (file: File) => {
+  /**
+   * Validate file before upload
+   *
+   * @param file - File to validate
+   * @returns true if file is valid, false otherwise
+   */
+  const onValidate = (file: File): boolean => {
     if (type === "image") {
       if (file.size > 20 * 1024 * 1024) {
         toast({
@@ -140,7 +168,6 @@ const FileUpload = ({
       <IKUpload
         ref={ikUploadRef}
         onError={onError}
-        // @ts-expect-error: imagekitio-next types are not exported, but res has filePath
         onSuccess={onSuccess}
         useUniqueFileName={true}
         validateFile={onValidate}
@@ -159,7 +186,7 @@ const FileUpload = ({
         onClick={(e) => {
           e.preventDefault();
           if (ikUploadRef.current) {
-            // @ts-expect-error
+            // @ts-expect-error - IKUpload ref type doesn't expose click method, but it exists on the underlying input element
             ikUploadRef.current?.click();
           }
         }}

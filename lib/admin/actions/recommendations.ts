@@ -1,6 +1,6 @@
 import { db } from "@/database/drizzle";
 import { books, borrowRecords, users } from "@/database/schema";
-import { eq, desc, sql, and, inArray, notInArray, count } from "drizzle-orm";
+import { eq, desc, sql, and, inArray, notInArray } from "drizzle-orm";
 
 // Types for recommendations
 export interface Recommendation {
@@ -23,7 +23,16 @@ export interface RecommendationStats {
 }
 
 // Get user's borrowing history for recommendation algorithms
-export async function getUserBorrowHistory(userId: string) {
+export async function getUserBorrowHistory(userId: string): Promise<
+  Array<{
+    bookId: string;
+    bookTitle: string;
+    bookAuthor: string;
+    bookGenre: string;
+    borrowDate: Date | null;
+    status: "PENDING" | "BORROWED" | "RETURNED";
+  }>
+> {
   const history = await db
     .select({
       bookId: borrowRecords.bookId,
@@ -263,7 +272,7 @@ export async function generateAllUserRecommendations(): Promise<
         userId: user.id,
         recommendations,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         `Error generating recommendations for user ${user.id}:`,
         error
@@ -357,7 +366,7 @@ export async function getRecommendationStats(): Promise<RecommendationStats> {
             break;
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error getting stats for user ${user.id}:`, error);
     }
   }

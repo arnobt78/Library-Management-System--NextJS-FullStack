@@ -132,7 +132,24 @@ interface SystemConfigRow {
   created_at: string;
 }
 
-// Helper functions
+/**
+ * Helper Functions for CSV Parsing and Data Transformation
+ * 
+ * These functions handle the conversion from CSV string data to TypeScript types
+ * and PostgreSQL-compatible formats.
+ */
+
+/**
+ * Parse CSV file into array of typed objects
+ * 
+ * @param filePath - Path to CSV file
+ * @returns Array of objects matching the CSV structure
+ * 
+ * CSV parsing options:
+ * - columns: true - Use first row as column names
+ * - skip_empty_lines: true - Ignore empty lines
+ * - trim: true - Remove whitespace from values
+ */
 async function parseCSV<T>(filePath: string): Promise<T[]> {
   const content = fs.readFileSync(filePath, "utf-8");
   const records = parse(content, {
@@ -143,6 +160,14 @@ async function parseCSV<T>(filePath: string): Promise<T[]> {
   return records as T[];
 }
 
+/**
+ * Parse date string to Date object
+ * 
+ * Handles various date formats and null/empty values
+ * 
+ * @param dateString - Date string from CSV (can be null, "null", or empty)
+ * @returns Date object or null if invalid
+ */
 function parseDate(dateString: string | null | undefined): Date | null {
   if (!dateString || dateString === "null" || dateString === "") {
     return null;
@@ -155,11 +180,24 @@ function parseDate(dateString: string | null | undefined): Date | null {
   }
 }
 
+/**
+ * Format Date object for PostgreSQL date column
+ * 
+ * PostgreSQL date columns expect "YYYY-MM-DD" format (not timestamp)
+ * 
+ * IMPORTANT: This is different from timestamp columns which use full ISO strings
+ * 
+ * @param date - Date object to format
+ * @returns String in "YYYY-MM-DD" format or null
+ * 
+ * Example: new Date("2025-12-20") → "2025-12-20"
+ */
 function formatDateForPostgres(date: Date | null): string | null {
   if (!date) {
     return null;
   }
   // Format as YYYY-MM-DD for PostgreSQL date type
+  // Split on "T" to get date part only (removes time and timezone)
   return date.toISOString().split("T")[0];
 }
 
@@ -190,14 +228,48 @@ function parseBoolean(value: string | null | undefined): boolean {
   );
 }
 
-// Seed functions
+/**
+ * Seed Functions
+ * 
+ * Each function migrates data from a CSV file to the corresponding database table.
+ * 
+ * Migration Strategy: UPSERT (Update or Insert)
+ * - If record exists (by ID), update it
+ * - If record doesn't exist, insert it
+ * - This makes the script idempotent (safe to run multiple times)
+ * 
+ * Data Transformation:
+ * - CSV columns (snake_case) → TypeScript (camelCase)
+ * - String dates → Date objects → PostgreSQL date strings
+ * - String numbers → Integers/Decimals
+ * - String booleans → Boolean values
+ */
+
+/**
+ * Seed users from CSV
+ * 
+ * Migrates user accounts from NeonDB CSV export to Hetzner VPS PostgreSQL
+ * 
+ * Key transformations:
+ * - full_name → fullName
+ * - last_activity_date → lastActivityDate (date column, needs formatting)
+ * - last_login → lastLogin (timestamp, can be null)
+ * - status/role → enum types
+ */
 async function seedUsers() {
   console.log("🌱 Seeding users...");
   const userRows = await parseCSV<UserRow>(path.join(CSV_DIR, "users.csv"));
 
   for (const row of userRows) {
     try {
-      // Check if user exists
+      /**
+       * UPSERT Pattern: Check if user exists first
+       * 
+       * Why check first?
+       * - Drizzle doesn't have built-in upsert for all databases
+       * - We want to preserve existing data if record exists
+       * - Allows re-running migration without duplicates
+       */
       const existing = await db
         .select()
         .from(users)
@@ -205,32 +277,32 @@ async function seedUsers() {
         .limit(1);
 
       if (existing.length > 0) {
-        // Update existing user
+        // Update existing user (preserves ID, updates other fields)
         await db
           .update(users)
           .set({
             fullName: row.full_name,
             email: row.email,
             universityId: parseInt(row.university_id, 10),
-            password: row.password,
+            password: row.password, // Already hashed from NeonDB
             universityCard: row.university_card,
             status: row.status as "PENDING" | "APPROVED" | "REJECTED",
             role: row.role as "USER" | "ADMIN",
             lastActivityDate: formatDateForPostgres(
               parseDate(row.last_activity_date)
-            ),
-            lastLogin: parseDate(row.last_login),
+            ), // Convert to YYYY-MM-DD format for date column
+            lastLogin: parseDate(row.last_login), // Timestamp, can be null
             createdAt: parseDate(row.created_at) || new Date(),
           })
           .where(eq(users.id, row.id));
       } else {
         // Insert new user
         await db.insert(users).values({
-          id: row.id,
+          id: row.id, // Preserve original UUID from NeonDB
           fullName: row.full_name,
           email: row.email,
           universityId: parseInt(row.university_id, 10),
-          password: row.password,
+          password: row.password, // Already hashed from NeonDB
           universityCard: row.university_card,
           status:
             (row.status as "PENDING" | "APPROVED" | "REJECTED") || "PENDING",
@@ -243,6 +315,7 @@ async function seedUsers() {
         });
       }
     } catch (error) {
+      // Log error but continue with other users (don't fail entire migration)
       console.error(`❌ Error seeding user ${row.id} (${row.email}):`, error);
     }
   }

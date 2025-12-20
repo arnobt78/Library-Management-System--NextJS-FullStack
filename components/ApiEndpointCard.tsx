@@ -1,14 +1,36 @@
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/CopyButton";
 
+/**
+ * Request body type - can be an object with any structure
+ */
+type RequestBodyType =
+  | Record<string, unknown>
+  | Array<unknown>
+  | string
+  | number
+  | boolean
+  | null;
+
+/**
+ * Response type - can be an object, string, or other serializable types
+ */
+type ResponseType =
+  | Record<string, unknown>
+  | Array<unknown>
+  | string
+  | number
+  | boolean
+  | null;
+
 interface ApiEndpointProps {
   method: string;
   path: string;
   description: string;
   auth?: boolean;
   adminOnly?: boolean;
-  requestBody?: any;
-  response?: any;
+  requestBody?: RequestBodyType;
+  response?: ResponseType;
   baseUrl: string;
 }
 
@@ -51,7 +73,7 @@ const ApiEndpointCard = ({
         {auth && (
           <Badge
             variant="outline"
-            className="bg-yellow-50 text-yellow-700 border-yellow-200"
+            className="border-yellow-200 bg-yellow-50 text-yellow-700"
           >
             🔐 Authentication Required
           </Badge>
@@ -59,7 +81,7 @@ const ApiEndpointCard = ({
         {adminOnly && (
           <Badge
             variant="outline"
-            className="bg-red-50 text-red-700 border-red-200"
+            className="border-red-200 bg-red-50 text-red-700"
           >
             👑 Admin Only
           </Badge>

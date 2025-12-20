@@ -6,7 +6,7 @@ export interface SystemMetric {
   status: "good" | "warning" | "critical";
   icon: React.ReactNode;
   description: string;
-  details?: any;
+  details?: Record<string, unknown> | unknown;
 }
 
 export interface MetricsData {
@@ -19,7 +19,7 @@ export interface MetricsData {
   };
   apiPerformance: {
     requestsPerMinute: number;
-    status: string;
+    status: "UP" | "DOWN" | "DEGRADED" | string;
   };
   errorRate: {
     rate: string;
@@ -43,7 +43,7 @@ export interface MetricsData {
     lastUpdated: string;
   };
   sslCertificate: {
-    status: string;
+    status: "Valid" | "Expired" | "Expiring Soon" | string;
     expiresAt: string;
     issuer: string;
   };
@@ -65,7 +65,7 @@ export async function fetchSystemMetrics(): Promise<MetricsData> {
 
     const data = await response.json();
     return data.metrics;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Failed to fetch system metrics:", error);
 
     // Return fallback data

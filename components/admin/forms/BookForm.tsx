@@ -32,7 +32,9 @@ const BookForm = ({ type = "create", ...book }: Props) => {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const form = useForm<z.infer<typeof bookSchema>>({
+  type BookFormValues = z.infer<typeof bookSchema>;
+
+  const form = useForm<BookFormValues>({
     resolver: zodResolver(bookSchema),
     defaultValues: {
       title: book.title || "",
@@ -46,17 +48,17 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       videoUrl: book.videoUrl || "",
       summary: book.summary || "",
       // Enhanced fields
-      isbn: book.isbn || "",
-      publicationYear: book.publicationYear || "",
-      publisher: book.publisher || "",
+      isbn: book.isbn || undefined,
+      publicationYear: book.publicationYear ?? undefined,
+      publisher: book.publisher || undefined,
       language: book.language || "English",
-      pageCount: book.pageCount || "",
-      edition: book.edition || "",
+      pageCount: book.pageCount ?? undefined,
+      edition: book.edition || undefined,
       isActive: book.isActive ?? true,
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof bookSchema>) => {
+  const onSubmit = async (values: BookFormValues): Promise<void> => {
     const updatedBy = session?.user?.id || undefined;
 
     if (type === "create") {

@@ -21,29 +21,29 @@ const Page = async () => {
 
       <div className="mt-7 w-full overflow-hidden">
         {allBooks.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="py-8 text-center text-gray-500">
             No books found. Create your first book!
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {allBooks.map((book) => (
               <div
                 key={book.id}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
               >
                 <div className="flex items-start gap-4">
                   <BookCover
                     coverColor={book.coverColor}
                     coverImage={book.coverUrl}
-                    className="w-16 h-20"
+                    className="h-20 w-16"
                   />
 
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg line-clamp-2">
+                    <h3 className="line-clamp-2 text-lg font-semibold">
                       {book.title}
                     </h3>
-                    <p className="text-gray-600 text-sm">by {book.author}</p>
-                    <p className="text-xs text-gray-500 mt-1">{book.genre}</p>
+                    <p className="text-sm text-gray-600">by {book.author}</p>
+                    <p className="mt-1 text-xs text-gray-500">{book.genre}</p>
 
                     <div className="mt-3 space-y-1">
                       <div className="flex justify-between text-sm">
@@ -71,7 +71,7 @@ const Page = async () => {
                       {book.isbn && (
                         <div className="flex justify-between text-sm">
                           <span>ISBN:</span>
-                          <span className="font-medium text-xs">
+                          <span className="text-xs font-medium">
                             {book.isbn}
                           </span>
                         </div>
@@ -90,7 +90,7 @@ const Page = async () => {
                         <div className="flex justify-between text-sm">
                           <span>Publisher:</span>
                           <span
-                            className="font-medium text-xs truncate max-w-20"
+                            className="max-w-20 truncate text-xs font-medium"
                             title={book.publisher}
                           >
                             {book.publisher}
