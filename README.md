@@ -2,8 +2,6 @@
 
 A modern, full-stack university library management solution built with Next.js 15, TypeScript, and Drizzle ORM. BookWise provides comprehensive book borrowing, user management, and administrative features for educational institutions.
 
-![Screenshot 2025-09-16 at 14 52 48](https://github.com/user-attachments/assets/6e8ca29b-0aa9-468d-adcc-e6d496786140)
-![Screenshot 2025-09-16 at 14 58 43](https://github.com/user-attachments/assets/b9b8237b-0e43-46f3-86c6-dcd2922a3f6f)
 ![Screenshot 2025-09-16 at 15 00 16](https://github.com/user-attachments/assets/20e637e9-9e76-44b7-9923-317372a02a98)
 ![Screenshot 2025-09-16 at 15 00 38](https://github.com/user-attachments/assets/e495275c-a7b2-45aa-bd37-cd37ca1dadf8)
 ![Screenshot 2025-09-16 at 15 00 50](https://github.com/user-attachments/assets/e39465de-e514-44c6-b385-29ab210717e9)
