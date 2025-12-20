@@ -4,6 +4,8 @@ import { users } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/workflow";
 
+export const runtime = "nodejs";
+
 type UserState = "non-active" | "active";
 
 type InitialData = {

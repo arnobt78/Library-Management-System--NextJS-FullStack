@@ -4,6 +4,8 @@ import { bookReviews } from "@/database/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/auth";
 
+export const runtime = "nodejs";
+
 // PUT /api/reviews/edit/[reviewId] - Update a review
 export async function PUT(
   request: NextRequest,

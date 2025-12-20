@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exportAnalytics } from "@/lib/admin/actions/data-export";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

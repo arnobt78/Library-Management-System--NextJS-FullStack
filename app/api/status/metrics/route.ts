@@ -3,6 +3,8 @@ import { db } from "@/database/drizzle";
 import { sql } from "drizzle-orm";
 import { users } from "@/database/schema";
 
+export const runtime = "nodejs";
+
 export async function GET(_request: NextRequest) {
   try {
     const startTime = Date.now();

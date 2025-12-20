@@ -4,6 +4,8 @@ import {
   sendOverdueReminders,
 } from "@/lib/admin/actions/reminders";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     const url = new URL(request.url);

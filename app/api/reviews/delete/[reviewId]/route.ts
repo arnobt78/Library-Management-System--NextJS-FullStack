@@ -4,6 +4,8 @@ import { bookReviews } from "@/database/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/auth";
 
+export const runtime = "nodejs";
+
 // DELETE /api/reviews/delete/[reviewId] - Delete a review
 export async function DELETE(
   request: NextRequest,

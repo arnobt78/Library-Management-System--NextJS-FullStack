@@ -86,7 +86,7 @@ Built with Next.js, TypeScript, Postgres, the University Library Management Syst
 - **Next.js API Routes** - Serverless API endpoints
 - **NextAuth.js** - Authentication framework
 - **Drizzle ORM** - Type-safe database ORM
-- **PostgreSQL** - Primary database (Neon)
+- **PostgreSQL** - Primary database (Hetzner VPS)
 - **Redis** - Caching and rate limiting (Upstash)
 
 ### **External Services**
@@ -242,7 +242,7 @@ export const borrowRecords = pgTable("borrow_records", {
 ### **Prerequisites**
 
 - Node.js 18+
-- PostgreSQL database (Neon recommended)
+- PostgreSQL database (Hetzner VPS or any PostgreSQL instance)
 - Redis instance (Upstash recommended)
 
 ### **1. Clone the Repository**
@@ -999,7 +999,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Drizzle Team** - For the excellent TypeScript ORM
 - **Shadcn/ui** - For beautiful component library
 - **Vercel** - For seamless deployment platform
-- **Neon** - For PostgreSQL hosting
+- **Hetzner** - For VPS and PostgreSQL hosting
 - **Upstash** - For Redis and background jobs
 - **ImageKit** - For image optimization
 - **Brevo (Sendinblue)** - For email delivery (primary provider, supports all email providers)

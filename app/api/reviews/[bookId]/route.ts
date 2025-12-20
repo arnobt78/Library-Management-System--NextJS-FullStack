@@ -4,6 +4,8 @@ import { bookReviews, users, borrowRecords } from "@/database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { auth } from "@/auth";
 
+export const runtime = "nodejs";
+
 // GET /api/reviews/[bookId] - Get all reviews for a book
 export async function GET(
   request: NextRequest,

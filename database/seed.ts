@@ -1,16 +1,18 @@
 import dummyBooks from "../dummybooks.json";
 import ImageKit from "imagekit";
 import { books } from "@/database/schema";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { config } from "dotenv";
 import fs from "fs";
 import path from "path";
 
 config({ path: ".env" });
 
-const sql = neon(process.env.DATABASE_URL!);
-export const db = drizzle({ client: sql });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL!,
+});
+export const db = drizzle(pool);
 
 const imagekit = new ImageKit({
   publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!,

@@ -1,15 +1,28 @@
 import NextAuth, { User } from "next-auth";
 import { sha256 } from "@noble/hashes/sha256";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { db } from "@/database/drizzle";
-import { users } from "@/database/schema";
-import { eq } from "drizzle-orm";
 
 function concatUint8Arrays(a: Uint8Array, b: Uint8Array): Uint8Array {
   const c = new Uint8Array(a.length + b.length);
   c.set(a, 0);
   c.set(b, a.length);
   return c;
+}
+
+// Lazy import database to avoid loading in Edge runtime (middleware)
+async function getDb() {
+  const { db } = await import("@/database/drizzle");
+  return db;
+}
+
+async function getUsersSchema() {
+  const { users } = await import("@/database/schema");
+  return users;
+}
+
+async function getEq() {
+  const { eq } = await import("drizzle-orm");
+  return eq;
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -22,6 +35,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
+
+        // Lazy load database only when authorize is called (Node.js runtime)
+        const db = await getDb();
+        const users = await getUsersSchema();
+        const eq = await getEq();
 
         const user = await db
           .select()
@@ -63,6 +81,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // Update last_login timestamp when user signs in
         try {
+          // Lazy load database only when jwt callback is called (Node.js runtime)
+          const db = await getDb();
+          const users = await getUsersSchema();
+          const eq = await getEq();
+          
           await db
             .update(users)
             .set({ lastLogin: new Date() })

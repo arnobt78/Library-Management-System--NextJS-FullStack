@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendOverdueReminders } from "@/lib/admin/actions/reminders";
 
+export const runtime = "nodejs";
+
 export async function POST(_request: NextRequest) {
   try {
     const results = await sendOverdueReminders();

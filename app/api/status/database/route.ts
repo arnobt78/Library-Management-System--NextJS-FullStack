@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { sql } from "drizzle-orm";
 
+export const runtime = "nodejs";
+
 export async function GET(_request: NextRequest) {
   try {
     const startTime = Date.now();

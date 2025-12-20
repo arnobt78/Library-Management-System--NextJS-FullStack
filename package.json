@@ -7,14 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "npx tsx database/seed.ts",
-    "db:generate": "npx drizzle-kit generate:pg",
-    "db:migrate": "npx drizzle-kit push:pg",
-    "db:studio": "npx drizzle-kit studio"
+    "seed": "tsx database/seed.ts",
+    "db:migrate-csv": "tsx database/migrate-from-csv.ts",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:migrate": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
-    "@neondatabase/serverless": "^0.10.4",
     "@noble/hashes": "^1.8.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.2",
@@ -34,11 +34,10 @@
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "csv-parse": "^6.1.0",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.2",
-    "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-tailwindcss": "^3.17.5",
     "imagekit": "^6.0.0",
     "imagekitio-next": "^1.0.1",
     "lucide-react": "^0.469.0",
@@ -60,6 +59,7 @@
     "@eslint/eslintrc": "^3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
@@ -67,9 +67,12 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "15.1.2",
     "eslint-config-prettier": "^9.1.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-tailwindcss": "^3.17.5",
     "postcss": "^8.4.49",
     "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

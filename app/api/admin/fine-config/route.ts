@@ -5,6 +5,8 @@ import {
   initializeDefaultConfigs,
 } from "@/lib/admin/actions/config";
 
+export const runtime = "nodejs";
+
 // GET - Retrieve current fine amount
 export async function GET() {
   try {

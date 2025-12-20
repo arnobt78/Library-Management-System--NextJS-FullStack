@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { forceUpdateOverdueFines } from "@/lib/admin/actions/borrow";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     console.log("=== UPDATE OVERDUE FINES API CALLED ===");
