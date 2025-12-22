@@ -199,11 +199,19 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       return previousArrayRef.current;
     }
 
+    // CRITICAL: Handle empty data - but check if we have optimistic data in cache
+    // If reactQueryBorrows is empty but we have optimistic data, we should still process it
     if (!reactQueryBorrows || reactQueryBorrows.length === 0) {
-      // If no data, return previous array if available, otherwise empty array
+      // During logout, return previous array
+      if (isLoggingOut) {
+        return previousArrayRef.current;
+      }
+      // If no data and no previous data, return empty array
+      // This allows optimistic updates to show even when query is initially empty
       if (previousArrayRef.current.length === 0) {
         return [];
       }
+      // Otherwise return previous array to maintain UI stability
       return previousArrayRef.current;
     }
 

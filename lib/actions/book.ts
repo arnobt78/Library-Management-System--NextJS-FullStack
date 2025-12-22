@@ -68,18 +68,23 @@ export const borrowBook = async (
       };
     }
 
-    const record = await db.insert(borrowRecords).values({
-      userId,
-      bookId,
-      dueDate: null, // Will be set when admin approves
-      status: "PENDING",
-    });
+    // CRITICAL: Use .returning() to get the inserted record
+    // Without this, db.insert() doesn't return the actual record data
+    const [record] = await db
+      .insert(borrowRecords)
+      .values({
+        userId,
+        bookId,
+        dueDate: null, // Will be set when admin approves
+        status: "PENDING",
+      })
+      .returning();
 
     // Don't decrement available copies until admin approves
 
     return {
       success: true,
-      data: JSON.parse(JSON.stringify(record)),
+      data: [record], // Return as array to match the response type
     };
   } catch (error: unknown) {
     console.log(error);

@@ -43,6 +43,8 @@ const BorrowBook = ({
       return; // Validation handled by mutation
     }
 
+    console.log("[BorrowBook] Starting mutation", { userId, bookId });
+
     // Use mutation to borrow book
     borrowBookMutation.mutate(
       {
@@ -50,16 +52,17 @@ const BorrowBook = ({
         bookId,
       },
       {
-        onSuccess: () => {
-          // CRITICAL: Delay navigation to let optimistic update settle first
-          // This prevents the RSC refetch from causing flicker
-          // The optimistic update already shows the new record in the cache
-          setTimeout(() => {
-            router.push("/my-profile");
-          }, 200); // Small delay to let optimistic update render first
+        onSuccess: (data) => {
+          console.log("[BorrowBook] Mutation successful", data);
+          // CRITICAL: Navigate after mutation completes
+          // The optimistic update is already in the cache, and now we have the real data
+          // React Query will use the cached data instead of refetching
+          router.push("/my-profile");
         },
         onError: (error) => {
           console.error("[BorrowBook] Mutation error:", error);
+          // Show error to user
+          alert(`Failed to borrow book: ${error.message}`);
         },
       }
     );

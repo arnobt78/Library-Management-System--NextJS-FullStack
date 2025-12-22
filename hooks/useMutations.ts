@@ -517,11 +517,18 @@ export const useBorrowBook = () => {
       bookId: string;
       bookTitle?: string; // Optional, for toast message
     }) => {
-      const result = await borrowBook({ userId, bookId });
-      if (!result.success) {
-        throw new Error(result.error || "Failed to request book");
+      console.log("[useBorrowBook] Calling server action", { userId, bookId });
+      try {
+        const result = await borrowBook({ userId, bookId });
+        console.log("[useBorrowBook] Server action result", result);
+        if (!result.success) {
+          throw new Error(result.error || "Failed to request book");
+        }
+        return result.data;
+      } catch (error) {
+        console.error("[useBorrowBook] Server action error", error);
+        throw error;
       }
-      return result.data;
     },
     // CRITICAL: Optimistic update - add new PENDING record immediately
     // This eliminates flicker by updating UI instantly before server responds
@@ -556,24 +563,25 @@ export const useBorrowBook = () => {
       }> = [];
 
       // Create optimistic PENDING record
-      const today = new Date().toISOString().split("T")[0];
+      // CRITICAL: Match the exact format that the API returns
+      const now = new Date(); // For timestamps and dates
       const optimisticRecord = {
         id: `temp-${Date.now()}`, // Temporary ID until server responds
         userId,
         bookId,
-        borrowDate: today,
-        dueDate: null,
+        borrowDate: now, // Date object (API returns timestamp, but React Query handles conversion)
+        dueDate: null, // null for pending requests
         returnDate: null,
         status: "PENDING" as const,
         borrowedBy: null,
         returnedBy: null,
-        fineAmount: null,
+        fineAmount: "0", // String format to match API (decimal string)
         notes: null,
         renewalCount: 0,
         lastReminderSent: null,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now, // Date object
         updatedBy: null,
-        createdAt: new Date().toISOString(),
+        createdAt: now, // Date object
         // CRITICAL: Include book field from cache (API returns this in /api/borrow-records)
         book: bookData
           ? {
@@ -612,34 +620,9 @@ export const useBorrowBook = () => {
             },
       };
 
-      // CRITICAL: Always ensure the main query exists (used by MyProfileTabs)
-      // This query key matches what useUserBorrows uses when called with undefined status
-      const mainQueryKey: unknown[] = ["user-borrows", userId, undefined];
-      const existingMainData = queryClient.getQueryData(mainQueryKey) as
-        | Array<{ id: string; [key: string]: unknown }>
-        | undefined;
-
-      if (existingMainData) {
-        // Store previous data for rollback
-        previousQueries.push({
-          queryKey: mainQueryKey,
-          data: JSON.parse(JSON.stringify(existingMainData)), // Deep clone
-        });
-
-        // Add optimistic record to the beginning of the array
-        const updatedData = [optimisticRecord, ...existingMainData];
-        queryClient.setQueryData(mainQueryKey, updatedData);
-      } else {
-        // Query doesn't exist yet - create it with just the optimistic record
-        // This ensures the UI shows the new pending book immediately when navigating to /my-profile
-        previousQueries.push({
-          queryKey: mainQueryKey,
-          data: undefined, // No previous data to rollback to
-        });
-        queryClient.setQueryData(mainQueryKey, [optimisticRecord]);
-      }
-
-      // Also update any other user-borrows queries that might exist (for other status filters)
+      // CRITICAL: Update ALL user-borrows queries for this user
+      // This ensures we catch the query regardless of status filter (undefined, "PENDING", "BORROWED", etc.)
+      // MyProfileTabs uses ["user-borrows", userId, undefined] but we update all to be safe
       queryClient
         .getQueryCache()
         .getAll()
@@ -648,28 +631,66 @@ export const useBorrowBook = () => {
           if (
             Array.isArray(queryKey) &&
             queryKey[0] === "user-borrows" &&
-            queryKey[1] === userId &&
-            queryKey[2] !== undefined && // Skip the main query (undefined status) - already handled above
-            query.state.data
+            queryKey[1] === userId
           ) {
-            const data = query.state.data as Array<{
-              id: string;
-              [key: string]: unknown;
-            }>;
+            const existingData = query.state.data as
+              | Array<{ id: string; [key: string]: unknown }>
+              | undefined;
 
-            // Store previous data for rollback
-            previousQueries.push({
-              queryKey,
-              data: JSON.parse(JSON.stringify(data)), // Deep clone
-            });
+            if (existingData && Array.isArray(existingData)) {
+              // Store previous data for rollback
+              previousQueries.push({
+                queryKey,
+                data: JSON.parse(JSON.stringify(existingData)), // Deep clone
+              });
 
-            // Add optimistic record to the beginning of the array
-            const updatedData = [optimisticRecord, ...data];
-
-            // Update cache immediately
-            queryClient.setQueryData(queryKey, updatedData);
+              // Check if optimistic record already exists (prevent duplicates)
+              const alreadyExists = existingData.some(
+                (r) => r.id === optimisticRecord.id
+              );
+              if (!alreadyExists) {
+                // Add optimistic record to the beginning of the array
+                const updatedData = [optimisticRecord, ...existingData];
+                queryClient.setQueryData(queryKey, updatedData);
+              }
+            } else {
+              // Query exists but has no data yet - create it with optimistic record
+              previousQueries.push({
+                queryKey,
+                data: undefined, // No previous data to rollback to
+              });
+              queryClient.setQueryData(queryKey, [optimisticRecord]);
+            }
           }
         });
+
+      // CRITICAL: Also ensure the main query exists even if it wasn't in the cache
+      // This is the query key used by MyProfileTabs: ["user-borrows", userId, undefined]
+      const mainQueryKey: unknown[] = ["user-borrows", userId, undefined];
+      const mainQueryExists = queryClient.getQueryCache().find({
+        queryKey: mainQueryKey,
+      });
+
+      if (!mainQueryExists || !mainQueryExists.state.data) {
+        // Query doesn't exist or has no data - create/update it with optimistic record
+        const existingMainData = queryClient.getQueryData(mainQueryKey) as
+          | Array<{ id: string; [key: string]: unknown }>
+          | undefined;
+
+        if (!existingMainData || existingMainData.length === 0) {
+          // Only add if not already added above
+          const alreadyAdded = previousQueries.some(
+            (q) => JSON.stringify(q.queryKey) === JSON.stringify(mainQueryKey)
+          );
+          if (!alreadyAdded) {
+            previousQueries.push({
+              queryKey: mainQueryKey,
+              data: undefined,
+            });
+            queryClient.setQueryData(mainQueryKey, [optimisticRecord]);
+          }
+        }
+      }
 
       // Return context for rollback
       return { previousQueries, optimisticRecordId: optimisticRecord.id };
