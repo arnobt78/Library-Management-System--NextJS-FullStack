@@ -124,6 +124,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
   // Use React Query mutation for returning book
   const returnBookMutation = useReturnBook();
+  // CRITICAL: Track which record is currently being returned to prevent multiple clicks
+  const returningRecordIdRef = React.useRef<string | null>(null);
 
   // Use React Query to fetch all user borrows (no status filter to get all)
   // The API returns borrow records WITH book details (from /api/borrow-records)
@@ -132,7 +134,6 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   const {
     data: reactQueryBorrows,
     isLoading,
-    isFetching,
     isError,
     error,
   } = useUserBorrows(
@@ -173,80 +174,63 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // The API returns borrow records WITH book details (the 'book' field is included)
   // initial/legacy data is only used as fallback during initial load
   // Transform React Query data to BorrowRecordWithBook[] format (API includes book details)
-  // CRITICAL: Use ref to store stable transformed data and only update when hash changes
-  // This prevents flicker from multiple re-renders during React Query refetch cycles
-  const stableDataRef = React.useRef<BorrowRecordWithBook[]>([]);
-  const previousDataHashRef = React.useRef<string>("");
-  // CRITICAL: Store latest reactQueryBorrows in ref to avoid stale closures
-  // This allows us to access latest data in effect without adding it to dependency array
-  const latestDataRef = React.useRef(reactQueryBorrows);
-  React.useEffect(() => {
-    latestDataRef.current = reactQueryBorrows;
-  }, [reactQueryBorrows]);
+  // CRITICAL: Optimized to prevent flicker by maintaining stable array references
+  // Store previous transformed records to reuse Date objects for reference stability
+  const previousTransformedRef = React.useRef<
+    Map<string, BorrowRecordWithBook>
+  >(new Map());
+  // Store previous array to maintain reference equality when data hasn't changed
+  const previousArrayRef = React.useRef<BorrowRecordWithBook[]>([]);
 
-  // Calculate hash from current data (only when data exists)
-  const currentDataHash = React.useMemo(() => {
-    if (!reactQueryBorrows || reactQueryBorrows.length === 0) {
-      return "";
-    }
-    return JSON.stringify(
-      (reactQueryBorrows as BorrowRecord[]).map((r) => ({
-        id: r.id,
-        status: r.status,
-        dueDate: r.dueDate,
-        bookId: r.bookId,
-        bookCoverUrl: (r as BorrowRecord & { book?: Book }).book?.coverUrl,
-        bookCoverColor: (r as BorrowRecord & { book?: Book }).book?.coverColor,
-      }))
-    );
-  }, [reactQueryBorrows]);
-
-  // Transform data only when hash actually changes
-  React.useEffect(() => {
+  // Transform data using useMemo - this will recalculate when reactQueryBorrows changes
+  // but we maintain stable array references to prevent unnecessary re-renders
+  const allBorrowsFromQuery: BorrowRecordWithBook[] = React.useMemo(() => {
     // CRITICAL: Skip updates during logout to prevent flickering
-    // Check for logout-in-progress cookie to prevent unnecessary updates
-    const isLoggingOut = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("logout-in-progress="))
-      ?.split("=")[1] === "true";
+    // Check if we're in browser environment before accessing document
+    const isLoggingOut =
+      typeof window !== "undefined" &&
+      document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("logout-in-progress="))
+        ?.split("=")[1] === "true";
 
     if (isLoggingOut) {
-      // During logout, preserve existing data and skip all updates
-      // This prevents flickering/blinking during logout transition
-      return;
+      // During logout, return previous array to prevent flicker
+      return previousArrayRef.current;
     }
 
-    const currentData = latestDataRef.current;
-    if (!currentData || currentData.length === 0) {
-      if (stableDataRef.current.length === 0) {
-        return; // No data to show, keep empty
+    if (!reactQueryBorrows || reactQueryBorrows.length === 0) {
+      // If no data, return previous array if available, otherwise empty array
+      if (previousArrayRef.current.length === 0) {
+        return [];
       }
-      // CRITICAL: Don't clear data when query becomes empty (e.g., during logout)
-      // Preserve existing data to prevent UI flicker/disappearance during transitions
-      // The data will naturally be replaced when new data arrives or component unmounts
-      return; // Keep existing data intact
+      return previousArrayRef.current;
     }
 
-    // If hash hasn't changed, keep previous data (prevents flicker)
-    if (
-      currentDataHash === previousDataHashRef.current &&
-      previousDataHashRef.current !== ""
-    ) {
-      return; // Data unchanged, keep stable reference
-    }
-
-    // Hash changed, transform the data
-    previousDataHashRef.current = currentDataHash;
-
-    const transformed = (currentData as BorrowRecord[]).map((record) => {
+    // Transform the data
+    const transformed = (reactQueryBorrows as BorrowRecord[]).map((record) => {
       const recordWithBook = record as BorrowRecord & { book?: Book };
 
-      // CRITICAL: Reuse existing Date objects from previous transformation if timestamps match
-      // This prevents unnecessary re-renders when data hasn't actually changed
-      const existingRecord = stableDataRef.current?.find(
-        (r) => r.id === record.id
-      );
+      // CRITICAL: Reuse existing transformed record if it exists and data hasn't changed
+      // This maintains reference equality for Date objects and prevents unnecessary re-renders
+      const existingRecord = previousTransformedRef.current.get(record.id);
 
+      // Check if record data has actually changed
+      const dataChanged =
+        !existingRecord ||
+        existingRecord.status !== record.status ||
+        existingRecord.bookId !== record.bookId ||
+        (existingRecord.dueDate?.getTime() || 0) !==
+          (record.dueDate ? new Date(record.dueDate).getTime() : 0) ||
+        (existingRecord.returnDate?.getTime() || 0) !==
+          (record.returnDate ? new Date(record.returnDate).getTime() : 0);
+
+      // If data hasn't changed, reuse existing record (maintains reference equality)
+      if (!dataChanged && existingRecord) {
+        return existingRecord;
+      }
+
+      // Data changed or record is new, create new transformed record
       const getStableDate = (
         dateString: string | Date | null | undefined,
         existingDate: Date | null | undefined
@@ -265,7 +249,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         return new Date(timestamp);
       };
 
-      return {
+      const transformedRecord: BorrowRecordWithBook = {
         id: record.id,
         userId: record.userId,
         bookId: record.bookId,
@@ -312,15 +296,56 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           updatedAt: null,
         },
       };
+
+      // Store in map for next comparison
+      previousTransformedRef.current.set(record.id, transformedRecord);
+
+      return transformedRecord;
     });
 
-    // Update stable reference only when data actually changes
-    stableDataRef.current = transformed;
-  }, [currentDataHash]); // CRITICAL: Only depend on hash, not reactQueryBorrows reference
-  // This prevents effect from running on every refetch when data hasn't actually changed
+    // Clean up map - remove records that no longer exist
+    const currentIds = new Set(transformed.map((r) => r.id));
+    for (const [id] of previousTransformedRef.current) {
+      if (!currentIds.has(id)) {
+        previousTransformedRef.current.delete(id);
+      }
+    }
 
-  // Use stable ref data - this reference only changes when data actually changes
-  const allBorrowsFromQuery: BorrowRecordWithBook[] = stableDataRef.current;
+    // CRITICAL: Compare with previous array to maintain reference equality
+    // Only return new array if records actually changed
+    const previousArray = previousArrayRef.current;
+    if (
+      previousArray.length === transformed.length &&
+      previousArray.every(
+        (prevRecord, index) =>
+          prevRecord.id === transformed[index]?.id &&
+          prevRecord.status === transformed[index]?.status &&
+          prevRecord.bookId === transformed[index]?.bookId
+      )
+    ) {
+      // Array contents are the same, return previous array to maintain reference equality
+      return previousArray;
+    }
+
+    // Array contents changed, update ref and return new array
+    previousArrayRef.current = transformed;
+    return transformed;
+  }, [reactQueryBorrows]); // Transform whenever reactQueryBorrows changes
+  // React Query's placeholderData ensures smooth transitions without flicker
+
+  // CRITICAL: Clear returningRecordIdRef when record status changes to RETURNED
+  // This ensures the button becomes enabled again after the UI updates
+  React.useEffect(() => {
+    if (returningRecordIdRef.current) {
+      const returnedRecord = allBorrowsFromQuery.find(
+        (r) => r.id === returningRecordIdRef.current && r.status === "RETURNED"
+      );
+      if (returnedRecord) {
+        // Record has been returned, clear the ref to re-enable button
+        returningRecordIdRef.current = null;
+      }
+    }
+  }, [allBorrowsFromQuery]);
 
   // Use React Query data if available, otherwise fall back to initial/legacy data
   // CRITICAL: Memoize to prevent unnecessary recalculations in filtered arrays
@@ -485,11 +510,66 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       };
 
       const handleReturnBook = () => {
+        console.log("[MyProfileTabs] Return book clicked", {
+          recordId: record.id,
+          bookTitle: record.book.title,
+          currentStatus: record.status,
+          isPending: returnBookMutation.isPending,
+          returningRecordId: returningRecordIdRef.current,
+        });
+
+        // CRITICAL: Prevent multiple clicks on the same record
+        // Check if this specific record is already being returned
+        if (returningRecordIdRef.current === record.id) {
+          console.log(
+            "[MyProfileTabs] Record already being returned, ignoring click"
+          );
+          return; // This record is already being returned, ignore click
+        }
+
+        // CRITICAL: Prevent multiple clicks - check if any mutation is pending
+        if (returnBookMutation.isPending) {
+          console.log(
+            "[MyProfileTabs] Mutation already pending, ignoring click"
+          );
+          return; // Already processing a return, ignore additional clicks
+        }
+
+        // Mark this record as being returned
+        returningRecordIdRef.current = record.id;
+        console.log("[MyProfileTabs] Starting return mutation", {
+          recordId: record.id,
+          bookTitle: record.book.title,
+        });
+
         // Use mutation to return book
         returnBookMutation.mutate(
           {
             recordId: record.id,
             bookTitle: record.book.title,
+          },
+          {
+            onSuccess: (data) => {
+              console.log("[MyProfileTabs] Return mutation success", {
+                recordId: record.id,
+                data,
+              });
+            },
+            onError: (error) => {
+              console.error("[MyProfileTabs] Return mutation error", {
+                recordId: record.id,
+                error,
+              });
+            },
+            onSettled: () => {
+              console.log("[MyProfileTabs] Return mutation settled", {
+                recordId: record.id,
+              });
+              // CRITICAL: Don't clear returningRecordIdRef immediately
+              // Keep it set until the record status actually changes to RETURNED
+              // This ensures the button stays disabled until UI updates
+              // The ref will be cleared when the record status changes in the next render
+            },
           }
           // CRITICAL: No onSuccess callback needed here
           // The useReturnBook mutation already handles all cache invalidation
@@ -752,14 +832,23 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   {record.status === "BORROWED" && (
                     <button
                       onClick={handleReturnBook}
-                      className={`flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                      disabled={
+                        (returnBookMutation.isPending &&
+                          returningRecordIdRef.current === record.id) ||
+                        returningRecordIdRef.current === record.id
+                      }
+                      className={`flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                         isOverdue
                           ? "bg-red-600 text-white hover:bg-red-700"
                           : "bg-orange-600 text-white hover:bg-orange-700"
                       }`}
                     >
                       <RotateCcw className="size-4" />
-                      <span>Return Book</span>
+                      <span>
+                        {returningRecordIdRef.current === record.id
+                          ? "Returning..."
+                          : "Return Book"}
+                      </span>
                     </button>
                   )}
 
@@ -794,10 +883,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       // React.memo comparison returns TRUE if props are EQUAL (skip re-render)
       // Returns FALSE if props are DIFFERENT (re-render)
       // Compare all critical fields that affect rendering
-      
+
       // Quick reference equality check first (fastest)
-      if (prevProps.record === nextProps.record && 
-          prevProps.showCountdown === nextProps.showCountdown) {
+      if (
+        prevProps.record === nextProps.record &&
+        prevProps.showCountdown === nextProps.showCountdown
+      ) {
         return true; // Same reference, skip re-render
       }
 

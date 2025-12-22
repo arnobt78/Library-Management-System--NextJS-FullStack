@@ -55,6 +55,10 @@ import {
   invalidateAfterReviewChange,
   invalidateAfterAdminChange,
   invalidateAfterRecommendationChange,
+  invalidateBooksQueries,
+  invalidateReviewsQueries,
+  invalidateAnalyticsQueries,
+  invalidateAdminQueries,
 } from "@/lib/utils/queryInvalidation";
 // BookParams is a global type from types.d.ts, no import needed
 
@@ -689,9 +693,107 @@ export const useReturnBook = () => {
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (borrows, books, reviews, analytics, admin)
-      invalidateAfterBorrowChange(queryClient);
+    // CRITICAL: Optimistic update - update cache immediately on click
+    // This eliminates flicker by updating UI instantly before server responds
+    onMutate: async ({ recordId }) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["user-borrows"] });
+
+      // Get all user-borrows queries for rollback
+      const previousQueries: Array<{
+        queryKey: unknown[];
+        data: unknown;
+      }> = [];
+
+      // Find and update all user-borrows queries (for all status filters)
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .forEach((query) => {
+          const queryKey = query.queryKey;
+          if (
+            Array.isArray(queryKey) &&
+            queryKey[0] === "user-borrows" &&
+            query.state.data
+          ) {
+            const data = query.state.data as Array<{
+              id: string;
+              status: string;
+              returnDate?: string | null;
+              fineAmount?: number | string | null;
+              [key: string]: unknown;
+            }>;
+
+            // Store previous data for rollback
+            previousQueries.push({
+              queryKey,
+              data: JSON.parse(JSON.stringify(data)), // Deep clone
+            });
+
+            // Find and update the record optimistically
+            const updatedData = data.map((record) => {
+              if (record.id === recordId) {
+                const today = new Date().toISOString().split("T")[0];
+                return {
+                  ...record,
+                  status: "RETURNED",
+                  returnDate: today,
+                  // Preserve existing fineAmount or set to 0
+                  fineAmount: record.fineAmount || "0.00",
+                };
+              }
+              return record;
+            });
+
+            // Update cache immediately
+            queryClient.setQueryData(queryKey, updatedData);
+          }
+        });
+
+      // Return context for rollback
+      return { previousQueries };
+    },
+    // CRITICAL: On success, update cache with server response and invalidate silently
+    // The optimistic update already showed the change, so we just sync with server
+    onSuccess: (data, variables, context) => {
+      // Update cache with server response (in case server made additional changes)
+      // This ensures fineAmount and other server-calculated fields are correct
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(({ queryKey }) => {
+          const currentData = queryClient.getQueryData(queryKey) as Array<{
+            id: string;
+            status: string;
+            fineAmount?: number | string | null;
+            [key: string]: unknown;
+          }>;
+
+          if (currentData) {
+            const updatedData = currentData.map((record) => {
+              if (record.id === variables.recordId) {
+                return {
+                  ...record,
+                  // Update fineAmount from server response if available
+                  fineAmount:
+                    data?.fineAmount !== undefined
+                      ? data.fineAmount.toString()
+                      : record.fineAmount || "0.00",
+                };
+              }
+              return record;
+            });
+            queryClient.setQueryData(queryKey, updatedData);
+          }
+        });
+      }
+
+      // CRITICAL: Invalidate related queries EXCEPT user-borrows (already updated optimistically)
+      // This prevents unnecessary refetches that cause flicker
+      // Only invalidate queries that are affected but not already updated
+      invalidateBooksQueries(queryClient); // Book availability changes
+      invalidateReviewsQueries(queryClient); // Eligibility may change
+      invalidateAnalyticsQueries(queryClient);
+      invalidateAdminQueries(queryClient);
+      // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
 
       // Show success toast (with fine info if overdue)
       const bookTitle = variables.bookTitle || "Book";
@@ -708,7 +810,15 @@ export const useReturnBook = () => {
         showToast.book.returnSuccess(bookTitle);
       }
     },
-    onError: (error: Error, variables) => {
+    // CRITICAL: Rollback optimistic update on error
+    onError: (error: Error, variables, context) => {
+      // Restore previous cache data
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(({ queryKey, data }) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+
       // Show error toast
       const bookTitle = variables.bookTitle || "book";
       showToast.book.returnError(
@@ -1383,7 +1493,7 @@ export const useRefreshRecommendationCache = () => {
       const result = await refreshRecommendationCache();
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
       invalidateAfterRecommendationChange(queryClient);
 
@@ -1397,7 +1507,8 @@ export const useRefreshRecommendationCache = () => {
       // Show error toast
       showToast.error(
         "Failed to Refresh Cache",
-        error.message || "Unable to refresh recommendation cache. Please try again."
+        error.message ||
+          "Unable to refresh recommendation cache. Please try again."
       );
     },
   });
