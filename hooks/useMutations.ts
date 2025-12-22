@@ -55,8 +55,10 @@ import {
   invalidateAfterReviewChange,
   invalidateAfterAdminChange,
   invalidateAfterRecommendationChange,
-  invalidateBooksQueries,
-  invalidateReviewsQueries,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  invalidateBooksQueries, // Used indirectly via invalidateAfter* functions
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  invalidateReviewsQueries, // Used indirectly via invalidateAfter* functions
   invalidateAnalyticsQueries,
   invalidateAdminQueries,
 } from "@/lib/utils/queryInvalidation";
@@ -730,17 +732,53 @@ export const useBorrowBook = () => {
         });
       }
 
-      // CRITICAL: Invalidate related queries EXCEPT user-borrows (already updated optimistically)
-      // This prevents unnecessary refetches that cause flicker
-      invalidateBooksQueries(queryClient); // Book availability changes
-      invalidateReviewsQueries(queryClient); // Eligibility may change
-      invalidateAnalyticsQueries(queryClient);
-      invalidateAdminQueries(queryClient);
-      // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
+      // CRITICAL: Delay invalidations and toast to prevent flicker
+      // The optimistic update already shows the change, so we delay related invalidations
+      // This prevents immediate refetches that cause flicker
+      setTimeout(() => {
+        // Invalidate related queries EXCEPT user-borrows (already updated optimistically)
+        // Use refetchType: "none" to just mark as stale without immediate refetch
+        queryClient.invalidateQueries({
+          queryKey: ["books"],
+          exact: false,
+          refetchType: "none", // Don't refetch immediately, just mark as stale
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["all-books"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["book"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["book-borrow-stats"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["book-reviews"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["review-eligibility"],
+          exact: false,
+          refetchType: "none",
+        });
+        invalidateAnalyticsQueries(queryClient);
+        invalidateAdminQueries(queryClient);
+        // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
+      }, 100); // Small delay to let UI settle
 
-      // Show success toast
-      const bookTitle = variables.bookTitle || "Book";
-      showToast.book.borrowSuccess(bookTitle);
+      // CRITICAL: Delay toast notification to prevent immediate re-render
+      // This prevents the toast from causing flicker during the optimistic update
+      setTimeout(() => {
+        const bookTitle = variables.bookTitle || "Book";
+        showToast.book.borrowSuccess(bookTitle);
+      }, 150); // Delay toast slightly after invalidations
     },
     // CRITICAL: Rollback optimistic update on error
     onError: (error: Error, variables, context) => {
@@ -1057,29 +1095,64 @@ export const useReturnBook = () => {
         });
       }
 
-      // CRITICAL: Invalidate related queries EXCEPT user-borrows (already updated optimistically)
-      // This prevents unnecessary refetches that cause flicker
-      // Only invalidate queries that are affected but not already updated
-      invalidateBooksQueries(queryClient); // Book availability changes
-      invalidateReviewsQueries(queryClient); // Eligibility may change
-      invalidateAnalyticsQueries(queryClient);
-      invalidateAdminQueries(queryClient);
-      // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
+      // CRITICAL: Delay invalidations and toast to prevent flicker
+      // The optimistic update already shows the change, so we delay related invalidations
+      // This prevents immediate refetches that cause flicker
+      setTimeout(() => {
+        // Invalidate related queries EXCEPT user-borrows (already updated optimistically)
+        // Use refetchType: "none" to just mark as stale without immediate refetch
+        queryClient.invalidateQueries({
+          queryKey: ["books"],
+          exact: false,
+          refetchType: "none", // Don't refetch immediately, just mark as stale
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["all-books"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["book"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["book-borrow-stats"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["book-reviews"],
+          exact: false,
+          refetchType: "none",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["review-eligibility"],
+          exact: false,
+          refetchType: "none",
+        });
+        invalidateAnalyticsQueries(queryClient);
+        invalidateAdminQueries(queryClient);
+        // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
+      }, 100); // Small delay to let UI settle
 
-      // Show success toast (with fine info if overdue)
-      const bookTitle = variables.bookTitle || "Book";
-      if (
-        data?.isOverdue &&
-        data.daysOverdue !== undefined &&
-        data.fineAmount !== undefined
-      ) {
-        showToast.warning(
-          "Book Returned with Fine",
-          `"${bookTitle}" was returned ${data.daysOverdue} days overdue. Fine: $${data.fineAmount.toFixed(2)}`
-        );
-      } else {
-        showToast.book.returnSuccess(bookTitle);
-      }
+      // CRITICAL: Delay toast notification to prevent immediate re-render
+      // This prevents the toast from causing flicker during the optimistic update
+      setTimeout(() => {
+        const bookTitle = variables.bookTitle || "Book";
+        if (
+          data?.isOverdue &&
+          data.daysOverdue !== undefined &&
+          data.fineAmount !== undefined
+        ) {
+          showToast.warning(
+            "Book Returned with Fine",
+            `"${bookTitle}" was returned ${data.daysOverdue} days overdue. Fine: $${data.fineAmount.toFixed(2)}`
+          );
+        } else {
+          showToast.book.returnSuccess(bookTitle);
+        }
+      }, 150); // Delay toast slightly after invalidations
     },
     // CRITICAL: Rollback optimistic update on error
     onError: (error: Error, variables, context) => {
