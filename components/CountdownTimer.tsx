@@ -32,13 +32,18 @@ const CountdownTimer: React.FC<CountdownTimerProps> = React.memo(({
     isOverdue: false,
   });
 
+  // CRITICAL: Use timestamp instead of Date object to prevent unnecessary effect runs
+  // This ensures the effect only runs when the actual due date changes, not when
+  // a new Date object with the same timestamp is passed
+  const dueDateTimestamp = dueDate.getTime();
+
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
 
     const calculateTimeLeft = () => {
       try {
         const now = new Date().getTime();
-        const due = new Date(dueDate).getTime();
+        const due = dueDateTimestamp;
         const difference = due - now;
 
         if (difference > 0) {
@@ -94,7 +99,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = React.memo(({
         timer = null;
       }
     };
-  }, [dueDate]);
+  }, [dueDateTimestamp]); // Use timestamp instead of Date object to prevent unnecessary re-runs
 
   const getBadgeVariant = () => {
     if (timeLeft.isOverdue) return "destructive";
