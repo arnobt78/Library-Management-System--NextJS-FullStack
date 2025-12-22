@@ -34,10 +34,14 @@ const LogoutButton: React.FC = () => {
       // Show toast notification first
       showToast.auth.logoutSuccess();
 
-      // CRITICAL: Clear React Query cache before logout
-      // This ensures no stale data persists after logout
-      invalidateAllQueries(queryClient);
-      queryClient.clear();
+      // CRITICAL: Set logout flag to prevent UI updates during logout
+      // This prevents flickering/blinking of images and components during logout transition
+      document.cookie = "logout-in-progress=true; path=/; max-age=10; SameSite=Lax";
+
+      // CRITICAL: Don't invalidate queries during logout - it causes unnecessary refetches
+      // and flickering. The queries will naturally fail/clear when session is gone.
+      // We'll clear the cache after redirect completes.
+      // invalidateAllQueries(queryClient); // Removed to prevent flicker during logout
 
       // CRITICAL: Use NextAuth's standard built-in redirect
       // This is the recommended approach - NextAuth handles:
@@ -49,6 +53,14 @@ const LogoutButton: React.FC = () => {
         redirect: true, // Standard NextAuth redirect (handles everything)
         callbackUrl: "/sign-in", // Where to redirect after logout
       });
+
+      // CRITICAL: Clear cache AFTER redirect completes (longer delay)
+      // This ensures smooth transition - UI stays intact during entire logout process
+      // The redirect happens immediately, but we wait longer to ensure page has navigated
+      // before clearing cache. This prevents images from disappearing during logout.
+      setTimeout(() => {
+        queryClient.clear();
+      }, 500); // Longer delay to ensure redirect has completed and page has navigated
     } catch (error) {
       console.error("Logout error:", error);
       setIsLoggingOut(false);

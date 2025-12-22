@@ -177,6 +177,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // This prevents flicker from multiple re-renders during React Query refetch cycles
   const stableDataRef = React.useRef<BorrowRecordWithBook[]>([]);
   const previousDataHashRef = React.useRef<string>("");
+  // CRITICAL: Store latest reactQueryBorrows in ref to avoid stale closures
+  // This allows us to access latest data in effect without adding it to dependency array
+  const latestDataRef = React.useRef(reactQueryBorrows);
+  React.useEffect(() => {
+    latestDataRef.current = reactQueryBorrows;
+  }, [reactQueryBorrows]);
 
   // Calculate hash from current data (only when data exists)
   const currentDataHash = React.useMemo(() => {
@@ -197,14 +203,28 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
   // Transform data only when hash actually changes
   React.useEffect(() => {
-    if (!reactQueryBorrows || reactQueryBorrows.length === 0) {
+    // CRITICAL: Skip updates during logout to prevent flickering
+    // Check for logout-in-progress cookie to prevent unnecessary updates
+    const isLoggingOut = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("logout-in-progress="))
+      ?.split("=")[1] === "true";
+
+    if (isLoggingOut) {
+      // During logout, preserve existing data and skip all updates
+      // This prevents flickering/blinking during logout transition
+      return;
+    }
+
+    const currentData = latestDataRef.current;
+    if (!currentData || currentData.length === 0) {
       if (stableDataRef.current.length === 0) {
         return; // No data to show, keep empty
       }
-      // If we had data but now it's empty, clear it
-      stableDataRef.current = [];
-      previousDataHashRef.current = "";
-      return;
+      // CRITICAL: Don't clear data when query becomes empty (e.g., during logout)
+      // Preserve existing data to prevent UI flicker/disappearance during transitions
+      // The data will naturally be replaced when new data arrives or component unmounts
+      return; // Keep existing data intact
     }
 
     // If hash hasn't changed, keep previous data (prevents flicker)
@@ -218,7 +238,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     // Hash changed, transform the data
     previousDataHashRef.current = currentDataHash;
 
-    const transformed = (reactQueryBorrows as BorrowRecord[]).map((record) => {
+    const transformed = (currentData as BorrowRecord[]).map((record) => {
       const recordWithBook = record as BorrowRecord & { book?: Book };
 
       // CRITICAL: Reuse existing Date objects from previous transformation if timestamps match
@@ -296,7 +316,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
     // Update stable reference only when data actually changes
     stableDataRef.current = transformed;
-  }, [currentDataHash, reactQueryBorrows]);
+  }, [currentDataHash]); // CRITICAL: Only depend on hash, not reactQueryBorrows reference
+  // This prevents effect from running on every refetch when data hasn't actually changed
 
   // Use stable ref data - this reference only changes when data actually changes
   const allBorrowsFromQuery: BorrowRecordWithBook[] = stableDataRef.current;
