@@ -1,116 +1,76 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * FineManagement Component
+ *
+ * Component for managing fine configuration. Uses React Query hooks.
+ * Integrates with useFineConfig query and useUpdateFineConfig mutation.
+ *
+ * Features:
+ * - Uses useFineConfig hook for fetching current fine amount
+ * - Uses useUpdateFineConfig mutation for updating fine amount
+ * - Automatic cache invalidation on success
+ * - Toast notifications via mutation callbacks
+ */
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useFineConfig } from "@/hooks/useQueries";
+import { useUpdateFineConfig, useUpdateOverdueFines } from "@/hooks/useMutations";
 
 export default function FineManagement() {
-  const [fineAmount, setFineAmount] = useState<number>(1.0);
-  const [editableAmount, setEditableAmount] = useState<number>(1.0);
+  // Use React Query hook for fetching fine config
+  const { data: fineConfig, isLoading: configLoading } = useFineConfig();
+  
+  // Use React Query mutations
+  const updateFineConfigMutation = useUpdateFineConfig();
+  const updateOverdueFinesMutation = useUpdateOverdueFines();
+
+  const fineAmount = fineConfig?.fineAmount || 1.0;
+  const [editableAmount, setEditableAmount] = useState<number>(fineAmount);
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
-  // Load current fine amount on component mount
+  // Update editable amount when fine config loads
   useEffect(() => {
-    const loadFineAmount = async () => {
-      try {
-        const response = await fetch("/api/admin/fine-config");
-        const result = await response.json();
-        if (result.success) {
-          setFineAmount(result.fineAmount);
-          setEditableAmount(result.fineAmount);
-        }
-      } catch (error) {
-        console.error("Failed to load fine amount:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load fine amount",
-          variant: "destructive",
-        });
-      }
-    };
-
-    loadFineAmount();
-  }, [toast]);
+    if (fineConfig?.fineAmount) {
+      setEditableAmount(fineConfig.fineAmount);
+    }
+  }, [fineConfig?.fineAmount]);
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditableAmount(fineAmount);
   };
 
-  const handleSaveAmount = async () => {
+  const handleSaveAmount = () => {
     if (isNaN(editableAmount) || editableAmount < 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid fine amount",
-        variant: "destructive",
-      });
-      return;
+      return; // Validation handled by mutation
     }
 
-    setLoading(true);
-    try {
-      // First, save the new fine amount
-      const configResponse = await fetch("/api/admin/fine-config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    // First, update fine config
+    updateFineConfigMutation.mutate(
+      {
+        fineAmount: editableAmount,
+        updatedBy: "admin",
+      },
+      {
+        onSuccess: () => {
+          // Then, update overdue fines with the new amount
+          updateOverdueFinesMutation.mutate(
+            {
+              customFineAmount: editableAmount,
+            },
+            {
+              onSuccess: (data) => {
+                setIsEditing(false);
+                // Cache invalidation handled by mutations
+                // No need to reload page - React Query will update UI
+              },
+            }
+          );
         },
-        body: JSON.stringify({
-          fineAmount: editableAmount,
-          updatedBy: "admin",
-        }),
-      });
-
-      const configResult = await configResponse.json();
-      if (!configResult.success) {
-        toast({
-          title: "Error",
-          description: configResult.error || "Failed to update fine amount",
-          variant: "destructive",
-        });
-        return;
       }
-
-      // Then, update overdue fines with the new amount
-      const finesResponse = await fetch("/api/admin/update-overdue-fines", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fineAmount: editableAmount,
-        }),
-      });
-
-      const finesResult = await finesResponse.json();
-      if (finesResult.success) {
-        setFineAmount(editableAmount);
-        setIsEditing(false);
-        toast({
-          title: "Success",
-          description: `Fine amount updated to $${editableAmount} per day and applied to ${finesResult.results.length} overdue books`,
-        });
-        // Reload the page to show updated information
-        window.location.reload();
-      } else {
-        toast({
-          title: "Error",
-          description: finesResult.error || "Failed to update overdue fines",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to update fine amount:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update fine amount",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   const handleEditMode = () => {
@@ -156,8 +116,8 @@ export default function FineManagement() {
                   autoFocus
                 />
               ) : (
-                <span className=" w-20 rounded bg-blue-100 px-2 py-1 text-sm font-medium text-white">
-                  {fineAmount.toFixed(2)}
+                <span className="w-20 rounded bg-blue-100 px-2 py-1 text-sm font-medium text-blue-900">
+                  {configLoading ? "..." : fineAmount.toFixed(2)}
                 </span>
               )}
               <span className="text-sm text-blue-700">per day</span>
@@ -168,16 +128,26 @@ export default function FineManagement() {
               <>
                 <Button
                   onClick={handleSaveAmount}
-                  disabled={loading}
+                  disabled={
+                    updateFineConfigMutation.isPending ||
+                    updateOverdueFinesMutation.isPending ||
+                    configLoading
+                  }
                   variant="outline"
                   size="sm"
                   className="border-green-200 bg-green-100 text-green-700 hover:bg-green-200"
                 >
-                  {loading ? "Saving..." : "Save Fine"}
+                  {updateFineConfigMutation.isPending ||
+                  updateOverdueFinesMutation.isPending
+                    ? "Saving..."
+                    : "Save Fine"}
                 </Button>
                 <Button
                   onClick={handleCancelEdit}
-                  disabled={loading}
+                  disabled={
+                    updateFineConfigMutation.isPending ||
+                    updateOverdueFinesMutation.isPending
+                  }
                   variant="outline"
                   size="sm"
                   className="border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -188,12 +158,12 @@ export default function FineManagement() {
             ) : (
               <Button
                 onClick={handleEditMode}
-                disabled={loading}
+                disabled={configLoading}
                 variant="outline"
                 size="sm"
                 className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
               >
-                {loading ? "Updating..." : "Update Fines"}
+                Update Fines
               </Button>
             )}
           </div>

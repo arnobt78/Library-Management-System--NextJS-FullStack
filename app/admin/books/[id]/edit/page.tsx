@@ -22,7 +22,7 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
       </Button>
 
       <section className="w-full max-w-2xl">
-        <BookForm type="UPDATE" {...book} />
+        <BookForm type="update" {...book} />
       </section>
     </>
   );

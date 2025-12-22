@@ -6,7 +6,12 @@ import { redirect } from "next/navigation";
 const Layout = async ({ children }: { children: ReactNode }) => {
   const session = await auth();
 
-  if (session) redirect("/");
+  // CRITICAL: Redirect authenticated users to home
+  // NextAuth's signOut already clears the session before redirecting here
+  // So if we reach this point with a session, user should be redirected to home
+  if (session) {
+    redirect("/");
+  }
 
   return (
     <main className="auth-container">

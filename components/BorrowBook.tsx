@@ -1,12 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+/**
+ * BorrowBook Component
+ *
+ * Button component for borrowing books. Uses React Query mutation.
+ * Integrates with useBorrowBook mutation for proper cache invalidation.
+ *
+ * Features:
+ * - Uses useBorrowBook mutation
+ * - Automatic cache invalidation on success
+ * - Toast notifications via mutation callbacks
+ * - Navigation to profile page on success
+ */
+
+import React from "react";
 import { Button } from "@/components/ui/button";
-// import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { toast } from "@/hooks/use-toast";
-import { borrowBook } from "@/lib/actions/book";
 import { BookOpen } from "lucide-react";
+import { useBorrowBook } from "@/hooks/useMutations";
 
 interface Props {
   userId: string;
@@ -20,68 +31,47 @@ interface Props {
 const BorrowBook = ({
   userId,
   bookId,
-  borrowingEligibility: { isEligible, message },
+  borrowingEligibility: { isEligible },
 }: Props) => {
   const router = useRouter();
-  const [borrowing, setBorrowing] = useState(false);
 
-  const handleBorrowBook = async () => {
+  // Use React Query mutation for borrowing book
+  const borrowBookMutation = useBorrowBook();
+
+  const handleBorrowBook = () => {
     if (!isEligible) {
-      toast({
-        title: "⚠️ Cannot Borrow Book",
-        description: message,
-        variant: "destructive",
-      });
-      return;
+      return; // Validation handled by mutation
     }
 
-    setBorrowing(true);
-
-    try {
-      const result = await borrowBook({ bookId, userId });
-
-      if (result.success) {
-        toast({
-          title: "📚 Borrow Request Submitted!",
-          description:
-            "Your borrow request has been submitted and is pending admin approval. Check your profile for updates.",
-        });
-
-        // Use setTimeout to ensure the toast is shown before navigation
-        setTimeout(() => {
+    // Use mutation to borrow book
+    borrowBookMutation.mutate(
+      {
+        userId,
+        bookId,
+      },
+      {
+        onSuccess: () => {
+          // Navigate immediately - React Query placeholderData will show previous data
+          // during refetch, preventing flicker. Our memoization ensures components
+          // don't re-render unnecessarily.
           router.push("/my-profile");
-        }, 100);
-      } else {
-        toast({
-          title: "❌ Borrowing Failed",
-          description:
-            result.error ||
-            "Unable to borrow the book at this time. Please try again later.",
-          variant: "destructive",
-        });
+        },
+        onError: (error) => {
+          console.error("[BorrowBook] Mutation error:", error);
+        },
       }
-    } catch (error) {
-      console.error("Borrow book error:", error);
-      toast({
-        title: "❌ Network Error",
-        description:
-          "Unable to connect to the server. Please check your internet connection and try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setBorrowing(false);
-    }
+    );
   };
 
   return (
     <Button
       className="hover:bg-primary/90 mt-4 min-h-14 w-fit bg-primary text-dark-100 max-md:w-full"
       onClick={handleBorrowBook}
-      disabled={borrowing}
+      disabled={borrowBookMutation.isPending || !isEligible}
     >
       <BookOpen className="size-5 text-dark-100" />
       <p className="font-bebas-neue text-xl text-dark-100">
-        {borrowing ? "Borrowing ..." : "Borrow Book"}
+        {borrowBookMutation.isPending ? "Borrowing ..." : "Borrow Book"}
       </p>
     </Button>
   );

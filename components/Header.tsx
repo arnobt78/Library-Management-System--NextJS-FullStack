@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Session } from "next-auth";
-import { logoutAction } from "@/lib/actions/logout";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import AdminDropdown from "@/components/AdminDropdown";
+import LogoutButton from "@/components/LogoutButton";
 
 interface HeaderProps {
   session: Session;
@@ -73,9 +72,7 @@ const Header = async ({ session }: HeaderProps) => {
 
         {/* Logout button */}
         <li>
-          <form action={logoutAction} className="mb-0 text-dark-100">
-            <Button>Logout</Button>
-          </form>
+          <LogoutButton />
         </li>
       </ul>
     </header>

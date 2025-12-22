@@ -1,5 +1,6 @@
 import BookList from "@/components/BookList";
 import BookOverview from "@/components/BookOverview";
+import HomeRecommendations from "@/components/HomeRecommendations";
 import PerformanceWrapper from "@/components/PerformanceWrapper";
 import { db } from "@/database/drizzle";
 import { books, users, borrowRecords } from "@/database/schema";
@@ -109,11 +110,11 @@ const Home = async () => {
     <PerformanceWrapper pageName="home">
       <BookOverview {...latestBooks[0]} userId={session?.user?.id as string} />
 
-      <BookList
-        title="Book Recommendations"
-        books={recommendedBooks}
-        containerClassName="mt-24"
-        showViewAllButton={true}
+      {/* Book Recommendations with React Query */}
+      <HomeRecommendations
+        initialRecommendations={recommendedBooks}
+        userId={session?.user?.id}
+        limit={6}
       />
     </PerformanceWrapper>
   );

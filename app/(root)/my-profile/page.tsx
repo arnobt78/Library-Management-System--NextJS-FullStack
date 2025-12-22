@@ -99,9 +99,10 @@ const Page = async () => {
 
   return (
     <MyProfileTabs
-      activeBorrows={activeBorrows}
-      pendingRequests={pendingRequests}
-      borrowHistory={borrowHistory}
+      userId={session.user.id}
+      initialActiveBorrows={activeBorrows}
+      initialPendingRequests={pendingRequests}
+      initialBorrowHistory={borrowHistory}
       totalReviews={totalReviews}
     />
   );

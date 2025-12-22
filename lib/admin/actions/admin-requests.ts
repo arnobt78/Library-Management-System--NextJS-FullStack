@@ -11,11 +11,11 @@ export interface AdminRequest {
   userFullName: string;
   requestReason: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
-  reviewedBy?: string;
-  reviewedAt?: Date;
-  rejectionReason?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  reviewedBy: string | null | undefined;
+  reviewedAt: Date | null | undefined;
+  rejectionReason: string | null | undefined;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 export interface CreateAdminRequestResult {

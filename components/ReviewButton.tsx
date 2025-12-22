@@ -1,9 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+/**
+ * ReviewButton Component
+ *
+ * Button component for reviewing books. Uses React Query hook for eligibility check.
+ * Integrates with useReviewEligibility hook and useCreateReview mutation.
+ *
+ * Features:
+ * - Uses useReviewEligibility hook for eligibility check
+ * - Shows loading state while checking eligibility
+ * - Displays appropriate button state based on eligibility
+ * - Opens ReviewFormDialog when eligible
+ */
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import ReviewFormDialog from "@/components/ReviewFormDialog";
 import { MessageCircle } from "lucide-react";
+import { useReviewEligibility } from "@/hooks/useQueries";
 
 interface ReviewButtonProps {
   bookId: string;
@@ -14,38 +28,26 @@ export default function ReviewButton({
   bookId,
   userId: _userId,
 }: ReviewButtonProps) {
-  const [canReview, setCanReview] = useState(false);
-  const [hasExistingReview, setHasExistingReview] = useState(false);
-  const [isCurrentlyBorrowed, setIsCurrentlyBorrowed] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
 
-  const checkReviewEligibility = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/reviews/eligibility/${bookId}`);
-      const result = await response.json();
+  // Use React Query hook for eligibility check
+  const {
+    data: eligibility,
+    isLoading,
+    isError,
+  } = useReviewEligibility(bookId);
 
-      if (result.success) {
-        setCanReview(result.canReview);
-        setHasExistingReview(result.hasExistingReview);
-        setIsCurrentlyBorrowed(result.isCurrentlyBorrowed);
-      }
-    } catch (error) {
-      console.error("Error checking review eligibility:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [bookId]);
-
-  useEffect(() => {
-    checkReviewEligibility();
-  }, [checkReviewEligibility]);
+  const canReview = eligibility?.canReview || false;
+  const hasExistingReview = eligibility?.hasExistingReview || false;
+  const isCurrentlyBorrowed = eligibility?.isCurrentlyBorrowed || false;
 
   const handleReviewSubmitted = () => {
     setShowDialog(false);
-    setHasExistingReview(true);
-    // Refresh the page to show the new review
-    window.location.reload();
+    // CRITICAL: No manual invalidation needed here
+    // The useCreateReview mutation in ReviewFormDialog already handles
+    // all cache invalidation via invalidateAfterReviewChange()
+    // which invalidates reviews, books, and analytics queries
+    // Manual invalidation here would cause redundant refetches
   };
 
   if (isLoading) {

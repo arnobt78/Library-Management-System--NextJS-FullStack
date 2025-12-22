@@ -416,9 +416,11 @@ export async function getReminderStats() {
       ),
   ]);
 
+  // CRITICAL: Convert database count results to numbers
+  // PostgreSQL count() may return string or BigInt, so we explicitly convert
   return {
-    dueSoon: dueSoonCount[0]?.count || 0,
-    overdue: overdueCount[0]?.count || 0,
-    remindersSentToday: remindersSentToday[0]?.count || 0,
+    dueSoon: Number(dueSoonCount[0]?.count || 0),
+    overdue: Number(overdueCount[0]?.count || 0),
+    remindersSentToday: Number(remindersSentToday[0]?.count || 0),
   };
 }

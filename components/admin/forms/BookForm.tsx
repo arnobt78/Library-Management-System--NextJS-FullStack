@@ -19,9 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import FileUpload from "@/components/FileUpload";
 import ColorPicker from "@/components/admin/ColorPicker";
-import { createBook } from "@/lib/admin/actions/book";
-import { updateBook } from "@/lib/admin/actions/book";
-import { showToast } from "@/lib/toast";
+import { useCreateBook, useUpdateBook } from "@/hooks/useMutations";
 import { useSession } from "next-auth/react";
 
 interface Props extends Partial<Book> {
@@ -31,6 +29,10 @@ interface Props extends Partial<Book> {
 const BookForm = ({ type = "create", ...book }: Props) => {
   const router = useRouter();
   const { data: session } = useSession();
+
+  // React Query mutations
+  const createBookMutation = useCreateBook();
+  const updateBookMutation = useUpdateBook();
 
   type BookFormValues = z.infer<typeof bookSchema>;
 
@@ -62,34 +64,35 @@ const BookForm = ({ type = "create", ...book }: Props) => {
     const updatedBy = session?.user?.id || undefined;
 
     if (type === "create") {
-      const result = await createBook({ ...values, updatedBy });
-
-      if (result.success) {
-        showToast.book.createSuccess(values.title);
-        router.push(`/admin/books`);
-      } else {
-        showToast.error(
-          "Creation Failed",
-          result.message ||
-            "Unable to create the book. Please check your input and try again."
-        );
-      }
+      // Use React Query mutation for creating book
+      createBookMutation.mutate(
+        { ...values, updatedBy },
+        {
+          onSuccess: async () => {
+            // Wait a brief moment for cache invalidation to complete
+            // This ensures queries refetch before navigation
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            // Navigate to books list after successful creation
+            // Toast is already shown by the mutation hook
+            router.push(`/admin/books`);
+          },
+        }
+      );
     } else {
-      const result = await updateBook(book.id!, { ...values, updatedBy });
-
-      if (result.success) {
-        showToast.success(
-          "Book Updated",
-          `"${values.title}" has been updated successfully.`
-        );
-        router.push(`/admin/books`);
-      } else {
-        showToast.error(
-          "Update Failed",
-          result.message ||
-            "Unable to update the book. Please check your input and try again."
-        );
-      }
+      // Use React Query mutation for updating book
+      updateBookMutation.mutate(
+        { bookId: book.id!, ...values, updatedBy },
+        {
+          onSuccess: async () => {
+            // Wait a brief moment for cache invalidation to complete
+            // This ensures queries refetch before navigation
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            // Navigate to books list after successful update
+            // Toast is already shown by the mutation hook
+            router.push(`/admin/books`);
+          },
+        }
+      );
     }
   };
 

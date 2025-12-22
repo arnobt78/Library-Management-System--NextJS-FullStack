@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/database/drizzle";
 import { books, users, borrowRecords } from "@/database/schema";
 import { eq, sql, inArray, and } from "drizzle-orm";

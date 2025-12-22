@@ -8,7 +8,13 @@ interface CountdownTimerProps {
   borrowDate: Date;
 }
 
-const CountdownTimer: React.FC<CountdownTimerProps> = ({
+/**
+ * CountdownTimer - Displays remaining time until due date
+ * 
+ * CRITICAL: Memoized to prevent unnecessary re-renders when parent component updates.
+ * Only recalculates when dueDate actually changes.
+ */
+const CountdownTimer: React.FC<CountdownTimerProps> = React.memo(({
   dueDate,
   borrowDate: _borrowDate,
 }) => {
@@ -109,6 +115,13 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
       {getBadgeText()}
     </Badge>
   );
-};
+}, (prevProps, nextProps) => {
+  // CRITICAL: Only re-render if dueDate actually changes
+  // This prevents flicker when parent component re-renders but dueDate is the same
+  return prevProps.dueDate.getTime() === nextProps.dueDate.getTime();
+});
+
+// Set display name for React DevTools
+CountdownTimer.displayName = "CountdownTimer";
 
 export default CountdownTimer;

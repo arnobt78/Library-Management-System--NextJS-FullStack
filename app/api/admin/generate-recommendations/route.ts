@@ -1,0 +1,93 @@
+/**
+ * Admin Generate Recommendations API Route
+ *
+ * POST /api/admin/generate-recommendations
+ *
+ * Purpose: Generate personalized recommendations for all users.
+ *
+ * Returns:
+ * - success: boolean
+ * - results: Array of { userId, recommendations }
+ * - totalUsers: number
+ * - totalRecommendations: number
+ *
+ * IMPORTANT: This route uses Node.js runtime (not Edge) because it needs database access
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { generateAllUserRecommendations } from "@/lib/admin/actions/recommendations";
+import { auth } from "@/auth";
+import { db } from "@/database/drizzle";
+import { users } from "@/database/schema";
+import { eq } from "drizzle-orm";
+
+export const runtime = "nodejs";
+
+export async function POST(_request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Unauthorized",
+          message: "Authentication required",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is admin
+    let isAdmin = false;
+    if (session.user.role === "ADMIN") {
+      isAdmin = true;
+    } else {
+      const user = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1);
+
+      isAdmin = user[0]?.role === "ADMIN";
+    }
+
+    if (!isAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Forbidden",
+          message: "Admin access required",
+        },
+        { status: 403 }
+      );
+    }
+
+    const results = await generateAllUserRecommendations();
+    const totalUsers = results.length;
+    const totalRecommendations = results.reduce(
+      (sum, user) => sum + user.recommendations.length,
+      0
+    );
+
+    return NextResponse.json({
+      success: true,
+      results,
+      totalUsers,
+      totalRecommendations,
+      message: `Generated ${totalRecommendations} recommendations for ${totalUsers} users`,
+    });
+  } catch (error) {
+    console.error("Error generating recommendations:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to generate recommendations",
+        message:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      },
+      { status: 500 }
+    );
+  }
+}
+

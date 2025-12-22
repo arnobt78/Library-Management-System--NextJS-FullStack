@@ -1,3 +1,10 @@
+/**
+ * Admin Business Insights Page
+ *
+ * Server Component that fetches analytics data server-side for SSR.
+ * Passes initial data to Client Component for React Query integration.
+ */
+
 import React from "react";
 import {
   getBorrowingTrends,
@@ -10,68 +17,12 @@ import {
   getSystemHealth,
 } from "@/lib/admin/actions/analytics";
 import AnalyticsCharts from "@/components/AnalyticsCharts";
+import type { AnalyticsData } from "@/lib/services/analytics";
 
-// Define proper types
-interface AnalyticsData {
-  borrowingTrends: Array<{
-    date: string;
-    borrows: number;
-    returns: number;
-  }>;
-  popularBooks: Array<{
-    bookTitle: string;
-    totalBorrows: number;
-    activeBorrows: number;
-    returnedBorrows: number;
-  }>;
-  popularGenres: Array<{
-    genre: string;
-    totalBorrows: number;
-    uniqueBooks: number;
-  }>;
-  userActivity: Array<{
-    userName: string;
-    totalBorrows: number;
-    activeBorrows: number;
-    returnedBorrows: number;
-  }>;
-  overdueBooks: Array<{
-    recordId: string;
-    bookTitle: string;
-    bookAuthor: string;
-    userName: string;
-    userEmail: string;
-    borrowDate: Date;
-    dueDate: string | null;
-    daysOverdue: number;
-    fineAmount: string | null;
-  }>;
-  overdueStats: {
-    totalOverdue: number;
-    avgDaysOverdue: number;
-    totalFines: number;
-  };
-  monthlyStats: {
-    currentMonth: {
-      month: string;
-      borrows: number;
-    };
-    lastMonth: {
-      month: string;
-      borrows: number;
-    };
-  };
-  systemHealth: {
-    totalBooks: number;
-    totalUsers: number;
-    activeBorrows: number;
-    overdueBooks: number;
-    recentActivity: number;
-  };
-}
+export const runtime = "nodejs";
 
 const AnalyticsPage = async () => {
-  // Fetch all analytics data on the server
+  // Fetch all analytics data on the server for SSR
   const [
     borrowingTrends,
     popularBooks,
@@ -103,7 +54,7 @@ const AnalyticsPage = async () => {
     systemHealth,
   };
 
-  return <AnalyticsCharts data={data} />;
+  return <AnalyticsCharts initialData={data} />;
 };
 
 export default AnalyticsPage;

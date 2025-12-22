@@ -1,5 +1,18 @@
 "use client";
 
+/**
+ * AnalyticsCharts Component
+ *
+ * Client component that displays comprehensive analytics charts and metrics.
+ * Uses React Query for data fetching and caching, with SSR initial data support.
+ *
+ * Features:
+ * - Uses useBusinessInsights hook with initialData from SSR
+ * - Displays skeleton loaders while fetching
+ * - Shows error state if fetch fails
+ * - All existing UI, styling, and functionality preserved
+ */
+
 import React from "react";
 import {
   LineChart,
@@ -16,70 +29,127 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-interface AnalyticsData {
-  borrowingTrends: Array<{
-    date: string;
-    borrows: number;
-    returns: number;
-  }>;
-  popularBooks: Array<{
-    bookTitle: string;
-    totalBorrows: number;
-    activeBorrows: number;
-    returnedBorrows: number;
-  }>;
-  popularGenres: Array<{
-    genre: string;
-    totalBorrows: number;
-    uniqueBooks: number;
-  }>;
-  userActivity: Array<{
-    userName: string;
-    totalBorrows: number;
-    activeBorrows: number;
-    returnedBorrows: number;
-  }>;
-  overdueBooks: Array<{
-    recordId: string;
-    bookTitle: string;
-    bookAuthor: string;
-    userName: string;
-    userEmail: string;
-    borrowDate: Date;
-    dueDate: string | null;
-    daysOverdue: number;
-    fineAmount: string | null;
-  }>;
-  overdueStats: {
-    totalOverdue: number;
-    avgDaysOverdue: number;
-    totalFines: number;
-  };
-  monthlyStats: {
-    currentMonth: {
-      month: string;
-      borrows: number;
-    };
-    lastMonth: {
-      month: string;
-      borrows: number;
-    };
-  };
-  systemHealth: {
-    totalBooks: number;
-    totalUsers: number;
-    activeBorrows: number;
-    overdueBooks: number;
-    recentActivity: number;
-  };
-}
+import { useBusinessInsights } from "@/hooks/useQueries";
+import type { AnalyticsData } from "@/lib/services/analytics";
+import ChartSkeleton from "@/components/skeletons/ChartSkeleton";
+import GenericCardSkeleton from "@/components/skeletons/GenericCardSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AnalyticsChartsProps {
-  data: AnalyticsData;
+  /**
+   * Initial analytics data from SSR (prevents duplicate fetch)
+   */
+  initialData?: AnalyticsData;
 }
 
-const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data }) => {
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
+  // React Query hook with SSR initial data
+  const {
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    isError: analyticsError,
+    error: analyticsErrorData,
+  } = useBusinessInsights(
+    {
+      popularBooksLimit: 10,
+    },
+    initialData
+  );
+
+  // CRITICAL: Always prefer React Query data over initialData
+  // React Query data is fresh and updates immediately after mutations
+  // initialData is only used as fallback during initial load
+  const data: AnalyticsData | undefined = analyticsData ?? initialData;
+
+  // Show skeleton while loading (only if no initial data)
+  if (analyticsLoading && !initialData) {
+    return (
+      <div className="space-y-6">
+        {/* Page Header Skeleton */}
+        <div className="mb-8">
+          <Skeleton className="mb-2 h-9 w-64" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+
+        {/* Key Metrics Cards Skeleton */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <GenericCardSkeleton
+              key={`metric-skeleton-${i}`}
+              showHeader={false}
+              showFooter={false}
+              contentLines={2}
+              lineHeight={4}
+              useCardWrapper={false}
+              className="rounded-lg border bg-white p-6 shadow-sm"
+            />
+          ))}
+        </div>
+
+        {/* Charts Grid Skeleton */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={`chart-skeleton-${i}`}
+              className="rounded-lg border bg-white p-6 shadow-sm"
+            >
+              <Skeleton className="mb-4 h-7 w-40" />
+              <ChartSkeleton
+                variant={i === 2 ? "pie" : i % 2 === 0 ? "line" : "bar"}
+                height={300}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Overdue Books Table Skeleton */}
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <Skeleton className="mb-4 h-7 w-40" />
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={`table-row-skeleton-${i}`} className="flex gap-4">
+                <Skeleton className="h-6 flex-1" />
+                <Skeleton className="h-6 flex-1" />
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-6 w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (analyticsError && !initialData) {
+    return (
+      <div className="space-y-6">
+        <div className="py-8 text-center">
+          <p className="mb-2 text-lg font-semibold text-red-500">
+            Failed to load analytics data
+          </p>
+          <p className="text-sm text-gray-500">
+            {analyticsErrorData instanceof Error
+              ? analyticsErrorData.message
+              : "An unknown error occurred"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no data
+  if (!data) {
+    return (
+      <div className="space-y-6">
+        <div className="py-8 text-center">
+          <p className="text-lg font-semibold text-gray-500">
+            No analytics data available
+          </p>
+        </div>
+      </div>
+    );
+  }
   // Prepare data for charts
   const trendsData = data.borrowingTrends.map((trend) => ({
     date: new Date(trend.date).toLocaleDateString("en-US", {
@@ -233,7 +303,13 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={popularBooksData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="title" />
+              <XAxis
+                dataKey="title"
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                fontSize={11}
+              />
               <YAxis />
               <Tooltip />
               <Legend />
@@ -275,7 +351,13 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={userActivityData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
+              <XAxis
+                dataKey="name"
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                fontSize={11}
+              />
               <YAxis />
               <Tooltip />
               <Legend />

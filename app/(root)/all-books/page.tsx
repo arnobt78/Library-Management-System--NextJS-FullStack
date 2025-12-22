@@ -110,9 +110,9 @@ const Page = async ({
 
   return (
     <BookCollection
-      books={allBooks}
-      genres={genres}
-      searchParams={{
+      initialBooks={allBooks}
+      initialGenres={genres}
+      initialSearchParams={{
         search,
         genre,
         availability,
@@ -120,7 +120,7 @@ const Page = async ({
         sort,
         page,
       }}
-      pagination={{
+      initialPagination={{
         currentPage: page,
         totalPages,
         totalBooks,

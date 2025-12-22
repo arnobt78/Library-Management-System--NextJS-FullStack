@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * AccountRequestsClient Component
+ *
+ * Client component that displays pending user account requests for admin review.
+ * Uses React Query for data fetching and caching, with SSR initial data support.
+ *
+ * Features:
+ * - Uses usePendingUsers hook with initialData from SSR
+ * - Displays skeleton loaders while fetching
+ * - Shows error state if fetch fails
+ * - Integrates mutations for approving and rejecting users
+ * - Handles success/error messages from URL params
+ * - All existing UI, styling, and functionality preserved
+ */
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import config from "@/lib/config";
@@ -24,33 +39,115 @@ import {
   Shield,
   Clock,
 } from "lucide-react";
-
-interface User {
-  id: string;
-  fullName: string;
-  email: string;
-  universityId: number;
-  universityCard: string;
-  createdAt: Date | null;
-  status: "PENDING" | "APPROVED" | "REJECTED" | null;
-  role: "USER" | "ADMIN" | null;
-  password: string;
-  lastActivityDate: string | null;
-}
+import { usePendingUsers } from "@/hooks/useQueries";
+import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
+import UserSkeleton from "@/components/skeletons/UserSkeleton";
+import type { User as UserType } from "@/lib/services/users";
 
 interface AccountRequestsClientProps {
-  users: User[];
-  searchParams: { success?: string; error?: string };
-  approveAction: (userId: string) => Promise<void>;
-  rejectAction: (userId: string) => Promise<void>;
+  /**
+   * Initial pending users data from SSR (prevents duplicate fetch)
+   */
+  initialUsers?: UserType[];
+  /**
+   * Success message from URL params
+   */
+  successMessage?: string;
+  /**
+   * Error message from URL params
+   */
+  errorMessage?: string;
 }
 
 const AccountRequestsClient = ({
-  users,
-  searchParams,
-  approveAction,
-  rejectAction,
+  initialUsers,
+  successMessage,
+  errorMessage,
 }: AccountRequestsClientProps) => {
+  // React Query hook with SSR initial data
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    isError: usersError,
+    error: usersErrorData,
+  } = usePendingUsers(initialUsers);
+
+  // React Query mutations
+  const approveUserMutation = useApproveUser();
+  const rejectUserMutation = useRejectUser();
+
+  // CRITICAL: Always prefer React Query data over initial data
+  // React Query data is fresh and updates immediately after mutations
+  // initial data is only used as fallback during initial load
+  // Extract users from response
+  // usePendingUsers returns User[] directly (not wrapped in UsersListResponse)
+  const users: UserType[] = ((usersData ?? initialUsers) || []) as UserType[];
+
+  // Handler functions for mutations
+  const handleApproveUser = async (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    approveUserMutation.mutate({
+      userId,
+      userName: user?.fullName,
+    });
+  };
+
+  const handleRejectUser = async (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    rejectUserMutation.mutate({
+      userId,
+      userName: user?.fullName,
+    });
+  };
+
+  // Show skeleton while loading (only if no initial data)
+  if (usersLoading && (!initialUsers || initialUsers.length === 0)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Account Requests
+                </h1>
+                <p className="mt-2 text-gray-600">
+                  Review and approve pending user registrations
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+              <UserSkeleton key={`user-skeleton-${i}`} variant="card" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (usersError && (!initialUsers || initialUsers.length === 0)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="py-8 text-center">
+            <p className="mb-2 text-lg font-semibold text-red-500">
+              Failed to load account requests
+            </p>
+            <p className="text-sm text-gray-500">
+              {usersErrorData instanceof Error
+                ? usersErrorData.message
+                : "An unknown error occurred"}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="mx-auto max-w-7xl">
@@ -76,15 +173,15 @@ const AccountRequestsClient = ({
         </div>
 
         {/* Success/Error Messages */}
-        {searchParams.success && (
+        {successMessage && (
           <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
             <div className="flex items-center">
               <CheckCircle className="size-5 text-green-400" />
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-green-800">
-                  {searchParams.success === "account-approved" &&
+                  {successMessage === "account-approved" &&
                     "✅ Account Approved Successfully!"}
-                  {searchParams.success === "account-rejected" &&
+                  {successMessage === "account-rejected" &&
                     "✅ Account Rejected Successfully!"}
                 </h3>
               </div>
@@ -92,7 +189,7 @@ const AccountRequestsClient = ({
           </div>
         )}
 
-        {searchParams.error && (
+        {errorMessage && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
             <div className="flex items-center">
               <XCircle className="size-5 text-red-400" />
@@ -126,8 +223,11 @@ const AccountRequestsClient = ({
               <AccountRequestCard
                 key={user.id}
                 user={user}
-                approveAction={approveAction}
-                rejectAction={rejectAction}
+                onApprove={handleApproveUser}
+                onReject={handleRejectUser}
+                isPending={
+                  approveUserMutation.isPending || rejectUserMutation.isPending
+                }
               />
             ))}
           </div>
@@ -140,12 +240,14 @@ const AccountRequestsClient = ({
 // Account Request Card Component
 const AccountRequestCard = ({
   user,
-  approveAction,
-  rejectAction,
+  onApprove,
+  onReject,
+  isPending,
 }: {
-  user: User;
-  approveAction: (userId: string) => Promise<void>;
-  rejectAction: (userId: string) => Promise<void>;
+  user: UserType;
+  onApprove: (userId: string) => void;
+  onReject: (userId: string) => void;
+  isPending: boolean;
 }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
@@ -265,22 +367,24 @@ const AccountRequestCard = ({
 
         {/* Action Buttons */}
         <div className="flex space-x-2 pt-2">
-          <form action={() => approveAction(user.id)} className="flex-1">
-            <Button className="w-full rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700">
-              <CheckCircle className="mr-2 size-4" />
-              Approve
-            </Button>
-          </form>
+          <Button
+            className="w-full flex-1 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+            onClick={() => onApprove(user.id)}
+            disabled={isPending}
+          >
+            <CheckCircle className="mr-2 size-4" />
+            Approve
+          </Button>
 
-          <form action={() => rejectAction(user.id)} className="flex-1">
-            <Button
-              variant="destructive"
-              className="w-full rounded-lg px-4 py-2 font-medium transition-colors"
-            >
-              <XCircle className="mr-2 size-4" />
-              Reject
-            </Button>
-          </form>
+          <Button
+            variant="destructive"
+            className="w-full flex-1 rounded-lg px-4 py-2 font-medium transition-colors"
+            onClick={() => onReject(user.id)}
+            disabled={isPending}
+          >
+            <XCircle className="mr-2 size-4" />
+            Reject
+          </Button>
         </div>
       </CardContent>
     </Card>

@@ -128,11 +128,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!isPasswordValid) return null;
 
         // Return user object for NextAuth (will be stored in JWT token)
+        // CRITICAL: Include role for admin authorization checks
         return {
           id: user[0].id.toString(),
           email: user[0].email,
           name: user[0].fullName,
-        } as User;
+          role: user[0].role, // Include role for authorization
+        } as User & { role: string };
       },
     }),
   ],
@@ -157,6 +159,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Store user data in JWT token
         token.id = user.id;
         token.name = user.name;
+        // CRITICAL: Store role in JWT token for authorization checks
+        token.role = (user as User & { role?: string }).role;
 
         /**
          * Update last_login timestamp when user signs in
@@ -202,6 +206,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Add user ID and name from JWT token to session
         session.user.id = token.id as string;
         session.user.name = token.name as string;
+        // CRITICAL: Add role to session for authorization checks
+        session.user.role = token.role as string;
       }
 
       return session;

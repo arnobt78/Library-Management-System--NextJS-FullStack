@@ -1,9 +1,22 @@
 "use client";
 
+/**
+ * ReviewsSection Component
+ *
+ * Component for displaying and managing book reviews. Uses React Query mutations.
+ * Integrates with useDeleteReview and useUpdateReview mutations for proper cache invalidation.
+ *
+ * Features:
+ * - Uses useDeleteReview and useUpdateReview mutations
+ * - Automatic cache invalidation on success
+ * - Toast notifications via mutation callbacks
+ * - No page reloads - uses cache invalidation instead
+ */
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { Star } from "lucide-react";
+import { useDeleteReview, useUpdateReview } from "@/hooks/useMutations";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +53,9 @@ function ReviewCard({
   onDelete,
 }: ReviewCardProps) {
   const [showMenu, setShowMenu] = useState(false);
-  const { toast } = useToast();
+
+  // Use React Query mutation for deleting review
+  const deleteReviewMutation = useDeleteReview();
 
   const isOwner = currentUserEmail === review.userEmail;
   const isEdited =
@@ -64,35 +79,19 @@ function ReviewCard({
     </div>
   );
 
-  const handleDelete = async () => {
-    try {
-      const response = await fetch(`/api/reviews/delete/${review.id}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Review deleted successfully",
-        });
-        onDelete(review.id);
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to delete review",
-          variant: "destructive",
-        });
+  const handleDelete = () => {
+    // Use mutation to delete review
+    deleteReviewMutation.mutate(
+      {
+        reviewId: review.id,
+      },
+      {
+        onSuccess: () => {
+          onDelete(review.id);
+          setShowMenu(false);
+        },
       }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to delete review",
-        variant: "destructive",
-      });
-    }
-    setShowMenu(false);
+    );
   };
 
   return (
@@ -199,7 +198,7 @@ interface ReviewsSectionProps {
 }
 
 export default function ReviewsSection({
-  bookId: _bookId,
+  bookId,
   reviews,
   currentUserEmail,
 }: ReviewsSectionProps) {
@@ -210,14 +209,18 @@ export default function ReviewsSection({
   };
 
   const handleReviewDelete = () => {
-    // Refresh the page to show updated reviews
-    window.location.reload();
+    // CRITICAL: No manual invalidation needed here
+    // The useDeleteReview mutation already handles all cache invalidation
+    // via invalidateAfterReviewChange() which invalidates reviews, books, and analytics
+    // Manual invalidation here would cause redundant refetches
   };
 
   const handleReviewUpdate = () => {
     setEditingReview(null);
-    // Refresh the page to show updated reviews
-    window.location.reload();
+    // CRITICAL: No manual invalidation needed here
+    // The useUpdateReview mutation already handles all cache invalidation
+    // via invalidateAfterReviewChange() which invalidates reviews, books, and analytics
+    // Manual invalidation here would cause redundant refetches
   };
 
   if (editingReview) {
@@ -269,59 +272,30 @@ interface EditReviewFormProps {
 function EditReviewForm({ review, onCancel, onUpdate }: EditReviewFormProps) {
   const [rating, setRating] = useState(review.rating);
   const [comment, setComment] = useState(review.comment);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+
+  // Use React Query mutation for updating review
+  const updateReviewMutation = useUpdateReview();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!comment.trim()) {
-      toast({
-        title: "Error",
-        description: "Please write a comment",
-        variant: "destructive",
-      });
-      return;
+      return; // Validation handled by mutation
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(`/api/reviews/edit/${review.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+    // Use mutation to update review
+    updateReviewMutation.mutate(
+      {
+        reviewId: review.id,
+        rating,
+        comment: comment.trim(),
+      },
+      {
+        onSuccess: () => {
+          onUpdate();
         },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim(),
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Your review has been updated successfully!",
-        });
-        onUpdate();
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to update review",
-          variant: "destructive",
-        });
       }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to update review",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   const StarRating = () => (
@@ -384,17 +358,17 @@ function EditReviewForm({ review, onCancel, onUpdate }: EditReviewFormProps) {
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isSubmitting}
+            disabled={updateReviewMutation.isPending}
             className="border-gray-600 text-light-200 hover:bg-gray-700"
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || !comment.trim()}
+            disabled={updateReviewMutation.isPending || !comment.trim()}
             className="bg-green-600 text-white hover:bg-green-700"
           >
-            {isSubmitting ? "Updating..." : "Update Review"}
+            {updateReviewMutation.isPending ? "Updating..." : "Update Review"}
           </Button>
         </div>
       </form>

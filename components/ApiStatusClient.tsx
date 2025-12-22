@@ -1,6 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+/**
+ * ApiStatusClient Component
+ *
+ * Client Component for displaying API status and system metrics.
+ * Uses React Query for data fetching and caching, with SSR initial data support.
+ *
+ * Features:
+ * - Uses useServiceHealth and useSystemMetrics hooks with SSR initial data
+ * - Displays skeleton loaders while fetching
+ * - Shows error state if fetch fails
+ * - Manual refresh functionality preserved
+ * - All existing UI, styling, and functionality preserved
+ */
+
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,113 +38,69 @@ import {
   Users,
   Shield,
 } from "lucide-react";
-import {
-  fetchAllServicesHealth,
-  ServiceStatus,
-} from "@/lib/services/health-monitor";
-import {
-  fetchSystemMetrics,
-  SystemMetric,
-  MetricsData,
-} from "@/lib/services/metrics-monitor";
+import { useServiceHealth, useSystemMetrics } from "@/hooks/useQueries";
+import type { ServiceStatus } from "@/lib/services/health-monitor";
+import type { MetricsData } from "@/lib/services/metrics-monitor";
+import type { SystemMetric } from "@/lib/services/metrics-monitor";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ApiStatusClientProps {
-  services: ServiceStatus[];
-  systemMetrics: SystemMetric[];
+  /**
+   * Initial service health data from SSR (prevents duplicate fetch)
+   */
+  initialServices?: ServiceStatus[];
+  /**
+   * Initial system metrics data from SSR (prevents duplicate fetch)
+   */
+  initialMetrics?: MetricsData | null;
 }
 
 const ApiStatusClient = ({
-  services: initialServices,
-  systemMetrics: initialMetrics,
+  initialServices,
+  initialMetrics,
 }: ApiStatusClientProps) => {
+  // React Query hooks with SSR initial data
+  const {
+    data: servicesData,
+    isLoading: servicesLoading,
+    isError: servicesError,
+    error: servicesErrorData,
+    refetch: refetchServices,
+  } = useServiceHealth(initialServices);
+
+  const {
+    data: metricsData,
+    isLoading: metricsLoading,
+    isError: metricsError,
+    error: metricsErrorData,
+    refetch: refetchMetrics,
+  } = useSystemMetrics(initialMetrics ?? undefined);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [overallStatus, setOverallStatus] = useState<
-    "HEALTHY" | "DEGRADED" | "DOWN"
-  >("HEALTHY");
-  const [responseTime, setResponseTime] = useState(0);
   const [uptime, setUptime] = useState({ hours: 0, minutes: 0, seconds: 0 });
-  const [healthScore, setHealthScore] = useState(100);
-  const [services, setServices] = useState<ServiceStatus[]>(initialServices);
-  const [systemMetrics, setSystemMetrics] =
-    useState<SystemMetric[]>(initialMetrics);
 
-  // Utility functions
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "HEALTHY":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "DEGRADED":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "DOWN":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "HEALTHY":
-        return <CheckCircle className="size-6 text-green-600" />;
-      case "DEGRADED":
-        return <AlertCircle className="size-6 text-yellow-600" />;
-      case "DOWN":
-        return <XCircle className="size-6 text-red-600" />;
-      default:
-        return <AlertCircle className="size-6 text-gray-600" />;
-    }
-  };
-
-  const getPerformanceColor = (performance: string) => {
-    switch (performance) {
-      case "Excellent":
-        return "text-green-600";
-      case "Good":
-        return "text-blue-600";
-      case "Slow":
-        return "text-yellow-600";
-      case "Poor":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
-    }
-  };
-
-  const getMetricStatusColor = (status: string) => {
-    switch (status) {
-      case "good":
-        return "text-green-600";
-      case "warning":
-        return "text-yellow-600";
-      case "critical":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
-    }
-  };
-
-  // Get service icon with colors
+  // Get service icon with colors (defined before useMemo to avoid hoisting issues)
   const getServiceIcon = (serviceName: string) => {
     switch (serviceName) {
       case "API Server":
         return <Server className="size-5 text-blue-500" />;
       case "Database":
         return <Database className="size-5 text-green-500" />;
-      case "File Storage":
-        return <FileText className="size-5 text-purple-500" />;
       case "Authentication":
-        return <Lock className="size-5 text-yellow-500" />;
+        return <Lock className="size-5 text-purple-500" />;
+      case "File Storage":
+        return <HardDrive className="size-5 text-orange-500" />;
       case "Email Service":
-        return <Wifi className="size-5 text-pink-500" />;
+        return <FileText className="size-5 text-pink-500" />;
       case "External APIs":
         return <Globe className="size-5 text-cyan-500" />;
       default:
-        return <Activity className="size-5 text-gray-500" />;
+        return <Server className="size-5 text-gray-500" />;
     }
   };
 
-  // Convert metrics data to component format
+  // Convert metrics data to component format (defined before useMemo to avoid hoisting issues)
   const convertMetricsToSystemMetrics = (
     metricsData: MetricsData
   ): SystemMetric[] => {
@@ -188,70 +158,115 @@ const ApiStatusClient = ({
     ];
   };
 
-  // Fetch real service data and initialize monitoring
+  // Get services with icons
+  const services: ServiceStatus[] = useMemo(() => {
+    if (!servicesData || servicesData.length === 0) return [];
+    return servicesData.map((service) => ({
+      ...service,
+      icon: getServiceIcon(service.name),
+    }));
+  }, [servicesData]);
+
+  // Convert metrics to system metrics format
+  const systemMetrics: SystemMetric[] = useMemo(() => {
+    if (!metricsData) return [];
+    return convertMetricsToSystemMetrics(metricsData);
+  }, [metricsData]);
+
+  // Calculate derived values from services
+  const overallStatus = useMemo(() => {
+    if (!services || services.length === 0) return "HEALTHY" as const;
+    const healthyServices = services.filter(
+      (s) => s.status === "HEALTHY"
+    ).length;
+    const totalServices = services.length;
+
+    if (healthyServices === totalServices) {
+      return "HEALTHY" as const;
+    } else if (healthyServices > totalServices / 2) {
+      return "DEGRADED" as const;
+    } else {
+      return "DOWN" as const;
+    }
+  }, [services]);
+
+  const responseTime = useMemo(() => {
+    if (!services || services.length === 0) return 0;
+    const avgResponseTime =
+      services.reduce((sum, s) => sum + s.responseTime, 0) / services.length;
+    return Math.round(avgResponseTime);
+  }, [services]);
+
+  const healthScore = useMemo(() => {
+    if (!services || services.length === 0) return 100;
+    const avgPerformance =
+      services.reduce((sum, s) => sum + s.performanceValue, 0) /
+      services.length;
+    return Math.round(avgPerformance);
+  }, [services]);
+
+  // Utility functions
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "HEALTHY":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "DEGRADED":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "DOWN":
+        return "bg-red-100 text-red-800 border-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "HEALTHY":
+        return <CheckCircle className="size-6 text-green-600" />;
+      case "DEGRADED":
+        return <AlertCircle className="size-6 text-yellow-600" />;
+      case "DOWN":
+        return <XCircle className="size-6 text-red-600" />;
+      default:
+        return <AlertCircle className="size-6 text-gray-600" />;
+    }
+  };
+
+  const getPerformanceColor = (performance: string) => {
+    switch (performance) {
+      case "Excellent":
+        return "text-green-600";
+      case "Good":
+        return "text-blue-600";
+      case "Slow":
+        return "text-yellow-600";
+      case "Poor":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
+    }
+  };
+
+  const getMetricStatusColor = (status: string) => {
+    switch (status) {
+      case "good":
+        return "text-green-600";
+      case "warning":
+        return "text-yellow-600";
+      case "critical":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
+    }
+  };
+
+  // Initialize last checked date on mount
   useEffect(() => {
-    // Initialize the date on client side to avoid hydration mismatch
     setLastChecked(new Date());
+  }, []);
 
-    // Fetch real service health data
-    const fetchServices = async () => {
-      try {
-        const realServices = await fetchAllServicesHealth();
-
-        // Add icons to services
-        const servicesWithIcons = realServices.map((service) => ({
-          ...service,
-          icon: getServiceIcon(service.name),
-        }));
-
-        setServices(servicesWithIcons);
-
-        // Calculate overall status based on service health
-        const healthyServices = servicesWithIcons.filter(
-          (s) => s.status === "HEALTHY"
-        ).length;
-        const totalServices = servicesWithIcons.length;
-
-        if (healthyServices === totalServices) {
-          setOverallStatus("HEALTHY");
-        } else if (healthyServices > totalServices / 2) {
-          setOverallStatus("DEGRADED");
-        } else {
-          setOverallStatus("DOWN");
-        }
-
-        // Calculate average response time
-        const avgResponseTime =
-          servicesWithIcons.reduce((sum, s) => sum + s.responseTime, 0) /
-          totalServices;
-        setResponseTime(Math.round(avgResponseTime));
-
-        // Calculate health score based on service performance
-        const avgPerformance =
-          servicesWithIcons.reduce((sum, s) => sum + s.performanceValue, 0) /
-          totalServices;
-        setHealthScore(Math.round(avgPerformance));
-      } catch (error) {
-        console.error("Failed to fetch service health:", error);
-      }
-    };
-
-    fetchServices();
-
-    // Fetch real system metrics
-    const fetchMetrics = async () => {
-      try {
-        const realMetrics = await fetchSystemMetrics();
-        const convertedMetrics = convertMetricsToSystemMetrics(realMetrics);
-        setSystemMetrics(convertedMetrics);
-      } catch (error) {
-        console.error("Failed to fetch system metrics:", error);
-      }
-    };
-
-    fetchMetrics();
-
-    // Update uptime every second
+  // Update uptime every second
+  useEffect(() => {
     const uptimeInterval = setInterval(() => {
       setUptime((prev) => {
         let newSeconds = prev.seconds + 1;
@@ -271,72 +286,130 @@ const ApiStatusClient = ({
       });
     }, 1000);
 
-    // Refresh service data every 30 seconds
-    const refreshInterval = setInterval(() => {
-      fetchServices();
-      fetchMetrics();
-    }, 30000);
-
     return () => {
       clearInterval(uptimeInterval);
-      clearInterval(refreshInterval);
     };
   }, []);
 
+  // Handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     setLastChecked(new Date());
 
     try {
-      const realServices = await fetchAllServicesHealth();
-
-      // Add icons to services
-      const servicesWithIcons = realServices.map((service) => ({
-        ...service,
-        icon: getServiceIcon(service.name),
-      }));
-
-      setServices(servicesWithIcons);
-
-      // Calculate overall status based on service health
-      const healthyServices = servicesWithIcons.filter(
-        (s) => s.status === "HEALTHY"
-      ).length;
-      const totalServices = servicesWithIcons.length;
-
-      if (healthyServices === totalServices) {
-        setOverallStatus("HEALTHY");
-      } else if (healthyServices > totalServices / 2) {
-        setOverallStatus("DEGRADED");
-      } else {
-        setOverallStatus("DOWN");
-      }
-
-      // Calculate average response time
-      const avgResponseTime =
-        servicesWithIcons.reduce((sum, s) => sum + s.responseTime, 0) /
-        totalServices;
-      setResponseTime(Math.round(avgResponseTime));
-
-      // Calculate health score based on service performance
-      const avgPerformance =
-        servicesWithIcons.reduce((sum, s) => sum + s.performanceValue, 0) /
-        totalServices;
-      setHealthScore(Math.round(avgPerformance));
-
-      // Also refresh metrics
-      const realMetrics = await fetchSystemMetrics();
-      const convertedMetrics = convertMetricsToSystemMetrics(realMetrics);
-      setSystemMetrics(convertedMetrics);
+      // Refetch both queries
+      await Promise.all([refetchServices(), refetchMetrics()]);
     } catch (error) {
       console.error("Failed to refresh service health:", error);
     }
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Simulate API call delay for better UX
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     setIsRefreshing(false);
   };
+
+  // Show skeleton while loading (only if no initial data)
+  const isLoading =
+    (servicesLoading && !initialServices) ||
+    (metricsLoading && !initialMetrics);
+  const isError = servicesError || metricsError;
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        {/* Header Skeleton */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <Skeleton className="mb-2 h-10 w-48" />
+            <Skeleton className="h-6 w-80" />
+          </div>
+          <Skeleton className="h-10 w-24" />
+        </div>
+
+        {/* Overall System Status Skeleton */}
+        <Card className="mb-8 border-gray-700 bg-gray-800">
+          <CardHeader>
+            <Skeleton className="mb-2 h-6 w-48" />
+            <Skeleton className="h-4 w-40" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={`status-skeleton-${i}`} className="text-center">
+                  <Skeleton className="mx-auto mb-2 size-8" />
+                  <Skeleton className="mx-auto mb-1 h-4 w-24" />
+                  <Skeleton className="mx-auto h-6 w-20 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Services Skeleton */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card
+              key={`service-skeleton-${i}`}
+              className="border-gray-600 bg-gray-700"
+            >
+              <CardHeader>
+                <Skeleton className="mb-2 h-6 w-32" />
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="mb-4 h-20 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* System Metrics Skeleton */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card
+              key={`metric-skeleton-${i}`}
+              className="border-gray-600 bg-gray-700"
+            >
+              <CardHeader>
+                <Skeleton className="mb-2 h-6 w-40" />
+                <Skeleton className="h-4 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (isError) {
+    return (
+      <div className="space-y-8">
+        <div className="py-8 text-center">
+          <p className="mb-2 text-lg font-semibold text-red-500">
+            Failed to load API status
+          </p>
+          <p className="text-sm text-gray-500">
+            {servicesErrorData instanceof Error
+              ? servicesErrorData.message
+              : metricsErrorData instanceof Error
+                ? metricsErrorData.message
+                : "An unknown error occurred"}
+          </p>
+          <Button onClick={handleRefresh} className="mt-4">
+            <RefreshCw className="mr-2 size-4" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -388,7 +461,9 @@ const ApiStatusClient = ({
                 <Zap className="size-4 text-blue-600" />
               </div>
               <p className="text-sm text-light-200">Response Time</p>
-              <p className="text-2xl font-bold text-light-100">{responseTime}ms</p>
+              <p className="text-2xl font-bold text-light-100">
+                {responseTime}ms
+              </p>
             </div>
             <div className="text-center">
               <div className="mb-2 flex justify-center">
@@ -404,13 +479,17 @@ const ApiStatusClient = ({
                 <TrendingUp className="size-4 text-purple-600" />
               </div>
               <p className="text-sm text-light-200">Health Score</p>
-              <p className="text-2xl font-bold text-light-100">{healthScore.toFixed(1)}%</p>
+              <p className="text-2xl font-bold text-light-100">
+                {healthScore.toFixed(1)}%
+              </p>
             </div>
           </div>
 
           <div className="mt-6">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium text-light-100">Overall Health</span>
+              <span className="text-sm font-medium text-light-100">
+                Overall Health
+              </span>
               <span className="text-sm text-light-200">
                 {healthScore.toFixed(1)}%
               </span>
@@ -429,58 +508,73 @@ const ApiStatusClient = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {services.map((service, index) => (
-              <Card key={index} className="relative border-gray-600 bg-gray-700">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {getServiceIcon(service.name)}
-                      <CardTitle className="text-lg text-light-100">{service.name}</CardTitle>
+          {services.length === 0 ? (
+            <div className="py-8 text-center text-light-200">
+              No service data available. Please refresh.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {services.map((service, index) => (
+                <Card
+                  key={index}
+                  className="relative border-gray-600 bg-gray-700"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getServiceIcon(service.name)}
+                        <CardTitle className="text-lg text-light-100">
+                          {service.name}
+                        </CardTitle>
+                      </div>
+                      <Badge className={getStatusColor(service.status)}>
+                        {service.status}
+                      </Badge>
                     </div>
-                    <Badge className={getStatusColor(service.status)}>
-                      {service.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-light-200">{service.description}</p>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-light-200">
-                        Response Time:
-                      </span>
-                      <span className="font-semibold text-light-100">
-                        {service.responseTime}ms
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-light-200">Endpoint:</span>
-                      <span className="font-mono text-sm text-light-100">
-                        {service.endpoint}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex justify-between">
+                    <p className="text-sm text-light-200">
+                      {service.description}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
                         <span className="text-sm text-light-200">
-                          Performance:
+                          Response Time:
                         </span>
-                        <span
-                          className={`text-sm font-medium ${getPerformanceColor(service.performance)}`}
-                        >
-                          {service.performance}
+                        <span className="font-semibold text-light-100">
+                          {service.responseTime}ms
                         </span>
                       </div>
-                      <Progress
-                        value={service.performanceValue}
-                        className="h-2"
-                      />
+                      <div className="flex justify-between">
+                        <span className="text-sm text-light-200">
+                          Endpoint:
+                        </span>
+                        <span className="font-mono text-sm text-light-100">
+                          {service.endpoint}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="mb-1 flex justify-between">
+                          <span className="text-sm text-light-200">
+                            Performance:
+                          </span>
+                          <span
+                            className={`text-sm font-medium ${getPerformanceColor(service.performance)}`}
+                          >
+                            {service.performance}
+                          </span>
+                        </div>
+                        <Progress
+                          value={service.performanceValue}
+                          className="h-2"
+                        />
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -493,50 +587,59 @@ const ApiStatusClient = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {systemMetrics.map((metric, index) => {
-              // Get colorful icon based on metric title
-              const getMetricIcon = () => {
-                if (metric.title.includes("Database")) {
-                  return <Database className="size-5 text-green-500" />;
-                } else if (metric.title.includes("API Performance")) {
-                  return <TrendingUp className="size-5 text-blue-500" />;
-                } else if (metric.title.includes("Error Rate")) {
-                  return <AlertCircle className="size-5 text-red-500" />;
-                } else if (metric.title.includes("Storage")) {
-                  return <HardDrive className="size-5 text-orange-500" />;
-                } else if (metric.title.includes("Active Users")) {
-                  return <Users className="size-5 text-cyan-500" />;
-                } else if (metric.title.includes("SSL")) {
-                  return <Shield className="size-5 text-yellow-500" />;
-                }
-                return metric.icon;
-              };
-              
-              return (
-                <Card key={index} className="relative border-gray-600 bg-gray-700">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        {getMetricIcon()}
+          {systemMetrics.length === 0 ? (
+            <div className="py-8 text-center text-light-200">
+              No system metrics available. Please refresh.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {systemMetrics.map((metric, index) => {
+                // Get colorful icon based on metric title
+                const getMetricIcon = () => {
+                  if (metric.title.includes("Database")) {
+                    return <Database className="size-5 text-green-500" />;
+                  } else if (metric.title.includes("API Performance")) {
+                    return <TrendingUp className="size-5 text-blue-500" />;
+                  } else if (metric.title.includes("Error Rate")) {
+                    return <AlertCircle className="size-5 text-red-500" />;
+                  } else if (metric.title.includes("Storage")) {
+                    return <HardDrive className="size-5 text-orange-500" />;
+                  } else if (metric.title.includes("Active Users")) {
+                    return <Users className="size-5 text-cyan-500" />;
+                  } else if (metric.title.includes("SSL")) {
+                    return <Shield className="size-5 text-yellow-500" />;
+                  }
+                  return metric.icon;
+                };
+
+                return (
+                  <Card
+                    key={index}
+                    className="relative border-gray-600 bg-gray-700"
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <div>{getMetricIcon()}</div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-light-100">
+                            {metric.title}
+                          </p>
+                          <p
+                            className={`text-lg font-bold ${getMetricStatusColor(metric.status)}`}
+                          >
+                            {metric.value}
+                          </p>
+                          <p className="text-xs text-light-200">
+                            {metric.description}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-light-100">{metric.title}</p>
-                        <p
-                          className={`text-lg font-bold ${getMetricStatusColor(metric.status)}`}
-                        >
-                          {metric.value}
-                        </p>
-                        <p className="text-xs text-light-200">
-                          {metric.description}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 

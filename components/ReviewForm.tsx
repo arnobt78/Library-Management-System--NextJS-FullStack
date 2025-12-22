@@ -1,8 +1,21 @@
 "use client";
 
+/**
+ * ReviewForm Component
+ *
+ * Form component for submitting book reviews. Uses React Query mutation.
+ * Integrates with useCreateReview mutation for proper cache invalidation.
+ *
+ * Features:
+ * - Uses useCreateReview mutation
+ * - Automatic cache invalidation on success
+ * - Toast notifications via mutation callbacks
+ * - Form validation
+ */
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useCreateReview } from "@/hooks/useMutations";
 
 interface ReviewFormProps {
   bookId: string;
@@ -17,60 +30,30 @@ export default function ReviewForm({
 }: ReviewFormProps) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+
+  // Use React Query mutation for creating review
+  const createReviewMutation = useCreateReview();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!comment.trim()) {
-      toast({
-        title: "Error",
-        description: "Please write a comment",
-        variant: "destructive",
-      });
-      return;
+      return; // Validation handled by mutation
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(`/api/reviews/${bookId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    // Use mutation to create review
+    createReviewMutation.mutate(
+      {
+        bookId,
+        rating,
+        comment: comment.trim(),
+      },
+      {
+        onSuccess: () => {
+          onReviewSubmitted();
         },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim(),
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Your review has been submitted successfully!",
-        });
-        onReviewSubmitted();
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to submit review",
-          variant: "destructive",
-        });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit review",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   const StarRating = () => (
@@ -129,17 +112,17 @@ export default function ReviewForm({
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isSubmitting}
+            disabled={createReviewMutation.isPending}
             className="border-gray-600 text-light-200 hover:bg-gray-100"
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || !comment.trim()}
+            disabled={createReviewMutation.isPending || !comment.trim()}
             className="bg-green-600 text-white hover:bg-green-700"
           >
-            {isSubmitting ? "Submitting..." : "Submit Review"}
+            {createReviewMutation.isPending ? "Submitting..." : "Submit Review"}
           </Button>
         </div>
       </form>

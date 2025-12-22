@@ -1,16 +1,30 @@
 "use client";
 
+/**
+ * ReviewFormDialog Component
+ *
+ * Dialog component for submitting book reviews. Uses React Query mutation.
+ * Integrates with useCreateReview mutation for proper cache invalidation.
+ *
+ * Features:
+ * - Uses useCreateReview mutation
+ * - Automatic cache invalidation on success
+ * - Toast notifications via mutation callbacks
+ * - Form validation
+ */
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Star } from "lucide-react";
+import { useCreateReview } from "@/hooks/useMutations";
 
 interface ReviewFormDialogProps {
   bookId: string;
@@ -27,71 +41,41 @@ export default function ReviewFormDialog({
 }: ReviewFormDialogProps) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+
+  // Use React Query mutation for creating review
+  const createReviewMutation = useCreateReview();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!comment.trim()) {
-      toast({
-        title: "Error",
-        description: "Please write a comment",
-        variant: "destructive",
-      });
-      return;
+      return; // Validation handled by mutation
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(`/api/reviews/${bookId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    // Use mutation to create review
+    createReviewMutation.mutate(
+      {
+        bookId,
+        rating,
+        comment: comment.trim(),
+      },
+      {
+        onSuccess: () => {
+          // Add delay before closing to let user see the toast
+          setTimeout(() => {
+            onReviewSubmitted();
+            onClose();
+            // Reset form
+            setRating(5);
+            setComment("");
+          }, 1500);
         },
-        body: JSON.stringify({
-          rating,
-          comment: comment.trim(),
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Your review has been submitted successfully!",
-        });
-        // Add delay before closing to let user see the toast
-        setTimeout(() => {
-          onReviewSubmitted();
-          onClose();
-          // Reset form
-          setRating(5);
-          setComment("");
-        }, 1500);
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to submit review",
-          variant: "destructive",
-        });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit review",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
+    if (!createReviewMutation.isPending) {
       onClose();
       // Reset form when closing
       setRating(5);
@@ -128,6 +112,9 @@ export default function ReviewFormDialog({
       <DialogContent className="border-gray-600 bg-gray-800/95 sm:max-w-md [&>button]:text-white [&>button]:hover:text-white">
         <DialogHeader>
           <DialogTitle className="text-light-100">Write a Review</DialogTitle>
+          <DialogDescription className="text-light-200/70">
+            Share your thoughts and rate this book
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,17 +145,17 @@ export default function ReviewFormDialog({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={createReviewMutation.isPending}
               className="border-gray-500 bg-gray-600 text-white hover:bg-gray-500 hover:text-white"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !comment.trim()}
+              disabled={createReviewMutation.isPending || !comment.trim()}
               className="bg-green-600 text-white hover:bg-green-700"
             >
-              {isSubmitting ? "Submitting..." : "Submit Review"}
+              {createReviewMutation.isPending ? "Submitting..." : "Submit Review"}
             </Button>
           </DialogFooter>
         </form>

@@ -4,7 +4,7 @@ import { IKImage, ImageKitProvider, IKUpload, IKVideo } from "imagekitio-next";
 import config from "@/lib/config";
 import { useRef, useState } from "react";
 // import Image from "next/image";
-import { toast } from "@/hooks/use-toast";
+import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const {
@@ -81,11 +81,10 @@ const FileUpload = ({
   const onError = (error: unknown): void => {
     console.log(error);
 
-    toast({
-      title: `${type} upload failed`,
-      description: `Your ${type} could not be uploaded. Please try again.`,
-      variant: "destructive",
-    });
+    showToast.error(
+      `${type === "image" ? "Image" : "Video"} Upload Failed`,
+      `Your ${type} could not be uploaded. Please try again.`
+    );
   };
 
   /**
@@ -120,10 +119,10 @@ const FileUpload = ({
     setFile({ filePath: fullUrl });
     onFileChange(fullUrl);
 
-    toast({
-      title: `✅ ${type === "image" ? "Image" : "Video"} Uploaded Successfully!`,
-      description: `${response.filePath} has been uploaded and is ready to use.`,
-    });
+    showToast.success(
+      `✅ ${type === "image" ? "Image" : "Video"} Uploaded Successfully!`,
+      `${response.filePath} has been uploaded and is ready to use.`
+    );
   };
 
   /**
@@ -135,23 +134,19 @@ const FileUpload = ({
   const onValidate = (file: File): boolean => {
     if (type === "image") {
       if (file.size > 20 * 1024 * 1024) {
-        toast({
-          title: "📁 File Too Large",
-          description:
-            "Image files must be smaller than 20MB. Please compress your image and try again.",
-          variant: "destructive",
-        });
+        showToast.error(
+          "📁 File Too Large",
+          "Image files must be smaller than 20MB. Please compress your image and try again."
+        );
 
         return false;
       }
     } else if (type === "video") {
       if (file.size > 50 * 1024 * 1024) {
-        toast({
-          title: "📁 File Too Large",
-          description:
-            "Video files must be smaller than 50MB. Please compress your video and try again.",
-          variant: "destructive",
-        });
+        showToast.error(
+          "📁 File Too Large",
+          "Video files must be smaller than 50MB. Please compress your video and try again."
+        );
         return false;
       }
     }

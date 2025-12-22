@@ -1,17 +1,52 @@
 "use client";
 
+/**
+ * BookCollection Component
+ *
+ * Client component that displays a collection of books with filters, search, sorting, and pagination.
+ * Uses React Query for data fetching and caching, with SSR initial data support.
+ *
+ * Features:
+ * - Uses useAllBooks hook with initialData from SSR
+ * - Displays skeleton loaders while fetching
+ * - Shows error state if fetch fails
+ * - Handles URL-based search params for filters
+ * - Supports pagination
+ */
+
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookCard from "@/components/BookCard";
+import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAllBooks } from "@/hooks/useQueries";
+import type { BooksListResponse } from "@/lib/services/books";
 
 interface BookCollectionProps {
-  books: Book[];
-  genres: string[];
-  searchParams: {
+  /**
+   * Initial books data from SSR (prevents duplicate fetch)
+   */
+  initialBooks?: Book[];
+  /**
+   * Initial genres list from SSR
+   */
+  initialGenres?: string[];
+  /**
+   * Initial pagination data from SSR
+   */
+  initialPagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalBooks: number;
+    booksPerPage: number;
+  };
+  /**
+   * Initial search params from SSR
+   */
+  initialSearchParams?: {
     search: string;
     genre: string;
     availability: string;
@@ -19,7 +54,20 @@ interface BookCollectionProps {
     sort: string;
     page: number;
   };
-  pagination: {
+  /**
+   * Legacy props for backward compatibility (deprecated, use initial* props instead)
+   */
+  books?: Book[];
+  genres?: string[];
+  searchParams?: {
+    search: string;
+    genre: string;
+    availability: string;
+    rating: string;
+    sort: string;
+    page: number;
+  };
+  pagination?: {
     currentPage: number;
     totalPages: number;
     totalBooks: number;
@@ -28,14 +76,124 @@ interface BookCollectionProps {
 }
 
 const BookCollection: React.FC<BookCollectionProps> = ({
-  books,
-  genres,
-  searchParams,
-  pagination,
+  initialBooks,
+  initialGenres,
+  initialPagination,
+  initialSearchParams,
+  // Legacy props for backward compatibility
+  books: legacyBooks,
+  genres: legacyGenres,
+  searchParams: legacySearchParams,
+  pagination: legacyPagination,
 }) => {
   const router = useRouter();
   const searchParamsHook = useSearchParams();
-  const [localSearch, setLocalSearch] = useState(searchParams.search);
+
+  // Prepare initial data for React Query
+  const initialData: BooksListResponse | undefined =
+    initialBooks || legacyBooks
+      ? {
+          books: initialBooks || legacyBooks || [],
+          total:
+            initialPagination?.totalBooks ||
+            legacyPagination?.totalBooks ||
+            (initialBooks || legacyBooks || []).length,
+          page:
+            initialPagination?.currentPage ||
+            legacyPagination?.currentPage ||
+            1,
+          totalPages:
+            initialPagination?.totalPages || legacyPagination?.totalPages || 1,
+          limit:
+            initialPagination?.booksPerPage ||
+            legacyPagination?.booksPerPage ||
+            (initialBooks || legacyBooks || []).length,
+        }
+      : undefined;
+
+  // Get search params from initial, legacy, or URL
+  const searchParamsToUse = initialSearchParams ||
+    legacySearchParams || {
+      search: searchParamsHook.get("search") || "",
+      genre: searchParamsHook.get("genre") || "",
+      availability: searchParamsHook.get("availability") || "",
+      rating: searchParamsHook.get("rating") || "",
+      sort: searchParamsHook.get("sort") || "title",
+      page: parseInt(searchParamsHook.get("page") || "1", 10),
+    };
+
+  // Use React Query hook with initialData
+  const {
+    data: booksData,
+    isLoading,
+    isError,
+    error,
+  } = useAllBooks(
+    searchParamsToUse
+      ? {
+          search: searchParamsToUse.search || undefined,
+          genre: searchParamsToUse.genre || undefined,
+          availability:
+            (searchParamsToUse.availability as
+              | "available"
+              | "unavailable"
+              | "all") || undefined,
+          rating: searchParamsToUse.rating
+            ? Number(searchParamsToUse.rating)
+            : undefined,
+          sort:
+            (searchParamsToUse.sort as
+              | "title"
+              | "author"
+              | "rating"
+              | "date") || undefined,
+          page: searchParamsToUse.page,
+          limit:
+            initialPagination?.booksPerPage ||
+            legacyPagination?.booksPerPage ||
+            12,
+        }
+      : undefined,
+    initialData
+  );
+
+  // Use React Query data if available, otherwise fall back to legacy props or initial data
+  // CRITICAL: Always prefer React Query data over initial/legacy data
+  // React Query data is fresh and updates immediately after mutations
+  // initial/legacy data is only used as fallback during initial load
+  const books = (booksData?.books ?? legacyBooks ?? initialBooks) || [];
+  const genres = (legacyGenres ?? initialGenres) || [];
+  // CRITICAL: Always prefer React Query data over initial/legacy data
+  // React Query data is fresh and updates immediately after mutations
+  // initial/legacy data is only used as fallback during initial load
+  const pagination = (legacyPagination ??
+    initialPagination ??
+    (booksData
+      ? {
+          currentPage: booksData.page ?? 1,
+          totalPages: booksData.totalPages ?? 1,
+          totalBooks: booksData.total ?? 0,
+          booksPerPage: booksData.limit ?? 12,
+        }
+      : undefined)) || {
+    currentPage: 1,
+    totalPages: 1,
+    totalBooks: books.length,
+    booksPerPage: 12,
+  };
+
+  // Get current search params from URL or use initial/legacy
+  const currentSearchParams = legacySearchParams ||
+    initialSearchParams || {
+      search: searchParamsHook.get("search") || "",
+      genre: searchParamsHook.get("genre") || "",
+      availability: searchParamsHook.get("availability") || "",
+      rating: searchParamsHook.get("rating") || "",
+      sort: searchParamsHook.get("sort") || "title",
+      page: parseInt(searchParamsHook.get("page") || "1", 10),
+    };
+
+  const [localSearch, setLocalSearch] = useState(currentSearchParams.search);
 
   const updateSearchParams = (newParams: Record<string, string>) => {
     const params = new URLSearchParams(searchParamsHook.toString());
@@ -78,10 +236,54 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   };
 
   const hasActiveFilters =
-    searchParams.search ||
-    searchParams.genre ||
-    searchParams.availability ||
-    searchParams.rating;
+    currentSearchParams.search ||
+    currentSearchParams.genre ||
+    currentSearchParams.availability ||
+    currentSearchParams.rating;
+
+  // Show skeleton while loading (only if no initial data)
+  if (isLoading && (!initialBooks || initialBooks.length === 0)) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-6">
+          <h1 className="mb-2 text-3xl font-bold text-light-100">
+            Book Collection
+          </h1>
+          <p className="text-light-200">Loading books...</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[...Array(12)].map((_, index) => (
+            <BookCardSkeleton key={`skeleton-${index}`} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (isError) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-6">
+          <h1 className="mb-2 text-3xl font-bold text-light-100">
+            Book Collection
+          </h1>
+        </div>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="mb-2 text-lg font-semibold text-red-500">
+              Failed to load books
+            </p>
+            <p className="text-sm text-gray-500">
+              {error instanceof Error
+                ? error.message
+                : "An unknown error occurred"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -123,12 +325,12 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                   Genre
                 </label>
                 <select
-                  value={searchParams.genre}
+                  value={currentSearchParams.genre}
                   onChange={(e) => handleFilterChange("genre", e.target.value)}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 >
                   <option value="">All Genres</option>
-                  {genres.map((genre) => (
+                  {genres.map((genre: string) => (
                     <option key={genre} value={genre}>
                       {genre}
                     </option>
@@ -142,7 +344,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                   Availability
                 </label>
                 <select
-                  value={searchParams.availability}
+                  value={currentSearchParams.availability}
                   onChange={(e) =>
                     handleFilterChange("availability", e.target.value)
                   }
@@ -160,7 +362,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                   Minimum Rating
                 </label>
                 <select
-                  value={searchParams.rating}
+                  value={currentSearchParams.rating}
                   onChange={(e) => handleFilterChange("rating", e.target.value)}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 >
@@ -197,26 +399,26 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               </span>
               {hasActiveFilters && (
                 <div className="flex gap-2">
-                  {searchParams.search && (
+                  {currentSearchParams.search && (
                     <Badge variant="secondary">
-                      Search: &quot;{searchParams.search}&quot;
+                      Search: &quot;{currentSearchParams.search}&quot;
                     </Badge>
                   )}
-                  {searchParams.genre && (
+                  {currentSearchParams.genre && (
                     <Badge variant="secondary">
-                      Genre: {searchParams.genre}
+                      Genre: {currentSearchParams.genre}
                     </Badge>
                   )}
-                  {searchParams.availability && (
+                  {currentSearchParams.availability && (
                     <Badge variant="secondary">
-                      {searchParams.availability === "available"
+                      {currentSearchParams.availability === "available"
                         ? "Available"
                         : "Unavailable"}
                     </Badge>
                   )}
-                  {searchParams.rating && (
+                  {currentSearchParams.rating && (
                     <Badge variant="secondary">
-                      {searchParams.rating}+ Stars
+                      {currentSearchParams.rating}+ Stars
                     </Badge>
                   )}
                 </div>
@@ -226,7 +428,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-100">Sort by:</span>
               <select
-                value={searchParams.sort}
+                value={currentSearchParams.sort}
                 onChange={(e) => handleSortChange(e.target.value)}
                 className="rounded-md border border-gray-300 px-3 py-1 text-sm"
               >
@@ -258,7 +460,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {books.map((book) => (
+              {books.map((book: Book) => (
                 <BookCard key={book.id} {...book} />
               ))}
             </div>

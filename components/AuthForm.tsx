@@ -103,6 +103,9 @@ const AuthForm = <T extends FieldValues>({
     }
   };
 
+  // Get form submission state for loading indicator
+  const isSubmitting = form.formState.isSubmitting;
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold text-white">
@@ -193,8 +196,14 @@ const AuthForm = <T extends FieldValues>({
             />
           ))}
 
-          <Button type="submit" className="form-btn">
-            {isSignIn ? "Sign In" : "Sign Up"}
+          <Button type="submit" className="form-btn" disabled={isSubmitting}>
+            {isSubmitting
+              ? isSignIn
+                ? "Signing in..."
+                : "Signing up..."
+              : isSignIn
+                ? "Sign In"
+                : "Sign Up"}
           </Button>
         </form>
       </Form>

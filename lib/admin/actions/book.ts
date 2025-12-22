@@ -70,6 +70,7 @@ export const updateBook = async (
           ...params,
           availableCopies: newAvailableCopies,
           updatedBy: params.updatedBy || undefined,
+          updatedAt: new Date(), // CRITICAL: Update timestamp on every update
         })
         .where(eq(books.id, bookId))
         .returning();
@@ -85,6 +86,7 @@ export const updateBook = async (
         .set({
           ...params,
           updatedBy: params.updatedBy || undefined,
+          updatedAt: new Date(), // CRITICAL: Update timestamp on every update
         })
         .where(eq(books.id, bookId))
         .returning();

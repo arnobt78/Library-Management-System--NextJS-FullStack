@@ -3,6 +3,7 @@ interface SessionUser {
   id?: string;
   name?: string | null;
   email?: string | null;
+  role?: string; // User role (USER or ADMIN) for authorization checks
 }
 
 interface Session {
