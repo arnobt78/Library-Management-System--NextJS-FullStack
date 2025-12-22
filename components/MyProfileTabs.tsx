@@ -141,31 +141,41 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     undefined, // No status filter - get all
     // Use initial borrow history as initial data (transform to BorrowRecord format for React Query)
     initialBorrowHistory || legacyBorrowHistory
-      ? ((initialBorrowHistory || legacyBorrowHistory || []).map((record) => ({
-          id: record.id,
-          userId: record.userId,
-          bookId: record.bookId,
-          borrowDate: record.borrowDate,
-          dueDate: record.dueDate
-            ? new Date(record.dueDate).toISOString().split("T")[0]
-            : null,
-          returnDate: record.returnDate
-            ? new Date(record.returnDate).toISOString().split("T")[0]
-            : null,
-          status: record.status,
-          borrowedBy: record.borrowedBy,
-          returnedBy: record.returnedBy,
-          fineAmount:
-            typeof record.fineAmount === "number"
-              ? record.fineAmount.toString()
-              : String(record.fineAmount || "0"),
-          notes: record.notes,
-          renewalCount: record.renewalCount,
-          lastReminderSent: record.lastReminderSent,
-          updatedAt: record.updatedAt,
-          updatedBy: record.updatedBy,
-          createdAt: record.createdAt,
-        })) as BorrowRecord[])
+      ? ((initialBorrowHistory || legacyBorrowHistory || []).map((record) => {
+          // CRITICAL: Preserve the book field from SSR data
+          // The SSR data includes book details, and we need to keep them for the UI
+          // Even though BorrowRecord type doesn't include book, we cast it to include it
+          const baseRecord = {
+            id: record.id,
+            userId: record.userId,
+            bookId: record.bookId,
+            borrowDate: record.borrowDate,
+            dueDate: record.dueDate
+              ? new Date(record.dueDate).toISOString().split("T")[0]
+              : null,
+            returnDate: record.returnDate
+              ? new Date(record.returnDate).toISOString().split("T")[0]
+              : null,
+            status: record.status,
+            borrowedBy: record.borrowedBy,
+            returnedBy: record.returnedBy,
+            fineAmount:
+              typeof record.fineAmount === "number"
+                ? record.fineAmount.toString()
+                : String(record.fineAmount || "0"),
+            notes: record.notes,
+            renewalCount: record.renewalCount,
+            lastReminderSent: record.lastReminderSent,
+            updatedAt: record.updatedAt,
+            updatedBy: record.updatedBy,
+            createdAt: record.createdAt,
+          };
+          // Preserve book field if it exists (SSR data includes it)
+          return {
+            ...baseRecord,
+            ...(record.book && { book: record.book }),
+          };
+        }) as (BorrowRecord & { book?: Book })[])
       : undefined
   );
 
@@ -216,7 +226,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     }
 
     // Transform the data
-    const transformed = (reactQueryBorrows as BorrowRecord[]).map((record) => {
+    // CRITICAL: Cast to include book field - API and initialData both include it
+    const transformed = (reactQueryBorrows as (BorrowRecord & { book?: Book })[]).map((record) => {
       const recordWithBook = record as BorrowRecord & { book?: Book };
 
       // CRITICAL: Reuse existing transformed record if it exists and data hasn't changed
