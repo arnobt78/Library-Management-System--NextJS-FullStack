@@ -11,7 +11,14 @@
     "db:migrate-csv": "tsx database/migrate-from-csv.ts",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "verify-stats": "tsx scripts/verify-stats.ts",
+    "verify-borrow": "tsx scripts/verify-borrow-details.ts",
+    "fix-borrow-sync": "tsx scripts/fix-borrow-sync.ts",
+    "fix-overcorrection": "tsx scripts/fix-overcorrection.ts",
+    "find-missing-borrow": "tsx scripts/find-missing-borrow.ts",
+    "check-all-books": "tsx scripts/check-all-books.ts",
+    "fix-coding-interview": "tsx scripts/fix-coding-interview.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
