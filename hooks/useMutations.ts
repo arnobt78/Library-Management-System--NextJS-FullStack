@@ -795,15 +795,9 @@ export const useBorrowBook = () => {
         error.message || `Unable to request "${bookTitle}". Please try again.`
       );
     },
-    // CRITICAL: Silently refetch user-borrows in background to ensure data consistency
-    // This refetch is silent and won't cause flicker due to placeholderData
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user-borrows"],
-        exact: false,
-        refetchType: "none", // Don't refetch immediately, just mark as stale
-      });
-    },
+    // CRITICAL: No onSettled needed - we've already updated user-borrows cache optimistically
+    // Invalidating it would cause unnecessary refetches and flicker
+    // The optimistic update is sufficient, and the cache will sync naturally when queries refetch later
   });
 };
 
@@ -1169,15 +1163,9 @@ export const useReturnBook = () => {
         error.message || `Unable to return "${bookTitle}". Please try again.`
       );
     },
-    // CRITICAL: Silently refetch user-borrows in background to ensure data consistency
-    // This refetch is silent and won't cause flicker due to placeholderData
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user-borrows"],
-        exact: false,
-        refetchType: "none", // Don't refetch immediately, just mark as stale
-      });
-    },
+    // CRITICAL: No onSettled needed - we've already updated user-borrows cache optimistically
+    // Invalidating it would cause unnecessary refetches and flicker
+    // The optimistic update is sufficient, and the cache will sync naturally when queries refetch later
   });
 };
 

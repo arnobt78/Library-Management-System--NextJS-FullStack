@@ -51,10 +51,12 @@ const BorrowBook = ({
       },
       {
         onSuccess: () => {
-          // Navigate immediately - React Query placeholderData will show previous data
-          // during refetch, preventing flicker. Our memoization ensures components
-          // don't re-render unnecessarily.
-          router.push("/my-profile");
+          // CRITICAL: Delay navigation to let optimistic update settle first
+          // This prevents the RSC refetch from causing flicker
+          // The optimistic update already shows the new record in the cache
+          setTimeout(() => {
+            router.push("/my-profile");
+          }, 200); // Small delay to let optimistic update render first
         },
         onError: (error) => {
           console.error("[BorrowBook] Mutation error:", error);
