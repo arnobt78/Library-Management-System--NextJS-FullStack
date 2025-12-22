@@ -521,20 +521,250 @@ export const useBorrowBook = () => {
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (borrows, books, reviews, analytics, admin)
-      invalidateAfterBorrowChange(queryClient);
+    // CRITICAL: Optimistic update - add new PENDING record immediately
+    // This eliminates flicker by updating UI instantly before server responds
+    onMutate: async ({ userId, bookId, bookTitle }) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["user-borrows"] });
+
+      // Get book details from cache (from book detail query)
+      const bookData = queryClient.getQueryData<{
+        id: string;
+        title: string;
+        author: string;
+        genre: string;
+        rating: number;
+        totalCopies: number;
+        availableCopies: number;
+        description: string;
+        coverColor: string;
+        coverUrl: string;
+        videoUrl: string;
+        summary: string;
+        isActive: boolean;
+        createdAt: Date | null;
+        updatedAt: Date | null;
+        [key: string]: unknown;
+      }>(["book", bookId]);
+
+      // Get all user-borrows queries for rollback
+      const previousQueries: Array<{
+        queryKey: unknown[];
+        data: unknown;
+      }> = [];
+
+      // Create optimistic PENDING record
+      const today = new Date().toISOString().split("T")[0];
+      const optimisticRecord = {
+        id: `temp-${Date.now()}`, // Temporary ID until server responds
+        userId,
+        bookId,
+        borrowDate: today,
+        dueDate: null,
+        returnDate: null,
+        status: "PENDING" as const,
+        borrowedBy: null,
+        returnedBy: null,
+        fineAmount: null,
+        notes: null,
+        renewalCount: 0,
+        lastReminderSent: null,
+        updatedAt: new Date().toISOString(),
+        updatedBy: null,
+        createdAt: new Date().toISOString(),
+        // CRITICAL: Include book field from cache (API returns this in /api/borrow-records)
+        book: bookData
+          ? {
+              id: bookData.id,
+              title: bookData.title || bookTitle || "Unknown Book",
+              author: bookData.author || "Unknown Author",
+              genre: bookData.genre || "",
+              rating: bookData.rating || 0,
+              totalCopies: bookData.totalCopies || 0,
+              availableCopies: bookData.availableCopies || 0,
+              description: bookData.description || "",
+              coverColor: bookData.coverColor || "",
+              coverUrl: bookData.coverUrl || "",
+              videoUrl: bookData.videoUrl || "",
+              summary: bookData.summary || "",
+              isActive: bookData.isActive ?? true,
+              createdAt: bookData.createdAt,
+              updatedAt: bookData.updatedAt,
+            }
+          : {
+              id: bookId,
+              title: bookTitle || "Unknown Book",
+              author: "Unknown Author",
+              genre: "",
+              rating: 0,
+              totalCopies: 0,
+              availableCopies: 0,
+              description: "",
+              coverColor: "",
+              coverUrl: "",
+              videoUrl: "",
+              summary: "",
+              isActive: true,
+              createdAt: null,
+              updatedAt: null,
+            },
+      };
+
+      // Find and update all user-borrows queries (for all status filters)
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .forEach((query) => {
+          const queryKey = query.queryKey;
+          if (
+            Array.isArray(queryKey) &&
+            queryKey[0] === "user-borrows" &&
+            queryKey[1] === userId &&
+            query.state.data
+          ) {
+            const data = query.state.data as Array<{
+              id: string;
+              [key: string]: unknown;
+            }>;
+
+            // Store previous data for rollback
+            previousQueries.push({
+              queryKey,
+              data: JSON.parse(JSON.stringify(data)), // Deep clone
+            });
+
+            // Add optimistic record to the beginning of the array
+            const updatedData = [optimisticRecord, ...data];
+
+            // Update cache immediately
+            queryClient.setQueryData(queryKey, updatedData);
+          }
+        });
+
+      // Return context for rollback
+      return { previousQueries, optimisticRecordId: optimisticRecord.id };
+    },
+    onSuccess: (data, variables, context) => {
+      // CRITICAL: Replace temporary optimistic record with server response
+      // The server returns the actual record with real ID
+      if (context?.previousQueries && context?.optimisticRecordId) {
+        // Get book details from cache
+        const bookData = queryClient.getQueryData<{
+          id: string;
+          title: string;
+          author: string;
+          genre: string;
+          rating: number;
+          totalCopies: number;
+          availableCopies: number;
+          description: string;
+          coverColor: string;
+          coverUrl: string;
+          videoUrl: string;
+          summary: string;
+          isActive: boolean;
+          createdAt: Date | null;
+          updatedAt: Date | null;
+          [key: string]: unknown;
+        }>(["book", variables.bookId]);
+
+        context.previousQueries.forEach(({ queryKey }) => {
+          const currentData = queryClient.getQueryData(queryKey) as Array<{
+            id: string;
+            [key: string]: unknown;
+          }>;
+
+          if (currentData) {
+            // Replace temporary record with server response
+            const updatedData = currentData.map((record) => {
+              if (record.id === context.optimisticRecordId) {
+                // Server returns array, get first record
+                const serverRecord = Array.isArray(data) ? data[0] : data;
+                return {
+                  ...serverRecord,
+                  // CRITICAL: Preserve book field from cache (API will include it in refetch)
+                  book: bookData
+                    ? {
+                        id: bookData.id,
+                        title:
+                          bookData.title ||
+                          variables.bookTitle ||
+                          "Unknown Book",
+                        author: bookData.author || "Unknown Author",
+                        genre: bookData.genre || "",
+                        rating: bookData.rating || 0,
+                        totalCopies: bookData.totalCopies || 0,
+                        availableCopies: bookData.availableCopies || 0,
+                        description: bookData.description || "",
+                        coverColor: bookData.coverColor || "",
+                        coverUrl: bookData.coverUrl || "",
+                        videoUrl: bookData.videoUrl || "",
+                        summary: bookData.summary || "",
+                        isActive: bookData.isActive ?? true,
+                        createdAt: bookData.createdAt,
+                        updatedAt: bookData.updatedAt,
+                      }
+                    : {
+                        id: variables.bookId,
+                        title: variables.bookTitle || "Unknown Book",
+                        author: "Unknown Author",
+                        genre: "",
+                        rating: 0,
+                        totalCopies: 0,
+                        availableCopies: 0,
+                        description: "",
+                        coverColor: "",
+                        coverUrl: "",
+                        videoUrl: "",
+                        summary: "",
+                        isActive: true,
+                        createdAt: null,
+                        updatedAt: null,
+                      },
+                };
+              }
+              return record;
+            });
+            queryClient.setQueryData(queryKey, updatedData);
+          }
+        });
+      }
+
+      // CRITICAL: Invalidate related queries EXCEPT user-borrows (already updated optimistically)
+      // This prevents unnecessary refetches that cause flicker
+      invalidateBooksQueries(queryClient); // Book availability changes
+      invalidateReviewsQueries(queryClient); // Eligibility may change
+      invalidateAnalyticsQueries(queryClient);
+      invalidateAdminQueries(queryClient);
+      // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
       showToast.book.borrowSuccess(bookTitle);
     },
-    onError: (error: Error, variables) => {
+    // CRITICAL: Rollback optimistic update on error
+    onError: (error: Error, variables, context) => {
+      // Restore previous cache data
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(({ queryKey, data }) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+
       // Show error toast
       const bookTitle = variables.bookTitle || "book";
       showToast.book.borrowError(
         error.message || `Unable to request "${bookTitle}". Please try again.`
       );
+    },
+    // CRITICAL: Silently refetch user-borrows in background to ensure data consistency
+    // This refetch is silent and won't cause flicker due to placeholderData
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["user-borrows"],
+        exact: false,
+        refetchType: "none", // Don't refetch immediately, just mark as stale
+      });
     },
   });
 };
@@ -721,6 +951,24 @@ export const useReturnBook = () => {
               status: string;
               returnDate?: string | null;
               fineAmount?: number | string | null;
+              book?: {
+                id: string;
+                title: string;
+                author: string;
+                genre: string;
+                rating: number;
+                totalCopies: number;
+                availableCopies: number;
+                description: string;
+                coverColor: string;
+                coverUrl: string;
+                videoUrl: string;
+                summary: string;
+                isActive: boolean;
+                createdAt: Date | null;
+                updatedAt: Date | null;
+                [key: string]: unknown;
+              };
               [key: string]: unknown;
             }>;
 
@@ -731,6 +979,7 @@ export const useReturnBook = () => {
             });
 
             // Find and update the record optimistically
+            // CRITICAL: Preserve book field explicitly to prevent image flicker
             const updatedData = data.map((record) => {
               if (record.id === recordId) {
                 const today = new Date().toISOString().split("T")[0];
@@ -740,6 +989,8 @@ export const useReturnBook = () => {
                   returnDate: today,
                   // Preserve existing fineAmount or set to 0
                   fineAmount: record.fineAmount || "0.00",
+                  // CRITICAL: Explicitly preserve book field to prevent image disappearance
+                  book: record.book,
                 };
               }
               return record;
@@ -764,6 +1015,24 @@ export const useReturnBook = () => {
             id: string;
             status: string;
             fineAmount?: number | string | null;
+            book?: {
+              id: string;
+              title: string;
+              author: string;
+              genre: string;
+              rating: number;
+              totalCopies: number;
+              availableCopies: number;
+              description: string;
+              coverColor: string;
+              coverUrl: string;
+              videoUrl: string;
+              summary: string;
+              isActive: boolean;
+              createdAt: Date | null;
+              updatedAt: Date | null;
+              [key: string]: unknown;
+            };
             [key: string]: unknown;
           }>;
 
@@ -777,6 +1046,8 @@ export const useReturnBook = () => {
                     data?.fineAmount !== undefined
                       ? data.fineAmount.toString()
                       : record.fineAmount || "0.00",
+                  // CRITICAL: Preserve book field to prevent image disappearance
+                  book: record.book,
                 };
               }
               return record;
@@ -824,6 +1095,15 @@ export const useReturnBook = () => {
       showToast.book.returnError(
         error.message || `Unable to return "${bookTitle}". Please try again.`
       );
+    },
+    // CRITICAL: Silently refetch user-borrows in background to ensure data consistency
+    // This refetch is silent and won't cause flicker due to placeholderData
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["user-borrows"],
+        exact: false,
+        refetchType: "none", // Don't refetch immediately, just mark as stale
+      });
     },
   });
 };
