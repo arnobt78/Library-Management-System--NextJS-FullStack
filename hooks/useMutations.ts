@@ -612,7 +612,34 @@ export const useBorrowBook = () => {
             },
       };
 
-      // Find and update all user-borrows queries (for all status filters)
+      // CRITICAL: Always ensure the main query exists (used by MyProfileTabs)
+      // This query key matches what useUserBorrows uses when called with undefined status
+      const mainQueryKey: unknown[] = ["user-borrows", userId, undefined];
+      const existingMainData = queryClient.getQueryData(mainQueryKey) as
+        | Array<{ id: string; [key: string]: unknown }>
+        | undefined;
+
+      if (existingMainData) {
+        // Store previous data for rollback
+        previousQueries.push({
+          queryKey: mainQueryKey,
+          data: JSON.parse(JSON.stringify(existingMainData)), // Deep clone
+        });
+
+        // Add optimistic record to the beginning of the array
+        const updatedData = [optimisticRecord, ...existingMainData];
+        queryClient.setQueryData(mainQueryKey, updatedData);
+      } else {
+        // Query doesn't exist yet - create it with just the optimistic record
+        // This ensures the UI shows the new pending book immediately when navigating to /my-profile
+        previousQueries.push({
+          queryKey: mainQueryKey,
+          data: undefined, // No previous data to rollback to
+        });
+        queryClient.setQueryData(mainQueryKey, [optimisticRecord]);
+      }
+
+      // Also update any other user-borrows queries that might exist (for other status filters)
       queryClient
         .getQueryCache()
         .getAll()
@@ -622,6 +649,7 @@ export const useBorrowBook = () => {
             Array.isArray(queryKey) &&
             queryKey[0] === "user-borrows" &&
             queryKey[1] === userId &&
+            queryKey[2] !== undefined && // Skip the main query (undefined status) - already handled above
             query.state.data
           ) {
             const data = query.state.data as Array<{
