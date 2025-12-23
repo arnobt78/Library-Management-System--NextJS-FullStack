@@ -19,14 +19,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { borrowRecords } from "@/database/schema";
-import { eq, count, sql, and } from "drizzle-orm";
+import { eq, count, sql } from "drizzle-orm";
+import { headers } from "next/headers";
+import ratelimit from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
 /**
  * Get borrow statistics for a specific book
  *
- * @param request - Next.js request object
+ * @param _request - Next.js request object
  * @param params - Route parameters containing book ID
  * @returns JSON response with borrow statistics
  */
@@ -35,6 +37,23 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    // This endpoint returns public book statistics (aggregate data, not user-specific)
+    // Rate limiting provides protection against abuse while keeping it accessible for public book pages
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
     const { id } = await params;
 
     if (!id) {
@@ -84,4 +103,3 @@ export async function GET(
     );
   }
 }
-

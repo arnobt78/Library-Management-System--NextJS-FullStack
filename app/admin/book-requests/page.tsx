@@ -25,7 +25,63 @@ const Page = async ({
     return <div>Error loading borrow requests: {result.error}</div>;
   }
 
-  const requests = result.data || [];
+  const rawRequests = result.data || [];
+
+  // Transform to match BorrowRecordWithDetails type
+  // Drizzle's date() type returns strings (YYYY-MM-DD), timestamp() returns Date objects
+  // BorrowRecordWithDetails expects: borrowDate as Date, dueDate/returnDate as string, fineAmount as string
+  const requests = rawRequests.map((record) => {
+    // Handle dueDate: Drizzle date() returns string (YYYY-MM-DD format)
+    const dueDateValue = record.dueDate as string | Date | null;
+    let dueDateStr: string | null = null;
+    if (dueDateValue) {
+      if (typeof dueDateValue === "string") {
+        dueDateStr = dueDateValue;
+      } else {
+        dueDateStr = dueDateValue.toISOString().split("T")[0];
+      }
+    }
+
+    // Handle returnDate: Drizzle date() returns string (YYYY-MM-DD format)
+    const returnDateValue = record.returnDate as string | Date | null;
+    let returnDateStr: string | null = null;
+    if (returnDateValue) {
+      if (typeof returnDateValue === "string") {
+        returnDateStr = returnDateValue;
+      } else {
+        returnDateStr = returnDateValue.toISOString().split("T")[0];
+      }
+    }
+
+    return {
+      id: record.id,
+      userId: record.userId,
+      bookId: record.bookId,
+      borrowDate: record.borrowDate, // timestamp() returns Date object
+      dueDate: dueDateStr,
+      returnDate: returnDateStr,
+      status: record.status as "PENDING" | "BORROWED" | "RETURNED",
+      borrowedBy: record.borrowedBy,
+      returnedBy: record.returnedBy,
+      fineAmount: record.fineAmount || "0.00", // Ensure it's a string
+      notes: record.notes,
+      renewalCount: record.renewalCount,
+      lastReminderSent: record.lastReminderSent, // timestamp() returns Date object
+      updatedAt: record.updatedAt, // timestamp() returns Date object
+      updatedBy: record.updatedBy,
+      createdAt: record.createdAt, // timestamp() returns Date object
+      // User details
+      userName: record.userName,
+      userEmail: record.userEmail,
+      userUniversityId: record.userUniversityId,
+      // Book details
+      bookTitle: record.bookTitle,
+      bookAuthor: record.bookAuthor,
+      bookGenre: record.bookGenre,
+      bookCoverUrl: record.bookCoverUrl,
+      bookCoverColor: record.bookCoverColor,
+    };
+  });
 
   return (
     <AdminBookRequestsList

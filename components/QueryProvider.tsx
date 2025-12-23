@@ -33,9 +33,10 @@ export default function QueryProvider({
             // Data only becomes stale when explicitly invalidated after mutations
             staleTime: Infinity,
 
-            // Keep data in cache for 5 minutes after component unmounts
+            // Keep data in cache for 30 minutes after component unmounts
             // This allows faster subsequent loads while managing memory efficiently
-            gcTime: 5 * 60 * 1000,
+            // Increased from 5 minutes to 30 minutes to prevent cache loss during navigation
+            gcTime: 30 * 60 * 1000,
 
             // Retry failed requests once (faster failure = faster error display)
             // Reduced from 2 to 1 for better UX (users see errors faster)

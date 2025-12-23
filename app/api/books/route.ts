@@ -21,6 +21,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { books } from "@/database/schema";
 import { desc, asc, eq, like, and, or, sql } from "drizzle-orm";
+import { headers } from "next/headers";
+import ratelimit from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -32,6 +34,23 @@ export const runtime = "nodejs";
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    // This endpoint returns public book data (book list with filters, not user-specific)
+    // Rate limiting provides protection against abuse while keeping it accessible for public book pages
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters

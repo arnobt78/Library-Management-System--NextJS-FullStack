@@ -2,7 +2,7 @@
 
 /**
  * Script to apply the email tracking fields migration (corrected version)
- * Usage: npx tsx -r dotenv/config apply-email-tracking-migration.ts
+ * Usage: npx tsx -r dotenv/config scripts/apply-email-tracking-migration.ts
  */
 
 import { db } from "@/database/drizzle";
@@ -66,3 +66,4 @@ async function applyEmailTrackingMigration(): Promise<void> {
 }
 
 applyEmailTrackingMigration();
+

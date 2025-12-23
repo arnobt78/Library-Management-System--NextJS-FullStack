@@ -9,6 +9,8 @@ import React from "react";
 import Header from "@/components/Header";
 import { auth } from "@/auth";
 import ApiStatusClient from "@/components/ApiStatusClient";
+import type { ServiceStatus } from "@/lib/services/health-monitor";
+import type { MetricsData } from "@/lib/services/metrics-monitor";
 
 export const runtime = "nodejs";
 
@@ -19,10 +21,111 @@ const ApiStatusPage = async () => {
     return <div>Please sign in to view API status.</div>;
   }
 
-  // Note: Service health requires multiple API calls (one per service),
-  // and system metrics can be fetched client-side efficiently.
-  // We'll let the client fetch everything with React Query for better UX.
-  // Initial data is optional and can be added later if needed for SSR optimization.
+  // Fetch all data server-side for SSR
+  const baseUrl =
+    process.env.NODE_ENV === "production"
+      ? "https://university-library-managment.vercel.app"
+      : "http://localhost:3000";
+
+  let initialServices: ServiceStatus[] | undefined;
+  let initialMetrics: MetricsData | undefined;
+
+  try {
+    // Fetch service health and system metrics in parallel
+    const services = [
+      "api-server",
+      "database",
+      "file-storage",
+      "authentication",
+      "email-service",
+      "external-apis",
+    ];
+
+    const [healthChecks, metricsResponse] = await Promise.allSettled([
+      // Fetch all services health checks
+      Promise.allSettled(
+        services.map((service) =>
+          fetch(`${baseUrl}/api/status/${service}`, {
+            cache: "no-store",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+            .then((res) => res.json())
+            .catch(() => ({
+              status: "DOWN",
+              responseTime: "0ms",
+              endpoint: service,
+              performance: "Poor",
+              performanceValue: 0,
+              error: "Failed to fetch",
+              timestamp: new Date().toISOString(),
+            }))
+        )
+      ),
+      // Fetch system metrics
+      fetch(`${baseUrl}/api/status/metrics`, {
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }).then((res) => res.json()),
+    ]);
+
+    // Process service health data
+    if (healthChecks.status === "fulfilled") {
+      const serviceNames = [
+        "API Server",
+        "Database",
+        "File Storage",
+        "Authentication",
+        "Email Service",
+        "External APIs",
+      ];
+
+      initialServices = healthChecks.value.map((result, index) => {
+        const service = services[index];
+        const healthData =
+          result.status === "fulfilled"
+            ? result.value
+            : {
+                status: "DOWN" as const,
+                responseTime: "0ms",
+                endpoint: service,
+                performance: "Poor" as const,
+                performanceValue: 0,
+                error: "Failed to fetch",
+                timestamp: new Date().toISOString(),
+              };
+
+        return {
+          name: serviceNames[index],
+          status: healthData.status,
+          responseTime: parseInt(
+            (healthData.responseTime || "0ms").replace("ms", "")
+          ),
+          endpoint: healthData.endpoint || service,
+          description: `${serviceNames[index]} health check`,
+          icon: null,
+          performance: healthData.performance || "Poor",
+          performanceValue: healthData.performanceValue || 0,
+          details: healthData.details,
+          lastChecked: healthData.timestamp || new Date().toISOString(),
+        };
+      });
+    }
+
+    // Process system metrics data
+    if (
+      metricsResponse.status === "fulfilled" &&
+      metricsResponse.value.metrics
+    ) {
+      initialMetrics = metricsResponse.value.metrics;
+    }
+  } catch (error) {
+    // If SSR fetch fails, let client-side fetch handle it
+    console.error("Failed to fetch initial data for API status:", error);
+  }
 
   return (
     <main className="root-container">
@@ -33,8 +136,8 @@ const ApiStatusPage = async () => {
           <div className="min-h-screen bg-transparent py-0">
             <div className="mx-auto max-w-7xl px-4">
               <ApiStatusClient
-                initialServices={undefined}
-                initialMetrics={undefined}
+                initialServices={initialServices}
+                initialMetrics={initialMetrics}
               />
             </div>
           </div>

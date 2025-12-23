@@ -32,7 +32,6 @@ import {
   Database,
   FileText,
   Lock,
-  Wifi,
   Globe,
   HardDrive,
   Users,

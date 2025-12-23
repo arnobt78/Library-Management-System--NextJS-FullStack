@@ -18,6 +18,7 @@ import { signOut } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/lib/toast";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { invalidateAllQueries } from "@/lib/utils/queryInvalidation";
 
 const LogoutButton: React.FC = () => {
@@ -36,7 +37,8 @@ const LogoutButton: React.FC = () => {
 
       // CRITICAL: Set logout flag to prevent UI updates during logout
       // This prevents flickering/blinking of images and components during logout transition
-      document.cookie = "logout-in-progress=true; path=/; max-age=10; SameSite=Lax";
+      document.cookie =
+        "logout-in-progress=true; path=/; max-age=10; SameSite=Lax";
 
       // CRITICAL: Don't invalidate queries during logout - it causes unnecessary refetches
       // and flickering. The queries will naturally fail/clear when session is gone.

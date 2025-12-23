@@ -9,12 +9,17 @@ import React from "react";
 import { getReminderStats } from "@/lib/admin/actions/reminders";
 import { getExportStats } from "@/lib/admin/actions/data-export";
 import {
+  getDailyFineAmount,
+  initializeDefaultConfigs,
+} from "@/lib/admin/actions/config";
+import {
   generateAllUserRecommendations,
   updateTrendingBooks,
   refreshRecommendationCache,
 } from "@/lib/admin/actions/recommendations";
 import { redirect } from "next/navigation";
 import AdminAutomationClient from "@/components/AdminAutomationClient";
+import type { FineConfig } from "@/lib/services/admin";
 
 export const runtime = "nodejs";
 
@@ -124,15 +129,26 @@ const AutomationDashboard = async ({
   const params = await searchParams;
 
   // Fetch automation data server-side for SSR
-  const [reminderStats, exportStats] = await Promise.all([
+  // Initialize default configs if they don't exist (for fine config)
+  await initializeDefaultConfigs();
+
+  const [reminderStats, exportStats, fineAmount] = await Promise.all([
     getReminderStats(),
     getExportStats(),
+    getDailyFineAmount(),
   ]);
+
+  // Transform fine amount to FineConfig format
+  const initialFineConfig: FineConfig = {
+    success: true,
+    fineAmount,
+  };
 
   return (
     <AdminAutomationClient
       initialReminderStats={reminderStats}
       initialExportStats={exportStats}
+      initialFineConfig={initialFineConfig}
       searchParams={params}
       serverActions={{
         handleGenerateAllUserRecommendations,

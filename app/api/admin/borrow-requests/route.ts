@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     // CRITICAL: Check role from session first (if available from new JWT)
     // If not available, fallback to database check (for existing sessions)
     let isAdmin = false;
-    if (session.user.role === "ADMIN") {
+    if ((session.user as { role?: string }).role === "ADMIN") {
       isAdmin = true;
     } else {
       // Fallback: Check database if role not in session (for existing sessions)
@@ -166,4 +166,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

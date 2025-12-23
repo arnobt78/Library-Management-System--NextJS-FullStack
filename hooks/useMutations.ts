@@ -59,8 +59,6 @@ import {
   invalidateBooksQueries, // Used indirectly via invalidateAfter* functions
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   invalidateReviewsQueries, // Used indirectly via invalidateAfter* functions
-  invalidateAnalyticsQueries,
-  invalidateAdminQueries,
 } from "@/lib/utils/queryInvalidation";
 // BookParams is a global type from types.d.ts, no import needed
 
@@ -695,139 +693,55 @@ export const useBorrowBook = () => {
       // Return context for rollback
       return { previousQueries, optimisticRecordId: optimisticRecord.id };
     },
-    onSuccess: (data, variables, context) => {
-      // CRITICAL: Replace temporary optimistic record with server response
-      // The server returns the actual record with real ID
-      if (context?.previousQueries && context?.optimisticRecordId) {
-        // Get book details from cache
-        const bookData = queryClient.getQueryData<{
-          id: string;
-          title: string;
-          author: string;
-          genre: string;
-          rating: number;
-          totalCopies: number;
-          availableCopies: number;
-          description: string;
-          coverColor: string;
-          coverUrl: string;
-          videoUrl: string;
-          summary: string;
-          isActive: boolean;
-          createdAt: Date | null;
-          updatedAt: Date | null;
-          [key: string]: unknown;
-        }>(["book", variables.bookId]);
+    onSuccess: async (_data, _variables, _context) => {
+      // CRITICAL: Only invalidate user-borrows to trigger fresh fetch (causes 1 blink, but ensures fresh data)
+      // Other queries will refetch when user visits those pages (no immediate blink)
+      queryClient.invalidateQueries({
+        queryKey: ["user-borrows", _variables.userId],
+        exact: false,
+        refetchType: "active", // Refetch active queries immediately (only user-borrows on my-profile page)
+      });
 
-        context.previousQueries.forEach(({ queryKey }) => {
-          const currentData = queryClient.getQueryData(queryKey) as Array<{
-            id: string;
-            [key: string]: unknown;
-          }>;
+      // Mark other queries as stale (they'll refetch when visited, not immediately)
+      queryClient.invalidateQueries({
+        queryKey: ["books"],
+        exact: false,
+        refetchType: "none", // Don't refetch immediately - prevents blinks
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["all-books"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["book"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["book-borrow-stats"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["book-reviews"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["review-eligibility"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["borrow-requests"],
+        exact: false,
+        refetchType: "none",
+      });
 
-          if (currentData) {
-            // Replace temporary record with server response
-            const updatedData = currentData.map((record) => {
-              if (record.id === context.optimisticRecordId) {
-                // Server returns array, get first record
-                const serverRecord = Array.isArray(data) ? data[0] : data;
-                return {
-                  ...serverRecord,
-                  // CRITICAL: Preserve book field from cache (API will include it in refetch)
-                  book: bookData
-                    ? {
-                        id: bookData.id,
-                        title:
-                          bookData.title ||
-                          variables.bookTitle ||
-                          "Unknown Book",
-                        author: bookData.author || "Unknown Author",
-                        genre: bookData.genre || "",
-                        rating: bookData.rating || 0,
-                        totalCopies: bookData.totalCopies || 0,
-                        availableCopies: bookData.availableCopies || 0,
-                        description: bookData.description || "",
-                        coverColor: bookData.coverColor || "",
-                        coverUrl: bookData.coverUrl || "",
-                        videoUrl: bookData.videoUrl || "",
-                        summary: bookData.summary || "",
-                        isActive: bookData.isActive ?? true,
-                        createdAt: bookData.createdAt,
-                        updatedAt: bookData.updatedAt,
-                      }
-                    : {
-                        id: variables.bookId,
-                        title: variables.bookTitle || "Unknown Book",
-                        author: "Unknown Author",
-                        genre: "",
-                        rating: 0,
-                        totalCopies: 0,
-                        availableCopies: 0,
-                        description: "",
-                        coverColor: "",
-                        coverUrl: "",
-                        videoUrl: "",
-                        summary: "",
-                        isActive: true,
-                        createdAt: null,
-                        updatedAt: null,
-                      },
-                };
-              }
-              return record;
-            });
-            queryClient.setQueryData(queryKey, updatedData);
-          }
-        });
-      }
-
-      // CRITICAL: Delay invalidations and toast to prevent flicker
-      // The optimistic update already shows the change, so we delay related invalidations
-      // This prevents immediate refetches that cause flicker
-      setTimeout(() => {
-        // Invalidate related queries EXCEPT user-borrows (already updated optimistically)
-        // Use refetchType: "none" to just mark as stale without immediate refetch
-        queryClient.invalidateQueries({
-          queryKey: ["books"],
-          exact: false,
-          refetchType: "none", // Don't refetch immediately, just mark as stale
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["all-books"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["book"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["book-borrow-stats"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["book-reviews"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["review-eligibility"],
-          exact: false,
-          refetchType: "none",
-        });
-        invalidateAnalyticsQueries(queryClient);
-        invalidateAdminQueries(queryClient);
-        // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
-      }, 100); // Small delay to let UI settle
-
-      // CRITICAL: Delay toast notification to prevent immediate re-render
-      // This prevents the toast from causing flicker during the optimistic update
-      setTimeout(() => {
-        const bookTitle = variables.bookTitle || "Book";
-        showToast.book.borrowSuccess(bookTitle);
-      }, 150); // Delay toast slightly after invalidations
+      // Show success toast
+      const bookTitle = _variables.bookTitle || "Book";
+      showToast.book.borrowSuccess(bookTitle);
     },
     // CRITICAL: Rollback optimistic update on error
     onError: (error: Error, variables, context) => {
@@ -1004,209 +918,66 @@ export const useReturnBook = () => {
       }
       return result.data;
     },
-    // CRITICAL: Optimistic update - update cache immediately on click
-    // This eliminates flicker by updating UI instantly before server responds
-    onMutate: async ({ recordId }) => {
-      // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["user-borrows"] });
+    // CRITICAL: No optimistic updates - just invalidate to trigger fresh API fetch
+    // This ensures we always have fresh data from server (1 blink is acceptable)
+    onSuccess: (data, variables) => {
+      // CRITICAL: Only invalidate user-borrows to trigger fresh fetch (causes 1 blink, but ensures fresh data)
+      // Other queries will refetch when user visits those pages (no immediate blink)
+      queryClient.invalidateQueries({
+        queryKey: ["user-borrows"],
+        exact: false,
+        refetchType: "active", // Refetch active queries immediately (only user-borrows on my-profile page)
+      });
 
-      // Get all user-borrows queries for rollback
-      const previousQueries: Array<{
-        queryKey: unknown[];
-        data: unknown;
-      }> = [];
+      // Mark other queries as stale (they'll refetch when visited, not immediately)
+      queryClient.invalidateQueries({
+        queryKey: ["books"],
+        exact: false,
+        refetchType: "none", // Don't refetch immediately - prevents blinks
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["all-books"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["book"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["book-borrow-stats"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["book-reviews"],
+        exact: false,
+        refetchType: "none",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["review-eligibility"],
+        exact: false,
+        refetchType: "none",
+      });
 
-      // Find and update all user-borrows queries (for all status filters)
-      queryClient
-        .getQueryCache()
-        .getAll()
-        .forEach((query) => {
-          const queryKey = query.queryKey;
-          if (
-            Array.isArray(queryKey) &&
-            queryKey[0] === "user-borrows" &&
-            query.state.data
-          ) {
-            const data = query.state.data as Array<{
-              id: string;
-              status: string;
-              returnDate?: string | null;
-              fineAmount?: number | string | null;
-              book?: {
-                id: string;
-                title: string;
-                author: string;
-                genre: string;
-                rating: number;
-                totalCopies: number;
-                availableCopies: number;
-                description: string;
-                coverColor: string;
-                coverUrl: string;
-                videoUrl: string;
-                summary: string;
-                isActive: boolean;
-                createdAt: Date | null;
-                updatedAt: Date | null;
-                [key: string]: unknown;
-              };
-              [key: string]: unknown;
-            }>;
-
-            // Store previous data for rollback
-            previousQueries.push({
-              queryKey,
-              data: JSON.parse(JSON.stringify(data)), // Deep clone
-            });
-
-            // Find and update the record optimistically
-            // CRITICAL: Preserve book field explicitly to prevent image flicker
-            const updatedData = data.map((record) => {
-              if (record.id === recordId) {
-                const today = new Date().toISOString().split("T")[0];
-                return {
-                  ...record,
-                  status: "RETURNED",
-                  returnDate: today,
-                  // Preserve existing fineAmount or set to 0
-                  fineAmount: record.fineAmount || "0.00",
-                  // CRITICAL: Explicitly preserve book field to prevent image disappearance
-                  book: record.book,
-                };
-              }
-              return record;
-            });
-
-            // Update cache immediately
-            queryClient.setQueryData(queryKey, updatedData);
-          }
-        });
-
-      // Return context for rollback
-      return { previousQueries };
-    },
-    // CRITICAL: On success, update cache with server response and invalidate silently
-    // The optimistic update already showed the change, so we just sync with server
-    onSuccess: (data, variables, context) => {
-      // Update cache with server response (in case server made additional changes)
-      // This ensures fineAmount and other server-calculated fields are correct
-      if (context?.previousQueries) {
-        context.previousQueries.forEach(({ queryKey }) => {
-          const currentData = queryClient.getQueryData(queryKey) as Array<{
-            id: string;
-            status: string;
-            fineAmount?: number | string | null;
-            book?: {
-              id: string;
-              title: string;
-              author: string;
-              genre: string;
-              rating: number;
-              totalCopies: number;
-              availableCopies: number;
-              description: string;
-              coverColor: string;
-              coverUrl: string;
-              videoUrl: string;
-              summary: string;
-              isActive: boolean;
-              createdAt: Date | null;
-              updatedAt: Date | null;
-              [key: string]: unknown;
-            };
-            [key: string]: unknown;
-          }>;
-
-          if (currentData) {
-            const updatedData = currentData.map((record) => {
-              if (record.id === variables.recordId) {
-                return {
-                  ...record,
-                  // Update fineAmount from server response if available
-                  fineAmount:
-                    data?.fineAmount !== undefined
-                      ? data.fineAmount.toString()
-                      : record.fineAmount || "0.00",
-                  // CRITICAL: Preserve book field to prevent image disappearance
-                  book: record.book,
-                };
-              }
-              return record;
-            });
-            queryClient.setQueryData(queryKey, updatedData);
-          }
-        });
+      // Show toast notification
+      const bookTitle = variables.bookTitle || "Book";
+      if (
+        data?.isOverdue &&
+        data.daysOverdue !== undefined &&
+        data.fineAmount !== undefined
+      ) {
+        showToast.warning(
+          "Book Returned with Fine",
+          `"${bookTitle}" was returned ${data.daysOverdue} days overdue. Fine: $${data.fineAmount.toFixed(2)}`
+        );
+      } else {
+        showToast.book.returnSuccess(bookTitle);
       }
-
-      // CRITICAL: Delay invalidations and toast to prevent flicker
-      // The optimistic update already shows the change, so we delay related invalidations
-      // This prevents immediate refetches that cause flicker
-      setTimeout(() => {
-        // Invalidate related queries EXCEPT user-borrows (already updated optimistically)
-        // Use refetchType: "none" to just mark as stale without immediate refetch
-        queryClient.invalidateQueries({
-          queryKey: ["books"],
-          exact: false,
-          refetchType: "none", // Don't refetch immediately, just mark as stale
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["all-books"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["book"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["book-borrow-stats"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["book-reviews"],
-          exact: false,
-          refetchType: "none",
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["review-eligibility"],
-          exact: false,
-          refetchType: "none",
-        });
-        invalidateAnalyticsQueries(queryClient);
-        invalidateAdminQueries(queryClient);
-        // Skip invalidateBorrowsQueries - we've already updated user-borrows cache directly
-      }, 100); // Small delay to let UI settle
-
-      // CRITICAL: Delay toast notification to prevent immediate re-render
-      // This prevents the toast from causing flicker during the optimistic update
-      setTimeout(() => {
-        const bookTitle = variables.bookTitle || "Book";
-        if (
-          data?.isOverdue &&
-          data.daysOverdue !== undefined &&
-          data.fineAmount !== undefined
-        ) {
-          showToast.warning(
-            "Book Returned with Fine",
-            `"${bookTitle}" was returned ${data.daysOverdue} days overdue. Fine: $${data.fineAmount.toFixed(2)}`
-          );
-        } else {
-          showToast.book.returnSuccess(bookTitle);
-        }
-      }, 150); // Delay toast slightly after invalidations
     },
-    // CRITICAL: Rollback optimistic update on error
-    onError: (error: Error, variables, context) => {
-      // Restore previous cache data
-      if (context?.previousQueries) {
-        context.previousQueries.forEach(({ queryKey, data }) => {
-          queryClient.setQueryData(queryKey, data);
-        });
-      }
-
-      // Show error toast
+    // CRITICAL: Show error toast on failure
+    onError: (error: Error, variables) => {
       const bookTitle = variables.bookTitle || "book";
       showToast.book.returnError(
         error.message || `Unable to return "${bookTitle}". Please try again.`

@@ -2,7 +2,7 @@
 
 /**
  * Script to clear all borrow_records for testing purposes
- * Usage: npx tsx -r dotenv/config clear-borrow-records.ts
+ * Usage: npx tsx -r dotenv/config scripts/clear-borrow-records.ts
  */
 
 import { db } from "@/database/drizzle";
@@ -26,3 +26,4 @@ async function clearBorrowRecords() {
 }
 
 clearBorrowRecords();
+

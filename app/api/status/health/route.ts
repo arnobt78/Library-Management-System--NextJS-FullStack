@@ -1,12 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import ratelimit from "@/lib/ratelimit";
 import { db } from "@/database/drizzle";
 import { sql } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
 export async function GET(_request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    const startTime = Date.now();
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    // This endpoint returns overall system health status (public information for monitoring)
+    // Rate limiting provides protection against abuse while keeping it accessible for health checks
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          status: "DOWN",
+          responseTime: `${Date.now() - startTime}ms`,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+          timestamp: new Date().toISOString(),
+        },
+        { status: 429 }
+      );
+    }
 
     // Test database connection
     const dbResult = await testDatabaseConnection();
@@ -28,10 +49,16 @@ export async function GET(_request: NextRequest) {
       },
     });
   } catch (error) {
+    // CRITICAL: Fix bug - use startTime instead of Date.now() - Date.now() (which is always 0)
+    const responseTime = Date.now() - startTime;
+
     return NextResponse.json(
       {
         status: "DOWN",
+        responseTime: `${responseTime}ms`,
         error: error instanceof Error ? error.message : "Unknown error",
+        message:
+          error instanceof Error ? error.message : "Unknown error occurred",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

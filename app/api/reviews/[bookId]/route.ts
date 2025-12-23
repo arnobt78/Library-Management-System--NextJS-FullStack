@@ -3,16 +3,45 @@ import { db } from "@/database/drizzle";
 import { bookReviews, users, borrowRecords } from "@/database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { auth } from "@/auth";
+import { headers } from "next/headers";
+import ratelimit from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
 // GET /api/reviews/[bookId] - Get all reviews for a book
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ bookId: string }> }
 ) {
   try {
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    // This endpoint returns public book reviews (reviews are public data, not user-specific)
+    // Rate limiting provides protection against abuse while keeping it accessible for public book pages
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
     const { bookId } = await params;
+
+    if (!bookId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Book ID is required",
+        },
+        { status: 400 }
+      );
+    }
 
     const reviews = await db
       .select({
@@ -36,7 +65,12 @@ export async function GET(
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch reviews" },
+      {
+        success: false,
+        error: "Failed to fetch reviews",
+        message:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      },
       { status: 500 }
     );
   }
@@ -48,15 +82,47 @@ export async function POST(
   { params }: { params: Promise<{ bookId: string }> }
 ) {
   try {
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
+    // CRITICAL: Authentication required for creating reviews
+    // Reviews can only be created by authenticated users who have borrowed and returned the book
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
+        {
+          success: false,
+          error: "Unauthorized",
+          message: "Authentication required",
+        },
         { status: 401 }
       );
     }
 
     const { bookId } = await params;
+
+    if (!bookId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Book ID is required",
+        },
+        { status: 400 }
+      );
+    }
+
     const { rating, comment } = await request.json();
 
     // Validate input
@@ -140,7 +206,12 @@ export async function POST(
   } catch (error) {
     console.error("Error creating review:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to create review" },
+      {
+        success: false,
+        error: "Failed to create review",
+        message:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      },
       { status: 500 }
     );
   }

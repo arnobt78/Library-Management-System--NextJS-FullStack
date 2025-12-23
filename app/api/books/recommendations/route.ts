@@ -23,6 +23,8 @@ import { db } from "@/database/drizzle";
 import { books, borrowRecords } from "@/database/schema";
 import { desc, eq, sql, and, inArray, notInArray } from "drizzle-orm";
 import { auth } from "@/auth";
+import { headers } from "next/headers";
+import ratelimit from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -34,11 +36,29 @@ export const runtime = "nodejs";
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    // This endpoint returns personalized recommendations (if user is logged in) or high-rated books (if anonymous)
+    // Rate limiting provides protection against abuse while keeping it accessible for public pages
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") || undefined;
     const limit = parseInt(searchParams.get("limit") || "10", 10);
 
     // Get session to determine user if userId not provided
+    // Note: Authentication is optional - works for both authenticated and anonymous users
     const session = await auth();
     const finalUserId = userId || session?.user?.id;
 
@@ -148,4 +168,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

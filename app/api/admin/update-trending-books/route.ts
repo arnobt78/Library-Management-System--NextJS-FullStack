@@ -38,10 +38,14 @@ export async function POST(_request: NextRequest) {
     }
 
     // Check if user is admin
+    // CRITICAL: Check role from session first (if available from new JWT)
+    // If not available, fallback to database check (for existing sessions)
     let isAdmin = false;
-    if (session.user.role === "ADMIN") {
+    if ((session.user as { role?: string }).role === "ADMIN") {
       isAdmin = true;
     } else {
+      // Fallback: Check database if role not in session (for existing sessions)
+      // This handles cases where JWT was created before role was added
       const user = await db
         .select({ role: users.role })
         .from(users)

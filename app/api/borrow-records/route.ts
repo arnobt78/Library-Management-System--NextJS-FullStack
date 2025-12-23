@@ -24,6 +24,8 @@ import { db } from "@/database/drizzle";
 import { borrowRecords, books, users } from "@/database/schema";
 import { eq, and, desc, asc, gte, lte, sql } from "drizzle-orm";
 import { auth } from "@/auth";
+import { headers } from "next/headers";
+import ratelimit from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -35,6 +37,21 @@ export const runtime = "nodejs";
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
     const session = await auth();
     const { searchParams } = new URL(request.url);
 
@@ -53,8 +70,52 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
 
-    // If userId is not provided and user is authenticated, use current user
-    const finalUserId = userId || session?.user?.id;
+    // CRITICAL: Authentication required for accessing borrow records
+    // Borrow records contain sensitive user data and should only be accessible to authenticated users
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Unauthorized",
+          message: "Authentication required",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is admin
+    // CRITICAL: Check role from session first (if available from new JWT)
+    // If not available, fallback to database check (for existing sessions)
+    let isAdmin = false;
+    if ((session.user as { role?: string }).role === "ADMIN") {
+      isAdmin = true;
+    } else {
+      // Fallback: Check database if role not in session (for existing sessions)
+      // This handles cases where JWT was created before role was added
+      const user = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1);
+
+      isAdmin = user[0]?.role === "ADMIN";
+    }
+
+    // CRITICAL: Authorization check
+    // Users can only access their own records unless they're admin
+    // If userId is provided in query params, verify it matches the authenticated user (unless admin)
+    const finalUserId = userId || session.user.id;
+
+    if (!isAdmin && userId && userId !== session.user.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Forbidden",
+          message: "You can only access your own borrow records",
+        },
+        { status: 403 }
+      );
+    }
 
     // Build where conditions
     const whereConditions = [];

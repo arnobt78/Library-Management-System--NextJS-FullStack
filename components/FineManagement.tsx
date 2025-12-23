@@ -11,17 +11,32 @@
  * - Uses useUpdateFineConfig mutation for updating fine amount
  * - Automatic cache invalidation on success
  * - Toast notifications via mutation callbacks
+ * - Supports SSR initial data to prevent duplicate fetches
  */
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useFineConfig } from "@/hooks/useQueries";
-import { useUpdateFineConfig, useUpdateOverdueFines } from "@/hooks/useMutations";
+import {
+  useUpdateFineConfig,
+  useUpdateOverdueFines,
+} from "@/hooks/useMutations";
+import type { FineConfig } from "@/lib/services/admin";
 
-export default function FineManagement() {
-  // Use React Query hook for fetching fine config
-  const { data: fineConfig, isLoading: configLoading } = useFineConfig();
-  
+interface FineManagementProps {
+  /**
+   * Initial fine config from SSR (prevents duplicate fetch)
+   */
+  initialFineConfig?: FineConfig;
+}
+
+export default function FineManagement({
+  initialFineConfig,
+}: FineManagementProps) {
+  // Use React Query hook for fetching fine config with SSR initial data
+  const { data: fineConfig, isLoading: configLoading } =
+    useFineConfig(initialFineConfig);
+
   // Use React Query mutations
   const updateFineConfigMutation = useUpdateFineConfig();
   const updateOverdueFinesMutation = useUpdateOverdueFines();
@@ -61,7 +76,7 @@ export default function FineManagement() {
               customFineAmount: editableAmount,
             },
             {
-              onSuccess: (data) => {
+              onSuccess: (_data) => {
                 setIsEditing(false);
                 // Cache invalidation handled by mutations
                 // No need to reload page - React Query will update UI

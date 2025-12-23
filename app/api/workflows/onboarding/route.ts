@@ -18,26 +18,38 @@ const THREE_DAYS_IN_MS = 3 * ONE_DAY_IN_MS;
 const THIRTY_DAYS_IN_MS = 30 * ONE_DAY_IN_MS;
 
 const getUserState = async (email: string): Promise<UserState> => {
-  const user = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  try {
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  if (user.length === 0) return "non-active";
+    if (user.length === 0) return "non-active";
 
-  const lastActivityDate = new Date(user[0].lastActivityDate!);
-  const now = new Date();
-  const timeDifference = now.getTime() - lastActivityDate.getTime();
+    // CRITICAL: Fix potential null/undefined error - check if lastActivityDate exists
+    // If lastActivityDate is null or undefined, treat user as non-active
+    if (!user[0].lastActivityDate) {
+      return "non-active";
+    }
 
-  if (
-    timeDifference > THREE_DAYS_IN_MS &&
-    timeDifference <= THIRTY_DAYS_IN_MS
-  ) {
+    const lastActivityDate = new Date(user[0].lastActivityDate);
+    const now = new Date();
+    const timeDifference = now.getTime() - lastActivityDate.getTime();
+
+    if (
+      timeDifference > THREE_DAYS_IN_MS &&
+      timeDifference <= THIRTY_DAYS_IN_MS
+    ) {
+      return "non-active";
+    }
+
+    return "active";
+  } catch (error) {
+    // If there's an error checking user state, default to non-active
+    console.error("Error getting user state:", error);
     return "non-active";
   }
-
-  return "active";
 };
 
 export const { POST } = serve<InitialData>(async (context) => {

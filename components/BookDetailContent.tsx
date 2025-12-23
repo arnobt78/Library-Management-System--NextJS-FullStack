@@ -52,7 +52,7 @@ interface BookDetailContentProps {
 
 const BookDetailContent: React.FC<BookDetailContentProps> = ({
   bookId,
-  userId,
+  userId: _userId,
   userEmail,
   initialBook,
   initialReviews,

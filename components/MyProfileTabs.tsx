@@ -179,6 +179,10 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       : undefined
   );
 
+  // CRITICAL: No cache - always use React Query data directly
+  // React Query will always fetch fresh data on mount (staleTime: 0, refetchOnMount: true)
+  // No cache fallback - just use whatever React Query returns
+
   // CRITICAL: Always prefer React Query data over initial/legacy data
   // React Query data is fresh and updates immediately after mutations
   // The API returns borrow records WITH book details (the 'book' field is included)
@@ -191,6 +195,20 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   >(new Map());
   // Store previous array to maintain reference equality when data hasn't changed
   const previousArrayRef = React.useRef<BorrowRecordWithBook[]>([]);
+  // CRITICAL: Store initial data as fallback for client-side navigation
+  // When navigating client-side, initialData is not available, but we can use it from first render
+  const initialDataRef = React.useRef<BorrowRecordWithBook[] | null>(null);
+
+  // Store initial data on first render (SSR data)
+  React.useEffect(() => {
+    if (
+      (initialBorrowHistory || legacyBorrowHistory) &&
+      !initialDataRef.current
+    ) {
+      initialDataRef.current =
+        initialBorrowHistory || legacyBorrowHistory || [];
+    }
+  }, [initialBorrowHistory, legacyBorrowHistory]);
 
   // Transform data using useMemo - this will recalculate when reactQueryBorrows changes
   // but we maintain stable array references to prevent unnecessary re-renders
@@ -209,25 +227,46 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       return previousArrayRef.current;
     }
 
-    // CRITICAL: Handle empty data - but check if we have optimistic data in cache
-    // If reactQueryBorrows is empty but we have optimistic data, we should still process it
+    // CRITICAL: Handle empty data - React Query will fetch fresh data on mount
+    // No cache fallback - just wait for React Query to fetch
     if (!reactQueryBorrows || reactQueryBorrows.length === 0) {
+      console.log(
+        `[MyProfileTabs] finalReactQueryBorrows is empty, checking fallbacks...`
+      );
       // During logout, return previous array
       if (isLoggingOut) {
+        console.log(
+          `[MyProfileTabs] Logging out, using previous array: ${previousArrayRef.current.length} records`
+        );
         return previousArrayRef.current;
       }
-      // If no data and no previous data, return empty array
-      // This allows optimistic updates to show even when query is initially empty
-      if (previousArrayRef.current.length === 0) {
-        return [];
+      // CRITICAL: If no React Query data, try to use cached data from previous render
+      // This handles client-side navigation where cache might not be immediately available
+      if (previousArrayRef.current.length > 0) {
+        console.log(
+          `[MyProfileTabs] Using previous array: ${previousArrayRef.current.length} records`
+        );
+        return previousArrayRef.current;
       }
-      // Otherwise return previous array to maintain UI stability
-      return previousArrayRef.current;
+      // CRITICAL: Fallback to initial data if available (for client-side navigation)
+      // This ensures data is shown even when React Query cache is temporarily empty
+      if (initialDataRef.current && initialDataRef.current.length > 0) {
+        console.log(
+          `[MyProfileTabs] Using initial data: ${initialDataRef.current.length} records`
+        );
+        return initialDataRef.current;
+      }
+      // If no data at all, return empty array
+      console.log(`[MyProfileTabs] No data available, returning empty array`);
+      return [];
     }
 
     // Transform the data
     // CRITICAL: Cast to include book field - API and initialData both include it
-    const transformed = (reactQueryBorrows as (BorrowRecord & { book?: Book })[]).map((record) => {
+    // Use reactQueryBorrows directly - no cache fallback
+    const transformed = (
+      reactQueryBorrows as (BorrowRecord & { book?: Book })[]
+    ).map((record) => {
       const recordWithBook = record as BorrowRecord & { book?: Book };
 
       // CRITICAL: Reuse existing transformed record if it exists and data hasn't changed
@@ -297,23 +336,26 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         updatedBy: record.updatedBy,
         createdAt: getStableDate(record.createdAt, existingRecord?.createdAt),
         // Book details from API response (the API includes 'book' field)
-        book: recordWithBook.book || {
-          id: record.bookId,
-          title: "Unknown Book",
-          author: "Unknown Author",
-          genre: "",
-          rating: 0,
-          totalCopies: 0,
-          availableCopies: 0,
-          description: "",
-          coverColor: "",
-          coverUrl: "",
-          videoUrl: "",
-          summary: "",
-          isActive: true,
-          createdAt: null,
-          updatedAt: null,
-        },
+        // CRITICAL: Preserve book field from existing record if missing from cache
+        // This prevents empty card info when cache is updated without book data
+        book: recordWithBook.book ||
+          existingRecord?.book || {
+            id: record.bookId,
+            title: "Unknown Book",
+            author: "Unknown Author",
+            genre: "",
+            rating: 0,
+            totalCopies: 0,
+            availableCopies: 0,
+            description: "",
+            coverColor: "",
+            coverUrl: "",
+            videoUrl: "",
+            summary: "",
+            isActive: true,
+            createdAt: null,
+            updatedAt: null,
+          },
       };
 
       // Store in map for next comparison

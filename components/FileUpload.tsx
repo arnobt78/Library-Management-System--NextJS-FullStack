@@ -2,7 +2,7 @@
 
 import { IKImage, ImageKitProvider, IKUpload, IKVideo } from "imagekitio-next";
 import config from "@/lib/config";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 // import Image from "next/image";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,15 @@ const FileUpload = ({
     filePath: value ?? null,
   });
   const [progress, setProgress] = useState(0);
+
+  // CRITICAL: Sync value prop with internal state
+  // This ensures the component updates when SSR data is provided (e.g., when editing a book)
+  // The value prop comes from form fields (react-hook-form) which may be initialized with SSR data
+  useEffect(() => {
+    if (value !== undefined && value !== file.filePath) {
+      setFile({ filePath: value ?? null });
+    }
+  }, [value, file.filePath]);
 
   const styles = {
     button:

@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
   getBooksList,
@@ -18,6 +19,7 @@ import {
   getPendingAdminRequests,
   type User,
   type UserFilters,
+  type UsersListResponse,
   type AdminRequest,
 } from "@/lib/services/users";
 import {
@@ -28,6 +30,7 @@ import {
   type BorrowStatus,
   type BorrowRecord,
   type BorrowRecordWithDetails,
+  type BorrowsListResponse,
 } from "@/lib/services/borrows";
 import {
   getAdminStats,
@@ -62,9 +65,11 @@ import { useSearchParams } from "next/navigation";
 /**
  * Hook to fetch books with optional search and filter parameters.
  * Supports URL search params for search, genre, availability, rating, sort, page, and limit.
+ * Supports initialData for SSR hydration to prevent duplicate requests.
  * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
  *
  * @param filters - Optional filters object (overrides URL params if provided)
+ * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with books list, pagination, and loading/error states
  *
  * @example
@@ -74,9 +79,15 @@ import { useSearchParams } from "next/navigation";
  *
  * // Override with custom filters
  * const { data } = useBooks({ search: "react", genre: "Technology" });
+ *
+ * // With SSR initial data
+ * const { data } = useBooks(undefined, serverBooksData);
  * ```
  */
-export const useBooks = (filters?: BookFilters) => {
+export const useBooks = (
+  filters?: BookFilters,
+  initialData?: BooksListResponse
+) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
 
@@ -110,6 +121,7 @@ export const useBooks = (filters?: BookFilters) => {
       }),
     staleTime: Infinity, // Cache forever until invalidated
     refetchOnMount: true, // Refetch if stale (after invalidation)
+    initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
 };
 
@@ -430,10 +442,12 @@ export const usePendingUsers = (initialData?: User[]) => {
 /**
  * Hook to fetch borrow records with optional filters and query parameters.
  * Supports URL search params for status, date range, overdue, sort, page, and limit.
+ * Supports initialData for SSR hydration to prevent duplicate requests.
  * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
  *
  * @param userId - User ID (required for user-specific borrows)
  * @param filters - Optional filters object (overrides URL params if provided)
+ * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with borrow records list, pagination, and loading/error states
  *
  * @example
@@ -447,11 +461,15 @@ export const usePendingUsers = (initialData?: User[]) => {
  *   overdue: true,
  *   sort: "dueDate",
  * });
+ *
+ * // With SSR initial data
+ * const { data } = useBorrowRecords(userId, undefined, serverBorrowsData);
  * ```
  */
 export const useBorrowRecords = (
   userId: string,
-  filters?: Omit<BorrowFilters, "userId">
+  filters?: Omit<BorrowFilters, "userId">,
+  initialData?: BorrowsListResponse
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
@@ -489,6 +507,7 @@ export const useBorrowRecords = (
     enabled: !!userId,
     staleTime: Infinity, // Cache forever until invalidated
     refetchOnMount: true, // Refetch if stale (after invalidation)
+    initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
 };
 
@@ -521,6 +540,7 @@ export const useUserBorrows = (
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   // Get status from URL params if not provided
   const finalStatus: BorrowStatus | undefined =
@@ -529,6 +549,30 @@ export const useUserBorrows = (
   // Build query key from userId and status for proper caching
   const queryKey = ["user-borrows", userId, finalStatus];
 
+  // CRITICAL: Use ref to track if we've already used initialData
+  // This ensures initialData is only used on first render (SSR), never on client-side navigation
+  const hasUsedInitialDataRef = React.useRef(false);
+
+  // CRITICAL: Check cache state more thoroughly
+  // Check the data to determine if cache exists
+  const cachedData = queryClient.getQueryData<BorrowRecord[]>(queryKey);
+  const hasCache = cachedData !== undefined && cachedData !== null;
+
+  // Only use initialData if:
+  // 1. We haven't used it before (first render only)
+  // 2. No cache exists
+  // 3. initialData is provided
+  const shouldUseInitialData =
+    !hasUsedInitialDataRef.current && !hasCache && !!initialData;
+
+  // Mark that we've used initialData if we're going to use it
+  if (shouldUseInitialData) {
+    hasUsedInitialDataRef.current = true;
+  }
+
+  // CRITICAL: No cache checking - always fetch fresh data
+  // Removed debug logging since we're not using cache anymore
+
   return useQuery({
     queryKey,
     queryFn: () =>
@@ -536,9 +580,13 @@ export const useUserBorrows = (
         return getUserBorrows(userId, finalStatus);
       }),
     enabled: !!userId,
-    staleTime: Infinity, // Cache forever until invalidated
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    staleTime: 0, // Always consider data stale - refetch on every mount
+    refetchOnMount: true, // Always refetch on mount - no cache
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
+    initialData: shouldUseInitialData ? initialData : undefined, // Only use SSR data on first render
+    // CRITICAL: No placeholderData - always fetch fresh data
+    gcTime: 0, // Don't cache - always fetch fresh data
   });
 };
 

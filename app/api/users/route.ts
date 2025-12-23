@@ -17,6 +17,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import ratelimit from "@/lib/ratelimit";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { desc, asc, eq, like, and, or, sql } from "drizzle-orm";
@@ -32,6 +34,23 @@ export const runtime = "nodejs";
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
+    // This endpoint returns user data (sensitive information, admin-only)
+    // Rate limiting provides protection against abuse
+    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too Many Requests",
+          message: "Rate limit exceeded. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
     // Check authentication - only admins can access this endpoint
     const session = await auth();
     if (!session?.user?.id) {
@@ -46,13 +65,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is admin
-    const currentUser = await db
-      .select({ role: users.role })
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
+    // CRITICAL: Check role from session first (if available from new JWT)
+    // If not available, fallback to database check (for existing sessions)
+    let isAdmin = false;
+    if ((session.user as { role?: string }).role === "ADMIN") {
+      isAdmin = true;
+    } else {
+      // Fallback: Check database if role not in session (for existing sessions)
+      // This handles cases where JWT was created before role was added
+      const currentUser = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1);
 
-    if (currentUser[0]?.role !== "ADMIN") {
+      isAdmin = currentUser[0]?.role === "ADMIN";
+    }
+
+    if (!isAdmin) {
       return NextResponse.json(
         {
           success: false,
@@ -90,7 +120,9 @@ export async function GET(request: NextRequest) {
 
     // Status filter
     if (status && status !== "all") {
-      whereConditions.push(eq(users.status, status as "PENDING" | "APPROVED" | "REJECTED"));
+      whereConditions.push(
+        eq(users.status, status as "PENDING" | "APPROVED" | "REJECTED")
+      );
     }
 
     // Role filter
@@ -168,4 +200,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

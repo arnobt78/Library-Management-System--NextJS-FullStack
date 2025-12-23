@@ -14,16 +14,28 @@ import { db } from "@/database/drizzle";
 import { users, borrowRecords } from "@/database/schema";
 import { eq, count, sql } from "drizzle-orm";
 import BookOverviewContent from "@/components/BookOverviewContent";
+import type { BorrowRecord } from "@/lib/services/borrows";
+import type { ReviewEligibility } from "@/lib/services/reviews";
 
 interface Props extends Book {
   userId: string;
   isDetailPage?: boolean;
+  /**
+   * Initial user borrows from SSR (prevents duplicate fetch, ensures correct button state on first load)
+   */
+  initialUserBorrows?: BorrowRecord[];
+  /**
+   * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
+   */
+  initialReviewEligibility?: ReviewEligibility;
 }
 
 const BookOverview = async ({
   id,
   userId,
   isDetailPage = false,
+  initialUserBorrows,
+  initialReviewEligibility,
   ...bookProps
 }: Props) => {
   const [user] = await db
@@ -68,6 +80,8 @@ const BookOverview = async ({
         id,
       } as Book}
       initialStats={initialStats}
+      initialUserBorrows={initialUserBorrows}
+      initialReviewEligibility={initialReviewEligibility}
     />
   );
 };

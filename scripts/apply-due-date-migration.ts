@@ -2,7 +2,7 @@
 
 /**
  * Script to apply the due_date nullable migration
- * Usage: npx tsx -r dotenv/config apply-due-date-migration.ts
+ * Usage: npx tsx -r dotenv/config scripts/apply-due-date-migration.ts
  */
 
 import { db } from "@/database/drizzle";
@@ -39,3 +39,4 @@ async function applyDueDateMigration() {
 }
 
 applyDueDateMigration();
+

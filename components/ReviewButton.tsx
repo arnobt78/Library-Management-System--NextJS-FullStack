@@ -18,24 +18,29 @@ import { Button } from "@/components/ui/button";
 import ReviewFormDialog from "@/components/ReviewFormDialog";
 import { MessageCircle } from "lucide-react";
 import { useReviewEligibility } from "@/hooks/useQueries";
+import type { ReviewEligibility } from "@/lib/services/reviews";
 
 interface ReviewButtonProps {
   bookId: string;
   userId: string;
+  /**
+   * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
+   */
+  initialReviewEligibility?: ReviewEligibility;
 }
 
 export default function ReviewButton({
   bookId,
   userId: _userId,
+  initialReviewEligibility,
 }: ReviewButtonProps) {
   const [showDialog, setShowDialog] = useState(false);
 
-  // Use React Query hook for eligibility check
-  const {
-    data: eligibility,
-    isLoading,
-    isError,
-  } = useReviewEligibility(bookId);
+  // Use React Query hook for eligibility check with SSR initial data
+  const { data: eligibility, isLoading } = useReviewEligibility(
+    bookId,
+    initialReviewEligibility
+  );
 
   const canReview = eligibility?.canReview || false;
   const hasExistingReview = eligibility?.hasExistingReview || false;

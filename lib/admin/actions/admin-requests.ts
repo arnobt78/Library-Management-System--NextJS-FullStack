@@ -228,7 +228,8 @@ export async function approveAdminRequest(
       .where(eq(users.id, request[0].userId));
 
     // Update the admin request status
-    const updatedRequest = await db
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _updatedRequest = await db
       .update(adminRequests)
       .set({
         status: "APPROVED",
@@ -300,7 +301,8 @@ export async function rejectAdminRequest(
     }
 
     // Update the admin request status
-    const updatedRequest = await db
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _updatedRequest = await db
       .update(adminRequests)
       .set({
         status: "REJECTED",
@@ -347,7 +349,7 @@ export async function rejectAdminRequest(
 // Remove admin privileges from a user
 export async function removeAdminPrivileges(
   userId: string,
-  removedBy: string
+  _removedBy: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Check if user exists and is an admin

@@ -22,6 +22,8 @@ import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useBook } from "@/hooks/useQueries";
 import BookSkeleton from "@/components/skeletons/BookSkeleton";
+import type { BorrowRecord } from "@/lib/services/borrows";
+import type { ReviewEligibility } from "@/lib/services/reviews";
 
 interface BookOverviewContentProps {
   /**
@@ -52,6 +54,14 @@ interface BookOverviewContentProps {
     activeBorrows: number;
     returnedBorrows: number;
   };
+  /**
+   * Initial user borrows from SSR (prevents duplicate fetch, ensures correct button state on first load)
+   */
+  initialUserBorrows?: BorrowRecord[];
+  /**
+   * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
+   */
+  initialReviewEligibility?: ReviewEligibility;
 }
 
 const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
@@ -61,6 +71,8 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
   isDetailPage = false,
   initialBook,
   initialStats,
+  initialUserBorrows,
+  initialReviewEligibility,
 }) => {
   // Use React Query hook with SSR initial data
   const {
@@ -282,6 +294,8 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                 isActive={isActive}
                 userStatus={userStatus}
                 isDetailPage={true}
+                initialUserBorrows={initialUserBorrows}
+                initialReviewEligibility={initialReviewEligibility}
               />
             ) : (
               <>
@@ -293,6 +307,8 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                   isActive={isActive}
                   userStatus={userStatus}
                   isDetailPage={false}
+                  initialUserBorrows={initialUserBorrows}
+                  initialReviewEligibility={initialReviewEligibility}
                 />
                 <Button
                   asChild
@@ -334,4 +350,3 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 };
 
 export default BookOverviewContent;
-

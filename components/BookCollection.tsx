@@ -14,7 +14,7 @@
  * - Supports pagination
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookCard from "@/components/BookCard";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
@@ -23,7 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAllBooks } from "@/hooks/useQueries";
+import { useQueryClient } from "@tanstack/react-query";
 import type { BooksListResponse } from "@/lib/services/books";
+import type { BorrowRecord } from "@/lib/services/borrows";
 
 interface BookCollectionProps {
   /**
@@ -55,6 +57,10 @@ interface BookCollectionProps {
     page: number;
   };
   /**
+   * Initial user borrows from SSR (populates React Query cache for faster navigation to book detail pages)
+   */
+  initialUserBorrows?: BorrowRecord[];
+  /**
    * Legacy props for backward compatibility (deprecated, use initial* props instead)
    */
   books?: Book[];
@@ -80,6 +86,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   initialGenres,
   initialPagination,
   initialSearchParams,
+  initialUserBorrows,
   // Legacy props for backward compatibility
   books: legacyBooks,
   genres: legacyGenres,
@@ -88,6 +95,22 @@ const BookCollection: React.FC<BookCollectionProps> = ({
 }) => {
   const router = useRouter();
   const searchParamsHook = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Initialize React Query cache with SSR user borrows data
+  // This ensures that when users navigate to book detail pages, the data is already cached
+  useEffect(() => {
+    if (initialUserBorrows && initialUserBorrows.length > 0) {
+      // Extract userId from first record (all records have same userId)
+      const userId = initialUserBorrows[0].userId;
+      if (userId) {
+        // Set the query data in React Query cache for the main user-borrows query
+        // This is the query key used by BookBorrowButton: ["user-borrows", userId, undefined]
+        const queryKey = ["user-borrows", userId, undefined];
+        queryClient.setQueryData(queryKey, initialUserBorrows);
+      }
+    }
+  }, [initialUserBorrows, queryClient]);
 
   // Prepare initial data for React Query
   const initialData: BooksListResponse | undefined =

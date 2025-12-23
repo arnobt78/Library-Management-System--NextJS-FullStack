@@ -71,31 +71,75 @@ const Page = async () => {
     .where(eq(borrowRecords.userId, session.user.id))
     .orderBy(desc(borrowRecords.createdAt));
 
-  // Convert string dates to Date objects and separate records by status
+  // Convert dates to Date objects and separate records by status
+  // Drizzle's date() type returns strings (YYYY-MM-DD), but BorrowRecordWithBook expects Date objects
+  // Safe conversion: handle both string and Date types
   const activeBorrows = allBorrowRecords
     .filter((record) => record.status === "BORROWED")
-    .map((record) => ({
-      ...record,
-      dueDate: record.dueDate ? new Date(record.dueDate) : null,
-      returnDate: record.returnDate ? new Date(record.returnDate) : null,
-      fineAmount: parseFloat(record.fineAmount || "0"),
-    }));
+    .map((record) => {
+      // Safe date conversion: handle both string and Date types from Drizzle
+      const dueDateValue = record.dueDate as string | Date | null;
+      const returnDateValue = record.returnDate as string | Date | null;
+
+      return {
+        ...record,
+        dueDate: dueDateValue
+          ? typeof dueDateValue === "string"
+            ? new Date(dueDateValue)
+            : dueDateValue
+          : null,
+        returnDate: returnDateValue
+          ? typeof returnDateValue === "string"
+            ? new Date(returnDateValue)
+            : returnDateValue
+          : null,
+        fineAmount: parseFloat(record.fineAmount || "0"),
+      };
+    });
 
   const pendingRequests = allBorrowRecords
     .filter((record) => record.status === "PENDING")
-    .map((record) => ({
-      ...record,
-      dueDate: record.dueDate ? new Date(record.dueDate) : null,
-      returnDate: record.returnDate ? new Date(record.returnDate) : null,
-      fineAmount: parseFloat(record.fineAmount || "0"),
-    }));
+    .map((record) => {
+      // Safe date conversion: handle both string and Date types from Drizzle
+      const dueDateValue = record.dueDate as string | Date | null;
+      const returnDateValue = record.returnDate as string | Date | null;
 
-  const borrowHistory = allBorrowRecords.map((record) => ({
-    ...record,
-    dueDate: record.dueDate ? new Date(record.dueDate) : null,
-    returnDate: record.returnDate ? new Date(record.returnDate) : null,
-    fineAmount: parseFloat(record.fineAmount || "0"),
-  }));
+      return {
+        ...record,
+        dueDate: dueDateValue
+          ? typeof dueDateValue === "string"
+            ? new Date(dueDateValue)
+            : dueDateValue
+          : null,
+        returnDate: returnDateValue
+          ? typeof returnDateValue === "string"
+            ? new Date(returnDateValue)
+            : returnDateValue
+          : null,
+        fineAmount: parseFloat(record.fineAmount || "0"),
+      };
+    });
+
+  const borrowHistory = allBorrowRecords.map((record) => {
+    // Safe date conversion: handle both string and Date types from Drizzle
+    const dueDateValue = record.dueDate as string | Date | null;
+    const returnDateValue = record.returnDate as string | Date | null;
+
+    return {
+      ...record,
+      dueDate: dueDateValue
+        ? typeof dueDateValue === "string"
+          ? new Date(dueDateValue)
+          : dueDateValue
+        : null,
+      returnDate: returnDateValue
+        ? typeof returnDateValue === "string"
+          ? new Date(returnDateValue)
+          : returnDateValue
+        : null,
+      fineAmount: parseFloat(record.fineAmount || "0"),
+    };
+  });
 
   return (
     <MyProfileTabs

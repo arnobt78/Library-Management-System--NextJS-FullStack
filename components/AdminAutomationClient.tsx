@@ -76,6 +76,10 @@ interface AdminAutomationClientProps {
    * Initial export stats from SSR (prevents duplicate fetch)
    */
   initialExportStats?: ExportStats;
+  /**
+   * Initial fine config from SSR (prevents duplicate fetch)
+   */
+  initialFineConfig?: import("@/lib/services/admin").FineConfig;
   searchParams: {
     success?: string;
     error?: string;
@@ -91,6 +95,7 @@ interface AdminAutomationClientProps {
 const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   initialReminderStats,
   initialExportStats,
+  initialFineConfig,
   searchParams: params,
   serverActions,
 }) => {
@@ -847,7 +852,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
 
             {/* Fine Update Section */}
             <div className="mt-4 border-t border-gray-200 pt-4">
-              <FineManagement />
+              <FineManagement initialFineConfig={initialFineConfig} />
             </div>
           </div>
         </CardContent>

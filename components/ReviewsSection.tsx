@@ -198,7 +198,7 @@ interface ReviewsSectionProps {
 }
 
 export default function ReviewsSection({
-  bookId,
+  bookId: _bookId,
   reviews,
   currentUserEmail,
 }: ReviewsSectionProps) {

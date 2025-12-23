@@ -207,7 +207,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.name = token.name as string;
         // CRITICAL: Add role to session for authorization checks
-        session.user.role = token.role as string;
+        // Type assertion needed because NextAuth types don't include role by default
+        (session.user as { role?: string }).role = token.role as string;
       }
 
       return session;
