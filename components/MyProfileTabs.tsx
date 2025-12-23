@@ -451,9 +451,17 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
   const borrowHistory: BorrowRecordWithBook[] = React.useMemo(() => {
     if (allBorrowsFromQuery.length > 0) {
-      return allBorrowsFromQuery;
+      // CRITICAL: Filter for RETURNED status only (borrow history)
+      return allBorrowsFromQuery.filter(
+        (record) => record.status === "RETURNED"
+      );
     }
-    return legacyBorrowHistory ?? initialBorrowHistory ?? allBorrows;
+    // Fallback to legacy/initial data, but also filter for RETURNED
+    return (
+      legacyBorrowHistory ??
+      initialBorrowHistory ??
+      allBorrows.filter((record) => record.status === "RETURNED")
+    );
   }, [
     allBorrowsFromQuery,
     legacyBorrowHistory,
@@ -461,8 +469,26 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     allBorrows,
   ]);
 
-  // Get active tab from URL or default to "active"
-  const activeTab = searchParams.get("tab") || "active";
+  // CRITICAL: Use controlled tab state to prevent hydration mismatch
+  // Radix UI generates random IDs on server/client, so we use controlled value
+  const [activeTabValue, setActiveTabValue] = React.useState<string>(() => {
+    // Get initial tab from URL or default to "active"
+    if (typeof window !== "undefined") {
+      const urlTab = searchParams.get("tab");
+      return urlTab === "pending" || urlTab === "history" ? urlTab : "active";
+    }
+    return "active";
+  });
+
+  // Sync with URL params
+  React.useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    if (urlTab === "pending" || urlTab === "history") {
+      setActiveTabValue(urlTab);
+    } else if (!urlTab) {
+      setActiveTabValue("active");
+    }
+  }, [searchParams, setActiveTabValue]);
 
   // Show skeleton while loading (only if no data at all - not during refetch)
   // CRITICAL: Use isLoading (not isFetching) to only show skeleton on initial load
@@ -475,7 +501,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   ) {
     return (
       <div className="container mx-auto px-4 py-6">
-        <Tabs defaultValue={activeTab} className="w-full">
+        <Tabs
+          value={activeTabValue}
+          onValueChange={setActiveTabValue}
+          className="w-full"
+          suppressHydrationWarning
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="active">Active Borrows</TabsTrigger>
             <TabsTrigger value="pending">Pending Requests</TabsTrigger>
@@ -989,7 +1020,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         My Borrowing History
       </h1>
 
-      <Tabs defaultValue={activeTab} className="w-full">
+      <Tabs
+        value={activeTabValue}
+        onValueChange={setActiveTabValue}
+        className="w-full"
+        suppressHydrationWarning
+      >
         <TabsList className="grid h-auto w-full grid-cols-3 border-2 border-gray-600 bg-gray-800/30 p-0">
           <TabsTrigger
             value="active"
@@ -1077,34 +1113,25 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                       <div className="rounded-lg bg-gray-50 p-2 text-center">
                         <p className="text-xl font-bold text-gray-900">
-                          {borrowHistory.length}
+                          {allBorrows.length}
                         </p>
                         <p className="text-xs text-gray-600">Total Borrows</p>
                       </div>
                       <div className="rounded-lg bg-blue-50 p-2 text-center">
                         <p className="text-xl font-bold text-blue-600">
-                          {
-                            borrowHistory.filter((r) => r.status === "PENDING")
-                              .length
-                          }
+                          {pendingRequests.length}
                         </p>
                         <p className="text-xs text-blue-700">Pending</p>
                       </div>
                       <div className="rounded-lg bg-orange-50 p-2 text-center">
                         <p className="text-xl font-bold text-orange-600">
-                          {
-                            borrowHistory.filter((r) => r.status === "BORROWED")
-                              .length
-                          }
+                          {activeBorrows.length}
                         </p>
                         <p className="text-xs text-orange-700">Active</p>
                       </div>
                       <div className="rounded-lg bg-green-100 p-2 text-center">
                         <p className="text-xl font-bold text-green-600">
-                          {
-                            borrowHistory.filter((r) => r.status === "RETURNED")
-                              .length
-                          }
+                          {borrowHistory.length}
                         </p>
                         <p className="text-xs text-green-700">Book Returned</p>
                       </div>
@@ -1114,7 +1141,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       <div className="rounded-lg bg-red-50 p-2 text-center">
                         <p className="text-lg font-bold text-red-600">
                           {
-                            borrowHistory.filter((r) => {
+                            allBorrows.filter((r) => {
                               // Use same logic as individual cards for consistency
                               const today = new Date();
                               const todayUTC = new Date(
@@ -1166,7 +1193,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       <div className="rounded-lg bg-red-50 p-2 text-center">
                         <p className="text-lg font-bold text-red-600">
                           $
-                          {borrowHistory
+                          {allBorrows
                             .reduce((sum, r) => {
                               // Calculate fine using same logic as individual cards
                               const today = new Date();
@@ -1219,8 +1246,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       </div>
                       <div className="rounded-lg bg-purple-50 p-2 text-center">
                         <p className="text-lg font-bold text-purple-600">
-                          {borrowHistory.reduce(
-                            (sum, r) => sum + r.renewalCount,
+                          {allBorrows.reduce(
+                            (sum, r) => sum + (r.renewalCount || 0),
                             0
                           )}
                         </p>

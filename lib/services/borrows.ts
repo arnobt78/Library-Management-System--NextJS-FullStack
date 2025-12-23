@@ -220,7 +220,9 @@ export async function getUserBorrows(
     throw new ApiError("User ID is required", 400);
   }
 
-  const filters: BorrowFilters = { userId };
+  // CRITICAL: Fetch ALL records (no pagination limit)
+  // This ensures we get all user's borrow records, not just the first 50
+  const filters: BorrowFilters = { userId, limit: 10000 };
   if (status) filters.status = status;
 
   const response = await getBorrowsList(filters);
