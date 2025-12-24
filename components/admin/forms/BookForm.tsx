@@ -44,8 +44,18 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       description: book.description || "",
       author: book.author || "",
       genre: book.genre || "",
-      rating: book.rating || 1,
-      totalCopies: book.totalCopies || 1,
+      rating:
+        type === "create"
+          ? undefined
+          : book.rating !== undefined
+            ? book.rating
+            : undefined,
+      totalCopies:
+        type === "create"
+          ? undefined
+          : book.totalCopies !== undefined
+            ? book.totalCopies
+            : undefined,
       coverUrl: book.coverUrl || "",
       coverColor: book.coverColor || "",
       videoUrl: book.videoUrl || "",
@@ -54,7 +64,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       isbn: book.isbn || undefined,
       publicationYear: book.publicationYear ?? undefined,
       publisher: book.publisher || undefined,
-      language: book.language || "English",
+      language: type === "create" ? undefined : (book.language ?? undefined),
       pageCount: book.pageCount ?? undefined,
       edition: book.edition || undefined,
       isActive: book.isActive ?? true,
@@ -176,7 +186,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   max={5}
                   placeholder={BOOK_FIELD_PLACEHOLDERS.rating}
                   {...field}
-                  value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                  value={
+                    field.value === undefined ||
+                    field.value === null ||
+                    field.value === 0
+                      ? ""
+                      : field.value
+                  }
                   onChange={(e) => {
                     const value = e.target.value;
                     field.onChange(value === "" ? undefined : Number(value));
@@ -204,7 +220,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   max={10000}
                   placeholder={BOOK_FIELD_PLACEHOLDERS.totalCopies}
                   {...field}
-                  value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                  value={
+                    field.value === undefined ||
+                    field.value === null ||
+                    field.value === 0
+                      ? ""
+                      : field.value
+                  }
                   onChange={(e) => {
                     const value = e.target.value;
                     field.onChange(value === "" ? undefined : Number(value));
@@ -367,10 +389,18 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       max={new Date().getFullYear()}
                       placeholder={BOOK_FIELD_PLACEHOLDERS.publicationYear}
                       {...field}
-                      value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                      value={
+                        field.value === undefined ||
+                        field.value === null ||
+                        field.value === 0
+                          ? ""
+                          : field.value
+                      }
                       onChange={(e) => {
                         const value = e.target.value;
-                        field.onChange(value === "" ? undefined : Number(value));
+                        field.onChange(
+                          value === "" ? undefined : Number(value)
+                        );
                       }}
                       className="book-form_input"
                     />
@@ -434,10 +464,18 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       min={1}
                       placeholder={BOOK_FIELD_PLACEHOLDERS.pageCount}
                       {...field}
-                      value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                      value={
+                        field.value === undefined ||
+                        field.value === null ||
+                        field.value === 0
+                          ? ""
+                          : field.value
+                      }
                       onChange={(e) => {
                         const value = e.target.value;
-                        field.onChange(value === "" ? undefined : Number(value));
+                        field.onChange(
+                          value === "" ? undefined : Number(value)
+                        );
                       }}
                       className="book-form_input"
                     />
