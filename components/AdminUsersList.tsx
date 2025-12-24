@@ -14,8 +14,11 @@
  * - Displays users in a table and admin requests in cards
  */
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useSession } from "next-auth/react";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +30,11 @@ import {
   useRejectAdminRequest,
   useRemoveAdminPrivileges,
 } from "@/hooks/useMutations";
-import type { User, UsersListResponse } from "@/lib/services/users";
+import type {
+  User,
+  UsersListResponse,
+  UserFilters,
+} from "@/lib/services/users";
 import type { AdminRequest } from "@/lib/services/users";
 
 interface AdminUsersListProps {
@@ -61,25 +68,102 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   currentUserId,
 }) => {
   const { data: session } = useSession();
+  const router = useRouter();
+  const searchParamsHook = useSearchParams();
+  const queryClient = useQueryClient();
 
-  // React Query hooks with SSR initial data
-  // Transform initialUsers to UsersListResponse format for React Query
-  const initialUsersData: UsersListResponse | undefined = initialUsers
-    ? {
-        users: initialUsers,
-        total: initialUsers.length,
-        page: 1,
-        totalPages: 1,
-        limit: initialUsers.length,
+  // Get current search params from URL (default sort to "created" for most recent first)
+  const currentSearch = searchParamsHook.get("search") || "";
+  const currentStatus = searchParamsHook.get("status") || "all";
+  const currentRole = searchParamsHook.get("role") || "all";
+  const currentSort = searchParamsHook.get("sort") || "created";
+
+  const [localSearch, setLocalSearch] = useState(currentSearch);
+  const lastSyncedSearchRef = React.useRef(currentSearch);
+
+  // Debounce search input for instant filtering
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== currentSearch) {
+        console.log("[AdminUsersList] Search changed:", localSearch);
+        const params = new URLSearchParams(searchParamsHook.toString());
+        const trimmedSearch = localSearch.trim();
+
+        if (trimmedSearch) {
+          params.set("search", trimmedSearch);
+        } else {
+          params.delete("search");
+        }
+
+        if (!params.get("sort")) {
+          params.set("sort", "created");
+        }
+
+        const newUrl = `/admin/users?${params.toString()}`;
+        console.log("[AdminUsersList] Instant search navigating to:", newUrl);
+
+        // Update ref before navigation to prevent sync effect from overwriting
+        lastSyncedSearchRef.current = trimmedSearch;
+        queryClient.invalidateQueries({ queryKey: ["all-users"] });
+        router.replace(newUrl, { scroll: false });
       }
-    : undefined;
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [localSearch, currentSearch, searchParamsHook, queryClient, router]);
+
+  // Build filters from URL params (default sort to "created" for most recent first)
+  // Use useMemo to ensure filters object updates when URL params change
+  const filters: UserFilters = React.useMemo(() => {
+    const filterObj = {
+      search: currentSearch || undefined,
+      status:
+        currentStatus !== "all"
+          ? (currentStatus as UserFilters["status"])
+          : undefined,
+      role:
+        currentRole !== "all"
+          ? (currentRole as UserFilters["role"])
+          : undefined,
+      sort: (currentSort as UserFilters["sort"]) || "created",
+    };
+    console.log("[AdminUsersList] Filters updated:", filterObj);
+    return filterObj;
+  }, [currentSearch, currentStatus, currentRole, currentSort]);
+
+  // Check if any filters are active (used for conditional initialData and empty state)
+  const hasActiveFilters =
+    currentSearch || currentStatus !== "all" || currentRole !== "all";
+
+  // Only use initialData on first load (when no filters are active)
+  // This prevents initialData from overriding filtered results
+  const initialUsersData: UsersListResponse | undefined =
+    !hasActiveFilters && initialUsers
+      ? {
+          users: initialUsers,
+          total: initialUsers.length,
+          page: 1,
+          totalPages: 1,
+          limit: initialUsers.length,
+        }
+      : undefined;
 
   const {
     data: usersData,
     isLoading: usersLoading,
     isError: usersError,
     error: usersErrorData,
-  } = useAllUsers(undefined, initialUsersData);
+  } = useAllUsers(filters, initialUsersData);
+
+  // Debug: Log users data
+  React.useEffect(() => {
+    console.log("[AdminUsersList] Users data:", {
+      usersCount: usersData?.users?.length || 0,
+      total: usersData?.total || 0,
+      filters,
+      isLoading: usersLoading,
+    });
+  }, [usersData, filters, usersLoading]);
 
   const {
     data: adminRequestsData,
@@ -95,6 +179,76 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const rejectAdminRequestMutation = useRejectAdminRequest();
   const removeAdminPrivilegesMutation = useRemoveAdminPrivileges();
 
+  // Update search params in URL and trigger refetch
+  const updateSearchParams = (newParams: Record<string, string>) => {
+    console.log("[AdminUsersList] updateSearchParams called with:", newParams);
+    const params = new URLSearchParams(searchParamsHook.toString());
+
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value && value !== "all") {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    // Always include sort if not present
+    if (!params.get("sort")) {
+      params.set("sort", "created");
+    }
+
+    const newUrl = `/admin/users?${params.toString()}`;
+    console.log("[AdminUsersList] Navigating to:", newUrl);
+
+    // Invalidate queries to force refetch with new params
+    queryClient.invalidateQueries({ queryKey: ["all-users"] });
+    console.log("[AdminUsersList] Queries invalidated");
+
+    // Use replace to avoid adding to history and ensure immediate update
+    router.replace(newUrl, { scroll: false });
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedSearch = localSearch.trim();
+    console.log("[AdminUsersList] Form submitted with search:", trimmedSearch);
+    updateSearchParams({ search: trimmedSearch });
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    updateSearchParams({ [key]: value });
+  };
+
+  const clearFilters = () => {
+    setLocalSearch("");
+    router.push("/admin/users?sort=created");
+  };
+
+  // Sync localSearch with URL params when they change externally (e.g., browser back/forward)
+  // Only sync if the change didn't come from our own debounced update
+  React.useEffect(() => {
+    // Only sync if:
+    // 1. currentSearch changed from an external source (not our debounce)
+    // 2. localSearch matches the last synced value (user isn't actively typing)
+    // This prevents overwriting user input while typing
+    if (
+      currentSearch !== lastSyncedSearchRef.current &&
+      localSearch === lastSyncedSearchRef.current
+    ) {
+      setLocalSearch(currentSearch);
+      lastSyncedSearchRef.current = currentSearch;
+    }
+  }, [currentSearch, localSearch]);
+
+  // Ensure sort param is set on initial load (most recent first)
+  React.useEffect(() => {
+    if (!searchParamsHook.get("sort")) {
+      const params = new URLSearchParams(searchParamsHook.toString());
+      params.set("sort", "created");
+      router.replace(`/admin/users?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParamsHook, router]);
+
   // CRITICAL: Always prefer React Query data over initial data
   // React Query data is fresh and updates immediately after mutations
   // initial data is only used as fallback during initial load
@@ -103,7 +257,8 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const users: User[] = ((usersData?.users ?? initialUsers) || []) as User[];
   // usePendingAdminRequests returns AdminRequest[] directly
   const adminRequests: AdminRequest[] = ((adminRequestsData ??
-    initialAdminRequests) || []) as AdminRequest[];
+    initialAdminRequests) ||
+    []) as AdminRequest[];
 
   // Handler functions for mutations
   const handleUpdateUserRole = async (
@@ -312,8 +467,54 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold">All Users ({users.length})</h2>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-semibold text-dark-400">
+          All Users ({users.length})
+        </h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Search Input */}
+          <form onSubmit={handleSearch} className="flex-1 sm:min-w-[250px]">
+            <Input
+              type="text"
+              placeholder="Search users..."
+              value={localSearch}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                console.log("[AdminUsersList] Input changed:", newValue);
+                setLocalSearch(newValue);
+              }}
+              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+            />
+          </form>
+          {/* Filter Dropdowns */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-dark-400">Status:</span>
+              <select
+                value={currentStatus}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
+                className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              >
+                <option value="all">All</option>
+                <option value="APPROVED">Approved</option>
+                <option value="PENDING">Pending</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-dark-400">Role:</span>
+              <select
+                value={currentRole}
+                onChange={(e) => handleFilterChange("role", e.target.value)}
+                className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              >
+                <option value="all">All</option>
+                <option value="USER">Users</option>
+                <option value="ADMIN">Admins</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Admin Requests Section - Only shows PENDING requests */}
@@ -408,102 +609,127 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="border border-gray-200 px-4 py-2">
-                    {user.fullName}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2">
-                    {user.email}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2">
-                    {user.universityId}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        user.role === "ADMIN"
-                          ? "bg-purple-100 text-purple-800"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        user.status === "APPROVED"
-                          ? "bg-green-100 text-green-800"
-                          : user.status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2">
-                    {user.createdAt
-                      ? new Date(user.createdAt).toLocaleDateString()
-                      : "N/A"}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2">
-                    <div className="flex gap-2">
-                      {/* Show Remove Admin for existing admins (except current user) */}
-                      {user.role === "ADMIN" &&
-                        user.id !== (currentUserId || session?.user?.id) && (
-                          <Button
-                            size="sm"
-                            className="bg-red-600 text-white hover:bg-red-700"
-                            onClick={() => handleRemoveAdminPrivileges(user.id)}
-                            disabled={removeAdminPrivilegesMutation.isPending}
-                          >
-                            Remove Admin
-                          </Button>
-                        )}
-
-                      {/* Show Make Admin for regular users */}
-                      {user.role === "USER" && (
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="border border-gray-200 px-4 py-8">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <p className="mb-4 text-lg font-medium text-gray-600">
+                        No users found matching your criteria.
+                      </p>
+                      {hasActiveFilters && (
                         <Button
-                          size="sm"
-                          className="bg-purple-600 text-white hover:bg-purple-700"
-                          onClick={() => handleUpdateUserRole(user.id, "ADMIN")}
-                          disabled={updateUserRoleMutation.isPending}
+                          variant="outline"
+                          onClick={clearFilters}
+                          className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
                         >
-                          Make Admin
+                          Clear All Filters
                         </Button>
-                      )}
-
-                      {/* Show Approve/Reject for pending users */}
-                      {user.status === "PENDING" && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() =>
-                              handleUpdateUserStatus(user.id, "APPROVED")
-                            }
-                            disabled={updateUserStatusMutation.isPending}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-red-600 hover:bg-red-700"
-                            onClick={() =>
-                              handleUpdateUserStatus(user.id, "REJECTED")
-                            }
-                            disabled={updateUserStatusMutation.isPending}
-                          >
-                            Reject
-                          </Button>
-                        </>
                       )}
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="border border-gray-200 px-4 py-2">
+                      {user.fullName}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2">
+                      {user.email}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2">
+                      {user.universityId}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          user.role === "ADMIN"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          user.status === "APPROVED"
+                            ? "bg-green-100 text-green-800"
+                            : user.status === "PENDING"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2">
+                      {user.createdAt
+                        ? new Date(user.createdAt).toLocaleDateString()
+                        : "N/A"}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2">
+                      <div className="flex gap-2">
+                        {/* Show Remove Admin for existing admins (except current user) */}
+                        {user.role === "ADMIN" &&
+                          user.id !== (currentUserId || session?.user?.id) && (
+                            <Button
+                              size="sm"
+                              className="bg-red-600 text-white hover:bg-red-700"
+                              onClick={() =>
+                                handleRemoveAdminPrivileges(user.id)
+                              }
+                              disabled={removeAdminPrivilegesMutation.isPending}
+                            >
+                              Remove Admin
+                            </Button>
+                          )}
+
+                        {/* Show Make Admin for regular users */}
+                        {user.role === "USER" && (
+                          <Button
+                            size="sm"
+                            className="bg-purple-600 text-white hover:bg-purple-700"
+                            onClick={() =>
+                              handleUpdateUserRole(user.id, "ADMIN")
+                            }
+                            disabled={updateUserRoleMutation.isPending}
+                          >
+                            Make Admin
+                          </Button>
+                        )}
+
+                        {/* Show Approve/Reject for pending users */}
+                        {user.status === "PENDING" && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() =>
+                                handleUpdateUserStatus(user.id, "APPROVED")
+                              }
+                              disabled={updateUserStatusMutation.isPending}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700"
+                              onClick={() =>
+                                handleUpdateUserStatus(user.id, "REJECTED")
+                              }
+                              disabled={updateUserStatusMutation.isPending}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

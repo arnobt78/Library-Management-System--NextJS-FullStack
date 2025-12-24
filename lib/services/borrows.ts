@@ -245,11 +245,17 @@ export async function getUserBorrows(
  * ```
  */
 export async function getBorrowRequests(
-  status?: BorrowStatus
+  status?: BorrowStatus,
+  search?: string
 ): Promise<BorrowRecordWithDetails[]> {
-  // Build URL with status query param if provided
-  const url = status
-    ? `/api/admin/borrow-requests?status=${status}`
+  // Build URL with query params
+  const params = new URLSearchParams();
+  if (status) params.append("status", status);
+  if (search) params.append("search", search);
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `/api/admin/borrow-requests?${queryString}`
     : "/api/admin/borrow-requests";
 
   const response = await fetch(url, {

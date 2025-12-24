@@ -14,12 +14,17 @@
  * - Shows book details, status, and action buttons
  */
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import BookCover from "@/components/BookCover";
 import { useAllBooks } from "@/hooks/useQueries";
+import { getBookGenres } from "@/lib/services/books";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
+import type { BookFilters } from "@/lib/services/books";
 
 interface AdminBooksListProps {
   /**
@@ -29,22 +34,88 @@ interface AdminBooksListProps {
 }
 
 const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
-  // Use React Query hook with SSR initial data
-  // CRITICAL: Explicitly set limit to a high number to get ALL books (no pagination)
-  // Without this, URL params or defaults would apply pagination (page 1, limit 12)
-  const {
-    data: booksData,
-    isLoading,
-    isError,
-    error,
-  } = useAllBooks(
-    {
-      // No filters - get all books
-      // Set a high limit to ensure we get all books (admin needs to see everything)
+  const router = useRouter();
+  const searchParamsHook = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Get current search params from URL
+  const currentSearch = searchParamsHook.get("search") || "";
+  const currentGenre = searchParamsHook.get("genre") || "all";
+  const currentAvailability = searchParamsHook.get("availability") || "all";
+
+  const [localSearch, setLocalSearch] = useState(currentSearch);
+  const [genres, setGenres] = useState<string[]>([]);
+  const lastSyncedSearchRef = React.useRef(currentSearch);
+
+  // Sync localSearch with URL params when they change externally (e.g., browser back/forward)
+  // Only sync if the change didn't come from our own debounced update
+  React.useEffect(() => {
+    // Only sync if:
+    // 1. currentSearch changed from an external source (not our debounce)
+    // 2. localSearch matches the last synced value (user isn't actively typing)
+    // This prevents overwriting user input while typing
+    if (
+      currentSearch !== lastSyncedSearchRef.current &&
+      localSearch === lastSyncedSearchRef.current
+    ) {
+      setLocalSearch(currentSearch);
+      lastSyncedSearchRef.current = currentSearch;
+    }
+  }, [currentSearch, localSearch]);
+
+  // Fetch genres on mount
+  React.useEffect(() => {
+    getBookGenres()
+      .then((genresList) => setGenres(genresList))
+      .catch((error) => console.error("Error fetching genres:", error));
+  }, []);
+
+  // Debounce search input for instant filtering
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== currentSearch) {
+        const params = new URLSearchParams(searchParamsHook.toString());
+        const trimmedSearch = localSearch.trim();
+
+        if (trimmedSearch) {
+          params.set("search", trimmedSearch);
+        } else {
+          params.delete("search");
+        }
+
+        const newUrl = `/admin/books?${params.toString()}`;
+        // Update ref before navigation to prevent sync effect from overwriting
+        lastSyncedSearchRef.current = trimmedSearch;
+        queryClient.invalidateQueries({ queryKey: ["all-books"] });
+        router.replace(newUrl, { scroll: false });
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [localSearch, currentSearch, searchParamsHook, queryClient, router]);
+
+  // Build filters from URL params
+  const filters: BookFilters = React.useMemo(
+    () => ({
+      search: currentSearch || undefined,
+      genre: currentGenre !== "all" ? currentGenre : undefined,
+      availability:
+        currentAvailability !== "all"
+          ? (currentAvailability as BookFilters["availability"])
+          : undefined,
       limit: 1000, // High limit to get all books
       page: 1,
-    },
-    initialBooks
+    }),
+    [currentSearch, currentGenre, currentAvailability]
+  );
+
+  // Check if any filters are active
+  const hasActiveFilters =
+    currentSearch || currentGenre !== "all" || currentAvailability !== "all";
+
+  // Only use initialData on first load (when no filters are active)
+  const initialBooksData =
+    !hasActiveFilters && initialBooks
       ? {
           books: initialBooks,
           total: initialBooks.length,
@@ -52,8 +123,15 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           totalPages: 1,
           limit: initialBooks.length,
         }
-      : undefined
-  );
+      : undefined;
+
+  // Use React Query hook with SSR initial data
+  const {
+    data: booksData,
+    isLoading,
+    isError,
+    error,
+  } = useAllBooks(filters, initialBooksData);
 
   // CRITICAL: Always prefer React Query data over initial data
   // React Query data is fresh and updates immediately after mutations
@@ -61,6 +139,31 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   // Extract books from response with proper typing
   // Book is a global type from types.d.ts
   const allBooks: Book[] = ((booksData?.books ?? initialBooks) || []) as Book[];
+
+  // Update search params in URL and trigger refetch
+  const updateSearchParams = (newParams: Record<string, string>) => {
+    const params = new URLSearchParams(searchParamsHook.toString());
+
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value && value !== "all") {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    queryClient.invalidateQueries({ queryKey: ["all-books"] });
+    router.replace(`/admin/books?${params.toString()}`, { scroll: false });
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    updateSearchParams({ [key]: value });
+  };
+
+  const clearFilters = () => {
+    setLocalSearch("");
+    router.push("/admin/books");
+  };
 
   // Show skeleton while loading (only if no initial data)
   if (isLoading && (!initialBooks || initialBooks.length === 0)) {
@@ -117,8 +220,64 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
   return (
     <section className="w-full rounded-2xl bg-white p-7">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold">All Books ({allBooks.length})</h2>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-semibold text-dark-400">
+          All Books ({allBooks.length})
+        </h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Search Input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const trimmedSearch = localSearch.trim();
+              updateSearchParams({ search: trimmedSearch });
+            }}
+            className="flex-1 sm:min-w-[250px]"
+          >
+            <Input
+              type="text"
+              placeholder="Search books..."
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+            />
+          </form>
+          {/* Filter Dropdowns */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-dark-400">Genre:</span>
+              <select
+                value={currentGenre}
+                onChange={(e) => handleFilterChange("genre", e.target.value)}
+                className="min-w-[170px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              >
+                <option value="all">All</option>
+                {genres.map((genre) => (
+                  <option key={genre} value={genre}>
+                    {genre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-dark-400">Availability:</span>
+              <select
+                value={currentAvailability}
+                onChange={(e) =>
+                  handleFilterChange("availability", e.target.value)
+                }
+                className="min-w-[170px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              >
+                <option value="all">All</option>
+                <option value="available">Available</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Button className="bg-primary-admin" asChild>
           <Link href="/admin/books/new" className="text-white">
             + Create a New Book
@@ -128,8 +287,21 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
       <div className="mt-7 w-full overflow-hidden">
         {allBooks.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
-            No books found. Create your first book!
+          <div className="py-8 text-center">
+            <p className="mb-4 text-lg font-medium text-gray-600">
+              {hasActiveFilters
+                ? "No books found matching your criteria."
+                : "No books found. Create your first book!"}
+            </p>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
+              >
+                Clear All Filters
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

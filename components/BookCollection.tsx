@@ -350,7 +350,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                 <select
                   value={currentSearchParams.genre}
                   onChange={(e) => handleFilterChange("genre", e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-3 py-2 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
                   <option value="">All Genres</option>
                   {genres.map((genre: string) => (
@@ -371,7 +371,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                   onChange={(e) =>
                     handleFilterChange("availability", e.target.value)
                   }
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-3 py-2 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
                   <option value="">All Books</option>
                   <option value="available">Available</option>
@@ -387,7 +387,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                 <select
                   value={currentSearchParams.rating}
                   onChange={(e) => handleFilterChange("rating", e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-3 py-2 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
                   <option value="">All Ratings</option>
                   <option value="5">5 Stars</option>
@@ -453,7 +453,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               <select
                 value={currentSearchParams.sort}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="rounded-md border border-gray-300 px-3 py-1 text-sm"
+                className="rounded-md border border-gray-600 bg-gray-800/30 px-3 py-1 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
               >
                 <option value="title">Title A-Z</option>
                 <option value="author">Author A-Z</option>
@@ -465,9 +465,9 @@ const BookCollection: React.FC<BookCollectionProps> = ({
 
           {/* Books Grid */}
           {books.length === 0 ? (
-            <Card>
+            <Card className="border-2 border-gray-600 bg-gray-800/30">
               <CardContent className="p-8 text-center">
-                <p className="text-gray-500">
+                <p className="text-light-200/70">
                   No books found matching your criteria.
                 </p>
                 {hasActiveFilters && (

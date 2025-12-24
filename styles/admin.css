@@ -166,7 +166,7 @@
 
   /* Sidebar */
   .admin-sidebar {
-    @apply sticky left-0 top-0 flex h-dvh flex-col justify-between bg-white px-5 pb-5 pt-10;
+    @apply sticky left-0 top-0 flex h-dvh flex-col justify-between bg-white px-0 sm:px-5 pb-5 pt-10;
   }
 
   .admin-sidebar .logo {

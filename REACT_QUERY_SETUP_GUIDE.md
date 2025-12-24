@@ -645,13 +645,35 @@ export function useAllResources(enabled = true, role = null) {
 
 ## 4️⃣ Mutation Hooks (Write Operations)
 
-### Pattern: Mutations + Cache Invalidation = Immediate UI Updates
+### ⚠️ Production-Tested Approach: Direct Cache Updates (No Optimistic Updates)
 
-### File: `src/hooks/useResourceMutations.js` (Generic Mutations)
+**Key Learnings from Production:**
+
+1. **❌ Avoid Optimistic Updates** - They cause UI flickers/blinks and data inconsistencies
+2. **✅ Use Direct Cache Updates** - Fetch complete data from API after mutation, then update cache directly
+3. **✅ Don't Invalidate Updated Query** - Update cache directly, only invalidate related queries
+4. **✅ Use `placeholderData`** - Prevents flicker during refetch by showing previous data
+
+**Common Issues with Optimistic Updates:**
+
+- Multiple UI blinks (3-4 times) during mutations
+- Incomplete data causing "Unknown" or empty fields
+- Cache inconsistencies between related queries
+- Unnecessary refetches causing performance issues
+
+### Pattern: Direct Cache Update + Selective Invalidation
+
+### File: `src/hooks/useResourceMutations.js` (Production-Tested Approach)
 
 ```javascript
 /**
  * React Query mutation hooks for resource operations
+ *
+ * PRODUCTION-TESTED APPROACH:
+ * - NO optimistic updates (causes blinks/flickers)
+ * - Direct cache updates with complete API data
+ * - Selective invalidation (don't invalidate updated query)
+ * - Immediate toast notifications
  *
  * Replace "Resource" with your entity name (User, Product, Post, Order, etc.)
  */
@@ -661,6 +683,7 @@ import {
   createResource,
   updateResource,
   deleteResource,
+  getAllResources, // Need to fetch complete data after mutation
 } from "../services/authenticatedService";
 import { invalidateAfterResourceChange } from "../utils/queryInvalidation";
 import { toast } from "react-toastify";
@@ -668,11 +691,12 @@ import { toast } from "react-toastify";
 /**
  * Hook to create a new resource
  *
- * Flow:
+ * PRODUCTION-TESTED FLOW:
  * 1. User calls mutate() with resource data
- * 2. API call happens
- * 3. On success: Invalidate related queries → UI updates immediately
- * 4. On error: Show error toast
+ * 2. API call happens (mutationFn)
+ * 3. On success: Fetch complete data from API → Update cache directly → Invalidate related queries
+ * 4. Show toast immediately
+ * 5. UI updates smoothly without blinks
  *
  * @returns {Object} Mutation object with mutate, mutateAsync, isLoading, error, etc.
  */
@@ -684,14 +708,50 @@ export function useCreateResource() {
     mutationFn: createResource,
 
     // Called when mutation succeeds
-    onSuccess: (data) => {
-      // CRITICAL: Invalidate all related queries
-      // This triggers refetch of all resource queries
-      // UI updates immediately without page refresh
+    onSuccess: async (data, variables) => {
+      // CRITICAL: Fetch complete data from API (includes all related fields)
+      // This ensures we have complete data to update the cache
+      // The API returns the created resource WITH all related data
+      try {
+        const response = await fetch("/api/resources", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const apiData = await response.json();
+          if (apiData.success && Array.isArray(apiData.resources)) {
+            // Update cache directly with complete data
+            // This prevents blank UI and ensures data persists
+            queryClient.setQueryData(["resources"], apiData.resources);
+
+            // Also update any filtered/searched queries
+            queryClient
+              .getQueryCache()
+              .getAll()
+              .forEach((query) => {
+                const queryKey = query.queryKey;
+                if (Array.isArray(queryKey) && queryKey[0] === "resources") {
+                  queryClient.setQueryData(queryKey, apiData.resources);
+                }
+              });
+          }
+        }
+      } catch (error) {
+        console.error(
+          "[useCreateResource] Failed to fetch complete data:",
+          error
+        );
+      }
+
+      // CRITICAL: Only invalidate related queries (books, stats, admin, etc.)
+      // DON'T invalidate "resources" since we already updated it with complete data
+      // This prevents multiple blinks and unnecessary refetches
       invalidateAfterResourceChange(queryClient);
 
-      // Show success notification
-      // Adapt message to your entity
+      // CRITICAL: Show toast notification immediately
       toast.success("Resource created successfully", {
         closeButton: true,
         position: "bottom-center",
@@ -712,6 +772,11 @@ export function useCreateResource() {
 /**
  * Hook to update an existing resource
  *
+ * PRODUCTION-TESTED APPROACH:
+ * - Fetch complete data after update
+ * - Update cache directly (don't invalidate updated query)
+ * - Only invalidate related queries
+ *
  * @returns {Object} Mutation object with mutate, mutateAsync, isLoading, error, etc.
  */
 export function useUpdateResource() {
@@ -722,14 +787,54 @@ export function useUpdateResource() {
     mutationFn: ({ resourceId, updates }) =>
       updateResource(resourceId, updates),
 
-    onSuccess: (data, variables) => {
-      // Invalidate all resource-related queries
-      invalidateAfterResourceChange(queryClient);
+    onSuccess: async (data, variables) => {
+      // CRITICAL: Fetch complete data from API (includes all related fields)
+      try {
+        // Fetch updated resource with complete data
+        const response = await fetch(`/api/resources/${variables.resourceId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
 
-      // Also invalidate the specific resource detail query
-      queryClient.invalidateQueries({
-        queryKey: ["resource", variables.resourceId],
-      });
+        if (response.ok) {
+          const apiData = await response.json();
+          if (apiData.success && apiData.resource) {
+            // Update specific resource detail query directly
+            queryClient.setQueryData(
+              ["resource", variables.resourceId],
+              apiData.resource
+            );
+
+            // Also update list queries if resource is in them
+            queryClient
+              .getQueryCache()
+              .getAll()
+              .forEach((query) => {
+                const queryKey = query.queryKey;
+                if (Array.isArray(queryKey) && queryKey[0] === "resources") {
+                  const currentData = queryClient.getQueryData(queryKey);
+                  if (Array.isArray(currentData)) {
+                    const updatedData = currentData.map((item) =>
+                      item.id === variables.resourceId ? apiData.resource : item
+                    );
+                    queryClient.setQueryData(queryKey, updatedData);
+                  }
+                }
+              });
+          }
+        }
+      } catch (error) {
+        console.error(
+          "[useUpdateResource] Failed to fetch complete data:",
+          error
+        );
+      }
+
+      // CRITICAL: Only invalidate related queries (stats, admin, etc.)
+      // DON'T invalidate "resource" or "resources" since we already updated them
+      invalidateAfterResourceChange(queryClient);
 
       toast.success("Resource updated successfully", {
         closeButton: true,
@@ -859,6 +964,215 @@ function ResourceForm({ resourceId, initialData }) {
 - ✅ `onError` shows error toast
 - ✅ `isPending` for loading states
 - ✅ Can pass variables to `mutationFn`
+
+---
+
+## 4️⃣.5️⃣ Production Issues & Solutions
+
+### 🐛 Common Issues Found in Production
+
+#### Issue 1: Multiple UI Blinks (3-4 times) During Mutations
+
+**Symptoms:**
+
+- UI flickers/blinks multiple times when creating/updating resources
+- Poor user experience
+- Performance degradation
+
+**Root Cause:**
+
+- Optimistic updates combined with cache invalidation
+- Invalidating the query you just updated causes unnecessary refetches
+- Multiple related queries refetching simultaneously
+
+**Solution:**
+
+```javascript
+// ❌ BAD: Causes multiple blinks
+onSuccess: (data) => {
+  queryClient.invalidateQueries({ queryKey: ["resources"] }); // Causes refetch
+  queryClient.invalidateQueries({ queryKey: ["resource", resourceId] }); // Causes another refetch
+},
+
+// ✅ GOOD: Direct cache update, no invalidation of updated query
+onSuccess: async (data, variables) => {
+  // Fetch complete data
+  const response = await fetch(`/api/resources/${variables.resourceId}`);
+  const apiData = await response.json();
+
+  // Update cache directly (no refetch = no blink)
+  queryClient.setQueryData(["resource", variables.resourceId], apiData.resource);
+
+  // Only invalidate related queries (not the one you updated)
+  queryClient.invalidateQueries({ queryKey: ["stats"] });
+  queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+},
+```
+
+#### Issue 2: "Unknown Book" or Empty Fields After Mutation
+
+**Symptoms:**
+
+- After creating/updating, UI shows "Unknown Book", "Unknown Author", etc.
+- Missing related data (e.g., book details in borrow records)
+- Data appears empty until page refresh
+
+**Root Cause:**
+
+- Cache updated with incomplete data from mutation response
+- Mutation response doesn't include all related fields (e.g., nested book data)
+- Cache updated before related data is fetched
+
+**Solution:**
+
+```javascript
+// ❌ BAD: Using mutation response directly (incomplete data)
+onSuccess: (data) => {
+  queryClient.setQueryData(["borrow-records", userId], [data]); // Missing book field
+},
+
+// ✅ GOOD: Fetch complete data from API before updating cache
+onSuccess: async (data, variables) => {
+  // Fetch complete borrow records WITH book data
+  const response = await fetch(`/api/borrow-records?userId=${variables.userId}&limit=10000`);
+  const apiData = await response.json();
+
+  if (apiData.success && Array.isArray(apiData.borrows)) {
+    // Update cache with complete data (includes book field)
+    queryClient.setQueryData(["borrow-records", variables.userId], apiData.borrows);
+  }
+},
+```
+
+#### Issue 3: Data Disappears on Navigation
+
+**Symptoms:**
+
+- Data shows correctly after mutation
+- Navigating away and back shows empty data
+- Page refresh brings data back
+
+**Root Cause:**
+
+- `gcTime` too short (cache garbage collected)
+- SSR initial data not preserved during client-side navigation
+- Cache cleared on navigation
+
+**Solution:**
+
+```javascript
+// ✅ Increase gcTime
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 30 * 60 * 1000, // 30 minutes (instead of 5 minutes)
+    },
+  },
+});
+
+// ✅ Preserve SSR initial data
+const initialDataRef = React.useRef(ssrInitialData);
+
+React.useEffect(() => {
+  if (ssrInitialData && !initialDataRef.current) {
+    initialDataRef.current = ssrInitialData;
+  }
+}, [ssrInitialData]);
+
+// Use initial data as fallback
+const { data } = useQuery({
+  queryKey: ["resources"],
+  queryFn: getResources,
+  initialData: initialDataRef.current,
+});
+```
+
+#### Issue 4: Unnecessary Refetches After Mutation
+
+**Symptoms:**
+
+- Multiple API calls after single mutation
+- Network tab shows redundant requests
+- Performance issues
+
+**Root Cause:**
+
+- Invalidating the query you just updated
+- Invalidating too many related queries
+- `refetchOnMount: true` with `staleTime: Infinity` causing refetches
+
+**Solution:**
+
+```javascript
+// ❌ BAD: Invalidating updated query causes unnecessary refetch
+onSuccess: (data, variables) => {
+  queryClient.invalidateQueries({ queryKey: ["resource", variables.resourceId] }); // Unnecessary!
+},
+
+// ✅ GOOD: Update cache directly, don't invalidate
+onSuccess: async (data, variables) => {
+  const response = await fetch(`/api/resources/${variables.resourceId}`);
+  const apiData = await response.json();
+
+  // Update cache directly (no refetch needed)
+  queryClient.setQueryData(["resource", variables.resourceId], apiData.resource);
+
+  // Only invalidate truly related queries
+  queryClient.invalidateQueries({ queryKey: ["stats"] });
+},
+```
+
+#### Issue 5: Cache Inconsistencies Between Queries
+
+**Symptoms:**
+
+- List shows updated data, but detail page shows old data
+- Different queries showing different versions of same data
+- Data out of sync
+
+**Root Cause:**
+
+- Only updating one query, not updating related queries
+- Invalidating without updating cache first
+- Related queries not updated together
+
+**Solution:**
+
+```javascript
+// ✅ Update all related queries together
+onSuccess: async (data, variables) => {
+  const response = await fetch(`/api/resources/${variables.resourceId}`);
+  const apiData = await response.json();
+
+  // Update detail query
+  queryClient.setQueryData(["resource", variables.resourceId], apiData.resource);
+
+  // Update list queries
+  queryClient.getQueryCache().getAll().forEach((query) => {
+    const queryKey = query.queryKey;
+    if (Array.isArray(queryKey) && queryKey[0] === "resources") {
+      const currentData = queryClient.getQueryData(queryKey);
+      if (Array.isArray(currentData)) {
+        const updatedData = currentData.map((item) =>
+          item.id === variables.resourceId ? apiData.resource : item
+        );
+        queryClient.setQueryData(queryKey, updatedData);
+      }
+    }
+  });
+},
+```
+
+### ✅ Best Practices Summary
+
+1. **NO Optimistic Updates** - Use direct cache updates instead
+2. **Fetch Complete Data** - Always fetch complete data from API before updating cache
+3. **Update Cache Directly** - Don't invalidate the query you just updated
+4. **Selective Invalidation** - Only invalidate truly related queries
+5. **Use placeholderData** - Prevent flicker during refetch
+6. **Increase gcTime** - Prevent data loss on navigation (30 minutes recommended)
+7. **Preserve SSR Data** - Use refs to preserve SSR initial data during navigation
+8. **Update All Related Queries** - Keep all queries in sync
 
 ---
 
@@ -1393,31 +1707,58 @@ const { data: orders } = useUserOrders(userId, {
 });
 ```
 
-### Pattern 3: Optimistic Updates
+### Pattern 3: Direct Cache Updates (Production-Tested - Recommended)
 
 ```javascript
-// Update UI immediately, rollback on error
+/**
+ * PRODUCTION-TESTED APPROACH: Direct Cache Updates
+ *
+ * Why NOT use optimistic updates:
+ * - Causes multiple UI blinks (3-4 times)
+ * - Incomplete data causes "Unknown" fields
+ * - Cache inconsistencies between queries
+ * - Unnecessary refetches
+ *
+ * Instead: Fetch complete data → Update cache → Invalidate related queries only
+ */
 const updateMutation = useMutation({
   mutationFn: updateResource,
-  onMutate: async (newData) => {
-    // Cancel outgoing refetches
-    await queryClient.cancelQueries({ queryKey: ["resource", resourceId] });
 
-    // Snapshot previous value
-    const previous = queryClient.getQueryData(["resource", resourceId]);
+  onSuccess: async (data, variables) => {
+    // 1. Fetch complete data from API (includes all related fields)
+    const response = await fetch(`/api/resources/${variables.resourceId}`);
+    const apiData = await response.json();
 
-    // Optimistically update
-    queryClient.setQueryData(["resource", resourceId], newData);
+    // 2. Update cache directly with complete data
+    queryClient.setQueryData(
+      ["resource", variables.resourceId],
+      apiData.resource
+    );
 
-    return { previous };
-  },
-  onError: (err, newData, context) => {
-    // Rollback on error
-    queryClient.setQueryData(["resource", resourceId], context.previous);
-  },
-  onSettled: () => {
-    // Refetch to ensure consistency
-    queryClient.invalidateQueries({ queryKey: ["resource", resourceId] });
+    // 3. Update list queries if resource is in them
+    queryClient
+      .getQueryCache()
+      .getAll()
+      .forEach((query) => {
+        const queryKey = query.queryKey;
+        if (Array.isArray(queryKey) && queryKey[0] === "resources") {
+          const currentData = queryClient.getQueryData(queryKey);
+          if (Array.isArray(currentData)) {
+            const updatedData = currentData.map((item) =>
+              item.id === variables.resourceId ? apiData.resource : item
+            );
+            queryClient.setQueryData(queryKey, updatedData);
+          }
+        }
+      });
+
+    // 4. Only invalidate related queries (NOT the updated query)
+    // This prevents unnecessary refetches and blinks
+    queryClient.invalidateQueries({ queryKey: ["stats"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+    // 5. Show toast immediately
+    toast.success("Resource updated successfully");
   },
 });
 ```
@@ -1455,20 +1796,82 @@ const handleSubmit = async (data) => {
 
 ### Issue: UI not updating after mutation
 
-**Solution:** Check that you're invalidating queries in `onSuccess`:
+**Solution:** Check that you're updating cache directly OR invalidating queries in `onSuccess`:
 
 ```javascript
+// Option 1: Direct cache update (recommended - no blinks)
+onSuccess: async (data, variables) => {
+  const response = await fetch(`/api/resources/${variables.resourceId}`);
+  const apiData = await response.json();
+  queryClient.setQueryData(
+    ["resource", variables.resourceId],
+    apiData.resource
+  );
+  // Only invalidate related queries, not the updated one
+  queryClient.invalidateQueries({ queryKey: ["stats"] });
+};
+
+// Option 2: Invalidate (causes refetch - may cause blinks)
 onSuccess: () => {
   queryClient.invalidateQueries({ queryKey: ["resources"] });
 };
 ```
 
-### Issue: Too many API calls
+### Issue: Multiple UI blinks/flickers during mutations
 
-**Solution:** Check `staleTime` - should be `Infinity` for static data:
+**Root Cause:** Optimistic updates or invalidating the query you just updated
+
+**Solution:** Use direct cache updates instead of optimistic updates:
 
 ```javascript
+// ❌ BAD: Optimistic update causes blinks
+onMutate: async (newData) => {
+  queryClient.setQueryData(["resource", resourceId], newData);
+},
+onSettled: () => {
+  queryClient.invalidateQueries({ queryKey: ["resource", resourceId] }); // Causes blink
+},
+
+// ✅ GOOD: Direct cache update with complete data
+onSuccess: async (data, variables) => {
+  const response = await fetch(`/api/resources/${variables.resourceId}`);
+  const apiData = await response.json();
+  queryClient.setQueryData(["resource", variables.resourceId], apiData.resource);
+  // Don't invalidate the updated query - only related ones
+  queryClient.invalidateQueries({ queryKey: ["stats"] });
+},
+```
+
+### Issue: "Unknown" or empty fields after mutation
+
+**Root Cause:** Cache updated with incomplete data (missing related fields)
+
+**Solution:** Always fetch complete data from API before updating cache:
+
+```javascript
+// ❌ BAD: Using mutation response directly (may be incomplete)
+onSuccess: (data) => {
+  queryClient.setQueryData(["resource", resourceId], data); // Missing related fields
+},
+
+// ✅ GOOD: Fetch complete data from API
+onSuccess: async (data, variables) => {
+  const response = await fetch(`/api/resources/${variables.resourceId}`);
+  const apiData = await response.json();
+  queryClient.setQueryData(["resource", variables.resourceId], apiData.resource); // Complete data
+},
+```
+
+### Issue: Too many API calls
+
+**Solution:** Check `staleTime` - should be `Infinity` for static data, or use direct cache updates:
+
+```javascript
+// For queries
 staleTime: Infinity, // Prevents automatic refetching
+
+// For mutations - use direct cache updates instead of invalidation
+// This prevents unnecessary refetches
 ```
 
 ### Issue: Cache not working
@@ -1481,11 +1884,29 @@ queryKey: ["resources", searchTerm, filters], // Include all dependencies
 
 ### Issue: Stale data showing
 
-**Solution:** Ensure `refetchOnMount: true` and invalidate after mutations:
+**Solution:** Ensure `refetchOnMount: true` and use `placeholderData`:
 
 ```javascript
 refetchOnMount: true, // Refetch if stale
-// + invalidate after mutations
+placeholderData: (previousData) => previousData, // Show previous data during refetch
+```
+
+### Issue: Data disappears on navigation
+
+**Root Cause:** Cache cleared or `gcTime` too short
+
+**Solution:** Increase `gcTime` or use SSR initial data:
+
+```javascript
+// Increase garbage collection time
+gcTime: 30 * 60 * 1000, // 30 minutes (instead of 5 minutes)
+
+// Or use SSR initial data
+const { data } = useQuery({
+  queryKey: ["resources"],
+  queryFn: getResources,
+  initialData: ssrInitialData, // From server-side rendering
+});
 ```
 
 ---
@@ -1494,7 +1915,7 @@ refetchOnMount: true, // Refetch if stale
 
 This setup provides:
 
-✅ **Fast UI Updates** - Immediate updates via cache invalidation  
+✅ **Fast UI Updates** - Immediate updates via direct cache updates (no blinks)  
 ✅ **Optimal Performance** - Infinite cache, no redundant API calls  
 ✅ **Automatic Sync** - All related queries update together  
 ✅ **Smart Caching** - Cache forever until invalidated  
@@ -1506,9 +1927,21 @@ This setup provides:
 
 - `staleTime: Infinity` - Cache forever until invalidated
 - `refetchOnMount: true` - Refetch only when stale
+- `placeholderData: (previousData) => previousData` - Prevent flicker during refetch
+- `gcTime: 30 * 60 * 1000` - Keep cache for 30 minutes (prevents data loss on navigation)
+- **Direct cache updates** - Fetch complete data → Update cache → Don't invalidate updated query
+- **Selective invalidation** - Only invalidate related queries, not the one you just updated
 - Centralized invalidation utilities
 - Pure service layer
 - Custom hooks for queries and mutations
+
+**Production-Tested Patterns:**
+
+- ❌ **NO Optimistic Updates** - Causes multiple blinks and data inconsistencies
+- ✅ **Direct Cache Updates** - Fetch complete data from API, update cache directly
+- ✅ **Selective Invalidation** - Don't invalidate the query you just updated
+- ✅ **SSR Initial Data** - Preserve SSR data during client-side navigation
+- ✅ **placeholderData** - Show previous data during refetch to prevent flicker
 
 ---
 

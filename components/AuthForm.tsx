@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
-import { FIELD_NAMES, FIELD_TYPES } from "@/constants";
+import { FIELD_NAMES, FIELD_TYPES, FIELD_PLACEHOLDERS } from "@/constants";
 import FileUpload from "@/components/FileUpload";
 import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
@@ -38,7 +38,11 @@ import { useRouter } from "next/navigation";
 interface Props<T extends FieldValues> {
   schema: ZodType<T>;
   defaultValues: T;
-  onSubmit: (data: T) => Promise<{ success: boolean; error?: string }>;
+  onSubmit: (
+    data: T
+  ) => Promise<
+    { success: true } | { success: false; error?: string; fieldError?: string }
+  >;
   type: "SIGN_IN" | "SIGN_UP";
 }
 
@@ -96,10 +100,26 @@ const AuthForm = <T extends FieldValues>({
       }
       router.push("/");
     } else {
-      showToast.error(
-        "Authentication Error",
-        result.error ?? "An unexpected error occurred. Please try again."
-      );
+      // Handle field-specific errors
+      if (result.error && result.fieldError) {
+        const fieldName = result.error as Path<T>;
+        const errorMessage = result.fieldError;
+
+        // Set field-specific error
+        form.setError(fieldName, {
+          type: "server",
+          message: errorMessage,
+        });
+
+        // Also show toast for visibility
+        showToast.error("Validation Error", errorMessage);
+      } else {
+        // Generic error
+        showToast.error(
+          "Authentication Error",
+          result.error ?? "An unexpected error occurred. Please try again."
+        );
+      }
     }
   };
 
@@ -174,7 +194,11 @@ const AuthForm = <T extends FieldValues>({
                       <FileUpload
                         type="image"
                         accept="image/*"
-                        placeholder="Upload your ID"
+                        placeholder={
+                          FIELD_PLACEHOLDERS[
+                            field.name as keyof typeof FIELD_PLACEHOLDERS
+                          ] || "Upload your ID"
+                        }
                         folder="ids"
                         variant="dark"
                         onFileChange={field.onChange}
@@ -185,7 +209,30 @@ const AuthForm = <T extends FieldValues>({
                         type={
                           FIELD_TYPES[field.name as keyof typeof FIELD_TYPES]
                         }
+                        placeholder={
+                          FIELD_PLACEHOLDERS[
+                            field.name as keyof typeof FIELD_PLACEHOLDERS
+                          ] || ""
+                        }
                         {...field}
+                        value={
+                          field.value === undefined ||
+                          field.value === null ||
+                          field.value === 0
+                            ? ""
+                            : field.value
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // For number inputs, convert empty string to undefined
+                          if (field.name === "universityId") {
+                            field.onChange(
+                              value === "" ? undefined : Number(value)
+                            );
+                          } else {
+                            field.onChange(value);
+                          }
+                        }}
                         className="form-input"
                       />
                     )}

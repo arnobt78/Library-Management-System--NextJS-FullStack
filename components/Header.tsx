@@ -4,32 +4,41 @@ import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import AdminDropdown from "@/components/AdminDropdown";
-import LogoutButton from "@/components/LogoutButton";
+import ProfileDropdown from "@/components/ProfileDropdown";
+import MobileMenu from "@/components/MobileMenu";
 
 interface HeaderProps {
   session: Session;
 }
 
 const Header = async ({ session }: HeaderProps) => {
-  // Check if user is admin
-  const userRole = session?.user?.id
+  // Fetch user data including role and profile info
+  const userData = session?.user?.id
     ? await db
-        .select({ role: users.role })
+        .select({
+          role: users.role,
+          fullName: users.fullName,
+          email: users.email,
+          universityId: users.universityId,
+          universityCard: users.universityCard,
+        })
         .from(users)
         .where(eq(users.id, session.user.id))
         .limit(1)
-        .then((res) => res[0]?.role)
+        .then((res) => res[0])
     : null;
 
-  const isAdmin = userRole === "ADMIN";
+  const isAdmin = userData?.role === "ADMIN";
 
   return (
     <header className="my-10 flex justify-between">
-      <Link href="/">
+      <Link href="/" className="flex items-center gap-3">
         <img src="/icons/logo.svg" alt="logo" width={40} height={40} />
+        <span className="text-xl font-bold text-light-100">BookWise</span>
       </Link>
 
-      <ul className="flex flex-row items-center gap-8 text-light-100">
+      {/* Desktop Navigation - Hidden on mobile and sm screens */}
+      <ul className="hidden flex-row items-center gap-8 text-light-100 md:flex">
         {/* <li>
           <Link href="/">Home</Link>
         </li> */}
@@ -50,31 +59,38 @@ const Header = async ({ session }: HeaderProps) => {
         </li>
 
         {/* Admin-only navigation items */}
-        {isAdmin ? (
+        {isAdmin && (
           <li>
             <AdminDropdown />
           </li>
-        ) : (
+        )}
+
+        {/* Profile dropdown with user image */}
+        {userData && (
           <li>
-            <Link
-              href="/make-admin"
-              className="text-light-100 hover:text-light-200"
-            >
-              Become Admin
-            </Link>
+            <ProfileDropdown
+              fullName={userData.fullName}
+              email={userData.email}
+              universityId={userData.universityId}
+              universityCard={userData.universityCard}
+              isAdmin={isAdmin}
+            />
           </li>
         )}
-
-        {/* User email */}
-        {session?.user?.email && (
-          <li className="font-bold text-light-100">{session.user.email}</li>
-        )}
-
-        {/* Logout button */}
-        <li>
-          <LogoutButton />
-        </li>
       </ul>
+
+      {/* Mobile Menu - Visible only on mobile and sm screens */}
+      {userData && (
+        <div className="md:hidden">
+          <MobileMenu
+            fullName={userData.fullName}
+            email={userData.email}
+            universityId={userData.universityId}
+            universityCard={userData.universityCard}
+            isAdmin={isAdmin}
+          />
+        </div>
+      )}
     </header>
   );
 };

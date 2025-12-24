@@ -16,7 +16,10 @@
  */
 
 import React, { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import config from "@/lib/config";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,13 +67,71 @@ const AccountRequestsClient = ({
   successMessage,
   errorMessage,
 }: AccountRequestsClientProps) => {
+  const router = useRouter();
+  const searchParamsHook = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Get current search params from URL
+  const currentSearch = searchParamsHook.get("search") || "";
+
+  const [localSearch, setLocalSearch] = useState(currentSearch);
+  const lastSyncedSearchRef = React.useRef(currentSearch);
+
+  // Sync localSearch with URL params when they change externally (e.g., browser back/forward)
+  // Only sync if the change didn't come from our own debounced update
+  React.useEffect(() => {
+    // Only sync if:
+    // 1. currentSearch changed from an external source (not our debounce)
+    // 2. localSearch matches the last synced value (user isn't actively typing)
+    // This prevents overwriting user input while typing
+    if (
+      currentSearch !== lastSyncedSearchRef.current &&
+      localSearch === lastSyncedSearchRef.current
+    ) {
+      setLocalSearch(currentSearch);
+      lastSyncedSearchRef.current = currentSearch;
+    }
+  }, [currentSearch, localSearch]);
+
+  // Debounce search input for instant filtering
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== currentSearch) {
+        const params = new URLSearchParams(searchParamsHook.toString());
+        const trimmedSearch = localSearch.trim();
+
+        if (trimmedSearch) {
+          params.set("search", trimmedSearch);
+        } else {
+          params.delete("search");
+        }
+
+        const newUrl = `/admin/account-requests?${params.toString()}`;
+        // Update ref before navigation to prevent sync effect from overwriting
+        lastSyncedSearchRef.current = trimmedSearch;
+        queryClient.invalidateQueries({ queryKey: ["pending-users"] });
+        router.replace(newUrl, { scroll: false });
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [localSearch, currentSearch, searchParamsHook, queryClient, router]);
+
+  // Check if any filters are active
+  const hasActiveFilters = currentSearch;
+
+  // Only use initialData on first load (when no filters are active)
+  const initialUsersData = !hasActiveFilters && initialUsers
+    ? initialUsers
+    : undefined;
+
   // React Query hook with SSR initial data
   const {
     data: usersData,
     isLoading: usersLoading,
     isError: usersError,
     error: usersErrorData,
-  } = usePendingUsers(initialUsers);
+  } = usePendingUsers(initialUsersData, currentSearch || undefined);
 
   // React Query mutations
   const approveUserMutation = useApproveUser();
@@ -82,6 +143,29 @@ const AccountRequestsClient = ({
   // Extract users from response
   // usePendingUsers returns User[] directly (not wrapped in UsersListResponse)
   const users: UserType[] = ((usersData ?? initialUsers) || []) as UserType[];
+
+  // Update search params in URL and trigger refetch
+  const updateSearchParams = (newParams: Record<string, string>) => {
+    const params = new URLSearchParams(searchParamsHook.toString());
+
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value && value !== "all") {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    queryClient.invalidateQueries({ queryKey: ["pending-users"] });
+    router.replace(`/admin/account-requests?${params.toString()}`, {
+      scroll: false,
+    });
+  };
+
+  const clearFilters = () => {
+    setLocalSearch("");
+    router.push("/admin/account-requests");
+  };
 
   // Handler functions for mutations
   const handleApproveUser = async (userId: string) => {
@@ -153,7 +237,7 @@ const AccountRequestsClient = ({
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Account Requests
@@ -162,11 +246,30 @@ const AccountRequestsClient = ({
                 Review and approve pending user registrations
               </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="rounded-full bg-orange-100 px-3 py-1">
-                <span className="text-sm font-medium text-orange-800">
-                  {users.length} Pending
-                </span>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              {/* Search Input */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const trimmedSearch = localSearch.trim();
+                  updateSearchParams({ search: trimmedSearch });
+                }}
+                className="flex-1 sm:min-w-[250px]"
+              >
+                <Input
+                  type="text"
+                  placeholder="Search by name, email, ID..."
+                  value={localSearch}
+                  onChange={(e) => setLocalSearch(e.target.value)}
+                  className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                />
+              </form>
+              <div className="flex items-center space-x-2">
+                <div className="rounded-full bg-orange-100 px-3 py-1">
+                  <span className="text-sm font-medium text-orange-800">
+                    {users.length} Pending
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -210,11 +313,24 @@ const AccountRequestsClient = ({
                 <User className="size-12 text-gray-400" />
               </div>
               <h3 className="mb-2 text-lg font-medium text-gray-900">
-                No Pending Requests
+                {hasActiveFilters
+                  ? "No pending requests found matching your criteria."
+                  : "No Pending Requests"}
               </h3>
-              <p className="text-gray-500">
-                All account requests have been processed.
+              <p className="mb-4 text-gray-500">
+                {hasActiveFilters
+                  ? "Try adjusting your search terms."
+                  : "All account requests have been processed."}
               </p>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="mt-2 border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Clear All Filters
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -269,30 +385,32 @@ const AccountRequestCard = ({
   return (
     <Card className="group border-0 shadow-md transition-all duration-300 hover:shadow-lg">
       <CardHeader className="pb-4">
-        <div className="flex items-start">
-          <div className="flex flex-1 items-center space-x-3">
+        <div className="space-y-3">
+          {/* Badge on its own row */}
+          <div className="flex justify-start">
+            <Badge
+              variant="pending"
+              className="flex items-center space-x-1"
+            >
+              <Clock className="size-3" />
+              <span>PENDING</span>
+            </Badge>
+          </div>
+          {/* Avatar and user info with full width */}
+          <div className="flex items-center space-x-3">
             <Avatar className="size-12">
               <AvatarImage src="" />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 font-semibold text-white">
                 {getInitials(user.fullName)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {user.fullName}
-                </h3>
-                <Badge
-                  variant="pending"
-                  className="ml-2 flex items-center space-x-1"
-                >
-                  <Clock className="size-3" />
-                  <span>PENDING</span>
-                </Badge>
-              </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-gray-900 truncate">
+                {user.fullName}
+              </h3>
               <div className="flex items-center space-x-1 text-sm text-gray-500">
-                <Mail className="size-3" />
-                <span>{user.email}</span>
+                <Mail className="size-3 flex-shrink-0" />
+                <span className="truncate">{user.email}</span>
               </div>
             </div>
           </div>

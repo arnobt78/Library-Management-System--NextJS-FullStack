@@ -65,10 +65,14 @@ export async function GET(request: NextRequest) {
     // Build where conditions
     const whereConditions = [];
 
-    // Search condition
+    // Search condition - case-insensitive using ILIKE
     if (search) {
+      const searchPattern = `%${search}%`;
       whereConditions.push(
-        or(like(books.title, `%${search}%`), like(books.author, `%${search}%`))
+        or(
+          sql`${books.title}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
+          sql`${books.author}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`
+        )
       );
     }
 

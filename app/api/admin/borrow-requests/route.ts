@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { borrowRecords, books, users } from "@/database/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, or, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 
 export const runtime = "nodejs";
@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
+    const search = searchParams.get("search") || "";
     const status = searchParams.get("status") as
       | "PENDING"
       | "BORROWED"
@@ -80,7 +81,26 @@ export async function GET(request: NextRequest) {
       | null;
 
     // Build where conditions
-    const whereConditions = status ? [eq(borrowRecords.status, status)] : [];
+    const whereConditions = [];
+
+    // Status filter
+    if (status) {
+      whereConditions.push(eq(borrowRecords.status, status));
+    }
+
+    // Search condition - case-insensitive using ILIKE
+    if (search) {
+      const searchPattern = `%${search}%`;
+      whereConditions.push(
+        or(
+          sql`${books.title}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
+          sql`${books.author}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
+          sql`${users.fullName}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
+          sql`${users.email}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
+          sql`CAST(${users.universityId} AS TEXT) ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`
+        )
+      );
+    }
 
     // Fetch borrow records with user and book details
     const allBorrowRecords = await db
@@ -116,7 +136,9 @@ export async function GET(request: NextRequest) {
       .from(borrowRecords)
       .innerJoin(users, eq(borrowRecords.userId, users.id))
       .innerJoin(books, eq(borrowRecords.bookId, books.id))
-      .where(whereConditions.length > 0 ? whereConditions[0] : undefined)
+      .where(
+        whereConditions.length > 0 ? and(...whereConditions) : undefined
+      )
       .orderBy(desc(borrowRecords.createdAt));
 
     // Transform to BorrowRecordWithDetails format

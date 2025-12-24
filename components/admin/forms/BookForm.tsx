@@ -21,6 +21,7 @@ import FileUpload from "@/components/FileUpload";
 import ColorPicker from "@/components/admin/ColorPicker";
 import { useCreateBook, useUpdateBook } from "@/hooks/useMutations";
 import { useSession } from "next-auth/react";
+import { BOOK_FIELD_PLACEHOLDERS } from "@/constants";
 
 interface Props extends Partial<Book> {
   type?: "create" | "update";
@@ -110,7 +111,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
               <FormControl>
                 <Input
                   required
-                  placeholder="Book title"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.title}
                   {...field}
                   className="book-form_input"
                 />
@@ -130,7 +131,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
               <FormControl>
                 <Input
                   required
-                  placeholder="Book author"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.author}
                   {...field}
                   className="book-form_input"
                 />
@@ -150,7 +151,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
               <FormControl>
                 <Input
                   required
-                  placeholder="Book genre"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.genre}
                   {...field}
                   className="book-form_input"
                 />
@@ -173,8 +174,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   type="number"
                   min={1}
                   max={5}
-                  placeholder="Book rating"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.rating}
                   {...field}
+                  value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    field.onChange(value === "" ? undefined : Number(value));
+                  }}
                   className="book-form_input"
                 />
               </FormControl>
@@ -196,8 +202,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   type="number"
                   min={1}
                   max={10000}
-                  placeholder="Total copies"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.totalCopies}
                   {...field}
+                  value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    field.onChange(value === "" ? undefined : Number(value));
+                  }}
                   className="book-form_input"
                 />
               </FormControl>
@@ -218,7 +229,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 <FileUpload
                   type="image"
                   accept="image/*"
-                  placeholder="Upload a book cover"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.coverUrl}
                   folder="books/covers"
                   variant="light"
                   onFileChange={field.onChange}
@@ -257,7 +268,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
               </FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Book description"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.description}
                   {...field}
                   rows={10}
                   className="book-form_input"
@@ -281,7 +292,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 <FileUpload
                   type="video"
                   accept="video/*"
-                  placeholder="Upload a book trailer"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.videoUrl}
                   folder="books/videos"
                   variant="light"
                   onFileChange={field.onChange}
@@ -302,7 +313,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
               </FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Book summary"
+                  placeholder={BOOK_FIELD_PLACEHOLDERS.summary}
                   {...field}
                   rows={5}
                   className="book-form_input"
@@ -331,7 +342,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="978-0-123456-78-9"
+                      placeholder={BOOK_FIELD_PLACEHOLDERS.isbn}
                       {...field}
                       className="book-form_input"
                     />
@@ -354,8 +365,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       type="number"
                       min={1000}
                       max={new Date().getFullYear()}
-                      placeholder="2023"
+                      placeholder={BOOK_FIELD_PLACEHOLDERS.publicationYear}
                       {...field}
+                      value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value === "" ? undefined : Number(value));
+                      }}
                       className="book-form_input"
                     />
                   </FormControl>
@@ -374,7 +390,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Publisher name"
+                      placeholder={BOOK_FIELD_PLACEHOLDERS.publisher}
                       {...field}
                       className="book-form_input"
                     />
@@ -394,7 +410,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="English"
+                      placeholder={BOOK_FIELD_PLACEHOLDERS.language}
                       {...field}
                       className="book-form_input"
                     />
@@ -416,8 +432,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                     <Input
                       type="number"
                       min={1}
-                      placeholder="300"
+                      placeholder={BOOK_FIELD_PLACEHOLDERS.pageCount}
                       {...field}
+                      value={field.value === undefined || field.value === null || field.value === 0 ? "" : field.value}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value === "" ? undefined : Number(value));
+                      }}
                       className="book-form_input"
                     />
                   </FormControl>
@@ -436,7 +457,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="1st Edition"
+                      placeholder={BOOK_FIELD_PLACEHOLDERS.edition}
                       {...field}
                       className="book-form_input"
                     />

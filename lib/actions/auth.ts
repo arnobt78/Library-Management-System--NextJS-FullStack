@@ -56,6 +56,48 @@ export const signUp = async (params: AuthCredentials) => {
 
   if (!success) return redirect("/too-fast");
 
+  // Validate universityId is within PostgreSQL integer range
+  // PostgreSQL integer range: -2,147,483,648 to 2,147,483,647
+  // But we'll limit to 8-digit numbers (1 to 99,999,999) for better UX
+  const MAX_INTEGER = 2147483647;
+  const MAX_8_DIGIT = 99999999;
+
+  // Validate universityId is a whole number (integer)
+  if (!Number.isInteger(universityId)) {
+    return {
+      success: false,
+      error: "universityId",
+      fieldError: "University ID must be a whole number (no decimals).",
+    };
+  }
+
+  // Validate universityId is positive
+  if (universityId < 1) {
+    return {
+      success: false,
+      error: "universityId",
+      fieldError: "University ID must be a positive number.",
+    };
+  }
+
+  // Validate universityId is within 8-digit range
+  if (universityId > MAX_8_DIGIT) {
+    return {
+      success: false,
+      error: "universityId",
+      fieldError: "University ID is too large. Maximum allowed 8-digit number.",
+    };
+  }
+
+  // Validate universityId is within PostgreSQL integer range (safety check)
+  if (universityId > MAX_INTEGER) {
+    return {
+      success: false,
+      error: "universityId",
+      fieldError: "University ID is too large. Maximum allowed 8-digit number.",
+    };
+  }
+
   const existingUser = await db
     .select()
     .from(users)
@@ -63,7 +105,26 @@ export const signUp = async (params: AuthCredentials) => {
     .limit(1);
 
   if (existingUser.length > 0) {
-    return { success: false, error: "User already exists" };
+    return {
+      success: false,
+      error: "email",
+      fieldError: "This email is already registered. Please use a different email or sign in.",
+    };
+  }
+
+  // Check for duplicate university ID
+  const existingUniversityId = await db
+    .select()
+    .from(users)
+    .where(eq(users.universityId, universityId))
+    .limit(1);
+
+  if (existingUniversityId.length > 0) {
+    return {
+      success: false,
+      error: "universityId",
+      fieldError: "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
+    };
   }
 
   // Generate a random salt
@@ -103,7 +164,47 @@ export const signUp = async (params: AuthCredentials) => {
 
     return { success: true };
   } catch (error) {
+    // Check if error is related to integer range
+    if (
+      error instanceof Error &&
+      (error.message.includes("out of range") ||
+        error.message.includes("integer") ||
+        error.message.includes("22003"))
+    ) {
+      return {
+        success: false,
+        error: "universityId",
+        fieldError: "University ID is too large. Maximum allowed 8-digit number.",
+      };
+    }
+
+    // Check if error is related to duplicate email
+    if (
+      error instanceof Error &&
+      (error.message.includes("unique") ||
+        error.message.includes("duplicate") ||
+        error.message.includes("23505"))
+    ) {
+      // Check if it's email or universityId duplicate
+      if (error.message.includes("email")) {
+        return {
+          success: false,
+          error: "email",
+          fieldError: "This email is already registered. Please use a different email or sign in.",
+        };
+      } else if (error.message.includes("university_id")) {
+        return {
+          success: false,
+          error: "universityId",
+          fieldError: "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
+        };
+      }
+    }
+
     console.log(error, "Signup error");
-    return { success: false, error: "Signup error" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Signup error. Please check your information and try again.",
+    };
   }
 };

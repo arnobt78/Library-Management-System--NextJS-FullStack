@@ -2,7 +2,7 @@
 
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export const updateUserRole = async (
   userId: string,
@@ -34,7 +34,10 @@ export const updateUserStatus = async (
 
 export const getAllUsers = async () => {
   try {
-    const allUsers = await db.select().from(users).orderBy(users.createdAt);
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
 
     return { success: true, data: allUsers };
   } catch (error) {

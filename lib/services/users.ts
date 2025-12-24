@@ -335,8 +335,12 @@ export async function getUsersByRole(
  * const pendingRequests = await getPendingUsers();
  * ```
  */
-export async function getPendingUsers(): Promise<User[]> {
-  return getUsersByStatus("PENDING");
+export async function getPendingUsers(search?: string): Promise<User[]> {
+  const filters: UserFilters = { status: "PENDING" };
+  if (search) filters.search = search;
+
+  const response = await getUsersList(filters);
+  return response.users;
 }
 
 /**

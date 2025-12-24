@@ -400,8 +400,8 @@ export const useAllUsers = (
       trackQuery("all-users", async () => {
         return getUsersList(urlFilters);
       }),
-    staleTime: Infinity, // Cache forever until invalidated
-    refetchOnMount: true, // Refetch if stale (after invalidation)
+    staleTime: 0, // Always refetch when query key changes (filters change)
+    refetchOnMount: true, // Refetch on mount
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
 };
@@ -423,17 +423,27 @@ export const useAllUsers = (
  * const { data } = usePendingUsers(serverPendingUsers);
  * ```
  */
-export const usePendingUsers = (initialData?: User[]) => {
+export const usePendingUsers = (
+  initialData?: User[],
+  search?: string
+) => {
   const { trackQuery } = useQueryPerformance();
+  const searchParams = useSearchParams();
+
+  // Get search from URL params if not provided
+  const searchValue = search || searchParams.get("search") || undefined;
+
+  // Build query key from search for proper caching
+  const queryKey = ["pending-users", searchValue];
 
   return useQuery({
-    queryKey: ["pending-users"],
+    queryKey,
     queryFn: () =>
       trackQuery("pending-users", async () => {
-        return getPendingUsers();
+        return getPendingUsers(searchValue);
       }),
-    staleTime: Infinity, // Cache forever until invalidated
-    refetchOnMount: true, // Refetch if stale (after invalidation)
+    staleTime: 0, // Always refetch when query key changes (search changes)
+    refetchOnMount: true, // Refetch on mount
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
 };
@@ -646,29 +656,31 @@ export const useAdminStats = (initialData?: AdminStats) => {
  * ```
  */
 export const useBorrowRequests = (
-  filters?: { status?: BorrowStatus },
+  filters?: { status?: BorrowStatus; search?: string },
   initialData?: BorrowRecordWithDetails[]
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
 
-  // Get status from URL params if not provided
+  // Get filters from URL params if not provided
   const status: BorrowStatus | undefined =
     filters?.status ||
     (searchParams.get("status") as BorrowStatus | null) ||
     undefined;
+  const search: string | undefined =
+    filters?.search || searchParams.get("search") || undefined;
 
-  // Build query key from status for proper caching
-  const queryKey = ["borrow-requests", status];
+  // Build query key from filters for proper caching
+  const queryKey = ["borrow-requests", { status, search }];
 
   return useQuery({
     queryKey,
     queryFn: () =>
       trackQuery("borrow-requests", async () => {
-        return getBorrowRequests(status);
+        return getBorrowRequests(status, search);
       }),
-    staleTime: Infinity, // Cache forever until invalidated
-    refetchOnMount: true, // Refetch if stale (after invalidation)
+    staleTime: 0, // Always refetch when query key changes (filters change)
+    refetchOnMount: true, // Refetch on mount
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
 };

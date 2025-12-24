@@ -65,6 +65,32 @@ export const FIELD_TYPES = {
   password: "password",
 };
 
+export const FIELD_PLACEHOLDERS = {
+  fullName: "John Doe",
+  email: "john@university.edu",
+  universityId: "12345678",
+  password: "Minimum 8 characters",
+  universityCard: "Upload your ID",
+};
+
+export const BOOK_FIELD_PLACEHOLDERS = {
+  title: "Book title",
+  author: "Author name",
+  genre: "Enter genre",
+  rating: "1-5",
+  totalCopies: "Number of copies",
+  description: "Book description",
+  summary: "Book summary",
+  isbn: "978-0-123456-78-9",
+  publicationYear: "2023",
+  publisher: "Publisher name",
+  language: "English",
+  pageCount: "300",
+  edition: "1st Edition",
+  coverUrl: "Upload a book cover",
+  videoUrl: "Upload a book trailer",
+};
+
 export const sampleBooks = [
   {
     id: 1,

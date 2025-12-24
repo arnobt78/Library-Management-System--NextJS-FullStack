@@ -21,7 +21,7 @@ import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
-import { desc, asc, eq, like, and, or, sql } from "drizzle-orm";
+import { desc, asc, eq, and, or, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 
 export const runtime = "nodejs";
@@ -106,14 +106,14 @@ export async function GET(request: NextRequest) {
     // Build where conditions
     const whereConditions = [];
 
-    // Search condition (name, email, or university ID)
+    // Search condition (name, email, or university ID) - case-insensitive using ILIKE
     if (search) {
       const searchPattern = `%${search}%`;
       whereConditions.push(
         or(
-          like(users.fullName, searchPattern),
-          like(users.email, searchPattern),
-          sql`CAST(${users.universityId} AS TEXT) LIKE ${searchPattern}`
+          sql`${users.fullName}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
+          sql`${users.email}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
+          sql`CAST(${users.universityId} AS TEXT) ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`
         )
       );
     }
