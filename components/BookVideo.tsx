@@ -20,8 +20,8 @@ const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
   // If it's not a video file, show a placeholder
   if (!isVideoFile) {
     return (
-      <div className="flex h-64 w-full items-center justify-center rounded-xl bg-gray-100">
-        <p className="text-gray-500">No video available</p>
+      <div className="flex h-48 w-full items-center justify-center rounded-xl bg-gray-100 sm:h-64">
+        <p className="text-sm text-gray-500 sm:text-base">No video available</p>
       </div>
     );
   }
@@ -34,7 +34,7 @@ const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
         publicKey={config.env.imagekit.publicKey}
         urlEndpoint={config.env.imagekit.urlEndpoint}
       >
-        <IKVideo src={videoUrl} controls={true} className="w-full rounded-xl" />
+        <IKVideo src={videoUrl} controls={true} className="h-auto w-full max-w-full rounded-xl" />
       </ImageKitProvider>
     );
   }

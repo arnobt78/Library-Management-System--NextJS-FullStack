@@ -60,12 +60,12 @@ const ReturnBookButton = ({ recordId, bookTitle, dueDate }: Props) => {
 
   return (
     <Button
-      className={`hover:bg-primary/90 mt-4 min-h-14 w-fit bg-primary text-dark-100 max-md:w-full ${isOverdue ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"}`}
+      className={`hover:bg-primary/90 mt-3 min-h-12 w-full bg-primary text-dark-100 sm:mt-4 sm:min-h-14 sm:w-fit ${isOverdue ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"}`}
       onClick={handleReturnBook}
       disabled={returnBookMutation.isPending}
     >
-      <img src="/icons/book.svg" alt="return book" width={20} height={20} />
-      <p className="font-bebas-neue text-xl text-dark-100">
+      <img src="/icons/book.svg" alt="return book" width={20} height={20} className="size-4 sm:size-5" />
+      <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
         {returnBookMutation.isPending
           ? "Returning..."
           : isOverdue

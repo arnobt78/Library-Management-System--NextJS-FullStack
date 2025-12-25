@@ -127,11 +127,11 @@ const AuthForm = <T extends FieldValues>({
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold text-white">
+    <div className="flex flex-col gap-3 sm:gap-4">
+      <h1 className="text-xl font-semibold text-white sm:text-2xl">
         {isSignIn ? "Welcome back to BookWise" : "Create your library account"}
       </h1>
-      <p className="text-light-100">
+      <p className="text-sm text-light-100 sm:text-base">
         {isSignIn
           ? "Access the vast collection of resources, and stay updated"
           : "Please complete all fields and upload a valid university ID to gain access to the library"}
@@ -139,12 +139,12 @@ const AuthForm = <T extends FieldValues>({
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleSubmit)}
-          className="w-full space-y-6"
+          className="w-full space-y-4 sm:space-y-6"
         >
           {/* Role Based Test Account Selector - Only for Sign In */}
           {isSignIn && (
-            <div className="space-y-2">
-              <FormLabel className="text-white">Select Test Account</FormLabel>
+            <div className="space-y-1.5 sm:space-y-2">
+              <FormLabel className="text-sm text-white sm:text-base">Select Test Account</FormLabel>
               <Select
                 key={`select-${selectedRole || "empty"}`}
                 value={selectedRole || undefined}
@@ -180,13 +180,13 @@ const AuthForm = <T extends FieldValues>({
           )}
 
           {Object.keys(defaultValues).map((field) => (
-            <FormField
+              <FormField
               key={field}
               control={form.control}
               name={field as Path<T>}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="capitalize">
+                  <FormLabel className="text-sm capitalize sm:text-base">
                     {FIELD_NAMES[field.name as keyof typeof FIELD_NAMES]}
                   </FormLabel>
                   <FormControl>
@@ -255,7 +255,7 @@ const AuthForm = <T extends FieldValues>({
         </form>
       </Form>
 
-      <p className="text-center text-base font-medium">
+      <p className="text-center text-sm font-medium sm:text-base">
         {isSignIn ? "New to BookWise? " : "Already have an account? "}
 
         <Link

@@ -90,12 +90,12 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
   // Show error state
   if (isError && !initialBook) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="rounded-lg border border-red-500 bg-red-50 p-8 text-center">
-          <p className="mb-2 text-lg font-semibold text-red-500">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
+        <div className="rounded-lg border border-red-500 bg-red-50 p-4 text-center sm:p-8">
+          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load book
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             {error instanceof Error
               ? error.message
               : "An unknown error occurred"}
@@ -138,7 +138,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
   return (
     <section className="book-overview">
-      <div className="flex flex-1 flex-col gap-5">
+      <div className="flex flex-1 flex-col gap-3 sm:gap-5">
         <h1>{title}</h1>
 
         <div className="book-info">
@@ -152,19 +152,25 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
           </p>
 
           <div className="flex flex-row gap-1">
-            <img src="/icons/star.svg" alt="star" width={22} height={22} />
+            <img
+              src="/icons/star.svg"
+              alt="star"
+              width={22}
+              height={22}
+              className="size-4 sm:size-[22px]"
+            />
             <p>{rating}</p>
           </div>
         </div>
 
         {/* Enhanced Book Information */}
-        <div className="pt-4 text-lg font-semibold text-light-100">
+        <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
           Book Details
         </div>
         <div className="book-info">
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {/* First row: ISBN and Published */}
-            <div className="grid grid-cols-2 gap-36">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
               <p>
                 ISBN{" "}
                 <span className="font-semibold text-light-200">
@@ -180,7 +186,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             </div>
 
             {/* Second row: Publisher and Language */}
-            <div className="grid grid-cols-2 gap-36">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
               <p>
                 Publisher{" "}
                 <span className="font-semibold text-light-200">
@@ -196,7 +202,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             </div>
 
             {/* Third row: Pages and Edition */}
-            <div className="grid grid-cols-2 gap-36">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
               <p>
                 Pages{" "}
                 <span className="font-semibold text-light-200">
@@ -213,7 +219,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
             {/* Fourth row: Total Copies and Available Copies */}
             <div className="">
-              <div className="grid grid-cols-2 gap-36">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
                 <p>
                   Total Books{" "}
                   <span className="font-semibold text-light-200">
@@ -229,7 +235,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
               </div>
 
               {!isActive && (
-                <p className="font-semibold text-red-400">
+                <p className="mt-2 text-sm font-semibold text-red-400 sm:text-base">
                   ⚠️ This book is currently unavailable
                 </p>
               )}
@@ -239,12 +245,12 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
         {/* Database Metadata Section */}
         <div className="book-info">
-          <div className="pt-4 text-lg font-semibold text-light-100">
+          <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
             Library Database Information
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {/* Database dates */}
-            <div className="grid grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12">
               <p>
                 Added to Library{" "}
                 <span className="font-semibold text-light-200">
@@ -283,7 +289,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
         <p className="book-description">{description}</p>
 
         {userId && (
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             {/* Use Client Component for borrow button logic - updates immediately */}
             {isDetailPage ? (
               <BookBorrowButton
@@ -312,11 +318,11 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                 />
                 <Button
                   asChild
-                  className="hover:bg-primary/90 mt-4 min-h-14 w-fit bg-primary text-dark-100 max-md:w-full"
+                  className="hover:bg-primary/90 mt-0 min-h-14 w-full bg-primary text-dark-100 sm:mt-4 sm:w-fit"
                 >
                   <Link href={`/books/${id}`}>
-                    <BookOpen className="size-5 text-dark-100" />
-                    <p className="font-bebas-neue text-xl text-dark-100">
+                    <BookOpen className="size-4 text-dark-100 sm:size-5" />
+                    <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
                       Book Details
                     </p>
                   </Link>

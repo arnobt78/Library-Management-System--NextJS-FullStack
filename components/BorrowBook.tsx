@@ -70,12 +70,12 @@ const BorrowBook = ({
 
   return (
     <Button
-      className="hover:bg-primary/90 mt-4 min-h-14 w-fit bg-primary text-dark-100 max-md:w-full"
+      className="hover:bg-primary/90 mt-3 min-h-12 w-full bg-primary text-dark-100 sm:mt-4 sm:min-h-14 sm:w-fit"
       onClick={handleBorrowBook}
       disabled={borrowBookMutation.isPending || !isEligible}
     >
-      <BookOpen className="size-5 text-dark-100" />
-      <p className="font-bebas-neue text-xl text-dark-100">
+      <BookOpen className="size-4 text-dark-100 sm:size-5" />
+      <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
         {borrowBookMutation.isPending ? "Borrowing ..." : "Borrow Book"}
       </p>
     </Button>

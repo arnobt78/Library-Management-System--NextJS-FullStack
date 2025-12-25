@@ -332,15 +332,15 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       (!initialAdminRequests || initialAdminRequests.length === 0))
   ) {
     return (
-      <section className="w-full rounded-2xl bg-white p-7">
+      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-semibold">All Users</h2>
+          <h2 className="text-lg font-semibold sm:text-xl">All Users</h2>
         </div>
 
         {/* Admin Requests Skeleton */}
-        <div className="mt-6">
-          <h3 className="mb-4 text-lg font-semibold">Pending Admin Requests</h3>
-          <div className="space-y-4">
+        <div className="mt-4 sm:mt-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Pending Admin Requests</h3>
+          <div className="space-y-3 sm:space-y-4">
             {[...Array(2)].map((_, i) => (
               <UserSkeleton
                 key={`admin-request-skeleton-${i}`}
@@ -352,7 +352,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         </div>
 
         {/* Users Table Skeleton */}
-        <div className="mt-7 w-full overflow-hidden">
+        <div className="mt-4 w-full overflow-hidden sm:mt-7">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-200">
               <thead>
@@ -360,7 +360,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                   {[...Array(7)].map((_, i) => (
                     <th
                       key={`header-${i}`}
-                      className="border border-gray-200 px-4 py-2 text-left"
+                      className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm"
                     >
                       <Skeleton className="h-4 w-24" />
                     </th>
@@ -386,12 +386,12 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       (!initialAdminRequests || initialAdminRequests.length === 0))
   ) {
     return (
-      <section className="w-full rounded-2xl bg-white p-7">
-        <div className="py-8 text-center">
-          <p className="mb-2 text-lg font-semibold text-red-500">
+      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+        <div className="py-6 text-center sm:py-8">
+          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load users
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             {usersErrorData instanceof Error
               ? usersErrorData.message
               : adminRequestsErrorData instanceof Error
@@ -404,10 +404,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   }
 
   return (
-    <section className="w-full rounded-2xl bg-white p-7">
+    <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
           <div className="flex items-center">
             <div className="shrink-0">
               <svg
@@ -443,7 +443,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       )}
 
       {errorMessage && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
           <div className="flex items-center">
             <div className="shrink-0">
               <svg
@@ -467,11 +467,11 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         </div>
       )}
 
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-semibold text-dark-400">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
           All Users ({users.length})
         </h2>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {/* Search Input */}
           <form onSubmit={handleSearch} className="flex-1 sm:min-w-[250px]">
             <Input
@@ -487,7 +487,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             />
           </form>
           {/* Filter Dropdowns */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm text-dark-400">Status:</span>
               <select
@@ -519,27 +519,27 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
       {/* Admin Requests Section - Only shows PENDING requests */}
       {adminRequests.length > 0 && (
-        <div className="mt-6">
-          <h3 className="mb-4 text-lg font-semibold">
+        <div className="mt-4 sm:mt-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
             Pending Admin Requests ({adminRequests.length})
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {adminRequests.map((request) => (
               <div
                 key={request.id}
-                className="rounded-lg border border-yellow-200 bg-yellow-50 p-4"
+                className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 sm:p-4"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <h4 className="font-medium text-yellow-900">
+                    <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <h4 className="text-sm font-medium text-yellow-900 sm:text-base">
                         {request.userFullName}
                       </h4>
-                      <span className="text-sm text-yellow-700">
+                      <span className="text-xs text-yellow-700 sm:text-sm">
                         ({request.userEmail})
                       </span>
                     </div>
-                    <p className="mb-2 text-sm text-yellow-800">
+                    <p className="mb-2 text-xs text-yellow-800 sm:text-sm">
                       <strong>Reason:</strong> {request.requestReason}
                     </p>
                     <p className="text-xs text-yellow-600">
@@ -549,7 +549,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                         : "N/A"}
                     </p>
                   </div>
-                  <div className="ml-4 flex gap-2">
+                  <div className="flex flex-col gap-2 sm:ml-4 sm:flex-row">
                     <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700"
@@ -580,30 +580,30 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         </div>
       )}
 
-      <div className="mt-7 w-full overflow-hidden">
+      <div className="mt-4 w-full overflow-hidden sm:mt-7">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-200">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-4 py-2 text-left">
+                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
                   Name
                 </th>
-                <th className="border border-gray-200 px-4 py-2 text-left">
+                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
                   Email
                 </th>
-                <th className="border border-gray-200 px-4 py-2 text-left">
+                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
                   University ID
                 </th>
-                <th className="border border-gray-200 px-4 py-2 text-left">
+                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
                   Role
                 </th>
-                <th className="border border-gray-200 px-4 py-2 text-left">
+                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
                   Status
                 </th>
-                <th className="border border-gray-200 px-4 py-2 text-left">
+                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
                   Joined
                 </th>
-                <th className="border border-gray-200 px-4 py-2 text-left">
+                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
                   Actions
                 </th>
               </tr>
@@ -611,9 +611,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="border border-gray-200 px-4 py-8">
+                  <td colSpan={7} className="border border-gray-200 px-2 py-6 sm:px-4 sm:py-8">
                     <div className="flex flex-col items-center justify-center text-center">
-                      <p className="mb-4 text-lg font-medium text-gray-600">
+                      <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
                         No users found matching your criteria.
                       </p>
                       {hasActiveFilters && (
@@ -631,18 +631,18 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
               ) : (
                 users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="border border-gray-200 px-4 py-2">
+                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
                       {user.fullName}
                     </td>
-                    <td className="border border-gray-200 px-4 py-2">
+                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
                       {user.email}
                     </td>
-                    <td className="border border-gray-200 px-4 py-2">
+                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
                       {user.universityId}
                     </td>
-                    <td className="border border-gray-200 px-4 py-2">
+                    <td className="border border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
                           user.role === "ADMIN"
                             ? "bg-purple-100 text-purple-800"
                             : "bg-blue-100 text-blue-800"
@@ -651,9 +651,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                         {user.role}
                       </span>
                     </td>
-                    <td className="border border-gray-200 px-4 py-2">
+                    <td className="border border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
                           user.status === "APPROVED"
                             ? "bg-green-100 text-green-800"
                             : user.status === "PENDING"
@@ -664,13 +664,13 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                         {user.status}
                       </span>
                     </td>
-                    <td className="border border-gray-200 px-4 py-2">
+                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
                       {user.createdAt
                         ? new Date(user.createdAt).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td className="border border-gray-200 px-4 py-2">
-                      <div className="flex gap-2">
+                    <td className="border border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                         {/* Show Remove Admin for existing admins (except current user) */}
                         {user.role === "ADMIN" &&
                           user.id !== (currentUserId || session?.user?.id) && (

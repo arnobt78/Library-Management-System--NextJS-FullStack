@@ -77,15 +77,15 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   // Show skeleton while loading (only if no initial data)
   if (isLoading && !initialStats) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Statistics Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5">
           {[...Array(5)].map((_, i) => (
             <AdminStatsSkeleton key={`stat-${i}`} variant="stat" />
           ))}
         </div>
         {/* Charts Skeleton */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
             <AdminStatsSkeleton key={`chart-${i}`} variant="card" />
           ))}
@@ -97,12 +97,12 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   // Show error state
   if (isError && !initialStats) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-lg border border-red-500 bg-red-50 p-8 text-center">
-          <p className="mb-2 text-lg font-semibold text-red-500">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="rounded-lg border border-red-500 bg-red-50 p-4 text-center sm:p-8">
+          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load admin statistics
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             {error instanceof Error
               ? error.message
               : "An unknown error occurred"}
@@ -179,10 +179,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   const topRatedBooks = (statsData.topRatedBooks as TopRatedBook[]) || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Success Message */}
       {successMessage === "admin-granted" && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
           <div className="flex items-center">
             <div className="shrink-0">
               <svg
@@ -213,11 +213,11 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       )}
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-5">
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Total Users</h3>
-            <p className="text-2xl font-bold text-blue-600">{totalUsers}</p>
+            <p className="text-xl font-bold text-blue-600 sm:text-2xl">{totalUsers}</p>
           </div>
           <div className="text-sm text-gray-500">
             {approvedUsers} approved, {pendingUsers} pending
@@ -227,7 +227,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Total Books</h3>
-            <p className="text-2xl font-bold text-green-600">{totalBooks}</p>
+            <p className="text-xl font-bold text-green-600 sm:text-2xl">{totalBooks}</p>
           </div>
           <div className="text-sm text-gray-500">
             {totalCopies} total copies
@@ -237,7 +237,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Active Borrows</h3>
-            <p className="text-2xl font-bold text-purple-600">
+            <p className="text-xl font-bold text-purple-600 sm:text-2xl">
               {activeBorrows}
             </p>
           </div>
@@ -249,7 +249,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Admins</h3>
-            <p className="text-2xl font-bold text-orange-600">{adminUsers}</p>
+            <p className="text-xl font-bold text-orange-600 sm:text-2xl">{adminUsers}</p>
           </div>
           <div className="text-sm text-gray-500">System administrators</div>
         </div>
@@ -257,7 +257,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Book Status</h3>
-            <p className="text-2xl font-bold text-indigo-600">{activeBooks}</p>
+            <p className="text-xl font-bold text-indigo-600 sm:text-2xl">{activeBooks}</p>
           </div>
           <div className="text-sm text-gray-500">
             {activeBooks} active, {inactiveBooks} inactive
@@ -266,10 +266,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Book Availability Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">Book Availability</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Book Availability</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm">Available Copies</span>
@@ -297,7 +297,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* User Status Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">User Status</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">User Status</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm">Approved Users</span>
@@ -325,7 +325,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Enhanced Book Information Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">Book Information</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Book Information</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm">Books with ISBN</span>
@@ -364,10 +364,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       </div>
 
       {/* Recent Activity */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Recent Borrows */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">Recent Borrows</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Recent Borrows</h3>
           <div className="space-y-3">
             {recentBorrows.length === 0 ? (
               <p className="text-sm text-gray-500">No recent borrows</p>
@@ -400,7 +400,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Recent Users */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">Recent Users</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Recent Users</h3>
           <div className="space-y-3">
             {recentUsers.length === 0 ? (
               <p className="text-sm text-gray-500">No recent users</p>
@@ -433,10 +433,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       </div>
 
       {/* Book Categories Section */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Book Categories */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">📚 Book Categories</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">📚 Book Categories</h3>
           <div className="space-y-3">
             {categoryStats.length === 0 ? (
               <p className="text-sm text-gray-500">No books found</p>
@@ -481,7 +481,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Books by Publication Year */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
             📅 Books by Publication Year
           </h3>
           <div className="space-y-3">
@@ -515,10 +515,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       </div>
 
       {/* Additional Statistics Section */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {/* Books by Language */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">🌍 Books by Language</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">🌍 Books by Language</h3>
           <div className="space-y-2">
             {booksByLanguage.length === 0 ? (
               <p className="text-sm text-gray-500">No language data</p>
@@ -550,7 +550,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Top Rated Books */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">⭐ Top Rated Books</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">⭐ Top Rated Books</h3>
           <div className="space-y-2">
             {topRatedBooks.length === 0 ? (
               <p className="text-sm text-gray-500">No rated books</p>
@@ -581,7 +581,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Library Health Metrics */}
         <div className="stat">
-          <h3 className="mb-4 text-lg font-semibold">🏥 Library Health</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">🏥 Library Health</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">

@@ -83,12 +83,12 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
   // Show error state for book
   if (isErrorBook || !book) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="rounded-lg border border-red-500 bg-red-50 p-8 text-center">
-          <p className="mb-2 text-lg font-semibold text-red-500">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
+        <div className="rounded-lg border border-red-500 bg-red-50 p-4 text-center sm:p-8">
+          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load book
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             {bookError instanceof Error
               ? bookError.message
               : "An unknown error occurred"}
@@ -111,15 +111,15 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
     <div className="book-details">
       <div className="flex-[1.5]">
         {/* Video Section */}
-        <section className="flex flex-col gap-7">
-          <h3>Video</h3>
+        <section className="flex flex-col gap-4 sm:gap-7">
+          <h3 className="text-base font-semibold text-primary sm:text-lg">Video</h3>
           <BookVideo videoUrl={bookData.videoUrl} />
         </section>
 
         {/* Summary Section */}
-        <section className="mt-10 flex flex-col gap-7">
-          <h3>Summary</h3>
-          <div className="space-y-5 text-xl text-light-100">
+        <section className="mt-6 flex flex-col gap-4 sm:mt-10 sm:gap-7">
+          <h3 className="text-base font-semibold text-primary sm:text-lg">Summary</h3>
+          <div className="space-y-3 text-base text-light-100 sm:space-y-5 sm:text-xl">
             {bookData.summary?.split("\n").map((line: string, i: number) => (
               <p key={i}>{line}</p>
             ))}
@@ -127,7 +127,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
         </section>
 
         {/* Reviews Section */}
-        <section className="mt-10 flex flex-col gap-7">
+        <section className="mt-6 flex flex-col gap-4 sm:mt-10 sm:gap-7">
           {/* CRITICAL: Pass React Query data to ReviewsSection
               React Query data updates immediately after mutations
               initialReviews is only used as fallback during initial load */}
@@ -138,9 +138,9 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
           />
           {/* Show error message for reviews if failed but book loaded */}
           {isErrorReviews && (
-            <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-4 text-yellow-800">
-              <p className="font-semibold">Failed to load reviews</p>
-              <p className="text-sm">
+            <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-3 text-yellow-800 sm:p-4">
+              <p className="text-sm font-semibold sm:text-base">Failed to load reviews</p>
+              <p className="text-xs sm:text-sm">
                 {reviewsError instanceof Error
                   ? reviewsError.message
                   : "An unknown error occurred"}

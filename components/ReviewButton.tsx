@@ -59,10 +59,10 @@ export default function ReviewButton({
     return (
       <Button
         disabled
-        className="flex items-center gap-2 border-gray-600 bg-gray-700/50 text-light-200/50"
+        className="flex items-center gap-1.5 border-gray-600 bg-gray-700/50 text-light-200/50 sm:gap-2"
       >
-        <MessageCircle className="size-5 text-light-200/50" />
-        <p className="font-bebas-neue text-xl text-light-200/50">Loading...</p>
+        <MessageCircle className="size-4 text-light-200/50 sm:size-5" />
+        <p className="font-bebas-neue text-base text-light-200/50 sm:text-xl">Loading...</p>
       </Button>
     );
   }
@@ -71,10 +71,10 @@ export default function ReviewButton({
     return (
       <Button
         disabled
-        className="hover:bg-primary/90 mt-4 min-h-14 w-fit bg-primary text-dark-100 max-md:w-full"
+        className="hover:bg-primary/90 mt-3 min-h-12 w-full bg-primary text-dark-100 sm:mt-4 sm:min-h-14 sm:w-fit"
       >
-        <MessageCircle className="size-6 text-dark-100" />
-        <p className="font-bebas-neue text-xl text-dark-100">
+        <MessageCircle className="size-4 text-dark-100 sm:size-6" />
+        <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
           Review Submitted
         </p>
       </Button>
@@ -85,10 +85,10 @@ export default function ReviewButton({
     return (
       <Button
         disabled
-        className="hover:bg-primary/90 mt-4 min-h-14 w-fit bg-primary text-dark-100 max-md:w-full"
+        className="hover:bg-primary/90 mt-3 min-h-12 w-full bg-primary text-dark-100 sm:mt-4 sm:min-h-14 sm:w-fit"
       >
-        <MessageCircle className="size-6 text-dark-100" />
-        <p className="font-bebas-neue text-xl text-dark-100">
+        <MessageCircle className="size-4 text-dark-100 sm:size-6" />
+        <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
           {isCurrentlyBorrowed
             ? "Return Borrow Book to Review"
             : "Borrow Book to Review"}
@@ -101,10 +101,10 @@ export default function ReviewButton({
     <>
       <Button
         onClick={() => setShowDialog(true)}
-        className="hover:bg-primary/90 mt-4 min-h-14 w-fit bg-primary text-dark-100 max-md:w-full"
+        className="hover:bg-primary/90 mt-3 min-h-12 w-full bg-primary text-dark-100 sm:mt-4 sm:min-h-14 sm:w-fit"
       >
-        <MessageCircle className="size-6 text-dark-100" />
-        <p className="font-bebas-neue text-xl text-dark-100">
+        <MessageCircle className="size-4 text-dark-100 sm:size-6" />
+        <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
           Review This Book
         </p>
       </Button>

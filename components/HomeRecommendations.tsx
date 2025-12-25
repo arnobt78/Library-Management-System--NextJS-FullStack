@@ -53,8 +53,8 @@ const HomeRecommendations: React.FC<HomeRecommendationsProps> = ({
     (!initialRecommendations || initialRecommendations.length === 0)
   ) {
     return (
-      <section className="mt-24">
-        <h2 className="font-bebas-neue text-4xl text-light-100">
+      <section className="mt-12 sm:mt-24">
+        <h2 className="font-bebas-neue text-2xl text-light-100 sm:text-4xl">
           Book Recommendations
         </h2>
         <ul className="book-list">
@@ -69,13 +69,13 @@ const HomeRecommendations: React.FC<HomeRecommendationsProps> = ({
   // Show error state
   if (isError) {
     return (
-      <section className="mt-24">
-        <h2 className="font-bebas-neue text-4xl text-light-100">
+      <section className="mt-12 sm:mt-24">
+        <h2 className="font-bebas-neue text-2xl text-light-100 sm:text-4xl">
           Book Recommendations
         </h2>
-        <div className="mt-4 rounded-lg border border-red-500 bg-red-50 p-4 text-red-800">
-          <p className="font-semibold">Failed to load recommendations</p>
-          <p className="text-sm">
+        <div className="mt-3 rounded-lg border border-red-500 bg-red-50 p-3 text-red-800 sm:mt-4 sm:p-4">
+          <p className="text-sm font-semibold sm:text-base">Failed to load recommendations</p>
+          <p className="text-xs sm:text-sm">
             {error instanceof Error
               ? error.message
               : "An unknown error occurred"}
@@ -94,7 +94,7 @@ const HomeRecommendations: React.FC<HomeRecommendationsProps> = ({
     <BookList
       title="Book Recommendations"
       books={books}
-      containerClassName="mt-24"
+      containerClassName="mt-12 sm:mt-24"
       showViewAllButton={true}
     />
   );

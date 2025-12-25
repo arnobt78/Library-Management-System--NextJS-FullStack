@@ -84,7 +84,7 @@ export default function ReviewFormDialog({
   };
 
   const StarRating = () => (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center gap-0.5 sm:space-x-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
@@ -93,7 +93,7 @@ export default function ReviewFormDialog({
           className="transition-colors hover:scale-110"
         >
           <Star
-            className={`size-6 ${
+            className={`size-5 sm:size-6 ${
               star <= rating
                 ? "fill-yellow-400 text-yellow-400"
                 : "fill-gray-300 text-gray-300"
@@ -101,7 +101,7 @@ export default function ReviewFormDialog({
           />
         </button>
       ))}
-      <span className="ml-2 text-sm text-light-200/70">
+      <span className="ml-1.5 text-xs text-light-200/70 sm:ml-2 sm:text-sm">
         {rating} star{rating !== 1 ? "s" : ""}
       </span>
     </div>
@@ -111,49 +111,53 @@ export default function ReviewFormDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="border-gray-600 bg-gray-800/95 sm:max-w-md [&>button]:text-white [&>button]:hover:text-white">
         <DialogHeader>
-          <DialogTitle className="text-light-100">Write a Review</DialogTitle>
-          <DialogDescription className="text-light-200/70">
+          <DialogTitle className="text-base text-light-100 sm:text-lg">
+            Write a Review
+          </DialogTitle>
+          <DialogDescription className="text-xs text-light-200/70 sm:text-sm">
             Share your thoughts and rate this book
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-light-200">Rating</label>
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div className="space-y-1.5 sm:space-y-2">
+            <label className="text-xs font-medium text-light-200 sm:text-sm">
+              Rating
+            </label>
             <StarRating />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-light-200">
+          <div className="space-y-1.5 sm:space-y-2">
+            <label className="text-xs font-medium text-light-200 sm:text-sm">
               Your Review
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Share your thoughts about this book..."
-              className="w-full resize-none rounded-md border border-gray-600 bg-gray-700/50 px-3 py-2 text-sm text-light-100 placeholder:text-light-200/50 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+              className="w-full resize-none rounded-md border border-gray-600 bg-gray-700/50 px-2.5 py-1.5 text-xs text-light-100 placeholder:text-light-200/50 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 sm:px-3 sm:py-2 sm:text-sm"
               rows={4}
               required
             />
-            <p className="text-xs text-light-200/70">
+            <p className="text-[10px] text-light-200/70 sm:text-xs">
               {comment.length}/500 characters
             </p>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
               disabled={createReviewMutation.isPending}
-              className="border-gray-500 bg-gray-600 text-white hover:bg-gray-500 hover:text-white"
+              className="w-full border-gray-500 bg-gray-600 text-xs text-white hover:bg-gray-500 hover:text-white sm:w-auto sm:text-sm"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={createReviewMutation.isPending || !comment.trim()}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="w-full bg-green-600 text-xs text-white hover:bg-green-700 sm:w-auto sm:text-sm"
             >
               {createReviewMutation.isPending ? "Submitting..." : "Submit Review"}
             </Button>

@@ -60,20 +60,20 @@ const ApiEndpointCard = ({
   };
 
   return (
-    <div className="rounded-lg border border-gray-600 bg-gray-700 p-4">
-      <div className="mb-3 flex items-center gap-3">
-        <Badge className={`${getMethodColor(method)} border`}>{method}</Badge>
-        <code className="flex-1 font-mono text-sm text-light-100">{path}</code>
+    <div className="rounded-lg border border-gray-600 bg-gray-700 p-3 sm:p-4">
+      <div className="mb-2 flex flex-col gap-2 sm:mb-3 sm:flex-row sm:items-center sm:gap-3">
+        <Badge className={`${getMethodColor(method)} border w-fit`}>{method}</Badge>
+        <code className="flex-1 break-all font-mono text-xs text-light-100 sm:text-sm">{path}</code>
         <CopyButton text={`${baseUrl}${path}`} />
       </div>
 
-      <p className="mb-3 text-sm text-light-200">{description}</p>
+      <p className="mb-2 text-xs text-light-200 sm:mb-3 sm:text-sm">{description}</p>
 
-      <div className="mb-3 flex gap-2">
+      <div className="mb-2 flex flex-wrap gap-2 sm:mb-3">
         {auth && (
           <Badge
             variant="outline"
-            className="border-yellow-200 bg-yellow-50 text-yellow-700"
+            className="border-yellow-200 bg-yellow-50 text-xs text-yellow-700 sm:text-sm"
           >
             🔐 Authentication Required
           </Badge>
@@ -81,7 +81,7 @@ const ApiEndpointCard = ({
         {adminOnly && (
           <Badge
             variant="outline"
-            className="border-red-200 bg-red-50 text-red-700"
+            className="border-red-200 bg-red-50 text-xs text-red-700 sm:text-sm"
           >
             👑 Admin Only
           </Badge>
@@ -90,10 +90,10 @@ const ApiEndpointCard = ({
 
       {/* Request Body */}
       {requestBody && (
-        <div className="mb-3">
-          <h4 className="mb-2 font-semibold text-light-100">Request Body:</h4>
-          <div className="rounded bg-gray-600 p-3">
-            <pre className="text-sm text-light-200">
+        <div className="mb-2 sm:mb-3">
+          <h4 className="mb-1.5 text-sm font-semibold text-light-100 sm:mb-2 sm:text-base">Request Body:</h4>
+          <div className="overflow-x-auto rounded bg-gray-600 p-2 sm:p-3">
+            <pre className="text-xs text-light-200 sm:text-sm">
               {JSON.stringify(requestBody, null, 2)}
             </pre>
           </div>
@@ -103,9 +103,9 @@ const ApiEndpointCard = ({
       {/* Response */}
       {response && (
         <div>
-          <h4 className="mb-2 font-semibold text-light-100">Response:</h4>
-          <div className="rounded bg-gray-600 p-3">
-            <pre className="text-sm text-light-200">
+          <h4 className="mb-1.5 text-sm font-semibold text-light-100 sm:mb-2 sm:text-base">Response:</h4>
+          <div className="overflow-x-auto rounded bg-gray-600 p-2 sm:p-3">
+            <pre className="text-xs text-light-200 sm:text-sm">
               {typeof response === "string"
                 ? response
                 : JSON.stringify(response, null, 2)}

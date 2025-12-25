@@ -198,12 +198,12 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   // Show skeleton while loading (only if no initial data)
   if (requestsLoading && (!initialRequests || initialRequests.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-7">
+      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-semibold">Borrow Requests</h2>
+          <h2 className="text-lg font-semibold sm:text-xl">Borrow Requests</h2>
         </div>
 
-        <div className="mt-7 w-full overflow-hidden">
+        <div className="mt-4 w-full overflow-hidden sm:mt-7">
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
               <BorrowSkeleton key={`borrow-skeleton-${i}`} variant="admin" />
@@ -217,12 +217,12 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   // Show error state
   if (requestsError && (!initialRequests || initialRequests.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-7">
-        <div className="py-8 text-center">
-          <p className="mb-2 text-lg font-semibold text-red-500">
+      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+        <div className="py-6 text-center sm:py-8">
+          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load borrow requests
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             {requestsErrorData instanceof Error
               ? requestsErrorData.message
               : "An unknown error occurred"}
@@ -233,10 +233,10 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   }
 
   return (
-    <section className="w-full rounded-2xl bg-white p-7">
+    <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
           <div className="flex items-center">
             <div className="shrink-0">
               <svg
@@ -266,7 +266,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
       )}
 
       {errorMessage && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
           <div className="flex items-center">
             <div className="shrink-0">
               <svg
@@ -290,11 +290,11 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         </div>
       )}
 
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-semibold text-dark-400">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
           Borrow Requests ({requests.length})
         </h2>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {/* Search Input */}
           <form
             onSubmit={(e) => {
@@ -329,11 +329,11 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         </div>
       </div>
 
-      <div className="mt-7 w-full overflow-hidden">
-        <div className="space-y-4">
+      <div className="mt-4 w-full overflow-hidden sm:mt-7">
+        <div className="space-y-3 sm:space-y-4">
           {requests.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="mb-4 text-lg font-medium text-gray-600">
+            <div className="py-6 text-center sm:py-8">
+              <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
                 {hasActiveFilters
                   ? "No borrow requests found matching your criteria."
                   : "No borrow requests found."}
@@ -352,23 +352,23 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
             requests.map((request) => (
               <div
                 key={request.id}
-                className="rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 p-3 hover:bg-gray-50 sm:p-4"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
                   {/* Book Cover */}
                   <div className="shrink-0">
                     <BookCover
                       coverColor={request.bookCoverColor || ""}
                       coverImage={request.bookCoverUrl || ""}
-                      className="h-20 w-16"
+                      className="h-16 w-12 sm:h-20 sm:w-16"
                     />
                   </div>
 
                   {/* Request Details */}
                   <div className="flex-1">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                       <div>
-                        <h3 className="text-lg font-semibold">
+                        <h3 className="text-base font-semibold sm:text-lg">
                           {request.bookTitle}
                         </h3>
                         <p className="text-gray-600">by {request.bookAuthor}</p>
@@ -389,7 +389,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
+                    <div className="mt-3 grid grid-cols-1 gap-3 text-xs sm:mt-4 sm:gap-4 sm:text-sm md:grid-cols-3">
                       <div>
                         <span className="font-medium">
                           {request.status === "PENDING"
@@ -430,9 +430,9 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                   </div>
 
                   {/* Actions */}
-                  <div className="shrink-0">
+                  <div className="w-full shrink-0 sm:w-auto">
                     {request.status === "PENDING" && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <Button
                           className="bg-green-600 hover:bg-green-700"
                           onClick={() => handleApproveBorrow(request.id)}

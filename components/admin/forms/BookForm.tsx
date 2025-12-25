@@ -109,7 +109,10 @@ const BookForm = ({ type = "create", ...book }: Props) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4 sm:space-y-8"
+      >
         <FormField
           control={form.control}
           name={"title"}
@@ -348,12 +351,12 @@ const BookForm = ({ type = "create", ...book }: Props) => {
         />
 
         {/* Enhanced Fields Section */}
-        <div className="border-t border-gray-200 pt-6">
-          <h3 className="mb-4 text-lg font-semibold text-dark-500">
+        <div className="border-t border-gray-200 pt-4 sm:pt-6">
+          <h3 className="mb-4 text-base font-semibold text-dark-500 sm:text-lg">
             Additional Information (Optional)
           </h3>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
               name={"isbn"}
@@ -510,7 +513,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
             control={form.control}
             name={"isActive"}
             render={({ field }) => (
-              <FormItem className="mt-4 flex flex-row items-center space-x-3 space-y-0">
+              <FormItem className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-3 sm:space-y-0">
                 <FormControl>
                   <input
                     type="checkbox"

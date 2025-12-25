@@ -643,17 +643,17 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* All other success/error/coming-soon messages from the original file are preserved here */}
 
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
           Smart Automation Dashboard
         </h1>
-        <p className="text-gray-600">
+        <p className="text-sm text-gray-600 sm:text-base">
           Automated reminders, recommendations, bulk operations, and data export
         </p>
       </div>
 
       {/* Automation Overview Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-blue-600">
@@ -661,7 +661,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900">
+            <div className="text-xl font-bold text-blue-900 sm:text-2xl">
               {reminderStats?.dueSoon || 0}
             </div>
             <p className="text-xs text-blue-600">Books due in 2 days</p>
@@ -675,7 +675,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-900">
+            <div className="text-xl font-bold text-red-900 sm:text-2xl">
               {reminderStats?.overdue || 0}
             </div>
             <p className="text-xs text-red-600">Books past due date</p>
@@ -689,7 +689,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900">
+            <div className="text-xl font-bold text-green-900 sm:text-2xl">
               {reminderStats?.remindersSentToday || 0}
             </div>
             <p className="text-xs text-green-600">Today&apos;s reminders</p>
@@ -703,7 +703,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-900">
+            <div className="text-xl font-bold text-purple-900 sm:text-2xl">
               {(exportStats?.totalBooks || 0) +
                 (exportStats?.totalUsers || 0) +
                 (exportStats?.totalBorrows || 0)}
@@ -716,15 +716,15 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Auto-Reminders Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-base font-semibold sm:text-lg">
             📧 Auto-Reminders
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-gray-600 sm:text-sm">
             Automated email reminders for due dates and overdue books
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
             {/* Due Soon Reminders */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -829,11 +829,11 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
           </div>
 
           {/* Reminder Settings */}
-          <div className="mt-6 rounded-lg bg-gray-50 p-4">
-            <h5 className="mb-2 font-medium text-gray-900">
+          <div className="mt-4 rounded-lg bg-gray-50 p-3 sm:mt-6 sm:p-4">
+            <h5 className="mb-2 text-sm font-medium text-gray-900 sm:text-base">
               Reminder Settings
             </h5>
-            <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 text-xs sm:gap-4 sm:text-sm md:grid-cols-3">
               <div>
                 <span className="font-medium text-gray-700">Due Soon:</span>
                 <span className="ml-2 text-gray-600">
@@ -861,15 +861,15 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Smart Recommendations Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-base font-semibold sm:text-lg">
             🎯 Smart Recommendations
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-gray-600 sm:text-sm">
             AI-powered book recommendations based on user behavior
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
             {/* Recommendation Engine */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">
@@ -1071,15 +1071,15 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Bulk Operations Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-base font-semibold sm:text-lg">
             ⚡ Bulk Operations
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-gray-600 sm:text-sm">
             Perform batch actions on multiple books, users, or borrow requests
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
             {/* Book Operations */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Book Operations</h4>
@@ -1210,7 +1210,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </div>
           </div>
 
-          <div className="mt-6 rounded-lg bg-yellow-50 p-4">
+          <div className="mt-4 rounded-lg bg-yellow-50 p-3 sm:mt-6 sm:p-4">
             <div className="flex items-center">
               <div className="shrink-0">
                 <svg
@@ -1245,15 +1245,15 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Data Export Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-base font-semibold sm:text-lg">
             📊 Data Export
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-gray-600 sm:text-sm">
             Export library data in various formats for analysis and backup
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
             {/* Export Options */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Export Options</h4>

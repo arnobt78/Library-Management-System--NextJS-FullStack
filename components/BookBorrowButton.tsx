@@ -74,7 +74,7 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
   // Use React Query to check if user has an existing borrow for this book
   // This will update immediately when borrow status changes
   // Use SSR initial data to prevent duplicate fetch and ensure correct state on first load
-  const { data: userBorrows, isLoading: isLoadingBorrows } = useUserBorrows(
+  const { data: userBorrows } = useUserBorrows(
     userId,
     undefined, // No status filter - get all
     initialUserBorrows // Use SSR initial data (prevents duplicate fetch, ensures correct button state)
@@ -149,4 +149,3 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
 };
 
 export default BookBorrowButton;
-

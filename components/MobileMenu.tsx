@@ -79,7 +79,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         className="text-light-100 hover:text-light-200 focus:outline-none md:hidden"
         aria-label="Toggle menu"
       >
-        {isOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+        {isOpen ? <X className="size-5 sm:size-6" /> : <Menu className="size-5 sm:size-6" />}
       </button>
 
       {/* Mobile Menu Overlay */}
@@ -100,9 +100,9 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       >
         <div className="flex h-full flex-col overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-600 p-4">
+          <div className="flex items-center justify-between border-b border-gray-600 p-3 sm:p-4">
             {/* Profile Image */}
-            <div className="relative size-8 overflow-hidden rounded-full border-2 border-gray-600">
+            <div className="relative size-7 overflow-hidden rounded-full border-2 border-gray-600 sm:size-8">
               {universityCard ? (
                 universityCard.startsWith("http") ? (
                   <Image
@@ -110,7 +110,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                     alt="Profile"
                     fill
                     className="object-cover"
-                    sizes="32px"
+                    sizes="(max-width: 640px) 28px, 32px"
                   />
                 ) : (
                   <IKImage
@@ -127,14 +127,14 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 )
               ) : (
                 <div className="flex size-full items-center justify-center bg-gray-700 text-light-100">
-                  <span className="text-xs font-semibold">
+                  <span className="text-[10px] font-semibold sm:text-xs">
                     {fullName.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
             </div>
-            <h2 className="text-lg font-semibold text-light-100">Menu</h2>
-            <div className="flex items-center gap-3">
+            <h2 className="text-base font-semibold text-light-100 sm:text-lg">Menu</h2>
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -143,109 +143,109 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 className="text-light-100 hover:text-light-200 focus:outline-none"
                 aria-label="Close menu"
               >
-                <X className="size-6" />
+                <X className="size-5 sm:size-6" />
               </button>
             </div>
           </div>
 
           {/* User Info Section */}
-          <div className="border-b border-gray-600 p-4">
-            <p className="text-sm font-semibold text-light-100">{fullName}</p>
-            <p className="mt-1 text-xs text-light-200/70">{email}</p>
-            <p className="mt-1 text-xs text-light-200/70">
+          <div className="border-b border-gray-600 p-3 sm:p-4">
+            <p className="text-xs font-semibold text-light-100 sm:text-sm">{fullName}</p>
+            <p className="mt-1 text-[10px] text-light-200/70 sm:text-xs">{email}</p>
+            <p className="mt-1 text-[10px] text-light-200/70 sm:text-xs">
               University ID: {universityId}
             </p>
           </div>
 
           {/* Navigation Links */}
-          <div className="flex-1 space-y-1 p-4">
+          <div className="flex-1 space-y-1 p-3 sm:p-4">
             <Link
               href="/all-books"
               onClick={closeMenu}
-              className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
             >
               All Books
             </Link>
             <Link
               href="/my-profile"
               onClick={closeMenu}
-              className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
             >
               My Profile
             </Link>
             <Link
               href="/api-docs"
               onClick={closeMenu}
-              className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
             >
               API Docs
             </Link>
             <Link
               href="/api-status"
               onClick={closeMenu}
-              className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
             >
               API Status
             </Link>
             <Link
               href="/performance"
               onClick={closeMenu}
-              className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
             >
               Performance
             </Link>
             {isAdmin && (
               <>
                 <div className="my-2 border-t border-gray-600"></div>
-                <p className="px-3 py-2 text-xs font-semibold uppercase text-light-200/70">
+                <p className="px-2.5 py-1.5 text-[10px] font-semibold uppercase text-light-200/70 sm:px-3 sm:py-2 sm:text-xs">
                   Admin
                 </p>
                 <Link
                   href="/admin"
                   onClick={closeMenu}
-                  className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Dashboard Overview
                 </Link>
                 <Link
                   href="/admin/users"
                   onClick={closeMenu}
-                  className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Users
                 </Link>
                 <Link
                   href="/admin/books"
                   onClick={closeMenu}
-                  className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Books
                 </Link>
                 <Link
                   href="/admin/book-requests"
                   onClick={closeMenu}
-                  className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Borrow Requests
                 </Link>
                 <Link
                   href="/admin/account-requests"
                   onClick={closeMenu}
-                  className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Account Requests
                 </Link>
                 <Link
                   href="/admin/business-insights"
                   onClick={closeMenu}
-                  className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Analytics Dashboard
                 </Link>
                 <Link
                   href="/admin/automation"
                   onClick={closeMenu}
-                  className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Automation Center
                 </Link>
@@ -255,7 +255,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <Link
                 href="/make-admin"
                 onClick={closeMenu}
-                className="block rounded-md p-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:hover:bg-gray-700 sm:hover:text-light-200"
+                className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
               >
                 Become Admin
               </Link>
@@ -263,11 +263,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           </div>
 
           {/* Logout Section */}
-          <div className="border-t border-gray-600 p-4">
+          <div className="border-t border-gray-600 p-3 sm:p-4">
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="w-full rounded-md bg-red-600 p-3 text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              className="w-full rounded-md bg-red-600 p-2.5 text-sm text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:p-3 sm:text-base"
             >
               {isLoggingOut ? "Logging out..." : "Logout"}
             </button>

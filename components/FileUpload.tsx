@@ -200,19 +200,19 @@ const FileUpload = ({
           alt="upload-icon"
           width={20}
           height={20}
-          className="object-contain"
+          className="size-4 object-contain sm:size-5"
         />
 
-        <p className={cn("text-base", styles.placeholder)}>{placeholder}</p>
+        <p className={cn("text-sm sm:text-base", styles.placeholder)}>{placeholder}</p>
 
         {file && (
-          <p className={cn("upload-filename", styles.text)}>{file.filePath}</p>
+          <p className={cn("upload-filename text-[10px] sm:text-xs", styles.text)}>{file.filePath}</p>
         )}
       </button>
 
       {progress > 0 && progress !== 100 && (
         <div className="w-full rounded-full bg-green-200">
-          <div className="progress" style={{ width: `${progress}%` }}>
+          <div className="progress text-[7px] sm:text-[8px]" style={{ width: `${progress}%` }}>
             {progress}%
           </div>
         </div>
@@ -227,7 +227,7 @@ const FileUpload = ({
               alt="Uploaded image"
               width={500}
               height={300}
-              className="rounded-xl"
+              className="h-auto w-full max-w-full rounded-xl"
             />
           ) : (
             <IKImage
@@ -235,6 +235,7 @@ const FileUpload = ({
               path={file.filePath ?? ""}
               width={500}
               height={300}
+              className="h-auto w-full max-w-full"
             />
           )
         ) : type === "video" ? (
@@ -243,13 +244,13 @@ const FileUpload = ({
             <video
               src={file.filePath}
               controls={true}
-              className="h-96 w-full rounded-xl"
+              className="h-64 w-full rounded-xl sm:h-96"
             />
           ) : (
             <IKVideo
               path={file.filePath ?? ""}
               controls={true}
-              className="h-96 w-full rounded-xl"
+              className="h-64 w-full rounded-xl sm:h-96"
             />
           )
         ) : null)}

@@ -78,17 +78,17 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   if (isLoading && !initialStats) {
     return (
       <div className="book-info">
-        <div className="pt-4 text-lg font-semibold text-light-100">
+        <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
           Borrow Statistics
         </div>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-24">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-6 w-48" />
+        <div className="space-y-2 sm:space-y-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
+            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
           </div>
-          <div className="grid grid-cols-2 gap-24">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-6 w-48" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
+            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
           </div>
         </div>
       </div>
@@ -99,11 +99,11 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   if (isError && !initialStats) {
     return (
       <div className="book-info">
-        <div className="pt-4 text-lg font-semibold text-light-100">
+        <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
           Borrow Statistics
         </div>
-        <div className="space-y-3">
-          <p className="text-sm text-red-400">
+        <div className="space-y-2 sm:space-y-3">
+          <p className="text-xs text-red-400 sm:text-sm">
             Failed to load borrow statistics
           </p>
         </div>
@@ -117,19 +117,19 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
 
   return (
     <div className="book-info">
-      <div className="pt-4 text-lg font-semibold text-light-100">
+      <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
         Borrow Statistics
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {/* Borrow counts */}
-        <div className="grid grid-cols-2 gap-24">
-          <p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+          <p className="text-sm sm:text-base">
             Total Times Borrowed{" "}
             <span className="font-semibold text-light-200">
               {statsData.totalBorrows || 0}
             </span>
           </p>
-          <p>
+          <p className="text-sm sm:text-base">
             Currently Borrowed{" "}
             <span className="font-semibold text-light-200">
               {statsData.activeBorrows || 0}
@@ -138,8 +138,8 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         </div>
 
         {/* Availability status */}
-        <div className="grid grid-cols-2 gap-24">
-          <p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+          <p className="text-sm sm:text-base">
             Availability Status{" "}
             <span
               className={`font-semibold ${
@@ -149,7 +149,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
               {availableCopies > 0 ? "Available" : "Unavailable"}
             </span>
           </p>
-          <p>
+          <p className="text-sm sm:text-base">
             Successfully Returned{" "}
             <span className="font-semibold text-light-200">
               {statsData.returnedBorrows || 0}

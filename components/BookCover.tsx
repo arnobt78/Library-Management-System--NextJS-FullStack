@@ -72,7 +72,7 @@ const BookCover = React.memo(
             />
           ) : (
             <div className="flex size-full items-center justify-center rounded-sm bg-gray-200">
-              <span className="text-sm text-gray-500">No Cover</span>
+              <span className="text-xs text-gray-500 sm:text-sm">No Cover</span>
             </div>
           )}
         </div>

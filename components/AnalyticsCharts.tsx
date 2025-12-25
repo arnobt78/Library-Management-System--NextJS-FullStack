@@ -64,15 +64,15 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
   // Show skeleton while loading (only if no initial data)
   if (analyticsLoading && !initialData) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Page Header Skeleton */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Skeleton className="mb-2 h-9 w-64" />
           <Skeleton className="h-5 w-96" />
         </div>
 
         {/* Key Metrics Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <GenericCardSkeleton
               key={`metric-skeleton-${i}`}
@@ -87,11 +87,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* Charts Grid Skeleton */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
           {[...Array(4)].map((_, i) => (
             <div
               key={`chart-skeleton-${i}`}
-              className="rounded-lg border bg-white p-6 shadow-sm"
+              className="rounded-lg border bg-white p-4 shadow-sm sm:p-6"
             >
               <Skeleton className="mb-4 h-7 w-40" />
               <ChartSkeleton
@@ -103,7 +103,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* Overdue Books Table Skeleton */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
           <Skeleton className="mb-4 h-7 w-40" />
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -123,12 +123,12 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
   // Show error state
   if (analyticsError && !initialData) {
     return (
-      <div className="space-y-6">
-        <div className="py-8 text-center">
-          <p className="mb-2 text-lg font-semibold text-red-500">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="py-6 text-center sm:py-8">
+          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load analytics data
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             {analyticsErrorData instanceof Error
               ? analyticsErrorData.message
               : "An unknown error occurred"}
@@ -141,9 +141,9 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
   // Show empty state if no data
   if (!data) {
     return (
-      <div className="space-y-6">
-        <div className="py-8 text-center">
-          <p className="text-lg font-semibold text-gray-500">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="py-6 text-center sm:py-8">
+          <p className="text-base font-semibold text-gray-500 sm:text-lg">
             No analytics data available
           </p>
         </div>
@@ -189,77 +189,77 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
           📊 Analytics Dashboard
         </h1>
-        <p className="text-gray-600">
+        <p className="text-sm text-gray-600 sm:text-base">
           Comprehensive insights into library operations and user behavior
         </p>
       </div>
 
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-2xl">📚</div>
+              <div className="text-xl sm:text-2xl">📚</div>
             </div>
-            <div className="ml-4">
-              <div className="text-sm font-medium text-blue-600">
+            <div className="ml-3 sm:ml-4">
+              <div className="text-xs font-medium text-blue-600 sm:text-sm">
                 Total Books
               </div>
-              <div className="text-2xl font-bold text-blue-900">
+              <div className="text-xl font-bold text-blue-900 sm:text-2xl">
                 {data.systemHealth?.totalBooks || 0}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border border-green-200 bg-green-50 p-6">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-2xl">👥</div>
+              <div className="text-xl sm:text-2xl">👥</div>
             </div>
-            <div className="ml-4">
-              <div className="text-sm font-medium text-green-600">
+            <div className="ml-3 sm:ml-4">
+              <div className="text-xs font-medium text-green-600 sm:text-sm">
                 Total Users
               </div>
-              <div className="text-2xl font-bold text-green-900">
+              <div className="text-xl font-bold text-green-900 sm:text-2xl">
                 {data.systemHealth?.totalUsers || 0}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border border-purple-200 bg-purple-50 p-6">
+        <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-2xl">📖</div>
+              <div className="text-xl sm:text-2xl">📖</div>
             </div>
-            <div className="ml-4">
-              <div className="text-sm font-medium text-purple-600">
+            <div className="ml-3 sm:ml-4">
+              <div className="text-xs font-medium text-purple-600 sm:text-sm">
                 Active Borrows
               </div>
-              <div className="text-2xl font-bold text-purple-900">
+              <div className="text-xl font-bold text-purple-900 sm:text-2xl">
                 {data.systemHealth?.activeBorrows || 0}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-6">
+        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-2xl">⚠️</div>
+              <div className="text-xl sm:text-2xl">⚠️</div>
             </div>
-            <div className="ml-4">
-              <div className="text-sm font-medium text-orange-600">
+            <div className="ml-3 sm:ml-4">
+              <div className="text-xs font-medium text-orange-600 sm:text-sm">
                 Overdue Books
               </div>
-              <div className="text-2xl font-bold text-orange-900">
+              <div className="text-xl font-bold text-orange-900 sm:text-2xl">
                 {data.systemHealth?.overdueBooks || 0}
               </div>
             </div>
@@ -268,11 +268,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Borrowing Trends */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold">Borrowing Trends</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Borrowing Trends</h3>
+          <ResponsiveContainer width="100%" height={200}>
             <LineChart data={trendsData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -298,9 +298,9 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* Popular Books */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold">Popular Books</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Popular Books</h3>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={popularBooksData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
@@ -319,16 +319,16 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* Genre Distribution */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold">Genre Distribution</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Genre Distribution</h3>
+          <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
                 data={genresData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={80}
+                outerRadius={50}
                 fill="#8884d8"
                 dataKey="value"
               >
@@ -346,9 +346,9 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* User Activity */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold">Top Users by Activity</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Top Users by Activity</h3>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={userActivityData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
@@ -368,16 +368,16 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       </div>
 
       {/* Overdue Books Table */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-semibold">Overdue Books</h3>
+      <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <h3 className="mb-4 text-base font-semibold sm:text-lg">Overdue Books</h3>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="px-4 py-2 text-left">Book</th>
-                <th className="px-4 py-2 text-left">User</th>
-                <th className="px-4 py-2 text-left">Days Overdue</th>
-                <th className="px-4 py-2 text-left">Fine Amount</th>
+                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">Book</th>
+                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">User</th>
+                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">Days Overdue</th>
+                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">Fine Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -385,14 +385,14 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-8 text-center text-gray-500"
+                    className="px-2 py-6 text-center text-gray-500 sm:px-4 sm:py-8"
                   >
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="text-4xl">✅</div>
-                      <div className="text-lg font-medium">
+                      <div className="text-3xl sm:text-4xl">✅</div>
+                      <div className="text-base font-medium sm:text-lg">
                         No Overdue Books
                       </div>
-                      <div className="text-sm">
+                      <div className="text-xs sm:text-sm">
                         All books are returned on time!
                       </div>
                     </div>
@@ -401,34 +401,34 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               ) : (
                 data.overdueBooks.map((book) => (
                   <tr key={book.recordId} className="border-b">
-                    <td className="px-4 py-2">
+                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
                       <div>
-                        <div className="font-medium">{book.bookTitle}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-xs font-medium sm:text-sm">{book.bookTitle}</div>
+                        <div className="text-xs text-gray-600 sm:text-sm">
                           {book.bookAuthor}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
                       <div>
-                        <div className="font-medium">{book.userName}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-xs font-medium sm:text-sm">{book.userName}</div>
+                        <div className="text-xs text-gray-600 sm:text-sm">
                           {book.userEmail}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2">
-                      <span className="rounded-full bg-red-100 px-2 py-1 text-sm text-red-800">
+                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
+                      <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs text-red-800 sm:px-2 sm:py-1 sm:text-sm">
                         {book.daysOverdue} days
                       </span>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
                       {book.fineAmount ? (
-                        <span className="font-medium text-red-600">
+                        <span className="text-xs font-medium text-red-600 sm:text-sm">
                           ${book.fineAmount}
                         </span>
                       ) : (
-                        <span className="text-gray-500">No fine</span>
+                        <span className="text-xs text-gray-500 sm:text-sm">No fine</span>
                       )}
                     </td>
                   </tr>
@@ -440,51 +440,51 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       </div>
 
       {/* Performance Metrics */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold">Monthly Statistics</h3>
-          <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Monthly Statistics</h3>
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600">Current Month:</span>
-              <span className="font-medium">
+              <span className="text-xs text-gray-600 sm:text-sm">Current Month:</span>
+              <span className="text-xs font-medium sm:text-sm">
                 {data.monthlyStats?.currentMonth?.borrows || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Last Month:</span>
-              <span className="font-medium">
+              <span className="text-xs text-gray-600 sm:text-sm">Last Month:</span>
+              <span className="text-xs font-medium sm:text-sm">
                 {data.monthlyStats?.lastMonth?.borrows || 0}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold">Overdue Analysis</h3>
-          <div className="space-y-3">
+        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">Overdue Analysis</h3>
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600">Total Overdue:</span>
-              <span className="font-medium">
+              <span className="text-xs text-gray-600 sm:text-sm">Total Overdue:</span>
+              <span className="text-xs font-medium sm:text-sm">
                 {data.overdueStats?.totalOverdue || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Avg Days Overdue:</span>
-              <span className="font-medium">
+              <span className="text-xs text-gray-600 sm:text-sm">Avg Days Overdue:</span>
+              <span className="text-xs font-medium sm:text-sm">
                 {typeof data.overdueStats?.avgDaysOverdue === "number"
                   ? data.overdueStats.avgDaysOverdue.toFixed(1)
                   : 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Total Fines:</span>
-              <span className="font-medium text-red-600">
+              <span className="text-xs text-gray-600 sm:text-sm">Total Fines:</span>
+              <span className="text-xs font-medium text-red-600 sm:text-sm">
                 ${data.overdueStats?.totalFines || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Overdue Rate:</span>
-              <span className="font-medium">
+              <span className="text-xs text-gray-600 sm:text-sm">Overdue Rate:</span>
+              <span className="text-xs font-medium sm:text-sm">
                 {data.systemHealth?.activeBorrows > 0
                   ? (
                       ((data.systemHealth?.overdueBooks || 0) /

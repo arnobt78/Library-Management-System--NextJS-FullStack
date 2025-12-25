@@ -116,7 +116,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = React.memo(({
   };
 
   return (
-    <Badge variant={getBadgeVariant()} className="font-mono text-xs">
+    <Badge variant={getBadgeVariant()} className="font-mono text-[10px] sm:text-xs">
       {getBadgeText()}
     </Badge>
   );

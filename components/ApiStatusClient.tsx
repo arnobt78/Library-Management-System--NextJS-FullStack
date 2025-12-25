@@ -317,9 +317,9 @@ const ApiStatusClient = ({
   // Show skeleton while loading
   if (isLoading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-8">
         {/* Header Skeleton */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Skeleton className="mb-2 h-10 w-48" />
             <Skeleton className="h-6 w-80" />
@@ -328,13 +328,13 @@ const ApiStatusClient = ({
         </div>
 
         {/* Overall System Status Skeleton */}
-        <Card className="mb-8 border-gray-700 bg-gray-800">
+        <Card className="mb-4 border-gray-700 bg-gray-800 sm:mb-8">
           <CardHeader>
             <Skeleton className="mb-2 h-6 w-48" />
             <Skeleton className="h-4 w-40" />
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
               {[...Array(4)].map((_, i) => (
                 <div key={`status-skeleton-${i}`} className="text-center">
                   <Skeleton className="mx-auto mb-2 size-8" />
@@ -347,7 +347,7 @@ const ApiStatusClient = ({
         </Card>
 
         {/* Services Skeleton */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <Card
               key={`service-skeleton-${i}`}
@@ -366,7 +366,7 @@ const ApiStatusClient = ({
         </div>
 
         {/* System Metrics Skeleton */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <Card
               key={`metric-skeleton-${i}`}
@@ -389,12 +389,12 @@ const ApiStatusClient = ({
   // Show error state
   if (isError) {
     return (
-      <div className="space-y-8">
-        <div className="py-8 text-center">
-          <p className="mb-2 text-lg font-semibold text-red-500">
+      <div className="space-y-4 sm:space-y-8">
+        <div className="py-6 text-center sm:py-8">
+          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load API status
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-500 sm:text-sm">
             {servicesErrorData instanceof Error
               ? servicesErrorData.message
               : metricsErrorData instanceof Error
@@ -413,17 +413,17 @@ const ApiStatusClient = ({
   return (
     <>
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 text-4xl font-bold text-light-100">API Status</h1>
-          <p className="text-lg text-light-100">
+          <h1 className="mb-2 text-2xl font-bold text-light-100 sm:text-4xl">API Status</h1>
+          <p className="text-sm text-light-100 sm:text-lg">
             Real-time monitoring of BookWise API services
           </p>
         </div>
         <Button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="flex items-center gap-2"
+          className="flex w-full items-center justify-center gap-2 sm:w-auto"
         >
           <RefreshCw
             className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}
@@ -433,24 +433,24 @@ const ApiStatusClient = ({
       </div>
 
       {/* Overall System Status */}
-      <Card className="mb-8 border-gray-700 bg-gray-800">
+      <Card className="mb-4 border-gray-700 bg-gray-800 sm:mb-8">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-light-100">
-            <Server className="size-5" />
+          <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
+            <Server className="size-4 sm:size-5" />
             Overall System Status
           </CardTitle>
-          <p className="text-sm text-light-200">
+          <p className="text-xs text-light-200 sm:text-sm">
             Last checked:{" "}
             {lastChecked ? lastChecked.toLocaleString() : "Loading..."}
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
             <div className="text-center">
               <div className="mb-2 flex justify-center">
                 {getStatusIcon(overallStatus)}
               </div>
-              <p className="text-sm text-light-200">System Status</p>
+              <p className="text-xs text-light-200 sm:text-sm">System Status</p>
               <Badge className={`mt-1 ${getStatusColor(overallStatus)}`}>
                 {overallStatus}
               </Badge>
@@ -459,8 +459,8 @@ const ApiStatusClient = ({
               <div className="mb-2 flex justify-center">
                 <Zap className="size-4 text-blue-600" />
               </div>
-              <p className="text-sm text-light-200">Response Time</p>
-              <p className="text-2xl font-bold text-light-100">
+              <p className="text-xs text-light-200 sm:text-sm">Response Time</p>
+              <p className="text-xl font-bold text-light-100 sm:text-2xl">
                 {responseTime}ms
               </p>
             </div>
@@ -468,8 +468,8 @@ const ApiStatusClient = ({
               <div className="mb-2 flex justify-center">
                 <Clock className="size-4 text-green-600" />
               </div>
-              <p className="text-sm text-light-200">Uptime</p>
-              <p className="text-2xl font-bold text-light-100">
+              <p className="text-xs text-light-200 sm:text-sm">Uptime</p>
+              <p className="text-xl font-bold text-light-100 sm:text-2xl">
                 {uptime.hours}h {uptime.minutes}m {uptime.seconds}s
               </p>
             </div>
@@ -477,19 +477,19 @@ const ApiStatusClient = ({
               <div className="mb-2 flex justify-center">
                 <TrendingUp className="size-4 text-purple-600" />
               </div>
-              <p className="text-sm text-light-200">Health Score</p>
-              <p className="text-2xl font-bold text-light-100">
+              <p className="text-xs text-light-200 sm:text-sm">Health Score</p>
+              <p className="text-xl font-bold text-light-100 sm:text-2xl">
                 {healthScore.toFixed(1)}%
               </p>
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium text-light-100">
+              <span className="text-xs font-medium text-light-100 sm:text-sm">
                 Overall Health
               </span>
-              <span className="text-sm text-light-200">
+              <span className="text-xs text-light-200 sm:text-sm">
                 {healthScore.toFixed(1)}%
               </span>
             </div>
@@ -499,66 +499,66 @@ const ApiStatusClient = ({
       </Card>
 
       {/* Service Status */}
-      <Card className="mb-8 border-gray-700 bg-gray-800">
+      <Card className="mb-4 border-gray-700 bg-gray-800 sm:mb-8">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-light-100">
-            <Activity className="size-5 text-green-500" />
+          <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
+            <Activity className="size-4 text-green-500 sm:size-5" />
             Service Status
           </CardTitle>
         </CardHeader>
         <CardContent>
           {services.length === 0 ? (
-            <div className="py-8 text-center text-light-200">
+            <div className="py-6 text-center text-sm text-light-200 sm:py-8 sm:text-base">
               No service data available. Please refresh.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {services.map((service, index) => (
                 <Card
                   key={index}
                   className="relative border-gray-600 bg-gray-700"
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
                         {getServiceIcon(service.name)}
-                        <CardTitle className="text-lg text-light-100">
+                        <CardTitle className="text-base text-light-100 sm:text-lg">
                           {service.name}
                         </CardTitle>
                       </div>
-                      <Badge className={getStatusColor(service.status)}>
+                      <Badge className={`w-fit ${getStatusColor(service.status)}`}>
                         {service.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-light-200">
+                    <p className="mt-2 text-xs text-light-200 sm:text-sm">
                       {service.description}
                     </p>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-sm text-light-200">
+                        <span className="text-xs text-light-200 sm:text-sm">
                           Response Time:
                         </span>
-                        <span className="font-semibold text-light-100">
+                        <span className="text-xs font-semibold text-light-100 sm:text-sm">
                           {service.responseTime}ms
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-light-200">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                        <span className="text-xs text-light-200 sm:text-sm">
                           Endpoint:
                         </span>
-                        <span className="font-mono text-sm text-light-100">
+                        <span className="break-all font-mono text-xs text-light-100 sm:text-sm">
                           {service.endpoint}
                         </span>
                       </div>
                       <div>
                         <div className="mb-1 flex justify-between">
-                          <span className="text-sm text-light-200">
+                          <span className="text-xs text-light-200 sm:text-sm">
                             Performance:
                           </span>
                           <span
-                            className={`text-sm font-medium ${getPerformanceColor(service.performance)}`}
+                            className={`text-xs font-medium sm:text-sm ${getPerformanceColor(service.performance)}`}
                           >
                             {service.performance}
                           </span>
@@ -580,33 +580,33 @@ const ApiStatusClient = ({
       {/* System Metrics */}
       <Card className="border-gray-700 bg-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-light-100">
-            <TrendingUp className="size-5 text-purple-500" />
+          <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
+            <TrendingUp className="size-4 text-purple-500 sm:size-5" />
             System Metrics
           </CardTitle>
         </CardHeader>
         <CardContent>
           {systemMetrics.length === 0 ? (
-            <div className="py-8 text-center text-light-200">
+            <div className="py-6 text-center text-sm text-light-200 sm:py-8 sm:text-base">
               No system metrics available. Please refresh.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {systemMetrics.map((metric, index) => {
                 // Get colorful icon based on metric title
                 const getMetricIcon = () => {
                   if (metric.title.includes("Database")) {
-                    return <Database className="size-5 text-green-500" />;
+                    return <Database className="size-4 text-green-500 sm:size-5" />;
                   } else if (metric.title.includes("API Performance")) {
-                    return <TrendingUp className="size-5 text-blue-500" />;
+                    return <TrendingUp className="size-4 text-blue-500 sm:size-5" />;
                   } else if (metric.title.includes("Error Rate")) {
-                    return <AlertCircle className="size-5 text-red-500" />;
+                    return <AlertCircle className="size-4 text-red-500 sm:size-5" />;
                   } else if (metric.title.includes("Storage")) {
-                    return <HardDrive className="size-5 text-orange-500" />;
+                    return <HardDrive className="size-4 text-orange-500 sm:size-5" />;
                   } else if (metric.title.includes("Active Users")) {
-                    return <Users className="size-5 text-cyan-500" />;
+                    return <Users className="size-4 text-cyan-500 sm:size-5" />;
                   } else if (metric.title.includes("SSL")) {
-                    return <Shield className="size-5 text-yellow-500" />;
+                    return <Shield className="size-4 text-yellow-500 sm:size-5" />;
                   }
                   return metric.icon;
                 };
@@ -616,15 +616,15 @@ const ApiStatusClient = ({
                     key={index}
                     className="relative border-gray-600 bg-gray-700"
                   >
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-3">
+                    <CardContent className="pt-4 sm:pt-6">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <div>{getMetricIcon()}</div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-light-100">
+                          <p className="text-xs font-medium text-light-100 sm:text-sm">
                             {metric.title}
                           </p>
                           <p
-                            className={`text-lg font-bold ${getMetricStatusColor(metric.status)}`}
+                            className={`text-base font-bold sm:text-lg ${getMetricStatusColor(metric.status)}`}
                           >
                             {metric.value}
                           </p>
@@ -644,7 +644,7 @@ const ApiStatusClient = ({
 
       {/* Footer */}
       <div className="my-4 text-center">
-        <p className="text-sm text-light-100">
+        <p className="text-xs text-light-100 sm:text-sm">
           BookWise University Library Management System - API Status Monitor
         </p>
         <p className="text-xs text-light-100">

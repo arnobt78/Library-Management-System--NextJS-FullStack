@@ -500,7 +500,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     (!initialBorrowHistory || initialBorrowHistory.length === 0)
   ) {
     return (
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
         <Tabs
           value={activeTabValue}
           onValueChange={setActiveTabValue}
@@ -512,22 +512,22 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             <TabsTrigger value="pending">Pending Requests</TabsTrigger>
             <TabsTrigger value="history">Borrow History</TabsTrigger>
           </TabsList>
-          <TabsContent value="active" className="mt-6">
-            <div className="space-y-4">
+          <TabsContent value="active" className="mt-4 sm:mt-6">
+            <div className="space-y-3 sm:space-y-4">
               {[...Array(3)].map((_, i) => (
                 <BorrowSkeleton key={`active-${i}`} variant="profile" />
               ))}
             </div>
           </TabsContent>
-          <TabsContent value="pending" className="mt-6">
-            <div className="space-y-4">
+          <TabsContent value="pending" className="mt-4 sm:mt-6">
+            <div className="space-y-3 sm:space-y-4">
               {[...Array(2)].map((_, i) => (
                 <BorrowSkeleton key={`pending-${i}`} variant="profile" />
               ))}
             </div>
           </TabsContent>
-          <TabsContent value="history" className="mt-6">
-            <div className="space-y-4">
+          <TabsContent value="history" className="mt-4 sm:mt-6">
+            <div className="space-y-3 sm:space-y-4">
               {[...Array(5)].map((_, i) => (
                 <BorrowSkeleton key={`history-${i}`} variant="profile" />
               ))}
@@ -541,13 +541,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // Show error state
   if (isError && (!initialBorrowHistory || initialBorrowHistory.length === 0)) {
     return (
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
         <Card>
-          <CardContent className="p-8 text-center">
-            <p className="mb-2 text-lg font-semibold text-red-500">
+          <CardContent className="p-4 text-center sm:p-8">
+            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
               Failed to load borrow records
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-gray-500 sm:text-sm">
               {error instanceof Error
                 ? error.message
                 : "An unknown error occurred"}
@@ -741,12 +741,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       : "border-gray-600 bg-gray-800/30"
           }`}
         >
-          <CardContent className="p-3">
-            <div className="flex gap-3">
+          <CardContent className="p-2.5 sm:p-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               {/* Full Height Book Cover */}
               {/* CRITICAL: Don't use key prop - React.memo in BookCover handles re-render prevention
                 Using key would cause component remount on every data change, causing flicker */}
-              <div className="relative w-48 shrink-0">
+              <div className="relative w-full shrink-0 sm:w-48">
                 <BookCover
                   variant="regular"
                   coverColor={record.book.coverColor}
@@ -758,41 +758,41 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               {/* Main Content */}
               <div className="min-w-0 flex-1">
                 {/* Header with Status Badge */}
-                <div className="mb-2 flex items-start justify-between">
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-xl font-semibold text-light-100">
+                    <h3 className="text-base font-semibold text-light-100 sm:text-xl">
                       {record.book.title}
                     </h3>
-                    <p className="text-base text-light-200/70">
+                    <p className="text-sm text-light-200/70 sm:text-base">
                       by {record.book.author}
                     </p>
                   </div>
                   {/* Status Badge in Top Right */}
-                  <div className="ml-2 shrink-0">
+                  <div className="w-fit shrink-0 sm:ml-2">
                     {getStatusBadge(record.status)}
                   </div>
                 </div>
 
                 {/* Genre and Rating */}
-                <div className="mb-2 flex items-center gap-2">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="px-2 py-0.5 text-sm text-light-100"
+                    className="px-1.5 py-0.5 text-xs text-light-100 sm:px-2 sm:text-sm"
                   >
                     {record.book.genre}
                   </Badge>
                   <div className="flex items-center gap-1">
-                    <Star className="size-4 fill-current text-yellow-400" />
-                    <span className="text-sm text-yellow-400">
+                    <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
+                    <span className="text-xs text-yellow-400 sm:text-sm">
                       {record.book.rating}
                     </span>
                   </div>
                 </div>
 
                 {/* Compact Information */}
-                <div className="mb-2 flex items-center gap-4 text-sm">
+                <div className="mb-2 flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:gap-4 sm:text-sm">
                   <div className="flex items-center gap-1">
-                    <Calendar className="size-4 text-blue-400" />
+                    <Calendar className="size-3 text-blue-400 sm:size-4" />
                     <span className="font-medium text-light-100">
                       Borrowed:
                     </span>
@@ -801,7 +801,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="size-4 text-purple-400" />
+                    <Clock className="size-3 text-purple-400 sm:size-4" />
                     <span className="font-medium text-light-100">Due:</span>
                     <span className="text-light-200/70">
                       {record.dueDate ? formatDate(record.dueDate) : "Not set"}
@@ -809,7 +809,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   </div>
                   {record.book.isbn && (
                     <div className="flex items-center gap-1">
-                      <BookOpen className="size-4 text-green-400" />
+                      <BookOpen className="size-3 text-green-400 sm:size-4" />
                       <span className="font-medium text-light-100">ISBN:</span>
                       <span className="font-mono text-light-200/70">
                         {record.book.isbn.slice(-4)}
@@ -835,9 +835,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 {/* Enhanced Status Messages */}
                 <div className="mb-2">
                   {record.status === "PENDING" && (
-                    <div className="flex items-center gap-2 rounded bg-yellow-500/10 px-2 py-1">
-                      <Clock className="size-4 text-yellow-400" />
-                      <span className="text-sm text-yellow-400">
+                    <div className="flex items-center gap-1.5 rounded bg-yellow-500/10 px-2 py-1 sm:gap-2">
+                      <Clock className="size-3 text-yellow-400 sm:size-4" />
+                      <span className="text-xs text-yellow-400 sm:text-sm">
                         Awaiting admin approval
                       </span>
                     </div>
@@ -845,7 +845,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
                   {record.status === "BORROWED" && record.dueDate && (
                     <div
-                      className={`flex items-center gap-2 rounded px-2 py-1 ${
+                      className={`flex items-center gap-1.5 rounded px-2 py-1 sm:gap-2 ${
                         isOverdue
                           ? "bg-red-500/10"
                           : daysRemaining <= 2
@@ -854,14 +854,14 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       }`}
                     >
                       {isOverdue ? (
-                        <AlertTriangle className="size-4 text-red-400" />
+                        <AlertTriangle className="size-3 text-red-400 sm:size-4" />
                       ) : daysRemaining <= 2 ? (
-                        <AlertTriangle className="size-4 text-orange-600" />
+                        <AlertTriangle className="size-3 text-orange-600 sm:size-4" />
                       ) : (
-                        <BookOpen className="size-4 text-blue-400" />
+                        <BookOpen className="size-3 text-blue-400 sm:size-4" />
                       )}
                       <span
-                        className={`text-sm ${
+                        className={`text-xs sm:text-sm ${
                           isOverdue
                             ? "text-red-400"
                             : daysRemaining <= 2
@@ -879,9 +879,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   )}
 
                   {record.status === "RETURNED" && (
-                    <div className="flex items-center gap-2 rounded bg-green-500/10 px-2 py-1">
-                      <Calendar className="size-4 text-green-600" />
-                      <span className="text-sm text-green-600">
+                    <div className="flex items-center gap-1.5 rounded bg-green-500/10 px-2 py-1 sm:gap-2">
+                      <Calendar className="size-3 text-green-600 sm:size-4" />
+                      <span className="text-xs text-green-600 sm:text-sm">
                         Successfully returned
                       </span>
                     </div>
@@ -891,28 +891,28 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 {/* Fine and Renewal Info */}
                 <div className="mb-2 flex flex-wrap gap-2">
                   {(record.fineAmount > 0 || calculatedFine > 0) && (
-                    <div className="flex items-center gap-1 rounded bg-red-500/10 px-2 py-1">
-                      <AlertTriangle className="size-4 text-red-400" />
-                      <span className="text-sm font-medium text-red-400">
+                    <div className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
+                      <AlertTriangle className="size-3 text-red-400 sm:size-4" />
+                      <span className="text-xs font-medium text-red-400 sm:text-sm">
                         $
                         {(record.fineAmount > 0
                           ? record.fineAmount
                           : calculatedFine
                         ).toFixed(2)}
                       </span>
-                      <span className="text-sm text-red-300/70">
+                      <span className="text-xs text-red-300/70 sm:text-sm">
                         {isOverdue ? "overdue fine" : "fine"}
                       </span>
                     </div>
                   )}
 
                   {record.renewalCount > 0 && (
-                    <div className="flex items-center gap-1 rounded bg-purple-500/10 px-2 py-1">
-                      <RotateCcw className="size-4 text-purple-400" />
-                      <span className="text-sm font-medium text-purple-400">
+                    <div className="flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
+                      <RotateCcw className="size-3 text-purple-400 sm:size-4" />
+                      <span className="text-xs font-medium text-purple-400 sm:text-sm">
                         {record.renewalCount}
                       </span>
-                      <span className="text-sm text-purple-300/70">
+                      <span className="text-xs text-purple-300/70 sm:text-sm">
                         renewals
                       </span>
                     </div>
@@ -929,13 +929,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                           returningRecordIdRef.current === record.id) ||
                         returningRecordIdRef.current === record.id
                       }
-                      className={`flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm ${
                         isOverdue
                           ? "bg-red-600 text-white hover:bg-red-700"
                           : "bg-orange-600 text-white hover:bg-orange-700"
                       }`}
                     >
-                      <RotateCcw className="size-4" />
+                      <RotateCcw className="size-3 sm:size-4" />
                       <span>
                         {returningRecordIdRef.current === record.id
                           ? "Returning..."
@@ -947,9 +947,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   {record.status !== "RETURNED" && (
                     <button
                       onClick={handleViewDetails}
-                      className="flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                      className="flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 sm:px-3 sm:text-sm"
                     >
-                      <Eye className="size-4" />
+                      <Eye className="size-3 sm:size-4" />
                       <span>View Details</span>
                     </button>
                   )}
@@ -957,9 +957,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   {record.status === "RETURNED" && (
                     <button
                       onClick={handleViewDetails}
-                      className="flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                      className="flex items-center gap-1 rounded bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 sm:px-3 sm:text-sm"
                     >
-                      <Star className="size-4" />
+                      <Star className="size-3 sm:size-4" />
                       <span>Review Book</span>
                     </button>
                   )}
@@ -1015,8 +1015,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   BorrowCard.displayName = "BorrowCard";
 
   return (
-    <div className="container mx-auto">
-      <h1 className="mb-6 text-3xl font-bold text-light-100">
+    <div className="container mx-auto px-3 sm:px-4">
+      <h1 className="mb-4 text-2xl font-bold text-light-100 sm:mb-6 sm:text-3xl">
         My Borrowing History
       </h1>
 
@@ -1029,33 +1029,35 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         <TabsList className="grid h-auto w-full grid-cols-3 border-2 border-gray-600 bg-gray-800/30 p-0">
           <TabsTrigger
             value="active"
-            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+            className="rounded-none border-b-2 border-gray-600 p-2 text-xs text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:px-4 sm:py-3 sm:text-sm"
           >
             Active Borrows ({activeBorrows.length})
           </TabsTrigger>
           <TabsTrigger
             value="pending"
-            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-yellow-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+            className="rounded-none border-b-2 border-gray-600 p-2 text-xs text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-yellow-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:px-4 sm:py-3 sm:text-sm"
           >
             Pending Requests ({pendingRequests.length})
           </TabsTrigger>
           <TabsTrigger
             value="history"
-            className="rounded-none border-b-2 border-gray-600 px-4 py-3 text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+            className="rounded-none border-b-2 border-gray-600 p-2 text-xs text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:px-4 sm:py-3 sm:text-sm"
           >
             Borrow History ({borrowHistory.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="mt-2">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-light-100">
+          <div className="space-y-3 sm:space-y-4">
+            <h2 className="text-base font-semibold text-light-100 sm:text-xl">
               Currently Borrowed Books
             </h2>
             {activeBorrows.length === 0 ? (
               <Card className="border-2 border-gray-600 bg-gray-800/30">
-                <CardContent className="p-6 text-center">
-                  <p className="text-light-200/70">No active borrows</p>
+                <CardContent className="p-4 text-center sm:p-6">
+                  <p className="text-sm text-light-200/70 sm:text-base">
+                    No active borrows
+                  </p>
                 </CardContent>
               </Card>
             ) : (
@@ -1071,14 +1073,16 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="pending" className="mt-2">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-light-100">
+          <div className="space-y-3 sm:space-y-4">
+            <h2 className="text-base font-semibold text-light-100 sm:text-xl">
               Pending Approval
             </h2>
             {pendingRequests.length === 0 ? (
               <Card className="border-2 border-gray-600 bg-gray-800/30">
-                <CardContent className="p-6 text-center">
-                  <p className="text-light-200/70">No pending requests</p>
+                <CardContent className="p-4 text-center sm:p-6">
+                  <p className="text-sm text-light-200/70 sm:text-base">
+                    No pending requests
+                  </p>
                 </CardContent>
               </Card>
             ) : (
@@ -1090,56 +1094,66 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="history" className="mt-2">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-light-100">
+          <div className="space-y-3 sm:space-y-4">
+            <h2 className="text-base font-semibold text-light-100 sm:text-xl">
               Complete Borrow History
             </h2>
             {borrowHistory.length === 0 ? (
               <Card className="border-2 border-gray-600 bg-gray-800/30">
-                <CardContent className="p-6 text-center">
-                  <p className="text-light-200/70">No borrow history</p>
+                <CardContent className="p-4 text-center sm:p-6">
+                  <p className="text-sm text-light-200/70 sm:text-base">
+                    No borrow history
+                  </p>
                 </CardContent>
               </Card>
             ) : (
               <>
                 {/* Statistics */}
-                <Card className="mb-4 border-2 border-gray-600 bg-gray-800/30">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg text-light-100">
+                <Card className="mb-3 border-2 border-gray-600 bg-gray-800/30 sm:mb-4">
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-base text-light-100 sm:text-lg">
                       📊 Borrow Statistics
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                      <div className="rounded-lg bg-gray-50 p-2 text-center">
-                        <p className="text-xl font-bold text-gray-900">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
+                      <div className="rounded-lg bg-gray-50 p-1.5 text-center sm:p-2">
+                        <p className="text-lg font-bold text-gray-900 sm:text-xl">
                           {allBorrows.length}
                         </p>
-                        <p className="text-xs text-gray-600">Total Borrows</p>
+                        <p className="text-[10px] text-gray-600 sm:text-xs">
+                          Total Borrows
+                        </p>
                       </div>
-                      <div className="rounded-lg bg-blue-50 p-2 text-center">
-                        <p className="text-xl font-bold text-blue-600">
+                      <div className="rounded-lg bg-blue-50 p-1.5 text-center sm:p-2">
+                        <p className="text-lg font-bold text-blue-600 sm:text-xl">
                           {pendingRequests.length}
                         </p>
-                        <p className="text-xs text-blue-700">Pending</p>
+                        <p className="text-[10px] text-blue-700 sm:text-xs">
+                          Pending
+                        </p>
                       </div>
-                      <div className="rounded-lg bg-orange-50 p-2 text-center">
-                        <p className="text-xl font-bold text-orange-600">
+                      <div className="rounded-lg bg-orange-50 p-1.5 text-center sm:p-2">
+                        <p className="text-lg font-bold text-orange-600 sm:text-xl">
                           {activeBorrows.length}
                         </p>
-                        <p className="text-xs text-orange-700">Active</p>
+                        <p className="text-[10px] text-orange-700 sm:text-xs">
+                          Active
+                        </p>
                       </div>
-                      <div className="rounded-lg bg-green-100 p-2 text-center">
-                        <p className="text-xl font-bold text-green-600">
+                      <div className="rounded-lg bg-green-100 p-1.5 text-center sm:p-2">
+                        <p className="text-lg font-bold text-green-600 sm:text-xl">
                           {borrowHistory.length}
                         </p>
-                        <p className="text-xs text-green-700">Book Returned</p>
+                        <p className="text-[10px] text-green-700 sm:text-xs">
+                          Book Returned
+                        </p>
                       </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                      <div className="rounded-lg bg-red-50 p-2 text-center">
-                        <p className="text-lg font-bold text-red-600">
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3 md:grid-cols-4">
+                      <div className="rounded-lg bg-red-50 p-1.5 text-center sm:p-2">
+                        <p className="text-base font-bold text-red-600 sm:text-lg">
                           {
                             allBorrows.filter((r) => {
                               // Use same logic as individual cards for consistency
@@ -1188,10 +1202,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                             }).length
                           }
                         </p>
-                        <p className="text-xs text-red-700">With Fines</p>
+                        <p className="text-[10px] text-red-700 sm:text-xs">
+                          With Fines
+                        </p>
                       </div>
-                      <div className="rounded-lg bg-red-50 p-2 text-center">
-                        <p className="text-lg font-bold text-red-600">
+                      <div className="rounded-lg bg-red-50 p-1.5 text-center sm:p-2">
+                        <p className="text-base font-bold text-red-600 sm:text-lg">
                           $
                           {allBorrows
                             .reduce((sum, r) => {
@@ -1242,24 +1258,28 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                             }, 0)
                             .toFixed(2)}
                         </p>
-                        <p className="text-xs text-red-700">Total Fines</p>
+                        <p className="text-[10px] text-red-700 sm:text-xs">
+                          Total Fines
+                        </p>
                       </div>
-                      <div className="rounded-lg bg-purple-50 p-2 text-center">
-                        <p className="text-lg font-bold text-purple-600">
+                      <div className="rounded-lg bg-purple-50 p-1.5 text-center sm:p-2">
+                        <p className="text-base font-bold text-purple-600 sm:text-lg">
                           {allBorrows.reduce(
                             (sum, r) => sum + (r.renewalCount || 0),
                             0
                           )}
                         </p>
-                        <p className="text-xs text-purple-700">
+                        <p className="text-[10px] text-purple-700 sm:text-xs">
                           Total Renewals
                         </p>
                       </div>
-                      <div className="rounded-lg bg-indigo-50 p-2 text-center">
-                        <p className="text-lg font-bold text-indigo-600">
+                      <div className="rounded-lg bg-indigo-50 p-1.5 text-center sm:p-2">
+                        <p className="text-base font-bold text-indigo-600 sm:text-lg">
                           {totalReviews}
                         </p>
-                        <p className="text-xs text-indigo-700">Total Reviews</p>
+                        <p className="text-[10px] text-indigo-700 sm:text-xs">
+                          Total Reviews
+                        </p>
                       </div>
                     </div>
                   </CardContent>

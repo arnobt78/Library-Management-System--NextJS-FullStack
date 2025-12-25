@@ -74,7 +74,7 @@ const LogoutButton: React.FC = () => {
   };
 
   return (
-    <Button onClick={handleLogout} type="button" disabled={isLoggingOut}>
+    <Button onClick={handleLogout} type="button" disabled={isLoggingOut} className="text-sm sm:text-base">
       {isLoggingOut ? "Logging out..." : "Logout"}
     </Button>
   );

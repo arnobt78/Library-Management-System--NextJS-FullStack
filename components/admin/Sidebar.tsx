@@ -14,11 +14,17 @@ const Sidebar = ({ session }: { session: Session }) => {
     <div className="admin-sidebar">
       <div>
         <Link href="/" className="logo">
-          <img src="/icons/admin/logo.svg" alt="logo" height={37} width={37} />
+          <img
+            src="/icons/admin/logo.svg"
+            alt="logo"
+            height={37}
+            width={37}
+            className="size-7 sm:size-[37px]"
+          />
           <h1>BookWise</h1>
         </Link>
 
-        <div className="my-2 flex flex-col gap-2">
+        <div className="my-2 flex flex-col gap-1.5 sm:gap-2">
           {adminSideBarLinks.map((link) => {
             const isSelected =
               (link.route !== "/admin" &&
@@ -34,7 +40,7 @@ const Sidebar = ({ session }: { session: Session }) => {
                     isSelected && "bg-primary-admin shadow-sm"
                   )}
                 >
-                  <div className="relative size-5">
+                  <div className="relative size-4 sm:size-5">
                     <img
                       src={link.img}
                       alt="icon"

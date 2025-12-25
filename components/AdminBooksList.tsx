@@ -168,9 +168,9 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   // Show skeleton while loading (only if no initial data)
   if (isLoading && (!initialBooks || initialBooks.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-7">
+      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-semibold">All Books</h2>
+          <h2 className="text-lg font-semibold sm:text-xl">All Books</h2>
           <Button className="bg-primary-admin" asChild>
             <Link href="/admin/books/new" className="text-white">
               + Create a New Book
@@ -178,8 +178,8 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           </Button>
         </div>
 
-        <div className="mt-7 w-full overflow-hidden">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 w-full overflow-hidden sm:mt-7">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
               <BookCardSkeleton key={`skeleton-${i}`} />
             ))}
@@ -192,9 +192,9 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   // Show error state
   if (isError && (!initialBooks || initialBooks.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-7">
+      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-semibold">All Books</h2>
+          <h2 className="text-lg font-semibold sm:text-xl">All Books</h2>
           <Button className="bg-primary-admin" asChild>
             <Link href="/admin/books/new" className="text-white">
               + Create a New Book
@@ -202,12 +202,12 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           </Button>
         </div>
 
-        <div className="mt-7 w-full overflow-hidden">
-          <div className="py-8 text-center">
-            <p className="mb-2 text-lg font-semibold text-red-500">
+        <div className="mt-4 w-full overflow-hidden sm:mt-7">
+          <div className="py-6 text-center sm:py-8">
+            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
               Failed to load books
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-gray-500 sm:text-sm">
               {error instanceof Error
                 ? error.message
                 : "An unknown error occurred"}
@@ -219,12 +219,12 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   }
 
   return (
-    <section className="w-full rounded-2xl bg-white p-7">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-semibold text-dark-400">
+    <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
           All Books ({allBooks.length})
         </h2>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {/* Search Input */}
           <form
             onSubmit={(e) => {
@@ -243,7 +243,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             />
           </form>
           {/* Filter Dropdowns */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm text-dark-400">Genre:</span>
               <select
@@ -285,10 +285,10 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
         </Button>
       </div>
 
-      <div className="mt-7 w-full overflow-hidden">
+      <div className="mt-4 w-full overflow-hidden sm:mt-7">
         {allBooks.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="mb-4 text-lg font-medium text-gray-600">
+          <div className="py-6 text-center sm:py-8">
+            <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
               {hasActiveFilters
                 ? "No books found matching your criteria."
                 : "No books found. Create your first book!"}
@@ -304,21 +304,21 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {allBooks.map((book) => (
               <div
                 key={book.id}
-                className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
+                className="rounded-lg border border-gray-200 p-3 transition-shadow hover:shadow-md sm:p-4"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
                   <BookCover
                     coverColor={book.coverColor}
                     coverImage={book.coverUrl}
-                    className="h-20 w-16"
+                    className="h-16 w-12 sm:h-20 sm:w-16"
                   />
 
                   <div className="flex-1">
-                    <h3 className="line-clamp-2 text-lg font-semibold">
+                    <h3 className="line-clamp-2 text-base font-semibold sm:text-lg">
                       {book.title}
                     </h3>
                     <p className="text-sm text-gray-600">by {book.author}</p>
@@ -389,7 +389,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row">
                       <Button size="sm" asChild>
                         <Link href={`/books/${book.id}`} className="text-white">
                           View Details

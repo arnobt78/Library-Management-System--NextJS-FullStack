@@ -88,7 +88,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <button className="relative size-10 overflow-hidden rounded-full border-2 border-gray-600 transition-all hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+        <button className="relative size-8 overflow-hidden rounded-full border-2 border-gray-600 transition-all hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 sm:size-10">
           {universityCard ? (
             universityCard.startsWith("http") ? (
               <Image
@@ -96,7 +96,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 alt="Profile"
                 fill
                 className="object-cover"
-                sizes="40px"
+                sizes="(max-width: 640px) 32px, 40px"
               />
             ) : (
               <IKImage
@@ -113,7 +113,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             )
           ) : (
             <div className="flex size-full items-center justify-center bg-gray-700 text-light-100">
-              <span className="text-xs font-semibold">
+              <span className="text-[10px] font-semibold sm:text-xs">
                 {fullName.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -122,13 +122,13 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-64 border-gray-600 bg-gray-800/95 text-light-100"
+        className="w-56 border-gray-600 bg-gray-800/95 text-light-100 sm:w-64"
       >
-        <DropdownMenuLabel className="px-3 py-2">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-light-100">{fullName}</p>
-            <p className="text-xs text-light-200/70">{email}</p>
-            <p className="text-xs text-light-200/70">
+        <DropdownMenuLabel className="px-2.5 py-1.5 sm:px-3 sm:py-2">
+          <div className="space-y-0.5 sm:space-y-1">
+            <p className="text-xs font-semibold text-light-100 sm:text-sm">{fullName}</p>
+            <p className="text-[10px] text-light-200/70 sm:text-xs">{email}</p>
+            <p className="text-[10px] text-light-200/70 sm:text-xs">
               University ID: {universityId}
             </p>
           </div>
@@ -137,9 +137,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         {!isAdmin && (
           <DropdownMenuItem
             asChild
-            className="cursor-pointer rounded-md px-0 py-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 focus:bg-gray-700 focus:text-light-200 [&>a]:block [&>a]:w-full"
+            className="cursor-pointer rounded-md px-0 py-2 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 focus:bg-gray-700 focus:text-light-200 sm:py-3 [&>a]:block [&>a]:w-full"
           >
-            <Link href="/make-admin" className="px-3">
+            <Link href="/make-admin" className="px-2.5 text-xs sm:px-3 sm:text-sm">
               Become Admin
             </Link>
           </DropdownMenuItem>
@@ -147,9 +147,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <DropdownMenuItem
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="cursor-pointer rounded-md px-0 py-3 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 focus:bg-gray-700 focus:text-light-200 disabled:opacity-50"
+          className="cursor-pointer rounded-md px-0 py-2 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 focus:bg-gray-700 focus:text-light-200 disabled:opacity-50 sm:py-3"
         >
-          <span className="block w-full px-3 py-0 text-left">
+          <span className="block w-full px-2.5 py-0 text-left text-xs sm:px-3 sm:text-sm">
             {isLoggingOut ? "Logging out..." : "Logout"}
           </span>
         </DropdownMenuItem>

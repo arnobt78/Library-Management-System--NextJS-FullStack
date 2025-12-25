@@ -267,14 +267,14 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   // Show skeleton while loading (only if no initial data)
   if (isLoading && (!initialBooks || initialBooks.length === 0)) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="mb-2 text-3xl font-bold text-light-100">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="mb-2 text-2xl font-bold text-light-100 sm:text-3xl">
             Book Collection
           </h1>
-          <p className="text-light-200">Loading books...</p>
+          <p className="text-sm text-light-200 sm:text-base">Loading books...</p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(12)].map((_, index) => (
             <BookCardSkeleton key={`skeleton-${index}`} />
           ))}
@@ -286,18 +286,18 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   // Show error state
   if (isError) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="mb-2 text-3xl font-bold text-light-100">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="mb-2 text-2xl font-bold text-light-100 sm:text-3xl">
             Book Collection
           </h1>
         </div>
         <Card>
-          <CardContent className="p-8 text-center">
-            <p className="mb-2 text-lg font-semibold text-red-500">
+          <CardContent className="p-4 text-center sm:p-8">
+            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
               Failed to load books
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-gray-500 sm:text-sm">
               {error instanceof Error
                 ? error.message
                 : "An unknown error occurred"}
@@ -309,26 +309,26 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="mb-2 text-3xl font-bold text-light-100">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="mb-2 text-2xl font-bold text-light-100 sm:text-3xl">
           Book Collection
         </h1>
-        <p className="text-light-200">
+        <p className="text-sm text-light-200 sm:text-base">
           Discover and explore our complete library of {pagination.totalBooks}{" "}
           books
         </p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
         {/* Filters Sidebar */}
-        <div className="w-64 shrink-0 ">
+        <div className="w-full shrink-0 sm:w-64">
           <Card className="rounded-lg border border-gray-600 bg-gray-800/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-light-100">Filters</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-base text-light-100 sm:text-lg">Filters</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               {/* Search */}
               <form onSubmit={handleSearch} className="space-y-2">
                 <Input
@@ -343,14 +343,14 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               </form>
 
               {/* Genre Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-100">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs font-medium text-gray-100 sm:text-sm">
                   Genre
                 </label>
                 <select
                   value={currentSearchParams.genre}
                   onChange={(e) => handleFilterChange("genre", e.target.value)}
-                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-3 py-2 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-2 py-1.5 text-xs text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:px-3 sm:py-2 sm:text-sm"
                 >
                   <option value="">All Genres</option>
                   {genres.map((genre: string) => (
@@ -362,8 +362,8 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               </div>
 
               {/* Availability Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-100">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs font-medium text-gray-100 sm:text-sm">
                   Availability
                 </label>
                 <select
@@ -371,7 +371,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                   onChange={(e) =>
                     handleFilterChange("availability", e.target.value)
                   }
-                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-3 py-2 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-2 py-1.5 text-xs text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:px-3 sm:py-2 sm:text-sm"
                 >
                   <option value="">All Books</option>
                   <option value="available">Available</option>
@@ -380,14 +380,14 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               </div>
 
               {/* Rating Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-100">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs font-medium text-gray-100 sm:text-sm">
                   Minimum Rating
                 </label>
                 <select
                   value={currentSearchParams.rating}
                   onChange={(e) => handleFilterChange("rating", e.target.value)}
-                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-3 py-2 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-2 py-1.5 text-xs text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:px-3 sm:py-2 sm:text-sm"
                 >
                   <option value="">All Ratings</option>
                   <option value="5">5 Stars</option>
@@ -415,32 +415,32 @@ const BookCollection: React.FC<BookCollectionProps> = ({
         {/* Main Content */}
         <div className="flex-1">
           {/* Sort and Results Header */}
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-100">
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <span className="text-xs text-gray-100 sm:text-sm">
                 Showing {books.length} of {pagination.totalBooks} books
               </span>
               {hasActiveFilters && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {currentSearchParams.search && (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs sm:text-sm">
                       Search: &quot;{currentSearchParams.search}&quot;
                     </Badge>
                   )}
                   {currentSearchParams.genre && (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs sm:text-sm">
                       Genre: {currentSearchParams.genre}
                     </Badge>
                   )}
                   {currentSearchParams.availability && (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs sm:text-sm">
                       {currentSearchParams.availability === "available"
                         ? "Available"
                         : "Unavailable"}
                     </Badge>
                   )}
                   {currentSearchParams.rating && (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs sm:text-sm">
                       {currentSearchParams.rating}+ Stars
                     </Badge>
                   )}
@@ -449,11 +449,11 @@ const BookCollection: React.FC<BookCollectionProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-100">Sort by:</span>
+              <span className="text-xs text-gray-100 sm:text-sm">Sort by:</span>
               <select
                 value={currentSearchParams.sort}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="rounded-md border border-gray-600 bg-gray-800/30 px-3 py-1 text-sm text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                className="rounded-md border border-gray-600 bg-gray-800/30 px-2 py-1 text-xs text-light-100 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:px-3 sm:text-sm"
               >
                 <option value="title">Title A-Z</option>
                 <option value="author">Author A-Z</option>
@@ -466,15 +466,15 @@ const BookCollection: React.FC<BookCollectionProps> = ({
           {/* Books Grid */}
           {books.length === 0 ? (
             <Card className="border-2 border-gray-600 bg-gray-800/30">
-              <CardContent className="p-8 text-center">
-                <p className="text-light-200/70">
+              <CardContent className="p-4 text-center sm:p-8">
+                <p className="text-sm text-light-200/70 sm:text-base">
                   No books found matching your criteria.
                 </p>
                 {hasActiveFilters && (
                   <Button
                     variant="outline"
                     onClick={clearFilters}
-                    className="mt-4"
+                    className="mt-3 sm:mt-4"
                   >
                     Clear Filters
                   </Button>
@@ -482,7 +482,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {books.map((book: Book) => (
                 <BookCard key={book.id} {...book} />
               ))}
@@ -491,11 +491,12 @@ const BookCollection: React.FC<BookCollectionProps> = ({
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-1.5 sm:mt-8 sm:gap-2">
               <Button
                 variant="outline"
                 onClick={() => handlePageChange(pagination.currentPage - 1)}
                 disabled={pagination.currentPage === 1}
+                className="text-xs sm:text-sm"
               >
                 Previous
               </Button>
@@ -516,7 +517,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                             : "outline"
                         }
                         onClick={() => handlePageChange(pageNum)}
-                        className="w-10"
+                        className="h-8 w-8 text-xs sm:h-10 sm:w-10 sm:text-sm"
                       >
                         {pageNum}
                       </Button>
@@ -529,6 +530,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                 variant="outline"
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
                 disabled={pagination.currentPage === pagination.totalPages}
+                className="text-xs sm:text-sm"
               >
                 Next
               </Button>

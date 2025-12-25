@@ -94,28 +94,30 @@ export default function FineManagement({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h6 className="font-medium text-gray-900">Fine Management</h6>
-          <p className="text-sm text-gray-600">
+          <h6 className="text-sm font-medium text-gray-900 sm:text-base">
+            Fine Management
+          </h6>
+          <p className="text-xs text-gray-600 sm:text-sm">
             Update fines for overdue books
           </p>
         </div>
       </div>
 
       {/* Dynamic Fine Amount Configuration */}
-      <div className="rounded-lg bg-blue-50 p-4">
-        <div className="flex items-center justify-between">
+      <div className="rounded-lg bg-blue-50 p-3 sm:p-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex-1">
-            <label className="mb-1 block text-sm font-medium text-blue-900">
+            <label className="mb-1 block text-xs font-medium text-blue-900 sm:text-sm">
               Daily Fine Amount
             </label>
-            <p className="mb-2 text-xs text-blue-600">
+            <p className="mb-2 text-[10px] text-blue-600 sm:text-xs">
               Set the amount charged per day for overdue books
             </p>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-blue-700">$</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-blue-700 sm:text-sm">$</span>
               {isEditing ? (
                 <input
                   type="number"
@@ -126,19 +128,19 @@ export default function FineManagement({
                   onChange={(e) =>
                     setEditableAmount(parseFloat(e.target.value) || 0)
                   }
-                  className="w-20 rounded border border-blue-200 px-2 py-1 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-20 rounded border border-blue-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 sm:text-sm"
                   placeholder="1.00"
                   autoFocus
                 />
               ) : (
-                <span className="w-20 rounded bg-blue-100 px-2 py-1 text-sm font-medium text-blue-900">
+                <span className="w-20 rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-900 sm:text-sm">
                   {configLoading ? "..." : fineAmount.toFixed(2)}
                 </span>
               )}
-              <span className="text-sm text-blue-700">per day</span>
+              <span className="text-xs text-blue-700 sm:text-sm">per day</span>
             </div>
           </div>
-          <div className="flex flex-col space-y-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto">
             {isEditing ? (
               <>
                 <Button
@@ -150,7 +152,7 @@ export default function FineManagement({
                   }
                   variant="outline"
                   size="sm"
-                  className="border-green-200 bg-green-100 text-green-700 hover:bg-green-200"
+                  className="w-full border-green-200 bg-green-100 text-green-700 hover:bg-green-200 sm:w-auto"
                 >
                   {updateFineConfigMutation.isPending ||
                   updateOverdueFinesMutation.isPending
@@ -165,7 +167,7 @@ export default function FineManagement({
                   }
                   variant="outline"
                   size="sm"
-                  className="border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  className="w-full border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-200 sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -176,7 +178,7 @@ export default function FineManagement({
                 disabled={configLoading}
                 variant="outline"
                 size="sm"
-                className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                className="w-full border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 sm:w-auto"
               >
                 Update Fines
               </Button>
