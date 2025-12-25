@@ -61,10 +61,13 @@ const ApiEndpointCard = ({
 
   return (
     <div className="rounded-lg border border-gray-600 bg-gray-700 p-3 sm:p-4">
-      <div className="mb-2 flex flex-col gap-2 sm:mb-3 sm:flex-row sm:items-center sm:gap-3">
-        <Badge className={`${getMethodColor(method)} border w-fit`}>{method}</Badge>
+      <div className="mb-2 flex flex-row items-center gap-2 sm:mb-3 sm:gap-3">
+        <Badge className={`${getMethodColor(method)} border w-fit shrink-0`}>{method}</Badge>
         <code className="flex-1 break-all font-mono text-xs text-light-100 sm:text-sm">{path}</code>
-        <CopyButton text={`${baseUrl}${path}`} />
+        <CopyButton 
+          text={`${baseUrl}${path}`} 
+          className="shrink-0 border-blue-500 bg-blue-600 text-white hover:bg-blue-700 hover:text-white"
+        />
       </div>
 
       <p className="mb-2 text-xs text-light-200 sm:mb-3 sm:text-sm">{description}</p>

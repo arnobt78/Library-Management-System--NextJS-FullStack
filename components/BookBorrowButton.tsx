@@ -118,7 +118,7 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
   };
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 w-full sm:w-auto">
       {/* Show Return Book button if user has an active borrow */}
       {hasExistingBorrow && isBorrowed ? (
         <ReturnBookButton

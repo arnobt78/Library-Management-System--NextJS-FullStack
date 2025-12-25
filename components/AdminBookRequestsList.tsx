@@ -313,12 +313,12 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
             />
           </form>
           {/* Filter Dropdown */}
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
             <span className="text-sm text-dark-400">Status:</span>
             <select
               value={currentStatus}
               onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="min-w-[170px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
             >
               <option value="all">All</option>
               <option value="PENDING">Pending</option>

@@ -81,7 +81,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               contentLines={2}
               lineHeight={4}
               useCardWrapper={false}
-              className="rounded-lg border bg-white p-6 shadow-sm"
+              className="rounded-lg border bg-white p-4 shadow-sm sm:p-6"
             />
           ))}
         </div>
@@ -189,7 +189,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="w-full max-w-full space-y-4 overflow-x-hidden sm:space-y-6">
       {/* Page Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
@@ -271,8 +271,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Borrowing Trends */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Borrowing Trends</h3>
-          <ResponsiveContainer width="100%" height={200}>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Borrowing Trends
+          </h3>
+          <div className="w-full overflow-x-auto">
+            <ResponsiveContainer width="100%" height={200} minWidth={300}>
             <LineChart data={trendsData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -295,12 +298,16 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Popular Books */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Popular Books</h3>
-          <ResponsiveContainer width="100%" height={200}>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Popular Books
+          </h3>
+          <div className="w-full overflow-x-auto">
+            <ResponsiveContainer width="100%" height={200} minWidth={300}>
             <BarChart data={popularBooksData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
@@ -316,12 +323,16 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Genre Distribution */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Genre Distribution</h3>
-          <ResponsiveContainer width="100%" height={200}>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Genre Distribution
+          </h3>
+          <div className="w-full overflow-x-auto">
+            <ResponsiveContainer width="100%" height={200} minWidth={300}>
             <PieChart>
               <Pie
                 data={genresData}
@@ -343,12 +354,16 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               <Legend />
             </PieChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* User Activity */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Top Users by Activity</h3>
-          <ResponsiveContainer width="100%" height={200}>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Top Users by Activity
+          </h3>
+          <div className="w-full overflow-x-auto">
+            <ResponsiveContainer width="100%" height={200} minWidth={300}>
             <BarChart data={userActivityData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
@@ -364,20 +379,31 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
       {/* Overdue Books Table */}
       <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-        <h3 className="mb-4 text-base font-semibold sm:text-lg">Overdue Books</h3>
+        <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          Overdue Books
+        </h3>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full min-w-full border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">Book</th>
-                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">User</th>
-                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">Days Overdue</th>
-                <th className="px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">Fine Amount</th>
+                <th className="min-w-[150px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[200px] sm:px-4 sm:py-2 sm:text-sm">
+                  Book
+                </th>
+                <th className="min-w-[150px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[200px] sm:px-4 sm:py-2 sm:text-sm">
+                  User
+                </th>
+                <th className="min-w-[120px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[150px] sm:px-4 sm:py-2 sm:text-sm">
+                  Days Overdue
+                </th>
+                <th className="min-w-[100px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[120px] sm:px-4 sm:py-2 sm:text-sm">
+                  Fine Amount
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -401,34 +427,40 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               ) : (
                 data.overdueBooks.map((book) => (
                   <tr key={book.recordId} className="border-b">
-                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
+                    <td className="min-w-[150px] whitespace-nowrap px-2 py-1.5 sm:min-w-[200px] sm:px-4 sm:py-2">
                       <div>
-                        <div className="text-xs font-medium sm:text-sm">{book.bookTitle}</div>
+                        <div className="text-xs font-medium sm:text-sm">
+                          {book.bookTitle}
+                        </div>
                         <div className="text-xs text-gray-600 sm:text-sm">
                           {book.bookAuthor}
                         </div>
                       </div>
                     </td>
-                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
+                    <td className="min-w-[150px] whitespace-nowrap px-2 py-1.5 sm:min-w-[200px] sm:px-4 sm:py-2">
                       <div>
-                        <div className="text-xs font-medium sm:text-sm">{book.userName}</div>
+                        <div className="text-xs font-medium sm:text-sm">
+                          {book.userName}
+                        </div>
                         <div className="text-xs text-gray-600 sm:text-sm">
                           {book.userEmail}
                         </div>
                       </div>
                     </td>
-                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
+                    <td className="min-w-[120px] whitespace-nowrap px-2 py-1.5 sm:min-w-[150px] sm:px-4 sm:py-2">
                       <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs text-red-800 sm:px-2 sm:py-1 sm:text-sm">
                         {book.daysOverdue} days
                       </span>
                     </td>
-                    <td className="px-2 py-1.5 sm:px-4 sm:py-2">
+                    <td className="min-w-[100px] whitespace-nowrap px-2 py-1.5 sm:min-w-[120px] sm:px-4 sm:py-2">
                       {book.fineAmount ? (
                         <span className="text-xs font-medium text-red-600 sm:text-sm">
                           ${book.fineAmount}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-500 sm:text-sm">No fine</span>
+                        <span className="text-xs text-gray-500 sm:text-sm">
+                          No fine
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -442,16 +474,22 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Monthly Statistics</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Monthly Statistics
+          </h3>
           <div className="space-y-2 sm:space-y-3">
             <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">Current Month:</span>
+              <span className="text-xs text-gray-600 sm:text-sm">
+                Current Month:
+              </span>
               <span className="text-xs font-medium sm:text-sm">
                 {data.monthlyStats?.currentMonth?.borrows || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">Last Month:</span>
+              <span className="text-xs text-gray-600 sm:text-sm">
+                Last Month:
+              </span>
               <span className="text-xs font-medium sm:text-sm">
                 {data.monthlyStats?.lastMonth?.borrows || 0}
               </span>
@@ -460,16 +498,22 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Overdue Analysis</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Overdue Analysis
+          </h3>
           <div className="space-y-2 sm:space-y-3">
             <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">Total Overdue:</span>
+              <span className="text-xs text-gray-600 sm:text-sm">
+                Total Overdue:
+              </span>
               <span className="text-xs font-medium sm:text-sm">
                 {data.overdueStats?.totalOverdue || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">Avg Days Overdue:</span>
+              <span className="text-xs text-gray-600 sm:text-sm">
+                Avg Days Overdue:
+              </span>
               <span className="text-xs font-medium sm:text-sm">
                 {typeof data.overdueStats?.avgDaysOverdue === "number"
                   ? data.overdueStats.avgDaysOverdue.toFixed(1)
@@ -477,13 +521,17 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">Total Fines:</span>
+              <span className="text-xs text-gray-600 sm:text-sm">
+                Total Fines:
+              </span>
               <span className="text-xs font-medium text-red-600 sm:text-sm">
                 ${data.overdueStats?.totalFines || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">Overdue Rate:</span>
+              <span className="text-xs text-gray-600 sm:text-sm">
+                Overdue Rate:
+              </span>
               <span className="text-xs font-medium sm:text-sm">
                 {data.systemHealth?.activeBorrows > 0
                   ? (

@@ -195,19 +195,22 @@ const FileUpload = ({
           }
         }}
       >
-        <img
-          src="/icons/upload.svg"
-          alt="upload-icon"
-          width={20}
-          height={20}
-          className="size-4 object-contain sm:size-5"
-        />
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            <img
+              src="/icons/upload.svg"
+              alt="upload-icon"
+              width={20}
+              height={20}
+              className="size-4 shrink-0 object-contain sm:size-5"
+            />
+            <p className={cn("text-sm sm:text-base", styles.placeholder)}>{placeholder}</p>
+          </div>
 
-        <p className={cn("text-sm sm:text-base", styles.placeholder)}>{placeholder}</p>
-
-        {file && (
-          <p className={cn("upload-filename text-[10px] sm:text-xs", styles.text)}>{file.filePath}</p>
-        )}
+          {file && (
+            <p className={cn("upload-filename text-[10px] sm:text-xs break-all", styles.text)}>{file.filePath}</p>
+          )}
+        </div>
       </button>
 
       {progress > 0 && progress !== 100 && (

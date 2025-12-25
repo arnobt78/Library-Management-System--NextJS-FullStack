@@ -285,7 +285,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full space-y-6 overflow-x-hidden">
       {/* Success/Error Messages - Keep all existing messages */}
       {params.success === "due-soon-sent" && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
@@ -644,10 +644,10 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
 
       {/* Page Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+        <h1 className="break-words text-2xl font-bold text-gray-900 sm:text-3xl">
           Smart Automation Dashboard
         </h1>
-        <p className="text-sm text-gray-600 sm:text-base">
+        <p className="break-words text-sm text-gray-600 sm:text-base">
           Automated reminders, recommendations, bulk operations, and data export
         </p>
       </div>
@@ -1019,7 +1019,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
               <div className="space-y-3">
                 <Button
                   onClick={() => generateRecommendationsMutation.mutate()}
-                  className={`w-full disabled:opacity-50 ${
+                  className={`w-full break-words disabled:opacity-50 ${
                     params.success === "recommendations-generated" ||
                     recentActions.recommendationsGenerated
                       ? "bg-purple-600 text-white hover:bg-purple-700"
@@ -1028,13 +1028,15 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={generateRecommendationsMutation.isPending}
                   type="button"
                 >
-                  {generateRecommendationsMutation.isPending
-                    ? "Generating..."
-                    : "Generate All User Recommendations"}
+                  <span className="break-words text-xs sm:text-sm">
+                    {generateRecommendationsMutation.isPending
+                      ? "Generating..."
+                      : "Generate All User Recommendations"}
+                  </span>
                 </Button>
                 <Button
                   onClick={() => updateTrendingMutation.mutate()}
-                  className={`w-full disabled:opacity-50 ${
+                  className={`w-full break-words disabled:opacity-50 ${
                     params.success === "trending-updated" ||
                     recentActions.trendingUpdated
                       ? "bg-purple-600 text-white hover:bg-purple-700"
@@ -1043,13 +1045,15 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={updateTrendingMutation.isPending}
                   type="button"
                 >
-                  {updateTrendingMutation.isPending
-                    ? "Updating..."
-                    : "Update Trending Books"}
+                  <span className="break-words text-xs sm:text-sm">
+                    {updateTrendingMutation.isPending
+                      ? "Updating..."
+                      : "Update Trending Books"}
+                  </span>
                 </Button>
                 <Button
                   onClick={() => refreshCacheMutation.mutate()}
-                  className={`w-full disabled:opacity-50 ${
+                  className={`w-full break-words disabled:opacity-50 ${
                     params.success === "cache-refreshed" ||
                     recentActions.cacheRefreshed
                       ? "bg-purple-600 text-white hover:bg-purple-700"
@@ -1058,9 +1062,11 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={refreshCacheMutation.isPending}
                   type="button"
                 >
-                  {refreshCacheMutation.isPending
-                    ? "Refreshing..."
-                    : "Refresh Recommendation Cache"}
+                  <span className="break-words text-xs sm:text-sm">
+                    {refreshCacheMutation.isPending
+                      ? "Refreshing..."
+                      : "Refresh Recommendation Cache"}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -1281,14 +1287,14 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                  <div>
-                    <p className="font-medium text-gray-900">Users Data</p>
-                    <p className="text-sm text-gray-600">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-medium text-gray-900">Users Data</p>
+                    <p className="break-words text-sm text-gray-600">
                       {exportStats?.totalUsers || 0} users
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 gap-2">
                     <form action="/api/admin/export/users" method="POST">
                       <input type="hidden" name="format" value="csv" />
                       <Button type="submit" size="sm" variant="outline">
@@ -1304,14 +1310,14 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                  <div>
-                    <p className="font-medium text-gray-900">Borrows Data</p>
-                    <p className="text-sm text-gray-600">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-medium text-gray-900">Borrows Data</p>
+                    <p className="break-words text-sm text-gray-600">
                       {exportStats?.totalBorrows || 0} borrows
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 gap-2">
                     <form action="/api/admin/export/borrows" method="POST">
                       <input type="hidden" name="format" value="csv" />
                       <Button type="submit" size="sm" variant="outline">
@@ -1327,14 +1333,14 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                  <div>
-                    <p className="font-medium text-gray-900">Analytics Data</p>
-                    <p className="text-sm text-gray-600">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-medium text-gray-900">Analytics Data</p>
+                    <p className="break-words text-sm text-gray-600">
                       Complete analytics report
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 gap-2">
                     <form action="/api/admin/export/analytics" method="POST">
                       <input type="hidden" name="format" value="csv" />
                       <Button type="submit" size="sm" variant="outline">
@@ -1357,8 +1363,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
               <h4 className="font-medium text-gray-900">Export Settings</h4>
               <div className="space-y-3">
                 <div className="rounded-lg bg-blue-50 p-3">
-                  <p className="font-medium text-blue-900">Date Range Export</p>
-                  <p className="text-sm text-blue-600">
+                  <p className="break-words font-medium text-blue-900">Date Range Export</p>
+                  <p className="break-words text-sm text-blue-600">
                     Export borrows data for a specific date range
                   </p>
                   <form
@@ -1366,20 +1372,20 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     method="POST"
                     className="mt-2"
                   >
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         type="date"
                         name="startDate"
-                        className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
+                        className="w-full flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
                         required
                       />
                       <input
                         type="date"
                         name="endDate"
-                        className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
+                        className="w-full flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
                         required
                       />
-                      <Button type="submit" size="sm">
+                      <Button type="submit" size="sm" className="w-full sm:w-auto">
                         Export
                       </Button>
                     </div>
@@ -1387,8 +1393,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                 </div>
 
                 <div className="rounded-lg bg-green-50 p-3">
-                  <p className="font-medium text-green-900">Last Export</p>
-                  <p className="text-sm text-green-600">
+                  <p className="break-words font-medium text-green-900">Last Export</p>
+                  <p className="break-words text-sm text-green-600">
                     {exportStats?.lastExportDate
                       ? new Date(exportStats.lastExportDate).toLocaleString()
                       : "No exports yet"}

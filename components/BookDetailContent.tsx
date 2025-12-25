@@ -109,7 +109,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
 
   return (
     <div className="book-details">
-      <div className="flex-[1.5]">
+      <div className="flex-[1.5] w-full min-w-0 max-w-full overflow-hidden">
         {/* Video Section */}
         <section className="flex flex-col gap-4 sm:gap-7">
           <h3 className="text-base font-semibold text-primary sm:text-lg">Video</h3>
@@ -119,9 +119,9 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
         {/* Summary Section */}
         <section className="mt-6 flex flex-col gap-4 sm:mt-10 sm:gap-7">
           <h3 className="text-base font-semibold text-primary sm:text-lg">Summary</h3>
-          <div className="space-y-3 text-base text-light-100 sm:space-y-5 sm:text-xl">
+          <div className="space-y-3 text-base text-light-100 sm:space-y-5 sm:text-xl break-words">
             {bookData.summary?.split("\n").map((line: string, i: number) => (
-              <p key={i}>{line}</p>
+              <p key={i} className="break-words">{line}</p>
             ))}
           </div>
         </section>

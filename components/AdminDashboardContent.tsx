@@ -375,18 +375,20 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               recentBorrows.map((borrow) => (
                 <div
                   key={borrow.id}
-                  className="flex items-center justify-between rounded bg-gray-50 p-3"
+                  className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
                 >
-                  <div>
-                    <p className="text-sm font-medium">{borrow.bookTitle}</p>
-                    <p className="text-xs text-gray-600">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium break-words">{borrow.bookTitle}</p>
+                    <p className="text-xs text-gray-600 break-words">
                       by {borrow.userName}
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
                       borrow.status === "BORROWED"
                         ? "bg-blue-100 text-blue-800"
+                        : borrow.status === "PENDING"
+                        ? "bg-yellow-100 text-yellow-800"
                         : "bg-green-100 text-green-800"
                     }`}
                   >
@@ -408,14 +410,14 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               recentUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between rounded bg-gray-50 p-3"
+                  className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
                 >
-                  <div>
-                    <p className="text-sm font-medium">{user.fullName}</p>
-                    <p className="text-xs text-gray-600">{user.email}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium break-words">{user.fullName}</p>
+                    <p className="text-xs text-gray-600 break-words">{user.email}</p>
                   </div>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
                       user.status === "APPROVED"
                         ? "bg-green-100 text-green-800"
                         : user.status === "PENDING"

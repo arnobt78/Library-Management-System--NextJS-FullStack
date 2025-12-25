@@ -23,7 +23,13 @@ const Page = async ({
   const session = await auth();
 
   if (!session?.user?.id) {
-    return <div>Please sign in to view books.</div>;
+    return (
+      <div className="px-3 py-4 text-center sm:px-4 sm:py-6">
+        <p className="text-sm text-light-200 sm:text-base">
+          Please sign in to view books.
+        </p>
+      </div>
+    );
   }
 
   // Fetch user borrows for SSR (if user is logged in)

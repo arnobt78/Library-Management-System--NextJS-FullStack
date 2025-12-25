@@ -30,9 +30,9 @@ export const CopyButton = ({ text, className }: CopyButtonProps) => {
       className={className}
     >
       {copied ? (
-        <Check className="size-4 text-green-500" />
+        <Check className="size-3 text-green-500 sm:size-4" />
       ) : (
-        <Copy className="size-4" />
+        <Copy className="size-3 sm:size-4" />
       )}
     </Button>
   );

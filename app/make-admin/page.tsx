@@ -22,17 +22,17 @@ const Page = async ({
   return (
     <main className="root-container">
       <div className="mx-auto w-full">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
           {/* Back Button */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <Button
               asChild
               variant="ghost"
               className="text-light-100 hover:bg-gray-100/30 hover:text-light-200"
             >
-              <Link href="/" className="flex items-center gap-2">
-                <ArrowLeft className="size-4" />
-                <span>Back to Home</span>
+              <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
+                <ArrowLeft className="size-3.5 sm:size-4" />
+                <span className="text-xs sm:text-sm">Back to Home</span>
               </Link>
             </Button>
           </div>
@@ -41,18 +41,18 @@ const Page = async ({
           <div className="mx-auto max-w-2xl">
             <Card className="border-2 border-gray-600 bg-gray-800/30">
               <CardHeader>
-                <CardTitle className="text-center text-3xl font-bold text-light-300">
+                <CardTitle className="text-center text-xl font-bold text-light-300 sm:text-3xl">
                   Request Admin Access
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6">
                 {/* Success Message */}
                 {params.success === "request-sent" && (
-                  <div className="rounded-lg border border-green-600 bg-green-900/20 p-4">
+                  <div className="rounded-lg border border-green-600 bg-green-900/20 p-3 sm:p-4">
                     <div className="flex items-center">
                       <div className="shrink-0">
                         <svg
-                          className="size-5 text-green-400"
+                          className="size-4 text-green-400 sm:size-5"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
@@ -63,11 +63,11 @@ const Page = async ({
                           />
                         </svg>
                       </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-green-400">
+                      <div className="ml-2 sm:ml-3">
+                        <h3 className="text-xs font-medium text-green-400 sm:text-sm">
                           ✅ Admin Request Sent Successfully!
                         </h3>
-                        <div className="mt-2 text-sm text-green-300">
+                        <div className="mt-1.5 text-xs text-green-300 sm:mt-2 sm:text-sm">
                           <p>
                             Your admin request has been sent to the
                             administrators for review. You will be notified once
@@ -81,11 +81,11 @@ const Page = async ({
 
                 {/* Error Message */}
                 {params.error && (
-                  <div className="rounded-lg border border-red-600 bg-red-900/20 p-4">
+                  <div className="rounded-lg border border-red-600 bg-red-900/20 p-3 sm:p-4">
                     <div className="flex items-center">
                       <div className="shrink-0">
                         <svg
-                          className="size-5 text-red-400"
+                          className="size-4 text-red-400 sm:size-5"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
@@ -96,11 +96,11 @@ const Page = async ({
                           />
                         </svg>
                       </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-red-400">
+                      <div className="ml-2 sm:ml-3">
+                        <h3 className="text-xs font-medium text-red-400 sm:text-sm">
                           ❌ Request Failed
                         </h3>
-                        <div className="mt-2 text-sm text-red-300">
+                        <div className="mt-1.5 text-xs text-red-300 sm:mt-2 sm:text-sm">
                           <p>
                             {params.error === "already-admin" &&
                               "You are already an admin."}
@@ -116,13 +116,13 @@ const Page = async ({
                 )}
 
                 <div className="text-center">
-                  <p className="mb-4 text-light-200/80">
+                  <p className="mb-3 text-xs text-light-200/80 sm:mb-4 sm:text-sm">
                     Submit a request to become an administrator. Your request
                     will be reviewed by existing administrators before approval.
                   </p>
 
-                  <div className="mb-4 rounded-lg border border-gray-600 bg-gray-800/20 p-4">
-                    <p className="text-sm text-light-100">
+                  <div className="mb-3 rounded-lg border border-gray-600 bg-gray-800/20 p-3 sm:mb-4 sm:p-4">
+                    <p className="text-xs text-light-100 sm:text-sm">
                       <strong className="text-light-200">Current User:</strong>{" "}
                       {session.user.email}
                     </p>
@@ -163,12 +163,12 @@ const Page = async ({
                       }
                     }
                   }}
-                  className="space-y-4"
+                  className="space-y-3 sm:space-y-4"
                 >
                   <div>
                     <label
                       htmlFor="requestReason"
-                      className="mb-2 block text-sm font-medium text-light-300"
+                      className="mb-1.5 block text-xs font-medium text-light-300 sm:mb-2 sm:text-sm"
                     >
                       Why do you need admin access?
                     </label>
@@ -176,29 +176,29 @@ const Page = async ({
                       id="requestReason"
                       name="requestReason"
                       rows={4}
-                      className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-3 py-2 text-sm text-light-100 placeholder:text-light-200/50 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                      className="w-full rounded-md border border-gray-600 bg-gray-800/30 px-2.5 py-1.5 text-xs text-light-100 placeholder:text-light-200/50 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:px-3 sm:py-2 sm:text-sm"
                       placeholder="Please explain why you need admin access and how you plan to use it responsibly..."
                       required
                       minLength={10}
                     />
-                    <p className="mt-1 text-xs text-light-200/50">
+                    <p className="mt-1 text-[10px] text-light-200/50 sm:text-xs">
                       Minimum 10 characters required
                     </p>
                   </div>
 
                   <Button
                     type="submit"
-                    className="w-full bg-purple-600 text-white hover:bg-purple-700"
+                    className="w-full bg-purple-600 text-xs text-white hover:bg-purple-700 sm:text-sm"
                   >
                     Submit Admin Request
                   </Button>
                 </form>
 
                 <div className="text-center">
-                  <p className="text-sm text-light-200/70">
+                  <p className="text-xs text-light-200/70 sm:text-sm">
                     After approval, you&apos;ll be able to access:
                   </p>
-                  <ul className="mt-2 space-y-1 text-sm text-light-200/70">
+                  <ul className="mt-1.5 space-y-0.5 text-xs text-light-200/70 sm:mt-2 sm:space-y-1 sm:text-sm">
                     <li>• Admin Dashboard</li>
                     <li>• User Management</li>
                     <li>• Book Management</li>

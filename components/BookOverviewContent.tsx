@@ -138,28 +138,30 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
   return (
     <section className="book-overview">
-      <div className="flex flex-1 flex-col gap-3 sm:gap-5">
-        <h1>{title}</h1>
+      <div className="flex flex-1 flex-col gap-3 sm:gap-5 w-full min-w-0 max-w-full">
+        <h1 className="break-words">{title}</h1>
 
         <div className="book-info">
           <p>
             By <span className="font-semibold text-light-200">{author}</span>
           </p>
 
-          <p>
-            Category{" "}
-            <span className="font-semibold text-light-200">{genre}</span>
-          </p>
+          <div className="flex flex-row flex-wrap items-center gap-2">
+            <p className="break-words">
+              Category{" "}
+              <span className="font-semibold text-light-200">{genre}</span>
+            </p>
 
-          <div className="flex flex-row gap-1">
-            <img
-              src="/icons/star.svg"
-              alt="star"
-              width={22}
-              height={22}
-              className="size-4 sm:size-[22px]"
-            />
-            <p>{rating}</p>
+            <div className="flex flex-row items-center gap-1 shrink-0">
+              <img
+                src="/icons/star.svg"
+                alt="star"
+                width={22}
+                height={22}
+                className="size-4 sm:size-[22px]"
+              />
+              <p>{rating}</p>
+            </div>
           </div>
         </div>
 
@@ -170,7 +172,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
         <div className="book-info">
           <div className="space-y-2 sm:space-y-3">
             {/* First row: ISBN and Published */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
               <p>
                 ISBN{" "}
                 <span className="font-semibold text-light-200">
@@ -186,7 +188,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             </div>
 
             {/* Second row: Publisher and Language */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
               <p>
                 Publisher{" "}
                 <span className="font-semibold text-light-200">
@@ -202,7 +204,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             </div>
 
             {/* Third row: Pages and Edition */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
               <p>
                 Pages{" "}
                 <span className="font-semibold text-light-200">
@@ -219,7 +221,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
             {/* Fourth row: Total Copies and Available Copies */}
             <div className="">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-36">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
                 <p>
                   Total Books{" "}
                   <span className="font-semibold text-light-200">
@@ -250,7 +252,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
           </div>
           <div className="space-y-2 sm:space-y-3">
             {/* Database dates */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12">
               <p>
                 Added to Library{" "}
                 <span className="font-semibold text-light-200">

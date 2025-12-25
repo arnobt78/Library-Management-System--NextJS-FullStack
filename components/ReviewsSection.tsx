@@ -96,8 +96,8 @@ function ReviewCard({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-800/50 p-3 shadow-sm sm:p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex-1">
+      <div className="flex flex-row items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
             <h4 className="text-sm font-medium text-light-100 sm:text-base">
               {review.userFullName}
@@ -361,7 +361,7 @@ function EditReviewForm({ review, onCancel, onUpdate }: EditReviewFormProps) {
             variant="outline"
             onClick={onCancel}
             disabled={updateReviewMutation.isPending}
-            className="w-full border-gray-600 text-xs text-light-200 hover:bg-gray-700 sm:w-auto sm:text-sm"
+            className="w-full border-gray-600 bg-gray-700/50 text-xs text-light-100 hover:bg-gray-700 hover:text-white sm:w-auto sm:text-sm"
           >
             Cancel
           </Button>

@@ -18,7 +18,20 @@ const ApiStatusPage = async () => {
   const session = await auth();
 
   if (!session) {
-    return <div>Please sign in to view API status.</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="py-6 text-center sm:py-8">
+            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+              Authentication Required
+            </p>
+            <p className="text-xs text-gray-500 sm:text-sm">
+              Please sign in to view API status.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Fetch all data server-side for SSR
@@ -134,7 +147,7 @@ const ApiStatusPage = async () => {
 
         <div className="py-0">
           <div className="min-h-screen bg-transparent py-0">
-            <div className="mx-auto max-w-7xl px-4">
+            <div className="mx-auto max-w-7xl px-3 sm:px-4">
               <ApiStatusClient
                 initialServices={initialServices}
                 initialMetrics={initialMetrics}

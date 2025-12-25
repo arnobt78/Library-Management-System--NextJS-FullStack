@@ -16,15 +16,15 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const book = result.data;
 
   return (
-    <>
-      <Button asChild className="back-btn">
+    <div className="p-3 sm:p-6">
+      <Button asChild className="back-btn mb-6 sm:mb-10">
         <Link href="/admin/books">Go Back</Link>
       </Button>
 
-      <section className="w-full max-w-2xl">
+      <section className="mx-auto w-full max-w-2xl">
         <BookForm type="update" {...book} />
       </section>
-    </>
+    </div>
   );
 };
 

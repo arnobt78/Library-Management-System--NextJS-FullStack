@@ -7,6 +7,11 @@
     --radius: 0.5rem;
   }
 
+  html,
+  body {
+    @apply overflow-x-hidden;
+  }
+
   .hide-scrollbar::-webkit-scrollbar {
     width: 0px;
     height: 0px;
@@ -89,20 +94,23 @@
 
   /* Book List */
   .book-list {
-    @apply mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 max-xs:justify-between xs:gap-10;
+    @apply mt-10 grid grid-cols-2 gap-4 sm:gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 max-xs:justify-between xs:gap-10;
   }
 
   /* Book Overview */
   .book-overview {
-    @apply flex flex-col-reverse items-center gap-12 sm:gap-32 xl:flex-row xl:gap-8;
+    @apply flex flex-col-reverse items-center gap-6 sm:gap-12 xl:flex-row xl:gap-8;
+    @apply w-full max-w-full overflow-hidden;
   }
 
   .book-overview h1 {
     @apply text-4xl font-semibold text-white sm:text-6xl;
+    @apply break-words;
   }
 
   .book-info {
-    @apply flex flex-row flex-wrap gap-4 text-xl text-light-100;
+    @apply flex flex-row flex-wrap gap-3 text-base text-light-100 sm:gap-4 sm:text-xl;
+    @apply w-full max-w-full;
   }
 
   .book-copies {
@@ -118,7 +126,8 @@
   }
 
   .book-description {
-    @apply mt-2 text-justify text-xl text-light-100;
+    @apply mt-2 text-justify text-base text-light-100 sm:text-xl;
+    @apply break-words;
   }
 
   .book-overview_btn {
@@ -127,11 +136,11 @@
 
   /* File Upload */
   .upload-btn {
-    @apply flex min-h-14 w-full items-center justify-center gap-1.5 rounded-md;
+    @apply flex min-h-14 w-full min-w-0 items-center justify-center gap-1.5 rounded-md px-3;
   }
 
   .upload-filename {
-    @apply mt-1 text-center text-xs;
+    @apply mt-1 w-full break-words text-center text-xs;
   }
 
   .progress {
@@ -248,11 +257,11 @@
   }
 
   .auth-form {
-    @apply my-auto flex h-full min-h-screen flex-1 items-center bg-pattern bg-cover bg-top bg-dark-100 px-5 py-10;
+    @apply my-auto flex h-full min-h-screen flex-1 items-center bg-pattern bg-cover bg-top bg-dark-100 px-4 py-3 sm:px-5 sm:py-10;
   }
 
   .auth-box {
-    @apply gradient-vertical mx-auto flex max-w-xl flex-col gap-6 rounded-lg p-10;
+    @apply gradient-vertical mx-auto flex max-w-xl flex-col gap-3 rounded-lg p-4 sm:gap-6 sm:p-10;
   }
 
   .auth-illustration {
@@ -262,11 +271,13 @@
   /* Root */
   .root-container {
     @apply flex min-h-screen flex-1 flex-col bg-pattern bg-cover bg-top bg-dark-100 px-5 xs:px-10 md:px-16;
+    @apply w-full max-w-full overflow-x-hidden;
   }
 
   /* Book Details */
   .book-details {
-    @apply py-16 flex flex-col gap-16 lg:flex-row;
+    @apply py-8 flex flex-col gap-8 sm:py-12 sm:gap-12 lg:flex-row lg:py-16 lg:gap-16;
+    @apply w-full max-w-full overflow-hidden;
   }
 
   .book-details h3 {

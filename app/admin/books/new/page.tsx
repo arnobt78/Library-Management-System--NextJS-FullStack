@@ -5,15 +5,15 @@ import BookForm from "@/components/admin/forms/BookForm";
 
 const Page = () => {
   return (
-    <>
-      <Button asChild className="back-btn">
+    <div className="p-3 sm:p-6">
+      <Button asChild className="back-btn mb-6 sm:mb-10">
         <Link href="/admin/books">Go Back</Link>
       </Button>
 
-      <section className="w-full max-w-2xl">
+      <section className="mx-auto w-full max-w-2xl">
         <BookForm />
       </section>
-    </>
+    </div>
   );
 };
 export default Page;

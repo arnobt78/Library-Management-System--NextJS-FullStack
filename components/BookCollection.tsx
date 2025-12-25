@@ -274,7 +274,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
           </h1>
           <p className="text-sm text-light-200 sm:text-base">Loading books...</p>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(12)].map((_, index) => (
             <BookCardSkeleton key={`skeleton-${index}`} />
           ))}
@@ -482,7 +482,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {books.map((book: Book) => (
                 <BookCard key={book.id} {...book} />
               ))}

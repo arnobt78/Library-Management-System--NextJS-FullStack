@@ -243,13 +243,13 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             />
           </form>
           {/* Filter Dropdowns */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
               <span className="text-sm text-dark-400">Genre:</span>
               <select
                 value={currentGenre}
                 onChange={(e) => handleFilterChange("genre", e.target.value)}
-                className="min-w-[170px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
               >
                 <option value="all">All</option>
                 {genres.map((genre) => (
@@ -259,14 +259,14 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
               <span className="text-sm text-dark-400">Availability:</span>
               <select
                 value={currentAvailability}
                 onChange={(e) =>
                   handleFilterChange("availability", e.target.value)
                 }
-                className="min-w-[170px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
               >
                 <option value="all">All</option>
                 <option value="available">Available</option>

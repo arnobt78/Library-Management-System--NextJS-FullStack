@@ -507,10 +507,40 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           className="w-full"
           suppressHydrationWarning
         >
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="active">Active Borrows</TabsTrigger>
-            <TabsTrigger value="pending">Pending Requests</TabsTrigger>
-            <TabsTrigger value="history">Borrow History</TabsTrigger>
+          <TabsList className="flex w-full flex-wrap gap-2 sm:grid sm:grid-cols-3">
+            <TabsTrigger
+              value="active"
+              className="min-w-[calc(33.333%-0.5rem)] flex-1 sm:min-w-0"
+            >
+              <span className="block text-center sm:inline">
+                <span className="block sm:inline">Active</span>
+                <span className="block sm:inline sm:before:content-['\00a0']">
+                  Borrows
+                </span>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              className="min-w-[calc(33.333%-0.5rem)] flex-1 sm:min-w-0"
+            >
+              <span className="block text-center sm:inline">
+                <span className="block sm:inline">Pending</span>
+                <span className="block sm:inline sm:before:content-['\00a0']">
+                  Requests
+                </span>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="min-w-[calc(33.333%-0.5rem)] flex-1 sm:min-w-0"
+            >
+              <span className="block text-center sm:inline">
+                <span className="block sm:inline">Borrow</span>
+                <span className="block sm:inline sm:before:content-['\00a0']">
+                  History
+                </span>
+              </span>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="active" className="mt-4 sm:mt-6">
             <div className="space-y-3 sm:space-y-4">
@@ -751,7 +781,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   variant="regular"
                   coverColor={record.book.coverColor}
                   coverImage={record.book.coverUrl}
-                  className="h-full"
+                  className="h-64 w-full sm:h-full"
                 />
               </div>
 
@@ -1015,7 +1045,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   BorrowCard.displayName = "BorrowCard";
 
   return (
-    <div className="container mx-auto px-3 sm:px-4">
+    <div className="container mx-auto">
       <h1 className="mb-4 text-2xl font-bold text-light-100 sm:mb-6 sm:text-3xl">
         My Borrowing History
       </h1>
@@ -1026,24 +1056,48 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         className="w-full"
         suppressHydrationWarning
       >
-        <TabsList className="grid h-auto w-full grid-cols-3 border-2 border-gray-600 bg-gray-800/30 p-0">
+        <TabsList className="flex h-auto w-full flex-wrap gap-2 border-2 border-gray-600 bg-gray-800/30 p-2 sm:grid sm:grid-cols-3 sm:gap-0 sm:p-0">
           <TabsTrigger
             value="active"
-            className="rounded-none border-b-2 border-gray-600 p-2 text-xs text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+            className="min-w-[calc(33.333%-0.5rem)] flex-1 rounded-md border border-gray-600 p-2 text-center text-xs text-light-200 data-[state=active]:border-blue-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:min-w-0 sm:rounded-none sm:border-b-2 sm:border-gray-600 sm:px-4 sm:py-3 sm:text-sm sm:data-[state=active]:border-b-0"
           >
-            Active Borrows ({activeBorrows.length})
+            <span className="block sm:inline">
+              <span className="block sm:inline">Active</span>
+              <span className="block sm:inline sm:before:content-['\00a0']">
+                Borrows
+              </span>
+              <span className="block sm:inline sm:before:content-['\00a0']">
+                ({activeBorrows.length})
+              </span>
+            </span>
           </TabsTrigger>
           <TabsTrigger
             value="pending"
-            className="rounded-none border-b-2 border-gray-600 p-2 text-xs text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-yellow-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+            className="min-w-[calc(33.333%-0.5rem)] flex-1 rounded-md border border-gray-600 p-2 text-center text-xs text-light-200 data-[state=active]:border-yellow-600 data-[state=active]:bg-yellow-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:min-w-0 sm:rounded-none sm:border-b-2 sm:border-gray-600 sm:px-4 sm:py-3 sm:text-sm sm:data-[state=active]:border-b-0"
           >
-            Pending Requests ({pendingRequests.length})
+            <span className="block sm:inline">
+              <span className="block sm:inline">Pending</span>
+              <span className="block sm:inline sm:before:content-['\00a0']">
+                Requests
+              </span>
+              <span className="block sm:inline sm:before:content-['\00a0']">
+                ({pendingRequests.length})
+              </span>
+            </span>
           </TabsTrigger>
           <TabsTrigger
             value="history"
-            className="rounded-none border-b-2 border-gray-600 p-2 text-xs text-light-200 data-[state=active]:border-b-0 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+            className="min-w-[calc(33.333%-0.5rem)] flex-1 rounded-md border border-gray-600 p-2 text-center text-xs text-light-200 data-[state=active]:border-purple-600 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md sm:min-w-0 sm:rounded-none sm:border-b-2 sm:border-gray-600 sm:px-4 sm:py-3 sm:text-sm sm:data-[state=active]:border-b-0"
           >
-            Borrow History ({borrowHistory.length})
+            <span className="block sm:inline">
+              <span className="block sm:inline">Borrow</span>
+              <span className="block sm:inline sm:before:content-['\00a0']">
+                History
+              </span>
+              <span className="block sm:inline sm:before:content-['\00a0']">
+                ({borrowHistory.length})
+              </span>
+            </span>
           </TabsTrigger>
         </TabsList>
 

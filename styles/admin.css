@@ -4,7 +4,7 @@
 
 @layer components {
   .admin-container {
-    @apply flex w-[calc(100%-264px)] flex-1 flex-col bg-light-300 p-5 xs:p-10;
+    @apply flex ml-[15%] w-[85%] flex-1 flex-col bg-light-300 p-3 sm:ml-0 sm:p-5 md:w-[calc(100%-264px)] xs:p-10;
   }
 
   .back-btn {
@@ -25,7 +25,7 @@
   }
 
   .confirm-content {
-    @apply sm:max-w-md flex flex-col items-center justify-center p-6 !important;
+    @apply sm:max-w-md flex flex-col items-center justify-center p-4 sm:p-6 !important;
   }
 
   .confirm-illustration {
@@ -68,11 +68,11 @@
 
   /* Statistics */
   .stat {
-    @apply bg-white rounded-xl p-5 space-y-5 flex-1;
+    @apply bg-white rounded-xl p-4 sm:p-6 space-y-5 flex-1;
   }
 
   .stat-info {
-    @apply flex justify-between items-center gap-5;
+    @apply flex justify-between items-center gap-4 sm:gap-5;
   }
 
   .stat-label {
@@ -166,11 +166,11 @@
 
   /* Sidebar */
   .admin-sidebar {
-    @apply sticky left-0 top-0 flex h-dvh flex-col justify-between bg-white px-0 sm:px-5 pb-5 pt-10;
+    @apply fixed left-0 top-0 z-50 flex h-screen w-[15%] flex-col justify-between overflow-y-auto bg-white px-0 pb-5 pt-10 sm:sticky sm:w-auto sm:px-5;
   }
 
   .admin-sidebar .logo {
-    @apply flex flex-row items-center gap-2 border-b border-dashed border-primary-admin/20 pb-10 max-md:justify-center transition-all duration-200 hover:opacity-80 cursor-pointer;
+    @apply flex flex-row items-center justify-center gap-2 border-b border-dashed border-primary-admin/20 pb-10 transition-all duration-200 hover:opacity-80 cursor-pointer sm:justify-start;
   }
 
   .admin-sidebar .logo h1 {
@@ -178,7 +178,7 @@
   }
 
   .admin-sidebar .link {
-    @apply flex flex-row items-center w-full gap-2 rounded-lg px-5 py-3.5 max-md:justify-center;
+    @apply flex flex-row items-center justify-center w-full gap-2 rounded-lg px-2 py-3.5 sm:justify-start sm:px-5;
   }
 
   .admin-sidebar .link p {
@@ -186,7 +186,7 @@
   }
 
   .admin-sidebar .user {
-    @apply my-8 flex w-full flex-row gap-2 rounded-full border border-light-400 px-6 py-2 shadow-sm max-md:px-2;
+    @apply my-8 flex w-full flex-row items-center justify-center gap-2 rounded-full border border-light-400 px-2 py-2 shadow-sm sm:justify-start sm:px-6;
   }
 
   /* User Card */

@@ -15,7 +15,7 @@ export const signUpSchema = z.object({
     .min(1, "Password is required")
     .min(8, "Password must be at least 8 characters"),
   universityId: z.preprocess(
-    (val) => {
+    (val: number | string | null | undefined) => {
       // Convert empty string, null, or undefined to undefined
       if (val === "" || val === null || val === undefined) {
         return undefined;
@@ -33,7 +33,7 @@ export const signUpSchema = z.object({
         99999999,
         "University ID is too large. Maximum allowed 8-digit number"
       )
-  ),
+  ) as z.ZodType<number, z.ZodTypeDef, number | string | null | undefined>,
   universityCard: z
     .string()
     .min(
