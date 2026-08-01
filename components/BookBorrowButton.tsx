@@ -20,6 +20,7 @@ import ReviewButton from "@/components/ReviewButton";
 import { useUserBorrows } from "@/hooks/useQueries";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import type { ReviewEligibility } from "@/lib/services/reviews";
+import ReserveBookButton from "@/components/ReserveBookButton";
 
 interface BookBorrowButtonProps {
   /**
@@ -128,6 +129,8 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
             existingBorrow.dueDate ? new Date(existingBorrow.dueDate) : null
           }
         />
+      ) : availableCopies <= 0 && userStatus === "APPROVED" && isActive ? (
+        <ReserveBookButton bookId={bookId} />
       ) : (
         <BorrowBook
           bookId={bookId}

@@ -16,6 +16,8 @@ import {
   requireAdminActor,
 } from "@/lib/auth/authorization";
 import { bookSchema, bookUpdateSchema } from "@/lib/validations";
+import { assertPersistedMediaUrl } from "@/lib/media/serverValidation";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -41,6 +43,10 @@ export const createBook = async (params: BookParams) => {
   try {
     const actor = await requireAdminActor();
     const safeParams = bookSchema.parse(params);
+    await Promise.all([
+      assertPersistedMediaUrl(safeParams.coverUrl, "image"),
+      assertPersistedMediaUrl(safeParams.videoUrl, "video"),
+    ]);
     const wantFeatured = safeParams.isFeatured === true;
 
     const newBook = await db.transaction(async (tx) => {
@@ -63,6 +69,7 @@ export const createBook = async (params: BookParams) => {
       return inserted[0];
     });
 
+    revalidateMutationPaths("book.write");
     return {
       success: true,
       data: JSON.parse(JSON.stringify(newBook)),
@@ -85,6 +92,26 @@ export const updateBook = async (
   try {
     const actor = await requireAdminActor();
     const safeParams = bookUpdateSchema.parse(params);
+    const currentBook = await db
+      .select({
+        coverUrl: books.coverUrl,
+        videoUrl: books.videoUrl,
+      })
+      .from(books)
+      .where(eq(books.id, bookId))
+      .limit(1);
+    if (!currentBook[0]) throw new Error("Book not found");
+
+    // Existing legacy media remains editable; every newly supplied location
+    // must pass the current trusted-origin, metadata, size, and signature policy.
+    await Promise.all([
+      safeParams.coverUrl && safeParams.coverUrl !== currentBook[0].coverUrl
+        ? assertPersistedMediaUrl(safeParams.coverUrl, "image")
+        : Promise.resolve(),
+      safeParams.videoUrl && safeParams.videoUrl !== currentBook[0].videoUrl
+        ? assertPersistedMediaUrl(safeParams.videoUrl, "video")
+        : Promise.resolve(),
+    ]);
     const wantFeatured = safeParams.isFeatured === true;
 
     const updatedBook = await db.transaction(async (tx) => {
@@ -157,6 +184,7 @@ export const updateBook = async (
       return rows[0];
     });
 
+    revalidateMutationPaths("book.write");
     return {
       success: true,
       data: JSON.parse(JSON.stringify(updatedBook)),

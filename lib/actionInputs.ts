@@ -9,6 +9,10 @@ const entityIdsSchema = z
   .min(1)
   .max(100)
   .transform((ids) => [...new Set(ids)]);
+const profilePaginationSchema = z.object({
+  page: z.coerce.number().int().min(1).max(10_000),
+  size: z.coerce.number().int().min(1).max(50),
+});
 
 export const adminRequestReasonSchema = z.string().trim().min(10).max(1000);
 
@@ -18,4 +22,11 @@ export function parseEntityId(value: unknown): string {
 
 export function parseEntityIds(value: unknown): string[] {
   return entityIdsSchema.parse(value);
+}
+
+export function parseProfilePagination(
+  page: unknown,
+  size: unknown = 25,
+): { page: number; size: number } {
+  return profilePaginationSchema.parse({ page, size });
 }

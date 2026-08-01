@@ -41,12 +41,7 @@ vi.mock("@/lib/toast", () => ({
   },
 }));
 vi.mock("@/lib/utils/queryInvalidation", () => ({
-  invalidateAfterBookChange: vi.fn(),
-  invalidateAfterUserChange: vi.fn(),
-  invalidateAfterBorrowChange: state.invalidateBorrow,
-  invalidateAfterReviewChange: vi.fn(),
-  invalidateAfterAdminChange: vi.fn(),
-  invalidateAfterRecommendationChange: vi.fn(),
+  invalidateMutation: state.invalidateBorrow,
 }));
 
 interface BorrowMutationOptions {
@@ -100,7 +95,10 @@ describe("borrow mutation cache contract", () => {
       invalidationFinished = true;
     });
     await options.onSuccess([], variables, context);
-    expect(state.invalidateBorrow).toHaveBeenCalledWith(state.client);
+    expect(state.invalidateBorrow).toHaveBeenCalledWith(
+      state.client,
+      "borrow.lifecycle",
+    );
     expect(invalidationFinished).toBe(true);
   });
 });

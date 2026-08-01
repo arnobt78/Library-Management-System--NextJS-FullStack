@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateTrendingBooks } from "@/lib/admin/actions/recommendations";
 import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,7 @@ export async function POST(_request: NextRequest) {
     if (!authorization.ok) return authorization.response;
 
     const result = await updateTrendingBooks();
+    revalidateMutationPaths("recommendation.write");
 
     return NextResponse.json({
       success: true,

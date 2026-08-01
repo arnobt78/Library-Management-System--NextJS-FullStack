@@ -1,0 +1,2 @@
+// Parent: REQ-0030
+export const RESERVATION_OUTBOX_LOCK_TIMEOUT_MS = 5 * 60 * 1000;

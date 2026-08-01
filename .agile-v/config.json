@@ -4,12 +4,12 @@
     "name": "university-library",
     "type": "existing-nextjs-web-application",
     "repository_branch": "main",
-    "baseline_commit": "83e3411",
-    "cycle": "C1",
+    "baseline_commit": "c94e7db",
+    "cycle": "C2",
     "risk_default": "R2"
   },
   "pipeline": {
-    "current_stage": 5,
+    "current_stage": 4,
     "human_gate_0_required": true,
     "human_gate_1_required": true,
     "human_gate_2_required": true,

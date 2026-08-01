@@ -27,6 +27,7 @@ import {
   timestamp,
   boolean,
   decimal,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -49,6 +50,13 @@ export const BORROW_STATUS_ENUM = pgEnum("borrow_status", [
   "BORROWED",   // Book is currently borrowed by user
   "RETURNED",   // Book has been returned
 ]);
+export const RESERVATION_STATUS_ENUM = pgEnum("reservation_status", [
+  "WAITING",
+  "READY",
+  "FULFILLED",
+  "CANCELLED",
+  "EXPIRED",
+]);
 
 /**
  * Users Table
@@ -58,7 +66,7 @@ export const BORROW_STATUS_ENUM = pgEnum("borrow_status", [
  * Key Fields:
  * - id: UUID primary key (auto-generated)
  * - email: Unique identifier for login
- * - password: SHA-256 hashed password with salt (format: "salt:hash")
+ * - password: versioned memory-hard hash; legacy salted SHA-256 is upgraded on login
  * - status: Account approval status (PENDING/APPROVED/REJECTED)
  * - role: User role (USER/ADMIN)
  * - lastActivityDate: Last time user interacted with system
@@ -165,6 +173,59 @@ export const borrowRecords = pgTable("borrow_records", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(), // Last modification
   updatedBy: text("updated_by"), // Email for readability (who made the update)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(), // When record was created
+});
+
+// Parent: REQ-0030
+export const reservations = pgTable("reservations", {
+  id: uuid("id").notNull().primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  bookId: uuid("book_id").notNull().references(() => books.id),
+  status: RESERVATION_STATUS_ENUM("status").notNull().default("WAITING"),
+  readyExpiresAt: timestamp("ready_expires_at", { withTimezone: true }),
+  fulfilledBorrowId: uuid("fulfilled_borrow_id").references(
+    () => borrowRecords.id,
+  ),
+  updatedBy: text("updated_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Transactional outbox rows make READY notifications replay-safe. A delivery
+// worker can mark deliveredAt without coupling provider calls to inventory locks.
+export const reservationEvents = pgTable("reservation_events", {
+  id: uuid("id").notNull().primaryKey().defaultRandom(),
+  reservationId: uuid("reservation_id").notNull().references(() => reservations.id),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  eventKey: varchar("event_key", { length: 100 }).notNull().unique(),
+  attemptCount: integer("attempt_count").notNull().default(0),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+  lockedAt: timestamp("locked_at", { withTimezone: true }),
+  lastError: varchar("last_error", { length: 100 }),
+  provider: varchar("provider", { length: 30 }),
+  providerMessageId: varchar("provider_message_id", { length: 255 }),
+  deadLetteredAt: timestamp("dead_lettered_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+});
+
+// Client command IDs make circulation mutations safe to retry across network
+// timeouts. The result is committed atomically with the domain mutation.
+export const circulationCommands = pgTable("circulation_commands", {
+  id: uuid("id").notNull().primaryKey(),
+  actorId: uuid("actor_id").notNull().references(() => users.id),
+  operation: varchar("operation", { length: 50 }).notNull(),
+  entityId: uuid("entity_id").notNull(),
+  result: jsonb("result"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const operationTelemetry = pgTable("operation_telemetry", {
+  id: uuid("id").notNull().primaryKey().defaultRandom(),
+  operation: varchar("operation", { length: 80 }).notNull(),
+  kind: varchar("kind", { length: 20 }).notNull(),
+  outcome: varchar("outcome", { length: 20 }).notNull(),
+  durationMs: integer("duration_ms").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /**

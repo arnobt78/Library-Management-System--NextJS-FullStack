@@ -30,6 +30,8 @@ import {
   returnBorrowRecord,
 } from "@/lib/admin/borrowLifecycle";
 import { parseEntityId } from "@/lib/actionInputs";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { scheduleReservationOutboxDelivery } from "@/lib/circulation/scheduleOutbox";
 
 /**
  * Fetch all borrow requests with user and book details
@@ -93,15 +95,22 @@ export const updateBorrowStatus = async (
     const actor = await requireAdminActor();
     const safeRecordId = parseEntityId(recordId);
     if (status === "BORROWED") {
-      return await approveBorrowRecord(safeRecordId, actor);
+      const result = await approveBorrowRecord(safeRecordId, actor);
+      if (result.success) revalidateMutationPaths("borrow.lifecycle");
+      return result;
     }
     if (status === "RETURNED") {
       const { getDailyFineAmount } = await import("./config");
-      return await returnBorrowRecord(
+      const result = await returnBorrowRecord(
         safeRecordId,
         actor,
         await getDailyFineAmount()
       );
+      if (result.success) {
+        scheduleReservationOutboxDelivery();
+        revalidateMutationPaths("borrow.lifecycle");
+      }
+      return result;
     }
 
     const [record] = await db
@@ -139,7 +148,9 @@ export const updateBorrowStatus = async (
 export const approveBorrowRequest = async (recordId: string) => {
   try {
     const actor = await requireAdminActor();
-    return await approveBorrowRecord(parseEntityId(recordId), actor);
+    const result = await approveBorrowRecord(parseEntityId(recordId), actor);
+    if (result.success) revalidateMutationPaths("borrow.lifecycle");
+    return result;
   } catch (error) {
     console.error("Error approving borrow request:", error);
     return {
@@ -152,7 +163,9 @@ export const approveBorrowRequest = async (recordId: string) => {
 export const rejectBorrowRequest = async (recordId: string) => {
   try {
     await requireAdminActor();
-    return await rejectBorrowRecord(parseEntityId(recordId));
+    const result = await rejectBorrowRecord(parseEntityId(recordId));
+    if (result.success) revalidateMutationPaths("borrow.lifecycle");
+    return result;
   } catch (error) {
     console.error("Error rejecting borrow request:", error);
     return { success: false, error: "Failed to reject borrow request" };
@@ -208,7 +221,7 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
    * For example, if a fine was manually adjusted by an admin, we don't want
    * to overwrite it with an automated calculation.
    */
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // Lock the selected rows so concurrent automation runs cannot overwrite
     // manual adjustments or attribute the same batch to different actors.
     const overdueRecords = await tx
@@ -259,6 +272,8 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
     }
     return results;
   });
+  revalidateMutationPaths("fine.write");
+  return result;
 };
 
 // Force update fines for ALL overdue books (for testing/admin purposes)
@@ -278,7 +293,7 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
   const dailyFineAmount = customFineAmount ?? (await getDailyFineAmount());
 
   // Update ALL overdue books regardless of existing fine amounts
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const overdueRecords = await tx
       .select({
         id: borrowRecords.id,
@@ -337,17 +352,24 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
     }
     return results;
   });
+  revalidateMutationPaths("fine.write");
+  return result;
 };
 
 export const returnBook = async (recordId: string) => {
   try {
     const actor = await requireAuthenticatedActor();
     const { getDailyFineAmount } = await import("./config");
-    return await returnBorrowRecord(
+    const result = await returnBorrowRecord(
       parseEntityId(recordId),
       actor,
       await getDailyFineAmount()
     );
+    if (result.success) {
+      scheduleReservationOutboxDelivery();
+      revalidateMutationPaths("borrow.lifecycle");
+    }
+    return result;
   } catch (error) {
     console.error("Error returning book:", error);
     return {

@@ -1,11 +1,21 @@
 import { db } from "@/database/drizzle";
 import { books, users, borrowRecords } from "@/database/schema";
 import { eq, sql, desc, and, gte, lt, count } from "drizzle-orm";
+import type { AnalyticsData } from "@/lib/services/analytics";
+import type { DeterministicInsights } from "@/lib/insights/types";
+import { safePercentage, safeRatio } from "@/lib/insights/formulas";
+
+function boundedInteger(value: number | undefined, fallback: number, maximum: number) {
+  return Number.isFinite(value)
+    ? Math.min(maximum, Math.max(1, Math.trunc(value as number)))
+    : fallback;
+}
 
 // Get borrowing trends over time (last 30 days)
-export async function getBorrowingTrends() {
+export async function getBorrowingTrends(days = 30) {
+  const safeDays = boundedInteger(days, 30, 90);
   const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - safeDays);
 
   const trends = await db
     .select({
@@ -42,7 +52,8 @@ export async function getPopularBooks(limit = 10) {
   return popularBooks;
 }
 
-export async function getPopularGenres() {
+export async function getPopularGenres(limit = 10) {
+  const safeLimit = boundedInteger(limit, 10, 25);
   const popularGenres = await db
     .select({
       genre: books.genre,
@@ -53,13 +64,14 @@ export async function getPopularGenres() {
     .innerJoin(books, eq(borrowRecords.bookId, books.id))
     .groupBy(books.genre)
     .orderBy(desc(count()))
-    .limit(10);
+    .limit(safeLimit);
 
   return popularGenres;
 }
 
 // Get user activity patterns
-export async function getUserActivityPatterns() {
+export async function getUserActivityPatterns(limit = 20) {
+  const safeLimit = boundedInteger(limit, 20, 50);
   const userActivity = await db
     .select({
       userId: borrowRecords.userId,
@@ -75,7 +87,7 @@ export async function getUserActivityPatterns() {
     .innerJoin(users, eq(borrowRecords.userId, users.id))
     .groupBy(borrowRecords.userId, users.fullName, users.email)
     .orderBy(desc(count()))
-    .limit(20);
+    .limit(safeLimit);
 
   return userActivity;
 }
@@ -250,4 +262,78 @@ export async function getSystemHealth() {
     overdueBooks: overdueBooksResult[0]?.count || 0,
     recentActivity: recentActivityResult[0]?.count || 0,
   };
+}
+
+/** Versioned formulas keep insight output reproducible and provider-independent. */
+export async function getDeterministicInsights(): Promise<DeterministicInsights> {
+  const result = await db.execute(sql`
+    WITH circulation AS (
+      SELECT
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '29 days')::int AS recent,
+        COUNT(*) FILTER (WHERE status = 'RETURNED')::int AS returned,
+        COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR return_date <= due_date))::int AS on_time,
+        COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS active,
+        COUNT(*) FILTER (WHERE status = 'BORROWED' AND due_date < CURRENT_DATE)::int AS overdue,
+        COUNT(*) FILTER (WHERE renewal_count > 0)::int AS renewed,
+        COUNT(*)::int AS total,
+        COALESCE(SUM(fine_amount) FILTER (WHERE status = 'BORROWED'), 0)::numeric AS fines
+      FROM borrow_records
+    ), inventory AS (
+      SELECT COALESCE(SUM(total_copies), 0)::numeric AS copies FROM books WHERE is_active = true
+    ), holds AS (
+      SELECT COUNT(*) FILTER (WHERE status IN ('WAITING', 'READY'))::numeric AS active FROM reservations
+    )
+    SELECT
+      (CURRENT_DATE - INTERVAL '29 days')::date::text AS period_start,
+      CURRENT_DATE::text AS period_end,
+      circulation.recent,
+      circulation.on_time,
+      circulation.returned,
+      circulation.active,
+      circulation.overdue,
+      circulation.fines,
+      circulation.renewed,
+      circulation.total,
+      inventory.copies,
+      holds.active AS active_holds
+    FROM circulation, inventory, holds
+  `);
+  const row = result.rows[0];
+  return {
+    formulaVersion: "C2-v1",
+    periodStart: String(row?.period_start ?? ""),
+    periodEnd: String(row?.period_end ?? ""),
+    circulation30Days: Number(row?.recent ?? 0),
+    onTimeReturnRate: safePercentage(Number(row?.on_time ?? 0), Number(row?.returned ?? 0)),
+    overdueRatio: safePercentage(Number(row?.overdue ?? 0), Number(row?.active ?? 0)),
+    outstandingFineTotal: Number(row?.fines ?? 0),
+    demandToCopyRatio: safeRatio(Number(row?.recent ?? 0) + Number(row?.active_holds ?? 0), Number(row?.copies ?? 0)),
+    holdPressure: safeRatio(Number(row?.active_holds ?? 0), Number(row?.copies ?? 0)),
+    renewalRate: safePercentage(Number(row?.renewed ?? 0), Number(row?.total ?? 0)),
+  };
+}
+
+export async function getCompleteAnalyticsSnapshot(options?: {
+  popularBooksLimit?: number;
+  popularGenresLimit?: number;
+  userActivityLimit?: number;
+  borrowingTrendsDays?: number;
+}): Promise<AnalyticsData> {
+  const booksLimit = boundedInteger(options?.popularBooksLimit, 10, 25);
+  const genresLimit = boundedInteger(options?.popularGenresLimit, 10, 25);
+  const usersLimit = boundedInteger(options?.userActivityLimit, 20, 50);
+  const trendsDays = boundedInteger(options?.borrowingTrendsDays, 30, 90);
+  const [borrowingTrends, popularBooks, popularGenres, userActivity, overdueBooks, overdueStats, monthlyStats, systemHealth, deterministicInsights] =
+    await Promise.all([
+      getBorrowingTrends(trendsDays),
+      getPopularBooks(booksLimit),
+      getPopularGenres(genresLimit),
+      getUserActivityPatterns(usersLimit),
+      getOverdueAnalysis(),
+      getOverdueStats(),
+      getMonthlyStats(),
+      getSystemHealth(),
+      getDeterministicInsights(),
+    ]);
+  return { borrowingTrends, popularBooks, popularGenres, userActivity, overdueBooks, overdueStats, monthlyStats, systemHealth, deterministicInsights };
 }

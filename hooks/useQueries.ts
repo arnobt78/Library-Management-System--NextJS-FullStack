@@ -67,7 +67,7 @@ import { useSearchParams } from "next/navigation";
  * Hook to fetch books with optional search and filter parameters.
  * Supports URL search params for search, genre, availability, rating, sort, page, and limit.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param filters - Optional filters object (overrides URL params if provided)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -120,7 +120,7 @@ export const useBooks = (
       trackQuery("books", async () => {
         return getBooksList(urlFilters);
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -130,7 +130,7 @@ export const useBooks = (
  * Hook to fetch all books with search and filter parameters (for all-books page).
  * This is an alias for useBooks() but with a specific query key for the all-books page.
  * Supports URL search params for search, genre, availability, rating, sort, page, and limit.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param filters - Optional filters object (overrides URL params if provided)
  * @returns React Query result with books list, pagination, and loading/error states
@@ -179,7 +179,7 @@ export const useAllBooks = (
       trackQuery("all-books", async () => {
         return getBooksList(urlFilters);
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -188,7 +188,7 @@ export const useAllBooks = (
 /**
  * Hook to fetch a single book by ID.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param id - Book ID (UUID)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -213,7 +213,7 @@ export const useBook = (id: string, initialData?: Book) => {
         return getBook(id);
       }),
     enabled: !!id,
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -222,7 +222,7 @@ export const useBook = (id: string, initialData?: Book) => {
 /**
  * Hook to fetch borrow statistics for a specific book.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param bookId - Book ID (UUID)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -249,7 +249,7 @@ export const useBookBorrowStats = (
       trackQuery("book-borrow-stats", async () => {
         return getBookBorrowStats(bookId);
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     enabled: !!bookId, // Only fetch if bookId is provided
     initialData, // Use SSR data if provided (prevents duplicate fetch)
@@ -259,7 +259,7 @@ export const useBookBorrowStats = (
 /**
  * Hook to fetch book recommendations for a user.
  * Supports URL search params for userId and limit.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param userId - Optional user ID (if not provided, uses current session or URL param)
  * @param limit - Optional limit for number of recommendations (default: 10)
@@ -307,7 +307,7 @@ export const useBookRecommendations = (
           return getBookRecommendations(finalUserId, finalLimit);
         }
       ),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
     enabled: true, // Always enabled (userId is optional)
@@ -331,7 +331,7 @@ export const useFeaturedBooks = (limit: number = 10, initialData?: Book[]) => {
       trackQuery(`featured-books-${limit}`, async () => {
         return getFeaturedBooks(limit);
       }),
-    staleTime: Infinity,
+    staleTime: 30 * 1000,
     refetchOnMount: true,
     initialData,
   });
@@ -341,7 +341,7 @@ export const useFeaturedBooks = (limit: number = 10, initialData?: Book[]) => {
 /**
  * Hook to fetch a single user profile by ID.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param userId - User ID (UUID)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -366,7 +366,7 @@ export const useUserProfile = (userId: string, initialData?: User) => {
         return getUser(userId);
       }),
     enabled: !!userId,
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -376,7 +376,7 @@ export const useUserProfile = (userId: string, initialData?: User) => {
  * Hook to fetch all users with search and filter parameters (for admin users page).
  * Supports URL search params for search, status, role, sort, page, and limit.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param filters - Optional filters object (overrides URL params if provided)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -433,7 +433,7 @@ export const useAllUsers = (
 /**
  * Hook to fetch pending user account requests.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with pending users array and loading/error states
@@ -477,7 +477,7 @@ export const usePendingUsers = (
  * Hook to fetch borrow records with optional filters and query parameters.
  * Supports URL search params for status, date range, overdue, sort, page, and limit.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param userId - User ID (required for user-specific borrows)
  * @param filters - Optional filters object (overrides URL params if provided)
@@ -539,7 +539,7 @@ export const useBorrowRecords = (
         return getBorrowsList(urlFilters);
       }),
     enabled: !!userId,
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -548,7 +548,7 @@ export const useBorrowRecords = (
 /**
  * Hook to fetch user-specific borrow records.
  * Supports URL search params for status filter.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param userId - User ID (required)
  * @param status - Optional status filter (PENDING, BORROWED, RETURNED)
@@ -589,10 +589,10 @@ export const useUserBorrows = (
         return getUserBorrows(userId, finalStatus);
       }),
     enabled: !!userId,
-    staleTime: 0, // Always consider data stale - refetch on every mount
-    refetchOnMount: true, // Always refetch on mount - no cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     // TanStack Query applies initial data only when the key has no cached value.
     initialData,
   });
@@ -602,7 +602,7 @@ export const useUserBorrows = (
 /**
  * Hook to fetch admin dashboard statistics.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with admin statistics and loading/error states
@@ -625,7 +625,7 @@ export const useAdminStats = (initialData?: AdminStats) => {
       trackQuery("admin-stats", async () => {
         return getAdminStats();
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -635,7 +635,7 @@ export const useAdminStats = (initialData?: AdminStats) => {
  * Hook to fetch all borrow requests (admin view with user and book details).
  * Supports URL search params for status filter and optional filters parameter.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param filters - Optional filters object (overrides URL params if provided)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -686,7 +686,7 @@ export const useBorrowRequests = (
 /**
  * Hook to fetch pending admin requests.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with pending admin requests array and loading/error states
@@ -709,7 +709,7 @@ export const usePendingAdminRequests = (initialData?: AdminRequest[]) => {
       trackQuery("pending-admin-requests", async () => {
         return getPendingAdminRequests();
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -718,7 +718,7 @@ export const usePendingAdminRequests = (initialData?: AdminRequest[]) => {
 /**
  * Hook to fetch all reviews for a specific book.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param bookId - Book ID (UUID)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -743,7 +743,7 @@ export const useBookReviews = (bookId: string, initialData?: Review[]) => {
         return getBookReviews(bookId);
       }),
     enabled: !!bookId,
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -755,7 +755,7 @@ export const useBookReviews = (bookId: string, initialData?: Review[]) => {
  * 1. User must be logged in
  * 2. User must have previously borrowed AND returned the book
  * 3. User must NOT have an existing review for the book
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param bookId - Book ID (UUID)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -786,7 +786,7 @@ export const useReviewEligibility = (
         return getReviewEligibility(bookId);
       }),
     enabled: !!bookId,
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -797,7 +797,7 @@ export const useReviewEligibility = (
  * Fetches all analytics in parallel: borrowing trends, popular books/genres,
  * user activity, overdue analysis, monthly stats, and system health.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with complete analytics data and loading/error states
@@ -820,7 +820,7 @@ export const useAdminAnalytics = (initialData?: AnalyticsData) => {
       trackQuery("admin-analytics", async () => {
         return getCompleteAnalytics();
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -831,7 +831,7 @@ export const useAdminAnalytics = (initialData?: AnalyticsData) => {
  * Supports URL search params for period and metric filters.
  * Fetches all analytics in parallel: borrowing trends, popular books/genres,
  * user activity, overdue analysis, monthly stats, and system health.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param options - Optional configuration (limits, days, etc.)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
@@ -883,7 +883,7 @@ export const useBusinessInsights = (
       trackQuery("business-insights", async () => {
         return getCompleteAnalytics(finalOptions);
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -892,7 +892,7 @@ export const useBusinessInsights = (
 /**
  * Hook to fetch system metrics (database performance, API performance, error rate, storage, etc.).
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with system metrics data and loading/error states
@@ -906,7 +906,10 @@ export const useBusinessInsights = (
  * const { data } = useSystemMetrics(serverMetricsData);
  * ```
  */
-export const useSystemMetrics = (initialData?: MetricsData) => {
+export const useSystemMetrics = (
+  initialData?: MetricsData,
+  enabled: boolean = true,
+) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
@@ -915,9 +918,10 @@ export const useSystemMetrics = (initialData?: MetricsData) => {
       trackQuery("system-metrics", async () => {
         return fetchSystemMetrics();
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+    enabled,
   });
 };
 
@@ -925,7 +929,7 @@ export const useSystemMetrics = (initialData?: MetricsData) => {
  * Hook to fetch health status for all services (API server, database, file storage, etc.).
  * Fetches health checks for multiple services in parallel and returns their status.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with service health data array and loading/error states
@@ -942,16 +946,39 @@ export const useSystemMetrics = (initialData?: MetricsData) => {
  * const apiServer = data?.find(service => service.name === "API Server");
  * ```
  */
-export const useServiceHealth = (initialData?: ServiceStatus[]) => {
+export const useServiceHealth = (
+  initialData?: ServiceStatus[],
+  operatorMode: boolean = true,
+) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery<ServiceStatus[], Error>({
     queryKey: queryKeys.admin.serviceHealth,
     queryFn: () =>
       trackQuery("service-health", async () => {
-        return fetchAllServicesHealth();
+        if (operatorMode) return fetchAllServicesHealth();
+
+        const response = await fetch("/api/status/health", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(10_000),
+        });
+        const result = (await response.json()) as {
+          status: "HEALTHY" | "DEGRADED" | "DOWN";
+          timestamp: string;
+        };
+        return [{
+          name: "Application",
+          status: result.status,
+          responseTime: 0,
+          endpoint: "/api/status/health",
+          description: "Public application liveness",
+          icon: null,
+          performance: result.status === "HEALTHY" ? "Excellent" : "Poor",
+          performanceValue: result.status === "HEALTHY" ? 100 : 0,
+          lastChecked: result.timestamp,
+        }];
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -960,7 +987,7 @@ export const useServiceHealth = (initialData?: ServiceStatus[]) => {
 /**
  * Hook to fetch fine configuration (daily fine amount for overdue books).
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with fine configuration and loading/error states
@@ -984,7 +1011,7 @@ export const useFineConfig = (initialData?: FineConfig) => {
       trackQuery("fine-config", async () => {
         return getFineConfig();
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -993,7 +1020,7 @@ export const useFineConfig = (initialData?: FineConfig) => {
 /**
  * Hook to fetch reminder statistics.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with reminder statistics and loading/error states
@@ -1016,7 +1043,7 @@ export const useReminderStats = (initialData?: ReminderStats) => {
       trackQuery("reminder-stats", async () => {
         return getReminderStats();
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });
@@ -1025,7 +1052,7 @@ export const useReminderStats = (initialData?: ReminderStats) => {
 /**
  * Hook to fetch export statistics.
  * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses infinite cache strategy (staleTime: Infinity) for optimal performance.
+ * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
  * @returns React Query result with export statistics and loading/error states
@@ -1048,7 +1075,7 @@ export const useExportStats = (initialData?: ExportStats) => {
       trackQuery("export-stats", async () => {
         return getExportStats();
       }),
-    staleTime: Infinity, // Cache forever until invalidated
+    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
   });

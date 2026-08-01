@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024 | Updated: 2026-08-01 | Status: C1 security re-entry
+> Parent: REQ-0018, REQ-0024, CR-0002 | Updated: 2026-08-02 | Status: C2 Stage 4; corrective local Prove passed; Gate 2 blocked
 
 ## Purpose
 
@@ -39,11 +39,11 @@ Browser
 ## Data freshness
 
 1. RSC supplies first-paint data.
-2. Query hooks reuse that data with `staleTime: Infinity`.
-3. Successful mutations invalidate the exact affected domains.
-4. Active observers refetch immediately; inactive queries become stale for navigation/back.
+2. Query hooks reuse SSR data with a bounded 30-second freshness window.
+3. Successful mutations select one typed family that drives TanStack domains and RSC paths.
+4. Active observers refetch immediately; inactive queries are invalidated and reconcile on navigation/back, focus or reconnect.
 5. Book CRUD also calls `router.refresh()` for the current RSC tree.
-6. A data-free `BroadcastChannel` signal repeats invalidation in other same-origin tabs.
+6. A data-free, event-ID/generation-deduplicated `BroadcastChannel` signal repeats invalidation in other same-origin tabs.
 
 Domains cover books, users, borrows, reviews, admin state, analytics, recommendations and operational/export statistics. This is browser-local realtime, not cross-device push.
 
@@ -58,14 +58,16 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 ## Authentication and authorization
 
 - Auth.js credentials produce JWT sessions; database role/status is authoritative.
+- Passwords: versioned scrypt (`lib/auth/password.ts`) with legacy SHA-256 verify + rehash-on-login.
 - `lib/auth/authorization.ts` resolves the session ID against current database role/status for actions and privileged API routes.
 - User writes enforce ownership; admin/reviewer/audit identities come from the server and cannot be supplied by the browser.
 - Borrow approval/return/rejection, fine batches, bulk lifecycle work, admin-request approval, and hard deletion use transactions and row locks to prevent partial or replayed state changes.
 - User permission/status writes and fine updates record the authenticated admin; migration `0009_users_audit_fields.sql` adds the user audit columns.
+- Sign-in demo dropdown: `TEST_ACCOUNTS` (Test User / Test Admin). Seed with `npm run seed:test-profiles`. Avatars are local `universityCard` paths (`/images/profile-img1.png`, `/images/profile-img2.png`) rendered by `UserAvatar` via `resolveUniversityCard` (local | http | ImageKit).
 
 ## Environment
 
-Copy `.env.example` to `.env`. It documents required/optional scope, safe formats and provider acquisition links. Never commit `.env`. Important server-only values include `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_DELETE_SECRET`, `IMAGEKIT_PRIVATE_KEY`, Redis/QStash tokens and email-provider keys.
+Copy `.env.example` to `.env`. It documents required/optional scope, safe formats and provider acquisition links. Never commit `.env`. Important server-only values include `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_DELETE_SECRET`, `IMAGEKIT_PRIVATE_KEY`, Redis/QStash tokens, `RESEND_TOKEN`, `RESEND_SENDER_EMAIL`, and `CRON_SECRET`.
 
 ## Quality commands
 
@@ -79,9 +81,11 @@ npm audit --audit-level=low
 npm run build
 ```
 
-Latest Prove evidence: strict types pass, zero-warning lint passes, 40 default tests pass, 4/4 disposable-PostgreSQL race/rollback tests pass, npm audit reports zero vulnerabilities, and the Next.js 16.2.12 production build passes.
+Latest C2 Prove evidence: strict types and zero-warning lint pass; 84 default tests and 10/10 disposable-PostgreSQL authorization/concurrency/replay/outbox/expiry tests pass in ten consecutive stress runs; npm audit reports zero vulnerabilities; migration `0010` forward/down preserves base tables; the Next.js 16.2.12 production build generates 54 routes; local health/security-header smoke passes.
 
-Independent Verify records all 27 approved test cases PASS. Gate 2 is approved, and the final repository-wide pre-commit audit found no blocking architecture, security, freshness, performance, cleanup, or configuration gap.
+Independent Verify records all 27 C1-approved cases PASS. C2 implements versioned scrypt with legacy upgrade, protected diagnostics/security headers, server-side media verification, mutation/RSC coherence, server-first Suspense routes, user 360, reservations/renewals, deterministic insights and bounded PostgreSQL telemetry/SLO logic. Corrective C2 Red Team reports zero known code failures, but all 75 exact C2 procedures retain nonlocal evidence flags. The Project Owner authorized a local checkpoint commit; Gate 2, push and deployment remain blocked.
+
+The 2026-08-02 correction added retry-safe READY delivery: workers claim rows with `SKIP LOCKED`; PostgreSQL time and in-transaction payload reads remove host-clock and claim/delete windows; a five-minute dispatch lease and 10-second provider timeout prevent stale transition races without holding database locks across network calls; delivery concurrency is capped at five; the stable Resend key, receipts/retries, eight-attempt dead-lettering, exact/scheduled expiry, `after()` dispatch and authenticated cron provide recovery. Server auth Zod, rolling upload authorization, bounded profile inputs, selective prefetch/server shells and sanitized review errors passed final review. All browser mutations and server writes share the typed mutation/RSC registries, including user-360 dependencies. Cross-device push remains excluded; deployed provider/browser/load/alert/SLO/restore evidence is absent. Redis remains rate limiting only.
 
 Accepted implementation commit: `d9b9fd9`. Agile V cycle C1 is complete and frozen under `.agile-v/cycles/C1/`.
 
@@ -96,3 +100,7 @@ Accepted implementation commit: `d9b9fd9`. Agile V cycle C1 is complete and froz
 ## Agent resume
 
 Read `CLAUDE.md`, `.agile-v/STATE.md`, `.agile-v/CHECKPOINTS.md`, `.agile-v/REQUIREMENTS.md`, and `.agile-v/VALIDATION_SUMMARY.md` before the next change.
+
+## C2 implementation boundary
+
+Gate 1 (`GATE-0006`) authorized and local Prove completed ART-0013 through ART-0023. PostgreSQL remains authoritative; Redis is rate limiting only; browser/tab invalidation plus focus/reconnect is the approved realtime scope. Cross-session push, external LLM narratives, gRPC and copied commerce domains remain excluded. Apply `0010_reservations.sql` and configure `RESEND_TOKEN`, `RESEND_SENDER_EMAIL`, and `CRON_SECRET`; collect independent and production evidence before Gate 2.

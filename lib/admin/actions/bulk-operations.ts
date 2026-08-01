@@ -6,7 +6,7 @@
  */
 
 import { db } from "@/database/drizzle";
-import { books, users, borrowRecords, bookReviews } from "@/database/schema";
+import { books, users, borrowRecords, bookReviews, reservations, reservationEvents } from "@/database/schema";
 import { eq, sql, inArray, and } from "drizzle-orm";
 import { verifyAdminDeleteSecret } from "../verifyAdminDeleteSecret";
 import {
@@ -18,6 +18,7 @@ import {
   rejectBorrowRecords,
 } from "../borrowLifecycle";
 import { parseEntityIds } from "../../actionInputs";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 type BulkBookUpdates = Pick<typeof books.$inferInsert, "isActive">;
 type BulkUserUpdates = Pick<typeof users.$inferInsert, "role" | "status">;
@@ -42,6 +43,7 @@ export async function bulkUpdateBooks(
       })
       .where(inArray(books.id, safeBookIds));
 
+    revalidateMutationPaths("book.write");
     return {
       success: true,
       message: `Successfully updated ${bookIds.length} book(s)`,
@@ -56,7 +58,8 @@ export async function bulkUpdateBooks(
 
 /**
  * Hard-delete books after secret verification.
- * Order: reviews → borrow_records → books (FK-safe). Blocks if any BORROWED rows exist.
+ * Order: reservation events → reservations → reviews → borrow records → books.
+ * Active loans and reservations block destructive catalog deletion.
  */
 export async function bulkDeleteBooks(
   bookIds: string[],
@@ -105,6 +108,21 @@ export async function bulkDeleteBooks(
         return { success: false as const };
       }
 
+      const activeReservations = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(reservations)
+        .where(and(inArray(reservations.bookId, safeBookIds), inArray(reservations.status, ["WAITING", "READY"])));
+      if (Number(activeReservations[0]?.count ?? 0) > 0) {
+        return { success: false as const };
+      }
+
+      const reservationIds = tx
+        .select({ id: reservations.id })
+        .from(reservations)
+        .where(inArray(reservations.bookId, safeBookIds));
+      await tx.delete(reservationEvents).where(inArray(reservationEvents.reservationId, reservationIds));
+      await tx.delete(reservations).where(inArray(reservations.bookId, safeBookIds));
+
       await tx
         .delete(bookReviews)
         .where(inArray(bookReviews.bookId, safeBookIds));
@@ -120,10 +138,11 @@ export async function bulkDeleteBooks(
     if (!result.success) {
       return {
         success: false,
-        message: "Cannot delete books with active borrows",
+        message: "Cannot delete books with active borrows or reservations",
       };
     }
 
+    revalidateMutationPaths("book.write");
     return {
       success: true,
       message: `Successfully deleted ${bookIds.length} book(s)`,
@@ -169,6 +188,7 @@ export async function bulkUpdateUsers(
       })
       .where(inArray(users.id, safeUserIds));
 
+    revalidateMutationPaths("user.write");
     return {
       success: true,
       message: `Successfully updated ${userIds.length} user(s)`,
@@ -210,6 +230,7 @@ export async function bulkApproveBorrowRequests(recordIds: string[]) {
       return { success: false, message: result.error };
     }
 
+    revalidateMutationPaths("borrow.lifecycle");
     return {
       success: true,
       message: `Successfully approved ${recordIds.length} borrow request(s)`,
@@ -234,6 +255,7 @@ export async function bulkRejectBorrowRequests(recordIds: string[]) {
       return { success: false, message: result.error };
     }
 
+    revalidateMutationPaths("borrow.lifecycle");
     return {
       success: true,
       message: `Successfully rejected ${recordIds.length} borrow request(s)`,

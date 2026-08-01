@@ -9,14 +9,14 @@ import { subscribeToQueryInvalidation } from "@/lib/utils/queryInvalidation";
  * QueryProvider - React Query configuration provider
  *
  * This component sets up TanStack React Query with optimized defaults:
- * - Infinite cache strategy: Data cached forever until manually invalidated
- * - Smart refetching: Only refetches when data is stale (after invalidation)
+ * - Bounded freshness: Data reconciles after 30 seconds or explicit invalidation
+ * - Smart refetching: Active stale data reconciles on mount, focus, and reconnect
  * - Performance optimized: Prevents redundant API calls
  *
  * Configuration:
- * - staleTime: Infinity - Data never becomes stale automatically
- * - refetchOnMount: true - Refetch only when stale (after invalidation)
- * - gcTime: 5 minutes - Keep unused data in cache for faster subsequent loads
+ * - staleTime: 30 seconds
+ * - refetchOnMount: true - Refetch only when stale
+ * - gcTime: 30 minutes - Keep unused data for faster back navigation
  * - retry: 1 - Retry failed requests once (faster failure = faster error display)
  */
 export default function QueryProvider({
@@ -29,10 +29,9 @@ export default function QueryProvider({
       new QueryClient({
         defaultOptions: {
           queries: {
-            // CRITICAL: Infinite cache - data cached forever until manually invalidated
-            // This prevents redundant API calls and ensures optimal performance
-            // Data only becomes stale when explicitly invalidated after mutations
-            staleTime: Infinity,
+            // Parent: REQ-0027. A short freshness window keeps navigation fast while
+            // allowing focus/reconnect to reconcile writes made outside this browser.
+            staleTime: 30 * 1000,
 
             // Keep data in cache for 30 minutes after component unmounts
             // This allows faster subsequent loads while managing memory efficiently
@@ -43,20 +42,13 @@ export default function QueryProvider({
             // Reduced from 2 to 1 for better UX (users see errors faster)
             retry: 1,
 
-            // CRITICAL: Refetch if data is stale (invalidated)
-            // With staleTime: Infinity, this only triggers after invalidation
-            // Normal visits use cache, after invalidation it refetches once
+            // Refetch on mount only when the bounded window elapsed or a mutation invalidated it.
             refetchOnMount: true,
 
-            // Don't refetch on window focus (prevents unnecessary requests)
-            refetchOnWindowFocus: false,
+            // Fresh queries remain cached; stale active queries reconcile on return.
+            refetchOnWindowFocus: true,
 
-            // Don't refetch on reconnect (prevents unnecessary requests)
-            refetchOnReconnect: false,
-
-            // Use cached data as placeholder while refetching in background
-            // This provides instant UI updates while ensuring data freshness
-            placeholderData: (previousData: unknown) => previousData,
+            refetchOnReconnect: true,
 
             // Network mode: only fetch when online
             networkMode: "online",

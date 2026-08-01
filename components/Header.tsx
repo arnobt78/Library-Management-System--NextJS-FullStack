@@ -48,16 +48,6 @@ const Header = async ({ session }: HeaderProps) => {
         <li className="hover:text-light-200">
           <Link href="/my-profile">My Profile</Link>
         </li>
-        <li className="hover:text-light-200">
-          <Link href="/api-docs">API Docs</Link>
-        </li>
-        <li className="hover:text-light-200">
-          <Link href="/api-status">API Status</Link>
-        </li>
-        <li className="hover:text-light-200">
-          <Link href="/performance">Performance</Link>
-        </li>
-
         {/* Admin-only navigation items */}
         {isAdmin && (
           <li>

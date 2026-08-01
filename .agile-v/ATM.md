@@ -29,3 +29,16 @@ At bootstrap, draft requirements map to repository observations only. Applicatio
 | REQ-0023 | Verified | typed keys, centralized invalidation, query provider, mutation hooks | ART-0004, ART-0006, ART-0012 | TC-0033 through TC-0037 | VER-C1-033-037 PASS |
 | REQ-0024 | Verified | dependency/debug/log/git-scope scans | ART-0005, ART-0006, ART-0012 | TC-0038 | VER-C1-038 PASS |
 | REQ-0025 | Verified | privileged server-action boundary audit; real PostgreSQL race/rollback evidence | ART-0007 through ART-0011 | TC-0039 through TC-0045 | VER-C1-039-045 PASS |
+
+## C2 Delta Traceability
+
+| REQ | Status | Discovery / constraint evidence | Planned artifact family | Test design | Verification |
+|---|---|---|---|---|---|
+| REQ-0026 | Approved [C2] (`GATE-0006`) | OBS-0018, OBS-0019, OBS-0026; RISK-0013, RISK-0014 | ART-0013 | TC-0046 through TC-0055 | Code FAIL 0; nonlocal evidence FLAG |
+| REQ-0027 | Approved [C2] (`GATE-0006`) | REQ-0023; OBS-0020, OBS-0021; RISK-0015, RISK-0016 | ART-0014, ART-0021, ART-0023 | TC-0056 through TC-0065; TC-0121, TC-0122 | Corrective local PASS; browser evidence FLAG |
+| REQ-0028 | Approved [C2] (`GATE-0006`) | OBS-0022; official Next.js streaming/prefetch constraints | ART-0015 | TC-0066 through TC-0074 | Code FAIL 0; browser/performance evidence FLAG |
+| REQ-0029 | Approved [C2] (`GATE-0006`) | CR-0002; existing user/borrow/review schema | ART-0016 | TC-0075 through TC-0083 | Code FAIL 0; browser evidence FLAG |
+| REQ-0030 | Approved [C2] (`GATE-0006`) | CR-0002; existing transactional borrow lifecycle | ART-0017, ART-0022, ART-0023 | TC-0084 through TC-0094; TC-0123, TC-0124 | Worker local PASS; deployed provider evidence FLAG |
+| REQ-0031 | Approved [C2] (`GATE-0006`) | OBS-0023; C2 privacy decision | ART-0018 | TC-0095 through TC-0103 | Code FAIL 0; exact procedure evidence FLAG |
+| REQ-0032 | Approved [C2] (`GATE-0006`) | OBS-0019, OBS-0024; RISK-0019 | ART-0019 | TC-0104 through TC-0114 | Code FAIL 0; production evidence FLAG |
+| REQ-0033 | Approved [C2] (`GATE-0006`) | CR-0002; existing header/mobile/profile primitives | ART-0015 | TC-0115 through TC-0120 | Code FAIL 0; browser evidence FLAG |

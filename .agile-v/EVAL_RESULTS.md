@@ -112,3 +112,90 @@ actuals:
 PostgreSQL provenance: implementing agent executed the disposable local PostgreSQL suite twice, latest 4/4 PASS. Independent verifier inspected its real `pg.Pool`, concurrent calls, injected triggers and assertions; its own environment lacked `TEST_DATABASE_URL`, so it did not claim a second database execution.
 
 EvalGate: PASS. Human Gate 2 remains a separate acceptance decision.
+
+---
+eval_run_id: ER-C2-PROVE-1
+eval_timestamp: 2026-08-01
+policy_version_ref: 1.0.0
+eval_gate_status: FAIL
+eval_gate_rationale: Local synthesis Prove passes, but corrective independent verification and mandatory production evidence are incomplete.
+thresholds:
+  critical_failures: 0
+  requirement_coverage_percent: 100
+---
+
+## C2 Local Prove
+
+| Suite | Scope | Result | Evidence | Boundary |
+|---|---|---|---|---|
+| Static/default | REQ-0026 through REQ-0033 | PASS | typecheck; zero-warning lint; 64 tests; audit 0; diff check | Independent Verify required |
+| PostgreSQL | REQ-0025, REQ-0030, REQ-0032 | PASS | 7/7 disposable integration; migration forward/down | Provider/production window not exercised |
+| Production build/smoke | REQ-0026, REQ-0028, REQ-0032, REQ-0033 | PASS | Next 16.2.12, 54 routes; health/header/auth-boundary probes | Local only |
+| Independent verification | TC-0046 through TC-0120 | RUNNING | corrective Red Team run | Required before EvalGate PASS |
+| Production evidence | REQ-0027, REQ-0028, REQ-0032, REQ-0033 | NOT COMPLETE | - | Browser/load/deploy/alert/SLO/restore required |
+
+---
+eval_run_id: ER-C2-VERIFY-1
+eval_timestamp: 2026-08-01
+policy_version_ref: 1.0.0
+eval_gate_status: FAIL
+eval_gate_rationale: Independent verification found six code-contract failures and sixty-nine exact-procedure evidence flags.
+---
+
+## C2 Initial Independent Verify
+
+Result: PASS 0 / FAIL 6 / FLAG 69. Failures: TC-0054 tenant-prefix media boundary; TC-0056 incomplete RSC registry; TC-0060 mutation-response ordering; TC-0061 inactive stale rendering; TC-0106 unwired SLO calculator; TC-0120 duplicated media fallback primitive. Build/type/lint/audit and the isolated PostgreSQL 69/69 executable suite passed. Corrective re-entry opened; production/browser/provider/load/restore evidence remains FLAG.
+
+---
+eval_run_id: ER-C2-CORRECTIVE-VERIFY-2
+eval_timestamp: 2026-08-01
+policy_version_ref: 1.0.0
+eval_gate_status: FAIL
+eval_gate_rationale: All known code failures are resolved, but all 75 exact C2 procedures retain required nonlocal evidence flags.
+---
+
+## C2 Corrective Focused Verify
+
+Code result: FAIL 0. TC-0054, TC-0056, TC-0060, TC-0061, TC-0106 and TC-0120 are corrected and focused checks pass. Full strict classification: PASS 0 / FAIL 0 / FLAG 75 because provider/persistence-route/browser/navigation/performance/load/deployment/alert/restore procedures are not complete. EvalGate remains FAIL without waiver.
+
+---
+eval_run_id: ER-C2-CORRECTIVE-PROVE-3
+eval_timestamp: 2026-08-02
+policy_version_ref: 1.0.0
+eval_gate_status: FAIL
+eval_gate_rationale: Universal registry and outbox code pass local verification; independent and production evidence remains incomplete.
+---
+
+## C2 Outbox and Registry Local Prove
+
+| Suite | Result | Evidence | Boundary |
+|---|---|---|---|
+| Registry/RSC/outbox contracts | PASS | 81/81 default tests | Provider mocked |
+| PostgreSQL concurrency/regression | PASS | 8/8 fresh disposable tests | Local PostgreSQL only |
+| Static/dependency/build | PASS | typecheck; lint 0 warnings; audit 0; diff check; Next 16.2.12 build | Local environment |
+| Independent corrective Verify | PASS | No remaining requested-scope findings; focused 24/24 and PostgreSQL 8/8 PASS | Nonlocal classification unchanged |
+| Production evidence | FLAG | No deployed receipt/browser/load/alert/SLO/restore record | Blocks EvalGate/Gate 2 |
+
+---
+eval_run_id: ER-C2-CORRECTIVE-VERIFY-4
+eval_timestamp: 2026-08-02
+policy_version_ref: 1.0.0
+eval_gate_status: FAIL
+eval_gate_rationale: Independent requested-scope code verification passes; nonlocal production evidence remains incomplete.
+---
+
+## C2 Outbox and Registry Independent Verify
+
+Result: PASS for requested code scope. No remaining code findings after two corrective reviews. Focused 24/24 tests, isolated PostgreSQL 8/8, strict typecheck and zero-warning lint pass. Deployed provider/browser/load/alert/SLO/restore evidence remains FLAG, so EvalGate and C2 Gate 2 remain blocked without waiver.
+
+---
+eval_run_id: ER-C2-FINAL-CORRECTIVE-5
+eval_timestamp: 2026-08-02
+policy_version_ref: 1.0.0
+eval_gate_status: FAIL
+eval_gate_rationale: Final local and independent code verification pass with zero known findings; mandatory deployed provider, browser, load, alert, SLO and restore evidence remains incomplete.
+---
+
+## C2 Final Corrective Local and Independent Verify
+
+Result: local technical PASS. Strict TypeScript, zero-warning ESLint, 84 default tests, zero vulnerabilities, secret/diff checks and Next.js 16.2.12 production build with 54 routes pass. Ten PostgreSQL integration cases pass in each of ten consecutive disposable-database stress runs. Independent re-review reports no remaining code findings. Production/browser/provider/operations evidence remains FLAG, so EvalGate remains FAIL and C2 Gate 2 is not started.

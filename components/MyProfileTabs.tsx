@@ -34,6 +34,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useUserBorrows } from "@/hooks/useQueries";
 import { useReturnBook } from "@/hooks/useMutations";
 import type { BorrowRecord } from "@/lib/services/borrows";
+import { useQueryClient } from "@tanstack/react-query";
+import { renewBorrowedBook } from "@/lib/actions/circulation";
+import { beginMutation, isLatestMutation } from "@/lib/utils/mutationOrdering";
+import { invalidateMutation } from "@/lib/utils/queryInvalidation";
+import { showToast } from "@/lib/toast";
+import { queryKeys } from "@/lib/query/keys";
 
 // Define the actual data structure from the database query
 interface BorrowRecordWithBook {
@@ -124,6 +130,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
   // Use React Query mutation for returning book
   const returnBookMutation = useReturnBook();
+  const queryClient = useQueryClient();
+  const [isRenewPending, startRenewTransition] = React.useTransition();
+  const [renewingRecordId, setRenewingRecordId] = React.useState<string | null>(null);
   const [returningRecordId, setReturningRecordId] = React.useState<
     string | null
   >(null);
@@ -131,7 +140,6 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // Use React Query to fetch all user borrows (no status filter to get all)
   // The API returns borrow records WITH book details (from /api/borrow-records)
   // React Query will invalidate and refetch when mutations happen, ensuring immediate UI updates
-  // placeholderData in QueryProvider ensures we keep showing previous data during refetch
   const {
     data: reactQueryBorrows,
     isLoading,
@@ -333,7 +341,6 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // Show skeleton while loading (only if no data at all - not during refetch)
   // CRITICAL: Use isLoading (not isFetching) to only show skeleton on initial load
   // isFetching would show skeleton during refetch, causing flicker
-  // placeholderData ensures we keep showing previous data during refetch
   if (
     isLoading &&
     !reactQueryBorrows &&
@@ -497,6 +504,33 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           // - admin queries
           // Manual invalidation here would cause redundant refetches
         );
+      };
+
+      const handleRenewBook = () => {
+        if (isRenewPending) return;
+        const mutationKey = `borrow:${record.id}`;
+        const mutationGeneration = beginMutation(mutationKey);
+        setRenewingRecordId(record.id);
+        startRenewTransition(async () => {
+          try {
+            const result = await renewBorrowedBook(record.id, crypto.randomUUID());
+            if (!isLatestMutation(mutationKey, mutationGeneration)) return;
+            if (!result.success) {
+              showToast.error("Renewal Failed", result.error);
+              return;
+            }
+            queryClient.setQueryData<BorrowRecord[]>(
+              queryKeys.borrows.user(userId, undefined),
+              (current) => current?.map((item) => item.id === record.id
+                ? { ...item, dueDate: result.data.dueDate, renewalCount: result.data.renewalCount }
+                : item),
+            );
+            await invalidateMutation(queryClient, "renewal.write");
+            showToast.success("Loan Renewed", `New due date: ${result.data.dueDate}`);
+          } finally {
+            setRenewingRecordId(null);
+          }
+        });
       };
 
       // Calculate if book is overdue (only for BORROWED status with dueDate)
@@ -746,22 +780,26 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2">
                   {record.status === "BORROWED" && (
-                    <button
-                      onClick={handleReturnBook}
-                      disabled={returningRecordId === record.id}
-                      className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm ${
+                    <>
+                      <button
+                        onClick={handleReturnBook}
+                        disabled={returningRecordId === record.id}
+                        className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm ${
                         isOverdue
                           ? "bg-red-600 text-white hover:bg-red-700"
                           : "bg-orange-600 text-white hover:bg-orange-700"
-                      }`}
-                    >
-                      <RotateCcw className="size-3 sm:size-4" />
-                      <span>
-                        {returningRecordId === record.id
-                          ? "Returning..."
-                          : "Return Book"}
-                      </span>
-                    </button>
+                        }`}
+                      >
+                        <RotateCcw className="size-3 sm:size-4" />
+                        <span>{returningRecordId === record.id ? "Returning..." : "Return Book"}</span>
+                      </button>
+                      {!isOverdue ? (
+                        <button onClick={handleRenewBook} disabled={isRenewPending} className="flex items-center gap-1 rounded bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50 sm:px-3 sm:text-sm">
+                          <RotateCcw className="size-3 sm:size-4" />
+                          {renewingRecordId === record.id ? "Renewing…" : "Renew Loan"}
+                        </button>
+                      ) : null}
+                    </>
                   )}
 
                   {record.status !== "RETURNED" && (

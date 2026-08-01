@@ -8,6 +8,7 @@ import {
   requireAuthenticatedActor,
 } from "@/lib/auth/authorization";
 import { parseEntityId } from "@/lib/actionInputs";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 /**
  * Parameters for borrowing a book
@@ -111,6 +112,7 @@ export const borrowBook = async (
       return { success: true as const, data: [record] };
     });
 
+    if (result.success) revalidateMutationPaths("borrow.lifecycle");
     return result;
   } catch (error: unknown) {
     console.error("Failed to borrow book", error);

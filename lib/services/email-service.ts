@@ -4,6 +4,8 @@
  * Fallback: Resend (currently limited to Gmail)
  */
 
+import { z } from "zod";
+
 // Brevo Configuration
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "arnobt78@gmail.com";
@@ -12,7 +14,16 @@ const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 // Resend Configuration (Fallback)
 const RESEND_API_KEY = process.env.RESEND_TOKEN;
-const RESEND_SENDER_EMAIL = "BookWise Library <onboarding@resend.dev>";
+const RESEND_SENDER_EMAIL =
+  process.env.RESEND_SENDER_EMAIL || "BookWise Library <onboarding@resend.dev>";
+const RESEND_API_URL = "https://api.resend.com/emails";
+const EMAIL_TIMEOUT_MS = 10_000;
+const resendReceiptSchema = z.object({ id: z.string().min(1) });
+
+export interface EmailDeliveryReceipt {
+  messageId: string;
+  provider: "Resend";
+}
 
 /**
  * Send email via Brevo API (Primary Provider)
@@ -99,6 +110,41 @@ async function sendEmailViaResend(
     messageId: data?.id || "unknown",
     provider: "Resend",
   };
+}
+
+/**
+ * Sends retryable transactional mail through one idempotent provider. Avoiding
+ * provider fallback here prevents an ambiguous timeout from producing a second
+ * externally visible message through another provider.
+ */
+export async function sendIdempotentEmailViaResend(
+  to: string,
+  subject: string,
+  htmlContent: string,
+  textContent: string,
+  idempotencyKey: string,
+): Promise<EmailDeliveryReceipt> {
+  if (!RESEND_API_KEY) throw new Error("RESEND_TOKEN not configured");
+  const response = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({
+      from: RESEND_SENDER_EMAIL,
+      to: [to],
+      subject,
+      html: htmlContent,
+      text: textContent,
+    }),
+    signal: AbortSignal.timeout(EMAIL_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`Resend API error: ${response.status}`);
+  const receipt = resendReceiptSchema.safeParse(await response.json());
+  if (!receipt.success) throw new Error("Resend did not return a message id");
+  return { messageId: receipt.data.id, provider: "Resend" };
 }
 
 /**

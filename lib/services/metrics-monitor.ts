@@ -44,7 +44,7 @@ export interface MetricsData {
   };
   sslCertificate: {
     status: "Valid" | "Expired" | "Expiring Soon" | string;
-    expiresAt: string;
+    expiresAt: string | null;
     issuer: string;
   };
 }
@@ -65,9 +65,7 @@ export async function fetchSystemMetrics(): Promise<MetricsData> {
 
     const data = await response.json();
     return data.metrics;
-  } catch (error: unknown) {
-    console.error("Failed to fetch system metrics:", error);
-
+  } catch {
     // Return fallback data
     return {
       databasePerformance: {
@@ -83,8 +81,8 @@ export async function fetchSystemMetrics(): Promise<MetricsData> {
       },
       errorRate: {
         rate: "0.00%",
-        status: "good",
-        description: "Failed requests",
+        status: "warning",
+        description: "Production telemetry unavailable",
         totalRequests: 0,
         recentRequests: 0,
       },
@@ -92,7 +90,7 @@ export async function fetchSystemMetrics(): Promise<MetricsData> {
         used: "0 GB",
         total: "10 GB",
         percentage: 0,
-        status: "good",
+        status: "warning",
         description: "Database storage",
         tableCount: 0,
       },
@@ -103,11 +101,9 @@ export async function fetchSystemMetrics(): Promise<MetricsData> {
         lastUpdated: new Date().toISOString(),
       },
       sslCertificate: {
-        status: "Valid",
-        expiresAt: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        issuer: "Let's Encrypt",
+        status: "Unknown",
+        expiresAt: null,
+        issuer: "Unknown",
       },
     };
   }

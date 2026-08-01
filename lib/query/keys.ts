@@ -37,6 +37,12 @@ export const queryKeys = {
     user: (userId: string, status?: string) =>
       ["user-borrows", userId, status] as const,
   },
+  circulation: {
+    root: ["circulation"] as const,
+    reservationsRoot: ["reservations"] as const,
+    userReservations: (userId: string) => ["reservations", "user", userId] as const,
+    bookQueue: (bookId: string) => ["reservations", "book", bookId] as const,
+  },
   reviews: {
     root: ["reviews"] as const,
     legacyRoot: ["review"] as const,

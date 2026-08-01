@@ -16,6 +16,7 @@
  */
 
 import { ApiError } from "./apiError";
+import type { DeterministicInsights } from "@/lib/insights/types";
 
 /**
  * Borrowing trend data point
@@ -124,6 +125,7 @@ export interface AnalyticsData {
   overdueStats: OverdueStats;
   monthlyStats: MonthlyStats;
   systemHealth: SystemHealth;
+  deterministicInsights: DeterministicInsights;
 }
 
 /**
@@ -592,35 +594,14 @@ export async function getCompleteAnalytics(options?: {
   userActivityLimit?: number;
   borrowingTrendsDays?: number;
 }): Promise<AnalyticsData> {
-  const [
-    borrowingTrends,
-    popularBooks,
-    popularGenres,
-    userActivity,
-    overdueBooks,
-    overdueStats,
-    monthlyStats,
-    systemHealth,
-  ] = await Promise.all([
-    getBorrowingTrends(options?.borrowingTrendsDays || 30),
-    getPopularBooks(options?.popularBooksLimit || 10),
-    getPopularGenres(options?.popularGenresLimit || 10),
-    getUserActivityPatterns(options?.userActivityLimit || 20),
-    getOverdueAnalysis(),
-    getOverdueStats(),
-    getMonthlyStats(),
-    getSystemHealth(),
-  ]);
-
-  return {
-    borrowingTrends,
-    popularBooks,
-    popularGenres,
-    userActivity,
-    overdueBooks,
-    overdueStats,
-    monthlyStats,
-    systemHealth,
-  };
+  const params = new URLSearchParams();
+  if (options?.borrowingTrendsDays) params.set("days", String(options.borrowingTrendsDays));
+  if (options?.popularBooksLimit) params.set("books", String(options.popularBooksLimit));
+  if (options?.popularGenresLimit) params.set("genres", String(options.popularGenresLimit));
+  if (options?.userActivityLimit) params.set("users", String(options.userActivityLimit));
+  const response = await fetch(`/api/admin/analytics?${params.toString()}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new ApiError("Unable to refresh analytics", response.status);
+  return (await response.json()) as AnalyticsData;
 }
-

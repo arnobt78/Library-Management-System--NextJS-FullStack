@@ -1,31 +1,40 @@
 # Agile V State
 
 - Project: University Library Management System
-- Cycle: C1
-- Stage: 5 - Acceptance
-- SCOPE-V phase: Accept
-- Status: COMPLETE - accepted implementation committed; archive closeout
-- Baseline commit: `83e341147363015a6ace86f1665d4d6b9e5eb390`
-- Accepted implementation commit: `d9b9fd9`
+- Cycle: C2
+- Stage: 4 - Prove and independent Verify
+- SCOPE-V phase: Evaluate
+- Status: ACTIVE - final local corrective Prove and independent Verify passed; Project Owner authorized a checkpoint commit; production Gate 2 evidence remains incomplete
+- Baseline commit: `c94e7db`
+- Prior accepted implementation: C1 commit `d9b9fd9`
 - Started: 2026-08-01
-- Last updated: 2026-08-01
-- Active requirements revision: C1-approved.3 (REQ-0019 through REQ-0025 approved)
+- Last updated: 2026-08-02
+- Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
-- Current phase directory: `.agile-v/cycles/C1/`
-- Pending checkpoint: none
+- Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
+- Pending checkpoint: C2 Gate 2 remains blocked by exact nonlocal production/browser evidence
 - Gate 0: APPROVED (`GATE-0001`)
 - Gate 1: APPROVED (`GATE-0002`)
 - Gate 1 delta: APPROVED (`GATE-0003`, `REQ-0025`)
 - Gate 2: APPROVED (`GATE-0004`)
-- Skills applied: agile-v-core, agile-v-pipeline, agile-v-compliance, agile-v-quality-gates, build-agent, build-agent-js, test-designer, vercel-react-best-practices
+- C2 Gate 0: APPROVED (`GATE-0005`)
+- C2 Gate 1: APPROVED (`GATE-0006`)
+- C2 Gate 2: NOT STARTED
+- Skills applied this cycle: agile-v-core, agile-v-lifecycle, agile-v-pipeline, agile-v-compliance, agile-v-quality-gates, agile-v-product-owner, requirement-architect, ux-spec-author, threat-modeler, logic-gatekeeper, vercel-react-best-practices
 
 ## Resume Protocol
 
-1. Read this file, `CHECKPOINTS.md`, `APPROVALS.md`, `REQUIREMENTS.md`, and `VALIDATION_SUMMARY.md`.
-2. Confirm `INT-0003` is resolved by `GATE-0003` with the matching token.
-3. Confirm `ER-C1-FINAL-VERIFY` is PASS with TC-0019 through TC-0045 at 100%.
-4. Confirm `INT-0004` is resolved by `GATE-0004` with the matching token.
+1. Read this file, `CHECKPOINTS.md`, `REQUIREMENTS.md`, `CHANGE_LOG.md`, `BACKLOG.md`, and `RISK_REGISTER.md`.
+2. Treat `.agile-v/cycles/C1/` and commits `d9b9fd9`/`c94e7db` as frozen C1 evidence.
+3. Confirm `INT-0005` is resolved by `GATE-0005` with the matching token.
+4. Confirm `INT-0006` is resolved by `GATE-0006` with the matching token.
+5. Resume the first incomplete C2 wave from `BACKLOG.md` and `BUILD_MANIFEST.md`.
 
 ## Next Action
 
-C1 is complete. Route any new feature or changed requirement into C2; bug fixes with unchanged requirements re-enter Stage 3 under the lifecycle policy.
+Collect deployed provider receipt, browser/performance, alert-route, load, backup-restore and dated SLO evidence. Do not request or record C2 Gate 2 until EvalGate PASS.
+
+## Demo / UX notes (2026-08-02)
+
+- `seed:test-profiles` upserts `test@user.com` / `test@admin.com` (APPROVED, scrypt, local avatars).
+- Sign-in Select shows circle avatar + name + email; ProfileDropdown/MobileMenu use shared `UserAvatar`.

@@ -1,9 +1,9 @@
-// Parent: REQ-0021
+// Parent: REQ-0021, REQ-0026
 import { getUploadAuthParams } from "@imagekit/next/server";
 import config from "@/lib/config";
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
-import ratelimit from "@/lib/ratelimit";
+import { uploadAuthorizationRatelimit } from "@/lib/ratelimit";
+import { getClientRateLimitKey } from "@/lib/request/clientKey";
 
 const {
   env: {
@@ -17,8 +17,8 @@ export async function GET() {
     // This endpoint is used for file uploads (book covers, university cards, videos)
     // Authentication is optional to allow sign-up flow (university card upload) to work
     // Rate limiting provides protection against abuse
-    const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
-    const { success } = await ratelimit.limit(ip);
+    const clientKey = await getClientRateLimitKey();
+    const { success } = await uploadAuthorizationRatelimit.limit(clientKey);
 
     if (!success) {
       return NextResponse.json(
@@ -39,14 +39,12 @@ export async function GET() {
     const authentication = getUploadAuthParams({ publicKey, privateKey });
 
     return NextResponse.json({ ...authentication, publicKey });
-  } catch (error) {
-    console.error("Error getting ImageKit authentication parameters:", error);
+  } catch {
     return NextResponse.json(
       {
         success: false,
         error: "Failed to get ImageKit authentication parameters",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        message: "Upload authorization is temporarily unavailable.",
       },
       { status: 500 }
     );

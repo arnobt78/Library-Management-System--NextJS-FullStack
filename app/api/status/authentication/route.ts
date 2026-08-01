@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 
 export const runtime = "nodejs";
 
@@ -8,6 +9,8 @@ export async function GET(_request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    const authorization = await authorizeAdminRoute();
+    if (!authorization.ok) return authorization.response;
     // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
     // This endpoint returns authentication service health status (public information for monitoring)
     // Rate limiting provides protection against abuse while keeping it accessible for health checks
@@ -51,7 +54,7 @@ export async function GET(_request: NextRequest) {
       details: authTest,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     // CRITICAL: Fix bug - use startTime instead of Date.now() - Date.now() (which is always 0)
     const responseTime = Date.now() - startTime;
 
@@ -62,12 +65,8 @@ export async function GET(_request: NextRequest) {
         endpoint: "NextAuth.js",
         performance: "Poor",
         performanceValue: 0,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Authentication service error",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        error: "AUTHENTICATION_UNAVAILABLE",
+        message: "The authentication diagnostic check failed.",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

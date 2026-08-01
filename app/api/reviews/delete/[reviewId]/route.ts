@@ -5,13 +5,14 @@ import { eq, and } from "drizzle-orm";
 import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 export const runtime = "nodejs";
 
 // DELETE /api/reviews/delete/[reviewId] - Delete a review
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ reviewId: string }> }
+  { params }: { params: Promise<{ reviewId: string }> },
 ) {
   try {
     // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
@@ -25,7 +26,7 @@ export async function DELETE(
           error: "Too Many Requests",
           message: "Rate limit exceeded. Please try again later.",
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -40,7 +41,7 @@ export async function DELETE(
           success: false,
           error: "Review ID is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,8 +53,8 @@ export async function DELETE(
       .where(
         and(
           eq(bookReviews.id, reviewId),
-          eq(bookReviews.userId, authorization.actor.id)
-        )
+          eq(bookReviews.userId, authorization.actor.id),
+        ),
       )
       .limit(1);
 
@@ -64,13 +65,14 @@ export async function DELETE(
           error: "Review not found or you don't have permission to delete it",
           message: "Review not found or you don't have permission to delete it",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Delete the review
     await db.delete(bookReviews).where(eq(bookReviews.id, reviewId));
 
+    revalidateMutationPaths("review.write");
     return NextResponse.json({
       success: true,
       message: "Review deleted successfully",
@@ -81,10 +83,9 @@ export async function DELETE(
       {
         success: false,
         error: "Failed to delete review",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        message: "The review could not be deleted.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

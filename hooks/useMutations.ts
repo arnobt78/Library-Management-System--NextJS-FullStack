@@ -54,12 +54,7 @@ import {
 } from "@/lib/services/admin";
 import { showToast } from "@/lib/toast";
 import {
-  invalidateAfterBookChange,
-  invalidateAfterUserChange,
-  invalidateAfterBorrowChange,
-  invalidateAfterReviewChange,
-  invalidateAfterAdminChange,
-  invalidateAfterRecommendationChange,
+  invalidateMutation,
 } from "@/lib/utils/queryInvalidation";
 // BookParams is a global type from types.d.ts, no import needed
 
@@ -95,7 +90,7 @@ export const useCreateBook = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (books, borrows, reviews, analytics, admin)
-      invalidateAfterBookChange(queryClient);
+      invalidateMutation(queryClient, "book.write");
 
       // Show success toast
       showToast.book.createSuccess(variables.title);
@@ -148,7 +143,7 @@ export const useUpdateBook = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (books, borrows, reviews, analytics, admin)
-      invalidateAfterBookChange(queryClient);
+      invalidateMutation(queryClient, "book.write");
 
       // Show success toast with updated title (or fallback to bookId)
       const bookTitle = variables.title || data?.title || "Book";
@@ -213,7 +208,7 @@ export const useDeleteBook = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (books, borrows, reviews, analytics, admin)
-      invalidateAfterBookChange(queryClient);
+      invalidateMutation(queryClient, "book.write");
 
       // Show success toast
       const count = data.bookIds.length;
@@ -281,7 +276,7 @@ export const useUpdateUserRole = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateAfterUserChange(queryClient);
+      invalidateMutation(queryClient, "user.write");
 
       // Show success toast
       const roleText = data.role === "ADMIN" ? "admin" : "regular user";
@@ -347,7 +342,7 @@ export const useUpdateUserStatus = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateAfterUserChange(queryClient);
+      invalidateMutation(queryClient, "user.write");
 
       // Show success toast
       const statusText =
@@ -409,7 +404,7 @@ export const useApproveUser = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateAfterUserChange(queryClient);
+      invalidateMutation(queryClient, "user.write");
 
       // Show success toast
       const userName = variables.userName || "User";
@@ -465,7 +460,7 @@ export const useRejectUser = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateAfterUserChange(queryClient);
+      invalidateMutation(queryClient, "user.write");
 
       // Show success toast
       const userName = variables.userName || "User";
@@ -691,7 +686,7 @@ export const useBorrowBook = () => {
       return { previousQueries, optimisticRecordId: optimisticRecord.id };
     },
     onSuccess: async (_data, _variables, _context) => {
-      await invalidateAfterBorrowChange(queryClient);
+      await invalidateMutation(queryClient, "borrow.lifecycle");
 
       // Show success toast
       const bookTitle = _variables.bookTitle || "Book";
@@ -756,7 +751,7 @@ export const useApproveBorrow = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (borrows, books, reviews, analytics, admin)
-      invalidateAfterBorrowChange(queryClient);
+      invalidateMutation(queryClient, "borrow.lifecycle");
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -816,7 +811,7 @@ export const useRejectBorrow = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (borrows, books, reviews, analytics, admin)
-      invalidateAfterBorrowChange(queryClient);
+      invalidateMutation(queryClient, "borrow.lifecycle");
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -875,7 +870,7 @@ export const useReturnBook = () => {
     // CRITICAL: No optimistic updates - just invalidate to trigger fresh API fetch
     // This ensures we always have fresh data from server (1 blink is acceptable)
     onSuccess: async (data, variables) => {
-      await invalidateAfterBorrowChange(queryClient);
+      await invalidateMutation(queryClient, "borrow.lifecycle");
 
       // Show toast notification
       const bookTitle = variables.bookTitle || "Book";
@@ -941,7 +936,7 @@ export const useCreateReview = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (reviews, books, analytics)
-      invalidateAfterReviewChange(queryClient);
+      invalidateMutation(queryClient, "review.write");
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -999,7 +994,7 @@ export const useUpdateReview = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (reviews, books, analytics)
-      invalidateAfterReviewChange(queryClient);
+      invalidateMutation(queryClient, "review.write");
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -1053,7 +1048,7 @@ export const useDeleteReview = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (reviews, books, analytics)
-      invalidateAfterReviewChange(queryClient);
+      invalidateMutation(queryClient, "review.write");
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -1108,7 +1103,7 @@ export const useApproveAdminRequest = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, admin requests, admin stats)
-      invalidateAfterAdminChange(queryClient);
+      invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -1168,7 +1163,7 @@ export const useRejectAdminRequest = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, admin requests, admin stats)
-      invalidateAfterAdminChange(queryClient);
+      invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -1223,7 +1218,7 @@ export const useRemoveAdminPrivileges = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, admin requests, admin stats)
-      invalidateAfterAdminChange(queryClient);
+      invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
       const userName = variables.userName || "User";
@@ -1272,7 +1267,7 @@ export const useUpdateFineConfig = () => {
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (admin stats, fine config, borrows)
-      invalidateAfterAdminChange(queryClient);
+      invalidateMutation(queryClient, "fine.write");
 
       // Show success toast
       showToast.success(
@@ -1316,7 +1311,7 @@ export const useSendDueReminders = () => {
     },
     onSuccess: (data) => {
       // Invalidate all related queries (admin stats, borrows)
-      invalidateAfterAdminChange(queryClient);
+      invalidateMutation(queryClient, "operations.write");
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -1360,7 +1355,7 @@ export const useSendOverdueReminders = () => {
     },
     onSuccess: (data) => {
       // Invalidate all related queries (admin stats, borrows)
-      invalidateAfterAdminChange(queryClient);
+      invalidateMutation(queryClient, "operations.write");
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -1413,7 +1408,7 @@ export const useUpdateOverdueFines = () => {
     },
     onSuccess: (data) => {
       // Invalidate all related queries (admin stats, borrows, analytics)
-      invalidateAfterAdminChange(queryClient);
+      invalidateMutation(queryClient, "fine.write");
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -1457,7 +1452,7 @@ export const useGenerateAllUserRecommendations = () => {
     },
     onSuccess: (data) => {
       // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
-      invalidateAfterRecommendationChange(queryClient);
+      invalidateMutation(queryClient, "recommendation.write");
 
       // Show success toast
       showToast.success(
@@ -1500,7 +1495,7 @@ export const useUpdateTrendingBooks = () => {
     },
     onSuccess: (data) => {
       // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
-      invalidateAfterRecommendationChange(queryClient);
+      invalidateMutation(queryClient, "recommendation.write");
 
       // Show success toast
       showToast.success(
@@ -1540,7 +1535,7 @@ export const useRefreshRecommendationCache = () => {
       return result;
     },
     onSuccess: (data) => {
-      invalidateAfterRecommendationChange(queryClient);
+      invalidateMutation(queryClient, "recommendation.write");
 
       showToast.success(
         "Recommendations Refreshed",

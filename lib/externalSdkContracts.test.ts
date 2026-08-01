@@ -14,6 +14,7 @@ vi.mock("next/headers", () => ({
 }));
 vi.mock("@/lib/ratelimit", () => ({
   default: { limit: sdk.limit },
+  uploadAuthorizationRatelimit: { limit: sdk.limit },
 }));
 vi.mock("@imagekit/next/server", () => ({
   getUploadAuthParams: sdk.getUploadAuthParams,

@@ -8,6 +8,7 @@ import {
   requireAdminActor,
 } from "@/lib/auth/authorization";
 import { parseEntityId } from "@/lib/actionInputs";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 export const updateUserRole = async (
   userId: string,
@@ -26,6 +27,7 @@ export const updateUserRole = async (
       return { success: false, error: "User not found" };
     }
 
+    revalidateMutationPaths("user.write");
     return { success: true };
   } catch (error) {
     console.error("Error updating user role:", error);
@@ -53,6 +55,7 @@ export const updateUserStatus = async (
       return { success: false, error: "User not found" };
     }
 
+    revalidateMutationPaths("user.write");
     return { success: true };
   } catch (error) {
     console.error("Error updating user status:", error);

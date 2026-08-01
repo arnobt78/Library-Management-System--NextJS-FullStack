@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import BookCoverSvg from "@/components/BookCoverSvg";
 import { Image as ImageKitImage } from "@imagekit/next";
 import config from "@/lib/config";
+import { useSafeMedia } from "@/hooks/useSafeMedia";
 
 type BookCoverVariant = "extraSmall" | "small" | "medium" | "regular" | "wide";
 
@@ -34,6 +35,7 @@ interface Props {
  */
 const BookCover = React.memo(
   ({ className, variant = "regular", coverColor, coverImage }: Props) => {
+    const { loadFailed, onLoadError } = useSafeMedia(coverImage);
     return (
       <div
         className={cn(
@@ -48,7 +50,7 @@ const BookCover = React.memo(
           className="absolute z-10"
           style={{ left: "12%", width: "87.5%", height: "88%" }}
         >
-          {coverImage && coverImage.startsWith("http") ? (
+          {!loadFailed && coverImage && coverImage.startsWith("http") ? (
             <img
               // CRITICAL: Removed key prop - it causes remounts and flickering
               // React.memo handles re-render prevention, key causes unnecessary remounts
@@ -58,8 +60,9 @@ const BookCover = React.memo(
               loading="eager"
               decoding="async"
               fetchPriority="high"
+              onError={onLoadError}
             />
-          ) : coverImage ? (
+          ) : !loadFailed && coverImage ? (
             <ImageKitImage
               // CRITICAL: Removed key prop - it causes remounts and flickering
               // React.memo handles re-render prevention, key causes unnecessary remounts
@@ -68,6 +71,7 @@ const BookCover = React.memo(
               alt="Book cover"
               fill
               className="rounded-sm object-fill"
+              onError={onLoadError}
             />
           ) : (
             <div className="flex size-full items-center justify-center rounded-sm bg-gray-200">

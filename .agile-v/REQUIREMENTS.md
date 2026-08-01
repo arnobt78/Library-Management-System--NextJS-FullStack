@@ -1,6 +1,6 @@
-# Requirements Blueprint - C1 Draft
+# Requirements Blueprint
 
-<!-- Revision: C1-draft.2 | Date: 2026-08-01 | Gate 0: PENDING | Gate 1: NOT STARTED -->
+<!-- Revision: C2-approved.1 | Date: 2026-08-01 | C1 archive: frozen | C2 Gate 0: APPROVED | C2 Gate 1: APPROVED -->
 
 These requirements are an as-built inventory inferred from commit `83e3411`. Status `draft [C1]` means neither stakeholder-approved nor independently validated. Downstream synthesis is prohibited until Logic Gatekeeper validation and Human Gate 1 approval.
 
@@ -240,6 +240,104 @@ These requirements are an as-built inventory inferred from commit `83e3411`. Sta
 - **Verification criteria:** Unauthenticated, ordinary-user, forged-user-ID, stale-role, cross-user return, replay, concurrent inventory, and transaction-rollback tests pass for book, user, admin-request, borrow and hard-delete actions.
 - **Done criteria:** No privileged mutation trusts client identity/role fields; actor audit fields come from the server; partial failures leave no state or inventory drift.
 
+## C2 Validated Requirements
+
+These new requirements implement `CR-0002`. Gate 0 approved the bounded library scope and the recommended prioritization. Logic validation is complete; application synthesis remains prohibited until C2 Gate 1.
+
+### REQ-0026 - Production security hardening
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - credential migration, disclosure boundary, header policy, negative cases and rollback are explicit and testable; no hardware constraint applies
+- **Lineage:** CR-0002; OBS-0018, OBS-0019, OBS-0026
+- **Requirement:** The system shall version password encodings, create new credentials with Argon2id at no less than 19 MiB memory, 2 iterations and parallelism 1 or scrypt at no less than N=2^15, r=8 and p=3, and rehash a valid legacy salted-SHA-256 credential during the same authenticated login without forcing a reset.
+- **Constraints:** Existing users retain access; failed authentication never rewrites credentials; comparison is timing-safe; public status responses are limited to service state, timestamp and opaque request ID; provider configuration, email addresses, database topology, sizes and raw errors are admin-only. Production responses include `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, a least-privilege `Permissions-Policy`, HTTPS-only HSTS, and an integration-tested CSP moved from report-only preview to enforcement. Pre-auth upload authorization is limited to 5 requests per 10 minutes per normalized client key, and persisted media must satisfy feature-specific MIME and size validation.
+- **Verification criteria:** New-hash, legacy-login rehash, wrong-password no-write, malformed-hash, concurrent-login, redacted public/admin diagnostic, upload-limit, safe-error, CSP/header, secret-scan and full authentication/media regression tests pass.
+- **Done criteria:** 100% of newly written credentials use the versioned memory-hard format; every successfully used legacy credential is upgraded atomically; public diagnostics contain no restricted field; approved headers are present on every production page/API response without breaking Auth.js, ImageKit or application routes.
+
+### REQ-0027 - Authoritative mutation coherence and optional cross-session events
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - mutation ordering, cache ownership, stale-response prevention and user-visible thresholds are testable; cross-session push is explicitly excluded from this cycle
+- **Lineage:** CR-0002; REQ-0023; OBS-0020, OBS-0021
+- **Requirement:** Every successful library mutation shall commit exactly once to PostgreSQL, project confirmed state into the initiating UI within 100 ms at p95 after the server result arrives, synchronously invalidate every typed dependent query domain before the success handler settles, and reconcile any affected RSC cache/path in the background without a hard document reload.
+- **Constraints:** PostgreSQL remains authoritative; one user action triggers one mutation request; optimistic writes require snapshot rollback; mutation generations prevent an older in-flight response from replacing newer confirmed data. Affected inactive queries that cannot be safely patched shall not present known-pre-mutation values as confirmed on remount; they show the dimension-stable data-slot fallback until refetch completes. Same-origin tabs retain data-free `BroadcastChannel` invalidation. Redis business caching and SSE/WebSocket/gRPC delivery are out of C2 scope.
+- **Verification criteria:** A complete mutation-to-domain matrix covers books, users, borrows, holds, renewals, reviews, requests, fines, recommendations, analytics and operations; tests cover local projection, rollback, active refetch, inactive/back navigation, stale-response ordering, RSC reconciliation, same-tab/same-origin-tab delivery, focus/reconnect reconciliation and request-count bounds.
+- **Done criteria:** No successful CRUD/lifecycle result reverts to older cached state; current and active affected views converge within one network round trip without manual refresh; back/forward views either show patched current data or a stable inline data slot until fresh data arrives; one mutation causes no duplicate mutation call or rebroadcast loop.
+
+### REQ-0028 - Instant server-first navigation and stable data slots
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R1
+- **Logic validation:** PASS [C2] - render ownership, interaction latency, fetch-count and Web Vital thresholds are measurable
+- **Lineage:** CR-0002; OBS-0022
+- **Requirement:** Route `page.tsx` files shall remain Server Component orchestrators for first-paint data and static structure; client components shall be limited to interaction/browser APIs; runtime data shall stream behind the smallest practical Suspense boundary with dimension-stable inline fallbacks.
+- **Constraints:** Preserve current tokens, layout and responsive behavior; never replace a whole destination with a spinner when its shell is known; SSR data hydrates each query exactly once with no duplicate initial GET. Use standard production `<Link>` prefetch first, disable it for dense low-probability lists, and add intent prefetch only to measured dynamic-detail paths.
+- **Verification criteria:** Under production build and a defined slow-4G profile, click feedback or destination shell appears within 100 ms at p95; p75 LCP is at most 2.5 s, INP at most 200 ms and CLS at most 0.1 on the representative route matrix; initial SSR hydration performs zero duplicate data GETs; navigation, hydration console, keyboard, focus and reduced-motion tests pass.
+- **Done criteria:** Shared layout remains interactive during streaming, final data does not resize its reserved slot beyond the CLS budget, and measured prefetch never issues more than one request for a destination per navigation intent.
+
+### REQ-0029 - Library user 360 profile
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - identity surfaces, access policy, pagination and KPI reconciliation are explicit
+- **Lineage:** CR-0002; stakeholder request for clickable user detail and intelligence
+- **Requirement:** Authorized administrators shall reach `/admin/users/[id]` from the admin user table and supported dashboard/activity user labels and view profile, account state, circulation KPIs, paginated borrowing timeline, fines, admin requests, reviews and attributable activity; an ordinary user may access only the existing self-profile subset.
+- **Constraints:** Every source enforces current database role/ownership; UUIDs and page/filter inputs are validated; history defaults to 25 and is capped at 50 records per page; shared typed DTOs/selectors define `current`, `pending`, `returned`, `overdue`, `outstandingFine`, `onTimeReturnRate`, `averageLoanDays` and `topGenres` consistently.
+- **Verification criteria:** Link coverage, unauthenticated/ordinary/stale-admin/invalid-ID authorization, empty and 51+ record pagination, KPI-to-source reconciliation, mutation freshness, responsive table/timeline, keyboard and privacy tests pass.
+- **Done criteria:** Every displayed count/amount reconciles exactly with PostgreSQL under one shared definition and follows REQ-0027 after related mutations; restricted fields never enter unauthorized HTML/API payloads.
+
+### REQ-0030 - Library circulation expansion
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - Gate 0 selected reservations/waitlist plus renewals; state transitions, concurrency and exclusions are explicit
+- **Lineage:** CR-0002; stakeholder request for a real-world university library system
+- **Requirement:** When a book has no available copy, eligible users shall join one FIFO reservation queue per book; reservations transition `WAITING -> READY -> FULFILLED`, `WAITING|READY -> CANCELLED`, or `READY -> EXPIRED`. Eligible borrowers shall renew a `BORROWED` record up to the configured maximum when it is not overdue and no other user is waiting.
+- **Constraints:** One active reservation per user/book; queue position is deterministic by creation time plus ID; a returned copy atomically offers the earliest eligible reservation; READY expiry defaults to 48 hours and is configurable; renewal duration and maximum count use validated `systemConfig` values and default to the existing borrow duration and 2 renewals. Transactions and row locks prevent double offers, over-allocation and replay. Copy-level barcodes, procurement, supplier, warehouse, shipping, invoice and payment processing are excluded from C2.
+- **Verification criteria:** FIFO ordering, duplicate hold, cancellation, expiry, return-to-ready allocation, simultaneous return/hold, fulfilment, renewal limit, overdue denial, waiting-user denial, replay, rollback, ownership, notification idempotency and mutation-invalidation tests pass against disposable PostgreSQL.
+- **Done criteria:** Every transition is authorized, atomic and audited; available copies and active READY/BORROWED allocations never exceed total copies; queue/renewal UI updates under REQ-0027 without manual refresh.
+
+### REQ-0031 - Privacy-safe insights and explainable assistance
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - C2 uses deterministic aggregate insights only; external LLM processing is an explicit future CR
+- **Lineage:** CR-0002; stakeholder AI insight/prediction request; OBS-0023
+- **Requirement:** The admin user 360 and library analytics pages shall provide deterministic, explainable insights derived from shared aggregate queries: 30-day circulation trend, on-time return rate, overdue ratio, outstanding-fine total, demand-to-copy ratio, hold pressure, renewal rate and top genres.
+- **Constraints:** Inputs and formulas are versioned and displayed; results are advisory and never mutate roles, borrowing eligibility, fines or queue priority. No external LLM/API receives personal or borrowing data in C2; credentials in personal developer notes remain unused. Any LLM narrative requires a later CR, registered provider/privacy review, structured output, rate/cost budget and provider-disabled fallback.
+- **Verification criteria:** Fixed-dataset formula, zero-denominator, date-boundary, privacy payload, query-bound, stale-cache and mutation-freshness tests pass; each insight links to its formula/data period.
+- **Done criteria:** Deterministic results reconcile exactly with source aggregates, compute from bounded queries, update through REQ-0027, and remain available without any external AI provider.
+
+### REQ-0032 - Production observability and deployment guardrails
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - SLO, alert, recovery, deployment and evidence thresholds are quantitative
+- **Lineage:** CR-0002; OBS-0019, OBS-0024
+- **Requirement:** Production shall expose a minimal public liveness check and authenticated operator diagnostics, record route/mutation latency and error telemetry, and maintain deployment smoke, database migration/rollback and backup/restore procedures.
+- **Constraints:** Initial monthly targets are availability at least 99.5%, p95 authenticated read latency at most 1,000 ms, p95 mutation latency at most 1,500 ms and server error rate below 1%, measured excluding deliberate rate-limit responses. Critical availability/security alerts notify the named owner within 5 minutes. Database recovery targets are RPO at most 24 hours and RTO at most 4 hours. Monitoring contains no credentials or personal payloads; dashboard-only controls require dated evidence.
+- **Verification criteria:** Preview and production smoke, redaction, alert injection, dependency degradation, security-header, rate-limit, migration rollback, restore drill, representative load and telemetry-cardinality tests pass.
+- **Done criteria:** Gate 2 evidence identifies owners, dashboards, alert routes, measured SLO results, rollback criteria and a successful backup restoration performed within 30 days before acceptance.
+
+### REQ-0033 - Utility navigation and reusable media/motion behavior
+
+- **Status:** approved [C2] (`GATE-0006`)
+- **Risk:** R1
+- **Logic validation:** PASS [C2] - navigation destinations, accessibility, motion and performance constraints are testable
+- **Lineage:** CR-0002; stakeholder navigation request; referenced UI/media/motion guides
+- **Requirement:** API Docs, API Status and Performance shall be removed from primary desktop navigation and exposed in the profile utility menu, with equivalent entries in the mobile drawer; shared safe-media and interaction primitives shall be reused wherever the same behavior occurs twice or more.
+- **Constraints:** Routes remain reachable within two interactions after authentication and support keyboard activation, visible focus and screen-reader names. Ripple/reveal/parallax is optional, lasts 150-300 ms when used, is disabled by `prefers-reduced-motion`, never delays navigation/data rendering, and adds no layout shift. Existing styles and primitives take precedence over new abstractions.
+- **Verification criteria:** Desktop/mobile route discovery, two-interaction bound, keyboard/focus/name, active/close behavior, reduced-motion, media fallback, CLS/INP and route regression tests pass at 320, 768, 1024 and 1440 CSS-pixel widths.
+- **Done criteria:** Primary navigation contains library tasks only; all utilities remain accessible; no duplicate utility-link list or media/motion implementation remains in modified scope; visual behavior stays within REQ-0028 budgets.
+
+## C2 Corrective Implementation Evidence - 2026-08-02
+
+- **REQ-0027:** All browser mutation hooks/consumers use `MUTATION_DOMAIN_REGISTRY`; successful server actions and write routes use `MUTATION_RSC_PATH_REGISTRY` through one `revalidateMutationPaths` boundary. The matrix includes user-360 consumers for circulation, review and fine changes.
+- **REQ-0030:** READY events are claimed with PostgreSQL `FOR UPDATE SKIP LOCKED`, rechecked while a bounded dispatch lease rejects conflicting transitions, delivered through Resend with the stable outbox key and a 10-second timeout, and persist attempt/backoff/receipt/dead-letter state. `after()` handles immediate delivery and an authenticated cron handles recovery.
+- **Boundary unchanged:** Cross-device push remains excluded. Real deployed-provider receipt and REQ-0032 production evidence remain required before Gate 2.
+
 ## Open Human Decisions
 
 1. Confirm which current features are intended product requirements versus incidental implementation.
@@ -248,3 +346,10 @@ These requirements are an as-built inventory inferred from commit `83e3411`. Sta
 4. Confirm performance, rate-limit, retention, fine, renewal, and notification thresholds.
 5. Confirm review duplication/eligibility policy and borrowing eligibility/limits.
 6. Confirm the named Gate 2 approver after independent verification evidence is available.
+
+## C2 Gate 0 Decisions
+
+1. Foundation/security, coherence/navigation, utility navigation and user 360 precede circulation and insight work.
+2. Reservations/waitlist plus renewals are the only new circulation lifecycle in C2; copy-level barcodes and commerce domains are deferred.
+3. Cross-session SSE/WebSocket and gRPC are excluded from C2; same-origin tab sync plus focus/reconnect reconciliation is the approved boundary.
+4. Deterministic aggregate insights are in scope; external LLM narratives are deferred to a separate privacy-reviewed CR.

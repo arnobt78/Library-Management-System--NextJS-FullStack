@@ -16,6 +16,7 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession } from "next-auth/react";
@@ -237,7 +238,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   // Handler functions for mutations
   const handleUpdateUserRole = async (
     userId: string,
-    role: "USER" | "ADMIN"
+    role: "USER" | "ADMIN",
   ) => {
     const user = users.find((u) => u.id === userId);
     updateUserRoleMutation.mutate({
@@ -249,7 +250,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   const handleUpdateUserStatus = async (
     userId: string,
-    status: "PENDING" | "APPROVED" | "REJECTED"
+    status: "PENDING" | "APPROVED" | "REJECTED",
   ) => {
     const user = users.find((u) => u.id === userId);
     updateUserStatusMutation.mutate({
@@ -298,7 +299,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
         {/* Admin Requests Skeleton */}
         <div className="mt-4 sm:mt-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Pending Admin Requests</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Pending Admin Requests
+          </h3>
           <div className="space-y-3 sm:space-y-4">
             {[...Array(2)].map((_, i) => (
               <UserSkeleton
@@ -566,7 +569,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="border border-gray-200 px-2 py-6 sm:px-4 sm:py-8">
+                  <td
+                    colSpan={7}
+                    className="border border-gray-200 px-2 py-6 sm:px-4 sm:py-8"
+                  >
                     <div className="flex flex-col items-center justify-center text-center">
                       <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
                         No users found matching your criteria.
@@ -587,7 +593,13 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                 users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
-                      {user.fullName}
+                      <Link
+                        prefetch={false}
+                        href={`/admin/users/${user.id}`}
+                        className="font-medium text-blue-700 hover:underline"
+                      >
+                        {user.fullName}
+                      </Link>
                     </td>
                     <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
                       {user.email}

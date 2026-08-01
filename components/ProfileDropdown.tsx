@@ -10,7 +10,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { showToast } from "@/lib/toast";
 import UserAvatar from "@/components/UserAvatar";
+import { UTILITY_NAVIGATION_ITEMS } from "@/constants/navigation";
+import { usePathname } from "next/navigation";
 
 interface ProfileDropdownProps {
   fullName: string;
@@ -37,8 +38,8 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   universityCard,
   isAdmin,
 }) => {
-  const queryClient = useQueryClient();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     // Prevent multiple clicks
@@ -66,15 +67,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         callbackUrl: "/sign-in", // Where to redirect after logout
       });
 
-      // CRITICAL: Clear cache AFTER redirect completes (longer delay)
-      // This ensures smooth transition - UI stays intact during entire logout process
-      // The redirect happens immediately, but we wait longer to ensure page has navigated
-      // before clearing cache. This prevents images from disappearing during logout.
-      setTimeout(() => {
-        queryClient.clear();
-      }, 500); // Longer delay to ensure redirect has completed and page has navigated
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
       setIsLoggingOut(false);
       showToast.error(
         "Logout Failed",
@@ -110,6 +103,24 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             </p>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-gray-600" />
+        {UTILITY_NAVIGATION_ITEMS.filter(
+          (item) => !item.adminOnly || isAdmin,
+        ).map((item) => (
+          <DropdownMenuItem
+            key={item.href}
+            asChild
+            className="cursor-pointer rounded-md px-0 py-2 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 focus:bg-gray-700 focus:text-light-200 sm:py-3 [&>a]:block [&>a]:w-full"
+          >
+            <Link
+              href={item.href}
+              aria-current={pathname === item.href ? "page" : undefined}
+              className="px-2.5 text-xs sm:px-3 sm:text-sm"
+            >
+              {item.label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
         <DropdownMenuSeparator className="bg-gray-600" />
         {!isAdmin && (
           <DropdownMenuItem

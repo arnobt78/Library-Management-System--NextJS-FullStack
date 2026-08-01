@@ -7,13 +7,14 @@
  * Displays user info and navigation links in a drawer-style menu.
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { signOut } from "next-auth/react";
-import { useQueryClient } from "@tanstack/react-query";
 import { showToast } from "@/lib/toast";
 import UserAvatar from "@/components/UserAvatar";
+import { UTILITY_NAVIGATION_ITEMS } from "@/constants/navigation";
 
 interface MobileMenuProps {
   fullName: string;
@@ -31,8 +32,35 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   isAdmin,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const queryClient = useQueryClient();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const pathname = usePathname();
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -48,11 +76,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         callbackUrl: "/sign-in",
       });
 
-      setTimeout(() => {
-        queryClient.clear();
-      }, 500);
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
       setIsLoggingOut(false);
       showToast.error(
         "Logout Failed",
@@ -76,6 +100,8 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         }}
         className="text-light-100 hover:text-light-200 focus:outline-none md:hidden"
         aria-label="Toggle menu"
+        aria-expanded={isOpen}
+        aria-controls="mobile-navigation-drawer"
       >
         {isOpen ? (
           <X className="size-5 sm:size-6" />
@@ -95,6 +121,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
       {/* Mobile Menu Drawer */}
       <div
+        id="mobile-navigation-drawer"
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation"
+        aria-hidden={!isOpen}
+        inert={!isOpen}
         className={`fixed right-0 top-0 z-50 h-full w-4/5 bg-gray-800 shadow-xl transition-transform duration-300 ease-in-out md:hidden ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
@@ -117,6 +150,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </h2>
             <div className="flex items-center gap-2 sm:gap-3">
               <button
+                ref={closeButtonRef}
                 onClick={(e) => {
                   e.stopPropagation();
                   closeMenu();
@@ -148,6 +182,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               href="/all-books"
               onClick={closeMenu}
               className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
+              aria-current={pathname === "/all-books" ? "page" : undefined}
             >
               All Books
             </Link>
@@ -155,30 +190,23 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               href="/my-profile"
               onClick={closeMenu}
               className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
+              aria-current={pathname === "/my-profile" ? "page" : undefined}
             >
               My Profile
             </Link>
-            <Link
-              href="/api-docs"
-              onClick={closeMenu}
-              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-            >
-              API Docs
-            </Link>
-            <Link
-              href="/api-status"
-              onClick={closeMenu}
-              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-            >
-              API Status
-            </Link>
-            <Link
-              href="/performance"
-              onClick={closeMenu}
-              className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-            >
-              Performance
-            </Link>
+            {UTILITY_NAVIGATION_ITEMS.filter(
+              (item) => !item.adminOnly || isAdmin,
+            ).map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={closeMenu}
+                className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
+                aria-current={pathname === item.href ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            ))}
             {isAdmin && (
               <>
                 <div className="my-2 border-t border-gray-600"></div>

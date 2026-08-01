@@ -220,9 +220,9 @@ export async function getUserBorrows(
     throw new ApiError("User ID is required", 400);
   }
 
-  // CRITICAL: Fetch ALL records (no pagination limit)
-  // This ensures we get all user's borrow records, not just the first 50
-  const filters: BorrowFilters = { userId, limit: 10000 };
+  // Keep the profile request bounded; older history can be exposed through
+  // explicit pagination without turning every navigation into an unbounded read.
+  const filters: BorrowFilters = { userId, limit: 100 };
   if (status) filters.status = status;
 
   const response = await getBorrowsList(filters);

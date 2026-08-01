@@ -2,6 +2,7 @@ import { db } from "@/database/drizzle";
 import { borrowRecords, users, books } from "@/database/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { sendEmailWithFallback } from "@/lib/services/email-service";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 // Email service for sending reminders
 export class EmailService {
@@ -259,6 +260,7 @@ This is an automated reminder. For assistance, please contact us at support@book
         subject,
         body
       );
+      if (!result.success) throw new Error(result.error || "Email delivery failed");
       // Update the lastReminderSent timestamp after successful email
       await updateLastReminderSent(book.recordId);
       results.push({
@@ -279,6 +281,9 @@ This is an automated reminder. For assistance, please contact us at support@book
     }
   }
 
+  if (results.some(({ status }) => status === "sent")) {
+    revalidateMutationPaths("operations.write");
+  }
   return results;
 }
 
@@ -332,6 +337,7 @@ This is an automated notice. For assistance, please contact us at support@bookwi
         subject,
         body
       );
+      if (!result.success) throw new Error(result.error || "Email delivery failed");
       // Update the lastReminderSent timestamp after successful email
       await updateLastReminderSent(book.recordId);
       results.push({
@@ -352,6 +358,9 @@ This is an automated notice. For assistance, please contact us at support@bookwi
     }
   }
 
+  if (results.some(({ status }) => status === "sent")) {
+    revalidateMutationPaths("operations.write");
+  }
   return results;
 }
 

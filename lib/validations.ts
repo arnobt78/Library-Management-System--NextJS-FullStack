@@ -3,17 +3,21 @@ import { z } from "zod";
 export const signUpSchema = z.object({
   fullName: z
     .string()
+    .trim()
     .min(1, "Full name is required")
     .min(3, "Full name must be at least 3 characters")
     .max(255, "Full name must be less than 255 characters"),
   email: z
     .string()
+    .trim()
     .min(1, "Email is required")
-    .email("Please enter a valid email address"),
+    .email("Please enter a valid email address")
+    .max(320, "Email must be less than 320 characters"),
   password: z
     .string()
     .min(1, "Password is required")
-    .min(8, "Password must be at least 8 characters"),
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be less than 128 characters"),
   universityId: z.preprocess(
     (val: unknown) => {
       // Convert empty string, null, or undefined to undefined
@@ -33,20 +37,19 @@ export const signUpSchema = z.object({
       .min(1, "University ID must be a positive number")
       .max(
         99999999,
-        "University ID is too large. Maximum allowed 8-digit number"
-      )
+        "University ID is too large. Maximum allowed 8-digit number",
+      ),
   ),
   universityCard: z
     .string()
-    .min(
-      1,
-      "University ID Card is required. Please upload your ID card image."
-    ),
+    .trim()
+    .min(1, "University ID Card is required. Please upload your ID card image.")
+    .max(2048, "University ID Card URL is too long"),
 });
 
 export const signInSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().trim().email().max(320),
+  password: z.string().min(8).max(128),
 });
 
 export const bookSchema = z.object({
@@ -103,7 +106,7 @@ export const bookSchema = z.object({
     .min(1, "Primary color is required")
     .regex(
       /^#[0-9A-F]{6}$/i,
-      "Primary color must be a valid hex color (e.g., #FF5733)"
+      "Primary color must be a valid hex color (e.g., #FF5733)",
     ),
   videoUrl: z
     .string()
@@ -127,7 +130,7 @@ export const bookSchema = z.object({
     .min(1000, "Publication year must be at least 1000")
     .max(
       new Date().getFullYear(),
-      `Publication year cannot exceed ${new Date().getFullYear()}`
+      `Publication year cannot exceed ${new Date().getFullYear()}`,
     )
     .optional(),
   publisher: z

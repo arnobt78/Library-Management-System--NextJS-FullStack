@@ -11,6 +11,8 @@ import { auth } from "@/auth";
 import ApiStatusClient from "@/components/ApiStatusClient";
 import type { ServiceStatus } from "@/lib/services/health-monitor";
 import type { MetricsData } from "@/lib/services/metrics-monitor";
+import { requireAdminActor } from "@/lib/auth/authorization";
+import { headers } from "next/headers";
 
 export const runtime = "nodejs";
 
@@ -34,16 +36,44 @@ const ApiStatusPage = async () => {
     );
   }
 
-  // Fetch all data server-side for SSR
-  const baseUrl =
-    process.env.NODE_ENV === "production"
-      ? "https://university-library-managment.vercel.app"
-      : "http://localhost:3000";
+  let isAdmin = false;
+  try {
+    await requireAdminActor();
+    isAdmin = true;
+  } catch {
+    // Operator diagnostics are deliberately unavailable to ordinary users.
+  }
+  // Fetch public liveness for members and richer diagnostics for operators.
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host") ?? "localhost:3000";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+  const baseUrl = `${protocol}://${host}`;
+  const cookie = requestHeaders.get("cookie") ?? "";
 
   let initialServices: ServiceStatus[] | undefined;
   let initialMetrics: MetricsData | undefined;
 
   try {
+    if (!isAdmin) {
+      const healthResponse = await fetch(`${baseUrl}/api/status/health`, {
+        cache: "no-store",
+      });
+      const health = (await healthResponse.json()) as {
+        status: "HEALTHY" | "DEGRADED" | "DOWN";
+        timestamp: string;
+      };
+      initialServices = [{
+        name: "Application",
+        status: health.status,
+        responseTime: 0,
+        endpoint: "/api/status/health",
+        description: "Public application liveness",
+        icon: null,
+        performance: health.status === "HEALTHY" ? "Excellent" : "Poor",
+        performanceValue: health.status === "HEALTHY" ? 100 : 0,
+        lastChecked: health.timestamp,
+      }];
+    } else {
     // Fetch service health and system metrics in parallel
     const services = [
       "api-server",
@@ -62,6 +92,7 @@ const ApiStatusPage = async () => {
             cache: "no-store",
             headers: {
               "Content-Type": "application/json",
+              cookie,
             },
           })
             .then((res) => res.json())
@@ -81,6 +112,7 @@ const ApiStatusPage = async () => {
         cache: "no-store",
         headers: {
           "Content-Type": "application/json",
+          cookie,
         },
       }).then((res) => res.json()),
     ]);
@@ -135,9 +167,9 @@ const ApiStatusPage = async () => {
     ) {
       initialMetrics = metricsResponse.value.metrics;
     }
-  } catch (error) {
+    }
+  } catch {
     // If SSR fetch fails, let client-side fetch handle it
-    console.error("Failed to fetch initial data for API status:", error);
   }
 
   return (
@@ -151,6 +183,7 @@ const ApiStatusPage = async () => {
               <ApiStatusClient
                 initialServices={initialServices}
                 initialMetrics={initialMetrics}
+                operatorMode={isAdmin}
               />
             </div>
           </div>

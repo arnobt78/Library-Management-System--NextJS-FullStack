@@ -10,6 +10,8 @@ import {
   invalidateAfterUserChange,
   invalidateDomains,
   isInvalidationMessage,
+  MUTATION_DOMAIN_REGISTRY,
+  MUTATION_RSC_PATH_REGISTRY,
   subscribeToQueryInvalidation,
 } from "./queryInvalidation";
 
@@ -67,7 +69,7 @@ afterEach(() => {
 });
 
 describe("query invalidation contract", () => {
-  it("marks every contract domain stale before the helper settles", async () => {
+  it("removes known-stale inactive data before the helper settles", async () => {
     const client = createQueryClient();
     const keys = [
       queryKeys.books.detail("book-1"),
@@ -84,7 +86,7 @@ describe("query invalidation contract", () => {
     const settled = invalidateAllQueries(client);
 
     for (const key of keys) {
-      expect(client.getQueryState(key)?.isInvalidated).toBe(true);
+      expect(client.getQueryState(key)).toBeUndefined();
     }
     await settled;
   });
@@ -96,12 +98,8 @@ describe("query invalidation contract", () => {
 
     await invalidateAfterBorrowChange(client);
 
-    expect(
-      client.getQueryState(queryKeys.books.detail("book-1"))?.isInvalidated
-    ).toBe(true);
-    expect(client.getQueryState(queryKeys.admin.analytics)?.isInvalidated).toBe(
-      true
-    );
+    expect(client.getQueryData(queryKeys.books.detail("book-1"))).toBeUndefined();
+    expect(client.getQueryData(queryKeys.admin.analytics)).toBeUndefined();
 
     const queryFn = vi.fn().mockResolvedValue({ id: "book-1", fresh: true });
     const observer = new QueryObserver(client, {
@@ -133,14 +131,9 @@ describe("query invalidation contract", () => {
 
       await invalidate(client);
 
-      expect(client.getQueryState(queryKeys.admin.exportStats)?.isInvalidated).toBe(
-        true
-      );
+      expect(client.getQueryState(queryKeys.admin.exportStats)).toBeUndefined();
       if (invalidate === invalidateAfterBorrowChange) {
-        expect(
-          client.getQueryState(queryKeys.books.recommendations("user-1", 10))
-            ?.isInvalidated
-        ).toBe(true);
+        expect(client.getQueryState(queryKeys.books.recommendations("user-1", 10))).toBeUndefined();
       }
     }
   });
@@ -191,6 +184,8 @@ describe("query invalidation contract", () => {
     expect(FakeBroadcastChannel.messages[0]).toEqual({
       version: 1,
       type: "query-invalidation",
+      eventId: expect.any(String),
+      generation: expect.any(Number),
       timestamp: expect.any(Number),
       domains: ["users"],
     });
@@ -216,5 +211,37 @@ describe("query invalidation contract", () => {
         domains: ["credentials"],
       })
     ).toBe(false);
+  });
+
+  it("exports the exact mutation-to-domain contract", () => {
+    expect(MUTATION_DOMAIN_REGISTRY).toEqual({
+      "book.write": ["books", "users", "borrows", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
+      "user.write": ["users", "borrows", "reviews", "admin", "analytics", "operations", "circulation"],
+      "borrow.lifecycle": ["borrows", "books", "users", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
+      "reservation.lifecycle": ["circulation", "borrows", "books", "users", "admin", "analytics", "recommendations"],
+      "renewal.write": ["circulation", "borrows", "books", "users", "admin", "analytics"],
+      "review.write": ["reviews", "books", "users", "analytics"],
+      "admin-request.write": ["admin", "users", "analytics", "operations"],
+      "fine.write": ["borrows", "users", "admin", "analytics", "operations"],
+      "recommendation.write": ["recommendations", "books", "admin", "analytics"],
+      "operations.write": ["borrows", "admin", "analytics", "operations"],
+    });
+    expect(MUTATION_RSC_PATH_REGISTRY).toEqual({
+      "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights"],
+      "user.write": ["/my-profile", "/admin/users", "/admin/users/[id]", "/admin/business-insights"],
+      "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+      "reservation.lifecycle": ["/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+      "renewal.write": ["/books/[id]", "/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+      "review.write": ["/books/[id]", "/admin/users/[id]", "/admin/business-insights"],
+      "admin-request.write": ["/make-admin", "/admin/account-requests", "/admin/users", "/admin/business-insights"],
+      "fine.write": ["/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+      "recommendation.write": ["/", "/all-books", "/admin/automation", "/admin/business-insights"],
+      "operations.write": ["/my-profile", "/api-status", "/admin", "/admin/book-requests", "/admin/automation", "/admin/business-insights"],
+    });
+    expect(Object.keys(MUTATION_RSC_PATH_REGISTRY).sort()).toEqual(Object.keys(MUTATION_DOMAIN_REGISTRY).sort());
+    for (const mutation of Object.keys(MUTATION_DOMAIN_REGISTRY) as (keyof typeof MUTATION_DOMAIN_REGISTRY)[]) {
+      expect(MUTATION_DOMAIN_REGISTRY[mutation].length).toBeGreaterThan(0);
+      expect(MUTATION_RSC_PATH_REGISTRY[mutation].length).toBeGreaterThan(0);
+    }
   });
 });

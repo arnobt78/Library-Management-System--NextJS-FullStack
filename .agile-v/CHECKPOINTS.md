@@ -10,5 +10,9 @@
 | INT-0003 | C1 | Gate 1 delta | RESOLVED | 2026-08-01 | Not set | C1-G1D-20260801-1010659a | Approve REQ-0025 corrective security scope before synthesis and commit | Approved by Arnob Mahmud, Project Owner; GATE-0003 |
 | INT-0004 | C1 | Gate 2 | PENDING | 2026-08-01 | Not set | C1-G2-20260801-6e7b0d4c | Accept verified REQ-0019 through REQ-0025 and authorize C1 commit/push | Awaiting Arnob Mahmud, Project Owner decision |
 | INT-0004 | C1 | Gate 2 | RESOLVED | 2026-08-01 | Not set | C1-G2-20260801-6e7b0d4c | Accept verified REQ-0019 through REQ-0025 and authorize C1 commit/push | Approved by Arnob Mahmud, Project Owner; GATE-0004 |
+| INT-0005 | C2 | Gate 0 | PENDING | 2026-08-01 | Not set | C2-G0-20260801-74b2e9a1 | Approve bounded C2 library scope, priorities, non-goals, and discovery risks for requirements refinement | Awaiting Arnob Mahmud, Project Owner decision |
+| INT-0005 | C2 | Gate 0 | RESOLVED | 2026-08-01 | Not set | C2-G0-20260801-74b2e9a1 | Approve bounded C2 library scope, priorities, non-goals, and discovery risks for requirements refinement | Approved by Arnob Mahmud, Project Owner; GATE-0005 |
+| INT-0006 | C2 | Gate 1 | PENDING | 2026-08-01 | Not set | C2-G1-20260801-5d31a8c2 | Approve logic-validated REQ-0026 through REQ-0033 and the staged C2 synthesis/verification plan | Awaiting Arnob Mahmud, Project Owner decision |
+| INT-0006 | C2 | Gate 1 | RESOLVED | 2026-08-01 | Not set | C2-G1-20260801-5d31a8c2 | Approve logic-validated REQ-0026 through REQ-0033 and the staged C2 synthesis/verification plan | Approved by Arnob Mahmud, Project Owner; GATE-0006 |
 
 When a human gate is presented, append a `PENDING` row with a unique `INT-XXXX` and resume token before ending the turn. Never edit or reuse a prior row.

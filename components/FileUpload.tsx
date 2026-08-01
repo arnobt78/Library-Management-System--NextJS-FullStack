@@ -1,6 +1,6 @@
 "use client";
 
-// Parent: REQ-0021
+// Parent: REQ-0021, REQ-0026
 import {
   Image as ImageKitImage,
   ImageKitProvider,
@@ -12,6 +12,7 @@ import { useRef, useState } from "react";
 import config from "@/lib/config";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { validateMediaSignature } from "@/lib/media/validation";
 
 const {
   env: {
@@ -88,19 +89,36 @@ const FileUpload = ({
     text: variant === "dark" ? "text-light-100" : "text-dark-400",
   };
 
-  const validateFile = (file: File): boolean => {
-    const maxBytes = type === "image" ? 20 * 1024 * 1024 : 50 * 1024 * 1024;
-    if (file.size <= maxBytes) return true;
+  const validateFile = async (file: File): Promise<boolean> => {
+    const allowedTypes =
+      type === "image"
+        ? new Set(["image/jpeg", "image/png", "image/webp"])
+        : new Set(["video/mp4", "video/webm"]);
+    if (!allowedTypes.has(file.type)) {
+      showToast.error(
+        "Unsupported File",
+        type === "image"
+          ? "Choose a JPEG, PNG, or WebP image."
+          : "Choose an MP4 or WebM video.",
+      );
+      return false;
+    }
 
-    showToast.error(
-      "📁 File Too Large",
-      `${type === "image" ? "Image" : "Video"} files must be smaller than ${type === "image" ? "20MB" : "50MB"}.`
-    );
+    const maxBytes = type === "image" ? 20 * 1024 * 1024 : 50 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      showToast.error(
+        "📁 File Too Large",
+        `${type === "image" ? "Image" : "Video"} files must be smaller than ${type === "image" ? "20MB" : "50MB"}.`
+      );
+      return false;
+    }
+    if (await validateMediaSignature(file)) return true;
+    showToast.error("Invalid File", "The file content does not match its declared media type.");
     return false;
   };
 
   const handleUpload = async (selectedFile: File): Promise<void> => {
-    if (!validateFile(selectedFile)) return;
+    if (!(await validateFile(selectedFile))) return;
 
     setIsUploading(true);
     setProgress(0);
@@ -135,8 +153,7 @@ const FileUpload = ({
         `✅ ${type === "image" ? "Image" : "Video"} Uploaded Successfully!`,
         `${result.filePath} is ready to use.`
       );
-    } catch (error: unknown) {
-      console.error("ImageKit upload failed", error);
+    } catch {
       showToast.error(
         `${type === "image" ? "Image" : "Video"} Upload Failed`,
         "The file could not be uploaded. Please try again."

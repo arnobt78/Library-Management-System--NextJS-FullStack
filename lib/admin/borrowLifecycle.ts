@@ -12,6 +12,7 @@ import {
   canApproveBorrow,
   canReturnBorrow,
 } from "./borrowTransitionPolicy";
+import { offerNextReservation } from "@/lib/circulation/reservations";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -193,6 +194,8 @@ async function returnWithTransaction(
       updatedAt: new Date(),
     })
     .where(eq(books.id, record.bookId));
+
+  await offerNextReservation(tx, record.bookId, actor.email);
 
   return {
     success: true,

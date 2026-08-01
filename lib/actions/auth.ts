@@ -4,22 +4,31 @@ import { eq } from "drizzle-orm";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { signIn } from "@/auth";
-import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { redirect } from "next/navigation";
 import { workflowClient } from "@/lib/workflow";
 import config from "@/lib/config";
 import { hashPassword } from "@/lib/auth/password";
+import { getClientRateLimitKey } from "@/lib/request/clientKey";
+import { assertPersistedMediaUrl } from "@/lib/media/serverValidation";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { signInSchema, signUpSchema } from "@/lib/validations";
 
 export const signInWithCredentials = async (
   params: Pick<AuthCredentials, "email" | "password">,
 ) => {
-  const { email, password } = params;
-
-  const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
-  const { success } = await ratelimit.limit(ip);
+  const clientKey = await getClientRateLimitKey();
+  const { success } = await ratelimit.limit(clientKey);
 
   if (!success) return redirect("/too-fast");
+
+  // Server actions are public network boundaries; repeat validation even
+  // though the form already validates for immediate user feedback.
+  const parsed = signInSchema.safeParse(params);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid email or password" };
+  }
+  const { email, password } = parsed.data;
 
   try {
     const result = await signIn("credentials", {
@@ -33,97 +42,64 @@ export const signInWithCredentials = async (
     }
 
     return { success: true };
-  } catch (error) {
-    console.error("Sign-in failed", error);
+  } catch {
     return { success: false, error: "Signin error" };
   }
 };
 
 export const signUp = async (params: AuthCredentials) => {
-  const { fullName, email, universityId, password, universityCard } = params;
-
-  const ip = (await headers()).get("x-forwarded-for") || "127.0.0.1";
-  const { success } = await ratelimit.limit(ip);
+  const clientKey = await getClientRateLimitKey();
+  const { success } = await ratelimit.limit(clientKey);
 
   if (!success) return redirect("/too-fast");
 
-  // Validate universityId is within PostgreSQL integer range
-  // PostgreSQL integer range: -2,147,483,648 to 2,147,483,647
-  // But we'll limit to 8-digit numbers (1 to 99,999,999) for better UX
-  const MAX_INTEGER = 2147483647;
-  const MAX_8_DIGIT = 99999999;
-
-  // Validate universityId is a whole number (integer)
-  if (!Number.isInteger(universityId)) {
+  const parsed = signUpSchema.safeParse(params);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const field = issue?.path[0];
     return {
       success: false,
-      error: "universityId",
-      fieldError: "University ID must be a whole number (no decimals).",
+      error: typeof field === "string" ? field : "Signup error",
+      fieldError: issue?.message ?? "Please check your registration details.",
     };
   }
-
-  // Validate universityId is positive
-  if (universityId < 1) {
-    return {
-      success: false,
-      error: "universityId",
-      fieldError: "University ID must be a positive number.",
-    };
-  }
-
-  // Validate universityId is within 8-digit range
-  if (universityId > MAX_8_DIGIT) {
-    return {
-      success: false,
-      error: "universityId",
-      fieldError: "University ID is too large. Maximum allowed 8-digit number.",
-    };
-  }
-
-  // Validate universityId is within PostgreSQL integer range (safety check)
-  if (universityId > MAX_INTEGER) {
-    return {
-      success: false,
-      error: "universityId",
-      fieldError: "University ID is too large. Maximum allowed 8-digit number.",
-    };
-  }
-
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-
-  if (existingUser.length > 0) {
-    return {
-      success: false,
-      error: "email",
-      fieldError:
-        "This email is already registered. Please use a different email or sign in.",
-    };
-  }
-
-  // Check for duplicate university ID
-  const existingUniversityId = await db
-    .select()
-    .from(users)
-    .where(eq(users.universityId, universityId))
-    .limit(1);
-
-  if (existingUniversityId.length > 0) {
-    return {
-      success: false,
-      error: "universityId",
-      fieldError:
-        "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
-    };
-  }
-
-  // Same salted SHA-256 as before (shared helper for sign-up + seed scripts)
-  const hashedPassword = hashPassword(password);
+  const { fullName, email, universityId, password, universityCard } =
+    parsed.data;
 
   try {
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return {
+        success: false,
+        error: "email",
+        fieldError:
+          "This email is already registered. Please use a different email or sign in.",
+      };
+    }
+
+    // Check for duplicate university ID
+    const existingUniversityId = await db
+      .select()
+      .from(users)
+      .where(eq(users.universityId, universityId))
+      .limit(1);
+
+    if (existingUniversityId.length > 0) {
+      return {
+        success: false,
+        error: "universityId",
+        fieldError:
+          "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
+      };
+    }
+
+    const hashedPassword = await hashPassword(password);
+    await assertPersistedMediaUrl(universityCard, "image");
     await db.insert(users).values({
       fullName,
       email,
@@ -137,17 +113,22 @@ export const signUp = async (params: AuthCredentials) => {
       process.env.NODE_ENV === "production" ||
       process.env.ENABLE_WORKFLOWS === "true"
     ) {
-      await workflowClient.trigger({
-        url: `${config.env.prodApiEndpoint}/api/workflows/onboarding`,
-        body: {
-          email,
-          fullName,
-        },
-      });
+      try {
+        await workflowClient.trigger({
+          url: `${config.env.prodApiEndpoint}/api/workflows/onboarding`,
+          body: {
+            email,
+            fullName,
+          },
+        });
+      } catch {
+        // Account persistence is authoritative; provider failure must not report a false rollback.
+      }
     }
 
     await signInWithCredentials({ email, password });
 
+    revalidateMutationPaths("user.write");
     return { success: true };
   } catch (error) {
     // Check if error is related to integer range
@@ -190,13 +171,9 @@ export const signUp = async (params: AuthCredentials) => {
       }
     }
 
-    console.error("Sign-up failed", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Signup error. Please check your information and try again.",
+      error: "Signup error. Please check your information and try again.",
     };
   }
 };

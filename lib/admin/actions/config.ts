@@ -1,6 +1,7 @@
 import { db } from "@/database/drizzle";
 import { systemConfig } from "@/database/schema";
 import { eq } from "drizzle-orm";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 // Configuration keys
 export const CONFIG_KEYS = {
@@ -64,6 +65,7 @@ export async function setConfigValue(
       });
     }
 
+    revalidateMutationPaths("fine.write");
     return { success: true };
   } catch (error) {
     console.error(`Error setting config value for key ${key}:`, error);

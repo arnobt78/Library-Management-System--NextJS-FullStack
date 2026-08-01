@@ -14,12 +14,13 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - `lib/query/keys.ts`: query-key authority; `lib/utils/queryInvalidation.ts`: mutation-domain invalidation.
 - `lib/auth/authorization.ts`: current-DB actor authority; `lib/admin/borrowLifecycle.ts`: atomic borrow transitions.
 - `lib/admin/actions/`: server operations; `database/`: schema/connections; `migrations/`: SQL history.
+- `lib/circulation/reservationOutbox.ts`: retry-safe READY delivery; `revalidateMutation.ts`: RSC registry consumer.
 - `.env.example`: configuration source; `.agile-v/STATE.md`: workflow resume source.
 
 ## Rules
 
 - Preserve SSR `initialData`; invalidate related domains after every successful mutation.
-- Active queries refetch; inactive/back-navigation queries remain stale until mount; BroadcastChannel syncs same-origin tabs.
+- Active queries refetch; inactive/back-navigation queries are invalidated for mount; event-ID/generation BroadcastChannel syncs same-origin tabs.
 - Do not claim cross-device realtime without WebSocket/SSE infrastructure.
 - Redis has no business-data cache, so no Redis data invalidation currently applies.
 - Never trust browser-supplied actor/role IDs; privileged writes require server-side DB authorization and ownership checks.
@@ -36,5 +37,11 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 
 - REQ-0019–0025 re-Prove passes: typecheck, lint, 40 default tests, 4 real PostgreSQL integration tests, audit 0, Next 16.2.12 build.
 - REQ-0025 uses DB-backed actors, owner/admin policy, row locks, atomic lifecycle writes, and environment-only CLI secrets.
-- Apply migration `0009_users_audit_fields.sql` before deploying the matching code.
+- Migration `0010_reservations.sql` was applied and schema-verified on the configured database on 2026-08-02; apply it separately to any other environment before matching code. `0010_reservations.down.sql` is the C2 rollback.
 - Full Verify is 27/27 PASS; Gate 2 is approved (`GATE-0004`); accepted implementation is `d9b9fd9`; C1 is archived.
+- C2 REQ-0026–0033 Gate 1 is approved (`GATE-0006`); final local Prove passes: types, lint, 84 tests, 10 PostgreSQL tests repeated across 10 stress runs, audit 0, Next 16.2.12 build.
+- C2 adds scrypt rehash-on-login, safe status/media boundaries, typed mutation registry, server-first/Suspense routes, user 360, FIFO reservations/renewals with command ledger/outbox, deterministic insights, and PostgreSQL telemetry/SLO calculation.
+- Final corrective Red Team reports zero known code failures after clock-skew claims, exact expiry, server validation, rolling upload limits, profile bounds/prefetch/shells and review-error fixes. Nonlocal browser/provider/load/deployment/alert/backup-restore and dated SLO evidence remains FLAG. A local checkpoint commit is owner-authorized; do not claim SaaS readiness, Gate 2, push or deployment.
+- READY delivery uses an idempotent Resend worker with a bounded dispatch lease, 10-second provider timeout, concurrency cap, finite dead-lettering, `after()` dispatch and secured cron recovery; all mutation families share client/RSC registries. Deployed receipt/production evidence remains open.
+- C2 targets only library domains; supplier/warehouse/shipping commerce and gRPC are excluded absent a measured requirement.
+- Demo accounts: `TEST_ACCOUNTS` + `npm run seed:test-profiles` (scrypt via `hashPassword`); avatars `/images/profile-img*.png` in `universityCard`; `UserAvatar` + `resolveUniversityCard` for local/remote/ImageKit.

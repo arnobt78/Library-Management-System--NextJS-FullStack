@@ -35,3 +35,23 @@
 | `prettier` | `3.9.6` | Required peer/runtime for `eslint-config-prettier` and local formatting compatibility |
 
 `depcheck` reported no unused production dependency. Its four development findings were configuration/override dependencies documented above; unused `autoprefixer` was removed.
+
+## C2 synthesis manifest
+
+- Status: implementation Prove PASS; independent corrective Verify and production evidence pending
+- Gate 1 prerequisite: MET (`GATE-0006`)
+- Baseline: `c94e7db`
+
+| ART-ID | REQ | Artifacts | Result / rollback |
+|---|---|---|---|
+| ART-0013 | REQ-0026 | password/auth, media/status boundaries, security tests, `next.config.ts` | Versioned scrypt, legacy rehash, safe diagnostics, strict media persistence and headers; rollback as security set |
+| ART-0014 | REQ-0027 | typed query registry/keys, invalidation generation/dedupe, provider/hooks/consumers | Browser-domain coherence with bounded focus/reconnect and same-origin tab invalidation |
+| ART-0015 | REQ-0028, REQ-0033 | server page/client splits, Suspense slots, utility navigation, mobile focus trap, reduced-motion/media fallback | Server-first/accessibility synthesis; measured browser evidence pending |
+| ART-0016 | REQ-0029 | `lib/admin/userProfile.ts`, `/admin/users/[id]`, linked users | Authorized paginated user 360 with consistent KPI formulas |
+| ART-0017 | REQ-0030 | reservation schema/actions/components, migration/down, command ledger, PostgreSQL tests | FIFO outbox/renewal lifecycle and replay-safe renewal; apply migration before code |
+| ART-0018 | REQ-0031 | deterministic insight DTO/formulas/actions/API/UI/tests | One bounded aggregate snapshot with versioned explainable formulas |
+| ART-0019 | REQ-0032 | bounded telemetry sink, SLO calculator/tests, status controls | PostgreSQL events and exact local SLO calculations; operational evidence remains required |
+| ART-0020 | REQ-0026 through REQ-0033 | C2 unit/contract/integration specifications and suites | 84 default tests plus 10 disposable-PostgreSQL tests locally PASS |
+| ART-0021 | REQ-0027 | universal mutation consumers, server actions/routes, `queryInvalidation.ts`, `revalidateMutation.ts` | One typed registry drives client domains and RSC paths for all ten mutation families |
+| ART-0022 | REQ-0030, REQ-0032 | outbox worker/scheduler/cron, schema/migration, idempotent Resend boundary, environment guide | Retry-safe immediate delivery plus secured scheduled recovery; deployed receipt pending |
+| ART-0023 | REQ-0026 through REQ-0030 | registry, provider, cron, worker, boundary-validation and PostgreSQL concurrency tests | 84 default tests and 10/10 disposable-PostgreSQL tests across 10 stress runs PASS on 2026-08-02 |

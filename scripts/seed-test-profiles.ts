@@ -1,7 +1,7 @@
 /**
  * Upsert Test User / Test Admin profiles for the sign-in dropdown.
  *
- * Sets fullName, password (salted SHA-256), role, APPROVED status, and
+ * Sets fullName, password (versioned scrypt), role, APPROVED status, and
  * universityCard to local /images/profile-img*.png paths.
  *
  * Usage:
@@ -30,7 +30,7 @@ async function main() {
 
   try {
     for (const account of TEST_ACCOUNTS) {
-      const hashedPassword = hashPassword(account.password);
+      const hashedPassword = await hashPassword(account.password);
 
       const existing = await db
         .select({

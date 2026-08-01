@@ -10,16 +10,48 @@ export type QueryDomain =
   | "admin"
   | "analytics"
   | "recommendations"
-  | "operations";
+  | "operations"
+  | "circulation";
 
 interface InvalidationMessage {
   version: 1;
   type: "query-invalidation";
+  eventId: string;
+  generation: number;
   timestamp: number;
   domains: QueryDomain[];
 }
 
 const CHANNEL_NAME = "bookwise-query-invalidation-v1";
+let invalidationGeneration = 0;
+
+export const MUTATION_DOMAIN_REGISTRY = {
+  "book.write": ["books", "users", "borrows", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
+  "user.write": ["users", "borrows", "reviews", "admin", "analytics", "operations", "circulation"],
+  "borrow.lifecycle": ["borrows", "books", "users", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
+  "reservation.lifecycle": ["circulation", "borrows", "books", "users", "admin", "analytics", "recommendations"],
+  "renewal.write": ["circulation", "borrows", "books", "users", "admin", "analytics"],
+  "review.write": ["reviews", "books", "users", "analytics"],
+  "admin-request.write": ["admin", "users", "analytics", "operations"],
+  "fine.write": ["borrows", "users", "admin", "analytics", "operations"],
+  "recommendation.write": ["recommendations", "books", "admin", "analytics"],
+  "operations.write": ["borrows", "admin", "analytics", "operations"],
+} as const satisfies Record<string, readonly QueryDomain[]>;
+
+export const MUTATION_RSC_PATH_REGISTRY = {
+  "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights"],
+  "user.write": ["/my-profile", "/admin/users", "/admin/users/[id]", "/admin/business-insights"],
+  "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+  "reservation.lifecycle": ["/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+  "renewal.write": ["/books/[id]", "/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+  "review.write": ["/books/[id]", "/admin/users/[id]", "/admin/business-insights"],
+  "admin-request.write": ["/make-admin", "/admin/account-requests", "/admin/users", "/admin/business-insights"],
+  "fine.write": ["/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+  "recommendation.write": ["/", "/all-books", "/admin/automation", "/admin/business-insights"],
+  "operations.write": ["/my-profile", "/api-status", "/admin", "/admin/book-requests", "/admin/automation", "/admin/business-insights"],
+} as const satisfies Record<keyof typeof MUTATION_DOMAIN_REGISTRY, readonly string[]>;
+
+export type MutationDomainName = keyof typeof MUTATION_DOMAIN_REGISTRY;
 
 const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
   books: [
@@ -70,6 +102,10 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.admin.systemMetrics,
     queryKeys.admin.serviceHealth,
   ],
+  circulation: [
+    queryKeys.circulation.root,
+    queryKeys.circulation.reservationsRoot,
+  ],
 };
 
 const ALL_DOMAINS = Object.freeze(
@@ -89,6 +125,9 @@ export function isInvalidationMessage(
   return (
     message.version === 1 &&
     message.type === "query-invalidation" &&
+    typeof message.eventId === "string" &&
+    message.eventId.length > 0 &&
+    typeof message.generation === "number" &&
     typeof message.timestamp === "number" &&
     Array.isArray(message.domains) &&
     message.domains.length > 0 &&
@@ -98,11 +137,15 @@ export function isInvalidationMessage(
 
 export function createInvalidationMessage(
   domains: readonly QueryDomain[],
-  timestamp = Date.now()
+  timestamp = Date.now(),
+  eventId = globalThis.crypto?.randomUUID?.() ?? `${timestamp}-${invalidationGeneration + 1}`,
 ): InvalidationMessage {
+  invalidationGeneration += 1;
   return {
     version: 1,
     type: "query-invalidation",
+    eventId,
+    generation: invalidationGeneration,
     timestamp,
     domains: [...new Set(domains)],
   };
@@ -127,6 +170,12 @@ export function invalidateDomains(
     ...new Map(keys.map((queryKey) => [JSON.stringify(queryKey), queryKey])).values(),
   ];
 
+  // Never render known-stale inactive data after a confirmed mutation. The
+  // server shell remains visible while a newly mounted observer fetches truth.
+  for (const queryKey of uniqueKeys) {
+    queryClient.removeQueries({ queryKey, exact: false, type: "inactive" });
+  }
+
   // Calling invalidateQueries marks inactive data stale immediately and starts
   // bounded refetches only for currently observed queries.
   const invalidations = uniqueKeys.map((queryKey) =>
@@ -145,8 +194,12 @@ export function subscribeToQueryInvalidation(
   }
 
   const channel = new BroadcastChannel(CHANNEL_NAME);
+  const receivedEventIds = new Set<string>();
   const handleMessage = (event: MessageEvent<unknown>) => {
     if (!isInvalidationMessage(event.data)) return;
+    if (receivedEventIds.has(event.data.eventId)) return;
+    receivedEventIds.add(event.data.eventId);
+    if (receivedEventIds.size > 100) receivedEventIds.delete(receivedEventIds.values().next().value!);
     void invalidateDomains(queryClient, event.data.domains, { broadcast: false });
   };
 
@@ -176,39 +229,16 @@ export const invalidateAnalyticsQueries = (queryClient: QueryClient) =>
   invalidateDomains(queryClient, ["analytics"]);
 
 export const invalidateAfterBookChange = (queryClient: QueryClient) =>
-  invalidateDomains(queryClient, [
-    "books",
-    "borrows",
-    "reviews",
-    "admin",
-    "analytics",
-    "recommendations",
-    "operations",
-  ]);
+  invalidateMutation(queryClient, "book.write");
 
 export const invalidateAfterBorrowChange = (queryClient: QueryClient) =>
-  invalidateDomains(queryClient, [
-    "borrows",
-    "books",
-    "reviews",
-    "admin",
-    "analytics",
-    "recommendations",
-    "operations",
-  ]);
+  invalidateMutation(queryClient, "borrow.lifecycle");
 
 export const invalidateAfterUserChange = (queryClient: QueryClient) =>
-  invalidateDomains(queryClient, [
-    "users",
-    "borrows",
-    "reviews",
-    "admin",
-    "analytics",
-    "operations",
-  ]);
+  invalidateMutation(queryClient, "user.write");
 
 export const invalidateAfterReviewChange = (queryClient: QueryClient) =>
-  invalidateDomains(queryClient, ["reviews", "books", "analytics"]);
+  invalidateMutation(queryClient, "review.write");
 
 export const invalidateAfterAdminChange = (queryClient: QueryClient) =>
   invalidateDomains(queryClient, [
@@ -222,15 +252,15 @@ export const invalidateAfterAdminChange = (queryClient: QueryClient) =>
 export const invalidateAfterRecommendationChange = (
   queryClient: QueryClient
 ) =>
-  invalidateDomains(queryClient, [
-    "recommendations",
-    "books",
-    "admin",
-    "analytics",
-  ]);
+  invalidateMutation(queryClient, "recommendation.write");
 
 export const invalidateDashboardQueries = (queryClient: QueryClient) =>
   invalidateDomains(queryClient, ["admin", "analytics", "operations"]);
 
 export const invalidateAllQueries = (queryClient: QueryClient) =>
   invalidateDomains(queryClient, ALL_DOMAINS);
+
+export const invalidateMutation = (
+  queryClient: QueryClient,
+  mutation: MutationDomainName,
+) => invalidateDomains(queryClient, MUTATION_DOMAIN_REGISTRY[mutation]);

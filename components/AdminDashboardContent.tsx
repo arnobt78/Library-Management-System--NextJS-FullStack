@@ -17,6 +17,7 @@ import React from "react";
 import AdminStatsSkeleton from "@/components/skeletons/AdminStatsSkeleton";
 import { useAdminStats } from "@/hooks/useQueries";
 import type { AdminStats } from "@/lib/services/admin";
+import Link from "next/link";
 
 interface AdminDashboardContentProps {
   /**
@@ -413,7 +414,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                   className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="break-words text-sm font-medium">{user.fullName}</p>
+                    <Link href={`/admin/users/${user.id}`} className="break-words text-sm font-medium text-blue-700 hover:underline">{user.fullName}</Link>
                     <p className="break-words text-xs text-gray-600">{user.email}</p>
                   </div>
                   <span

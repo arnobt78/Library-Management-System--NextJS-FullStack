@@ -5,13 +5,14 @@ import { eq, and, desc } from "drizzle-orm";
 import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 export const runtime = "nodejs";
 
 // GET /api/reviews/[bookId] - Get all reviews for a book
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ bookId: string }> }
+  { params }: { params: Promise<{ bookId: string }> },
 ) {
   try {
     // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
@@ -27,7 +28,7 @@ export async function GET(
           error: "Too Many Requests",
           message: "Rate limit exceeded. Please try again later.",
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -39,7 +40,7 @@ export async function GET(
           success: false,
           error: "Book ID is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,10 +69,9 @@ export async function GET(
       {
         success: false,
         error: "Failed to fetch reviews",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        message: "Reviews are temporarily unavailable.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -79,7 +79,7 @@ export async function GET(
 // POST /api/reviews/[bookId] - Create a new review
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ bookId: string }> }
+  { params }: { params: Promise<{ bookId: string }> },
 ) {
   try {
     // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
@@ -93,7 +93,7 @@ export async function POST(
           error: "Too Many Requests",
           message: "Rate limit exceeded. Please try again later.",
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -109,7 +109,7 @@ export async function POST(
           success: false,
           error: "Book ID is required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -119,14 +119,14 @@ export async function POST(
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json(
         { success: false, error: "Rating must be between 1 and 5" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!comment || comment.trim().length === 0) {
       return NextResponse.json(
         { success: false, error: "Comment is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -138,8 +138,8 @@ export async function POST(
         and(
           eq(borrowRecords.userId, actor.id),
           eq(borrowRecords.bookId, bookId),
-          eq(borrowRecords.status, "RETURNED")
-        )
+          eq(borrowRecords.status, "RETURNED"),
+        ),
       )
       .limit(1);
 
@@ -149,7 +149,7 @@ export async function POST(
           success: false,
           error: "You must have borrowed this book to review it",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -158,17 +158,14 @@ export async function POST(
       .select()
       .from(bookReviews)
       .where(
-        and(
-          eq(bookReviews.userId, actor.id),
-          eq(bookReviews.bookId, bookId)
-        )
+        and(eq(bookReviews.userId, actor.id), eq(bookReviews.bookId, bookId)),
       )
       .limit(1);
 
     if (existingReview.length > 0) {
       return NextResponse.json(
         { success: false, error: "You have already reviewed this book" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -188,6 +185,7 @@ export async function POST(
         createdAt: bookReviews.createdAt,
       });
 
+    revalidateMutationPaths("review.write");
     return NextResponse.json({
       success: true,
       review: newReview,
@@ -199,10 +197,9 @@ export async function POST(
       {
         success: false,
         error: "Failed to create review",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        message: "The review could not be created.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

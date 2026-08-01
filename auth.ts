@@ -3,7 +3,7 @@
  *
  * This file handles user authentication using NextAuth.js with:
  * - Credentials-based authentication (email/password)
- * - SHA-256 password hashing with salt
+ * - Versioned scrypt password hashing with legacy rehash-on-login
  * - JWT session strategy
  * - Lazy imports keep database work out of request-policy evaluation
  *
@@ -12,9 +12,18 @@
  */
 
 import NextAuth, { User } from "next-auth";
-import { createHash, timingSafeEqual } from "node:crypto";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { authorizeProxyPath } from "@/lib/auth/proxyAuthorization";
+import {
+  hashPassword,
+  needsPasswordRehash,
+  verifyPassword,
+} from "@/lib/auth/password";
+
+// A fixed non-secret encoding gives unknown accounts the same memory-hard work
+// factor as known current-format accounts without creating database state.
+const UNKNOWN_ACCOUNT_PASSWORD =
+  "$scrypt$ln=15,r=8,p=3$AAAAAAAAAAAAAAAAAAAAAA==$GIpZ5EyglZOu7nqCf+1C1IkTDn311beDMPgSjF+YqTRR7/X8BNJzCx29t8Op97lMn0iZnX4SabswQxf6TasYQQ==";
 
 /**
  * Lazy import pattern for database connection
@@ -56,7 +65,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
      * Flow:
      * 1. User submits email/password
      * 2. Look up user in database by email
-     * 3. Verify password using SHA-256 with salt
+     * 3. Verify the versioned password encoding
      * 4. Return user object if valid, null if invalid
      */
     CredentialsProvider({
@@ -82,39 +91,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .where(eq(users.email, credentials.email.toString()))
           .limit(1);
 
-        if (user.length === 0) return null;
+        const plainPassword = credentials.password.toString();
+        if (user.length === 0) {
+          await verifyPassword(plainPassword, UNKNOWN_ACCOUNT_PASSWORD);
+          return null;
+        }
 
-        /**
-         * Password Verification Process:
-         *
-         * Stored format: "salt:hash" (both base64 encoded)
-         * 1. Split stored password into salt and hash
-         * 2. Decode both from base64
-         * 3. Hash the provided password with the stored salt
-         * 4. Compare computed hash with stored hash
-         *
-         * This uses SHA-256 with salt for security:
-         * - Salt prevents rainbow table attacks
-         * - Each password has unique salt
-         * - Even same passwords have different hashes
-         */
-        const [saltB64, hashB64] = user[0].password.split(":");
-        const salt = Uint8Array.from(Buffer.from(saltB64, "base64"));
-        const expectedHash = Buffer.from(hashB64, "base64");
-
-        // Hash the provided password with the stored salt
-        const passwordBytes = new TextEncoder().encode(
-          credentials.password.toString()
+        const isPasswordValid = await verifyPassword(
+          plainPassword,
+          user[0].password,
         );
-        const hashBuffer = createHash("sha256")
-          .update(passwordBytes)
-          .update(salt)
-          .digest();
-        const isPasswordValid =
-          hashBuffer.length === expectedHash.length &&
-          timingSafeEqual(hashBuffer, expectedHash);
 
         if (!isPasswordValid) return null;
+
+        // Compare-and-swap prevents concurrent valid logins from overwriting a newer hash.
+        if (needsPasswordRehash(user[0].password)) {
+          const { and } = await import("drizzle-orm");
+          const upgradedPassword = await hashPassword(plainPassword);
+          await db
+            .update(users)
+            .set({ password: upgradedPassword, updatedAt: new Date() })
+            .where(
+              and(
+                eq(users.id, user[0].id),
+                eq(users.password, user[0].password),
+              ),
+            );
+        }
 
         // Return user object for NextAuth (will be stored in JWT token)
         // CRITICAL: Include role for admin authorization checks
@@ -177,9 +180,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               .set({ lastLogin: new Date() })
               .where(eq(users.id, user.id));
           }
-        } catch (error) {
+        } catch {
           // Don't fail authentication if last_login update fails
-          console.error("Failed to update last_login:", error);
         }
       }
 

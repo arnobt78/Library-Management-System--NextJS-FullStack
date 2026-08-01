@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { db } from "@/database/drizzle";
 import { sql } from "drizzle-orm";
+import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
+import { calculateSloFromSummary } from "@/lib/observability/slo";
 
 export const runtime = "nodejs";
 
@@ -10,6 +12,8 @@ export async function GET(_request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    const authorization = await authorizeAdminRoute();
+    if (!authorization.ok) return authorization.response;
     // Rate limiting to prevent abuse (applies to both authenticated and unauthenticated users)
     // This endpoint returns system metrics (public information for monitoring)
     // Rate limiting provides protection against abuse while keeping it accessible for health checks
@@ -30,12 +34,12 @@ export async function GET(_request: NextRequest) {
     }
 
     // Calculate all metrics in parallel
-    const [databaseMetrics, storageMetrics, userMetrics, errorMetrics] =
+    const [databaseMetrics, storageMetrics, userMetrics, telemetryMetrics] =
       await Promise.all([
         getDatabasePerformance(),
         getStorageUsage(),
         getActiveUsers(),
-        getErrorRate(),
+        getTelemetryMetrics(),
       ]);
 
     const responseTime = Date.now() - startTime;
@@ -47,16 +51,17 @@ export async function GET(_request: NextRequest) {
       metrics: {
         databasePerformance: databaseMetrics,
         apiPerformance: {
-          requestsPerMinute: await getApiPerformance(),
-          status: "HEALTHY",
+          requestsPerMinute: telemetryMetrics.requestsPerMinute,
+          status: telemetryMetrics.slo.passes ? "HEALTHY" : "DEGRADED",
         },
-        errorRate: errorMetrics,
+        errorRate: telemetryMetrics.errorRate,
+        slo: telemetryMetrics.slo,
         storageUsage: storageMetrics,
         activeUsers: userMetrics,
         sslCertificate: await getSSLCertificateStatus(),
       },
     });
-  } catch (error) {
+  } catch {
     // CRITICAL: Fix bug - use startTime instead of Date.now() - Date.now() (which is always 0)
     const responseTime = Date.now() - startTime;
 
@@ -64,9 +69,8 @@ export async function GET(_request: NextRequest) {
       {
         status: "DOWN",
         responseTime: `${responseTime}ms`,
-        error: error instanceof Error ? error.message : "Unknown error",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        error: "METRICS_UNAVAILABLE",
+        message: "The metrics diagnostic check failed.",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
@@ -100,14 +104,14 @@ async function getDatabasePerformance() {
       status: activeConnections < maxConnections * 0.8 ? "good" : "warning",
       description: "Connection Pool Status",
     };
-  } catch (error) {
+  } catch {
     return {
       active: 0,
       max: 100,
       activeQueries: 0,
       status: "critical",
       description: "Connection Pool Status",
-      error: error instanceof Error ? error.message : "Database error",
+      error: "Database metric unavailable",
     };
   }
 }
@@ -141,14 +145,14 @@ async function getStorageUsage() {
       description: "Database storage",
       tableCount: parseInt((result?.table_count as string) || "0"),
     };
-  } catch (error) {
+  } catch {
     return {
       used: "0 GB",
       total: "10 GB",
       percentage: 0,
       status: "critical",
       description: "Database storage",
-      error: error instanceof Error ? error.message : "Storage error",
+      error: "Storage metric unavailable",
     };
   }
 }
@@ -172,128 +176,57 @@ async function getActiveUsers() {
       description: "Currently online",
       lastUpdated: new Date().toISOString(),
     };
-  } catch (error) {
+  } catch {
     return {
       count: 0,
       status: "critical",
       description: "Currently online",
-      error: error instanceof Error ? error.message : "User tracking error",
+      error: "User activity metric unavailable",
     };
   }
 }
 
-async function getErrorRate() {
-  try {
-    // Calculate error rate based on recent activity
-    // This is a simplified calculation - in production you'd track actual API errors
-    // CRITICAL: Fix table name - use "borrow_records" instead of "borrows"
-    const recentActivity = await db.execute(sql`
-      SELECT 
-        COUNT(*) as total_requests,
-        COUNT(CASE WHEN created_at > NOW() - INTERVAL '1 hour' THEN 1 END) as recent_requests
-      FROM borrow_records
-    `);
-
-    const totalRequests = parseInt(
-      (recentActivity.rows[0]?.total_requests as string) || "0"
-    );
-    const recentRequests = parseInt(
-      (recentActivity.rows[0]?.recent_requests as string) || "0"
-    );
-
-    // Simulate error rate calculation (in production, track actual errors)
-    const errorRate =
-      totalRequests > 0 ? (Math.random() * 0.1).toFixed(2) : "0.00";
-
-    return {
-      rate: `${errorRate}%`,
-      status:
-        parseFloat(errorRate) < 1
-          ? "good"
-          : parseFloat(errorRate) < 5
-            ? "warning"
-            : "critical",
-      description: "Failed requests",
-      totalRequests: totalRequests,
-      recentRequests: recentRequests,
-    };
-  } catch (error) {
-    return {
-      rate: "0.00%",
-      status: "good",
-      description: "Failed requests",
-      error:
-        error instanceof Error
-          ? error.message
-          : "Error rate calculation failed",
-    };
-  }
-}
-
-async function getApiPerformance() {
-  try {
-    // Calculate requests per minute based on recent database activity
-    // CRITICAL: Fix table name - use "borrow_records" instead of "borrows"
-    const recentActivity = await db.execute(sql`
-      SELECT COUNT(*) as requests
-      FROM borrow_records 
-      WHERE created_at > NOW() - INTERVAL '1 minute'
-    `);
-
-    const requestsPerMinute = parseInt(
-      (recentActivity.rows[0]?.requests as string) || "0"
-    );
-
-    // Add some realistic variation
-    const baseRequests =
-      requestsPerMinute || Math.floor(Math.random() * 200) + 50;
-
-    return baseRequests;
-  } catch {
-    // Fallback to simulated data
-    return Math.floor(Math.random() * 200) + 50;
-  }
+async function getTelemetryMetrics() {
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - 30);
+  const result = await db.execute(sql`
+    SELECT
+      COUNT(*) FILTER (WHERE outcome <> 'rate_limited')::int AS eligible_count,
+      COUNT(*) FILTER (WHERE outcome = 'success')::int AS success_count,
+      COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY duration_ms)
+        FILTER (WHERE kind = 'read' AND outcome <> 'rate_limited'), 0)::int AS read_p95_ms,
+      COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY duration_ms)
+        FILTER (WHERE kind = 'mutation' AND outcome <> 'rate_limited'), 0)::int AS mutation_p95_ms,
+      COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 minute')::int AS requests_per_minute
+    FROM operation_telemetry
+    WHERE created_at >= ${since}
+  `);
+  const row = result.rows[0] as Record<string, number | string>;
+  const eligibleCount = Number(row.eligible_count ?? 0);
+  const slo = calculateSloFromSummary({
+    eligibleCount,
+    successCount: Number(row.success_count ?? 0),
+    readP95Ms: Number(row.read_p95_ms ?? 0),
+    mutationP95Ms: Number(row.mutation_p95_ms ?? 0),
+  });
+  const requestsPerMinute = Number(row.requests_per_minute ?? 0);
+  return {
+    requestsPerMinute,
+    slo,
+    errorRate: {
+      rate: `${slo.serverErrorPercent.toFixed(2)}%`,
+      status: eligibleCount === 0 ? "warning" as const : slo.serverErrorPercent < 1 ? "good" as const : "critical" as const,
+      description: "Server error rate excluding deliberate rate limits",
+      totalRequests: eligibleCount,
+      recentRequests: requestsPerMinute,
+    },
+  };
 }
 
 async function getSSLCertificateStatus() {
-  try {
-    // For production, we would check the actual SSL certificate
-    // For now, we'll simulate a realistic check
-    const isProduction = process.env.NODE_ENV === "production";
-    const domain = process.env.VERCEL_URL || "localhost:3000";
-
-    if (isProduction) {
-      // In production, we could use a library like 'node-ssl-checker'
-      // For now, simulate a valid certificate
-      return {
-        status: "Valid",
-        expiresAt: new Date(
-          Date.now() + 60 * 24 * 60 * 60 * 1000
-        ).toISOString(), // 60 days
-        issuer: "Let's Encrypt",
-        domain: domain,
-        daysUntilExpiry: 60,
-      };
-    } else {
-      // In development, simulate a valid certificate
-      return {
-        status: "Valid",
-        expiresAt: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ).toISOString(), // 30 days
-        issuer: "Development Certificate",
-        domain: domain,
-        daysUntilExpiry: 30,
-      };
-    }
-  } catch (error) {
-    return {
-      status: "Unknown",
-      expiresAt: null,
-      issuer: "Unknown",
-      domain: "Unknown",
-      daysUntilExpiry: 0,
-      error: error instanceof Error ? error.message : "SSL check failed",
-    };
-  }
+  return {
+    status: process.env.VERCEL ? "Platform-managed" : "Local development",
+    expiresAt: null,
+    issuer: process.env.VERCEL ? "Deployment platform" : "Not applicable",
+  };
 }

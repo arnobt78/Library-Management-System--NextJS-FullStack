@@ -52,11 +52,14 @@ interface ApiStatusClientProps {
    * Initial system metrics data from SSR (prevents duplicate fetch)
    */
   initialMetrics?: MetricsData | null;
+  /** Enables authenticated operator diagnostics; public mode uses liveness only. */
+  operatorMode?: boolean;
 }
 
 const ApiStatusClient = ({
   initialServices,
   initialMetrics,
+  operatorMode = true,
 }: ApiStatusClientProps) => {
   // React Query hooks with SSR initial data
   const {
@@ -65,7 +68,7 @@ const ApiStatusClient = ({
     isError: servicesError,
     error: servicesErrorData,
     refetch: refetchServices,
-  } = useServiceHealth(initialServices);
+  } = useServiceHealth(initialServices, operatorMode);
 
   const {
     data: metricsData,
@@ -73,7 +76,7 @@ const ApiStatusClient = ({
     isError: metricsError,
     error: metricsErrorData,
     refetch: refetchMetrics,
-  } = useSystemMetrics(initialMetrics ?? undefined);
+  } = useSystemMetrics(initialMetrics ?? undefined, operatorMode);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -114,7 +117,7 @@ const ApiStatusClient = ({
       },
       {
         title: "API Performance",
-        value: `${metricsData.apiPerformance.requestsPerMinute} req/min`,
+        value: metricsData.apiPerformance.status === "HEALTHY" ? `${metricsData.apiPerformance.requestsPerMinute} req/min` : "Unavailable",
         status:
           metricsData.apiPerformance.status === "HEALTHY" ? "good" : "critical",
         icon: <TrendingUp className="size-5" />,
@@ -292,13 +295,12 @@ const ApiStatusClient = ({
 
     try {
       // Refetch both queries
-      await Promise.all([refetchServices(), refetchMetrics()]);
-    } catch (error) {
-      console.error("Failed to refresh service health:", error);
+      await Promise.all([
+        refetchServices(),
+        ...(operatorMode ? [refetchMetrics()] : []),
+      ]);
+    } catch {
     }
-
-    // Simulate API call delay for better UX
-    await new Promise((resolve) => setTimeout(resolve, 500));
 
     setIsRefreshing(false);
   };
@@ -306,8 +308,8 @@ const ApiStatusClient = ({
   // Show skeleton while loading (only if no initial data)
   const isLoading =
     (servicesLoading && !initialServices) ||
-    (metricsLoading && !initialMetrics);
-  const isError = servicesError || metricsError;
+    (operatorMode && metricsLoading && !initialMetrics);
+  const isError = servicesError || (operatorMode && metricsError);
 
   // Show skeleton while loading
   if (isLoading) {
@@ -572,8 +574,8 @@ const ApiStatusClient = ({
         </CardContent>
       </Card>
 
-      {/* System Metrics */}
-      <Card className="border-gray-700 bg-gray-800">
+      {/* Detailed metrics remain private operator diagnostics. */}
+      {operatorMode && <Card className="border-gray-700 bg-gray-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
             <TrendingUp className="size-4 text-purple-500 sm:size-5" />
@@ -635,7 +637,7 @@ const ApiStatusClient = ({
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Footer */}
       <div className="my-4 text-center">

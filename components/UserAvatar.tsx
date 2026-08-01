@@ -10,6 +10,7 @@ import { Image as ImageKitImage } from "@imagekit/next";
 import config from "@/lib/config";
 import { resolveUniversityCard } from "@/lib/media/universityCard";
 import { cn, getInitials } from "@/lib/utils";
+import { useSafeMedia } from "@/hooks/useSafeMedia";
 
 interface UserAvatarProps {
   universityCard: string | null | undefined;
@@ -28,6 +29,12 @@ const UserAvatar = ({
   alt = "Profile",
 }: UserAvatarProps) => {
   const resolved = resolveUniversityCard(universityCard);
+  const sourceKey = resolved.kind === "imagekit"
+    ? resolved.path
+    : resolved.kind === "empty"
+      ? ""
+      : resolved.src;
+  const { loadFailed, onLoadError } = useSafeMedia(sourceKey);
   // Prefer Tailwind size-full when parent already sizes the circle (header buttons)
   const useParentSize = className?.includes("size-full");
   const sizeStyle = useParentSize ? undefined : { width: size, height: size };
@@ -42,21 +49,23 @@ const UserAvatar = ({
       )}
       style={sizeStyle}
     >
-      {resolved.kind === "local" || resolved.kind === "remote" ? (
+      {!loadFailed && (resolved.kind === "local" || resolved.kind === "remote") ? (
         <Image
           src={resolved.src}
           alt={alt}
           fill
           className="object-cover"
           sizes={sizesAttr}
+          onError={onLoadError}
         />
-      ) : resolved.kind === "imagekit" ? (
+      ) : !loadFailed && resolved.kind === "imagekit" ? (
         <ImageKitImage
           src={resolved.path}
           urlEndpoint={config.env.imagekit.urlEndpoint}
           alt={alt}
           fill
           className="rounded-full object-cover"
+          onError={onLoadError}
         />
       ) : (
         <div className="flex size-full items-center justify-center text-light-100">

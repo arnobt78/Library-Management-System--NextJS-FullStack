@@ -72,3 +72,28 @@ Insight INS-0005 (OBS-0010, OBS-0011): Documentation and process scaffold may la
 - Recommendation: review desired product scope, compliance context, accessibility target, and quality thresholds before approving discovery.
 - Gate 0 status: PENDING (`INT-0001`, token `C1-G0-20260801-9f3c`)
 - Session: Infinity Loop reactivated 2026-08-01; no product coding performed
+
+## C2 Discovery - Production Library Extension (2026-08-01)
+
+| ID | Observation | Source | Confidence | Status |
+|---|---|---|---|---|
+| OBS-0018 | Passwords use salted SHA-256, which is compatibility-preserving C1 behavior but not an acceptable production password KDF target | `lib/auth/password.ts`, `auth.ts` | High | C2 critical candidate |
+| OBS-0019 | Public status routes expose provider configuration, sender identity, database topology/usage, and raw error text; `next.config.ts` defines no response security headers | `app/api/status/*`, `next.config.ts` | High | C2 critical candidate |
+| OBS-0020 | C1 invalidation covers typed TanStack domains and inactive/back-navigation staleness, while `BroadcastChannel` reaches only same-origin open tabs | `lib/utils/queryInvalidation.ts`, tests, C1 evidence | High | Confirmed boundary |
+| OBS-0021 | No SSE, WebSocket, gRPC, business-data Redis cache, or server cache-tag architecture exists | Source/dependency/file audit | High | Confirmed; do not claim capability |
+| OBS-0022 | Server pages pass `initialData` to client query components, but the app has no route loading/error boundaries or measured intent-prefetch/navigation budget | `app/**/page.tsx`, `hooks/useQueries.ts`, route inventory | High | C2 performance candidate |
+| OBS-0023 | Recommendations are deterministic database rules despite several UI strings calling them AI-powered; there is no LLM provider abstraction | recommendation routes/actions/services | High | Correct terminology before AI extension |
+| OBS-0024 | Current quality gates pass: strict types, zero-warning lint, 40 tests, zero npm vulnerabilities, and Next 16.2.12 production build with 53 pages | Executed 2026-08-01 from `c94e7db` plus protected `.gitignore` change | High | PASS for current scope |
+| OBS-0025 | The actual domain is users/admins, catalog, borrows, reviews, fines, notifications, recommendations, analytics, exports, media and health—not suppliers, shipping, invoices or warehouse commerce | routes and `database/schema.ts` | High | Copied commerce scope excluded |
+| OBS-0026 | ImageKit upload authorization is intentionally available before authentication and relies on a general IP limiter; abuse bounds, upload constraints and cleanup ownership require production definition | `app/api/auth/imagekit/route.ts`, upload flow | High | C2 security candidate |
+
+### C2 Architecture Findings
+
+- Keep PostgreSQL authoritative and the existing typed query-domain contract; do not add Redis business caching without measured benefit.
+- Treat `router.refresh()` as background RSC reconciliation, never the initiating-view feedback mechanism.
+- Prefer standard Next.js Link prefetch plus bounded intent prefetch for high-probability details; measure before adding broad prefetch.
+- Cross-device convergence requires an authenticated event transport and idempotent domain events; browser `BroadcastChannel` is not sufficient.
+- gRPC adds no demonstrated value inside the current Next.js monolith and is a C2 non-goal.
+- Apply the referenced design guides selectively: preserve current tokens/layout, use granular stable data slots, and gate motion/media polish on accessibility and performance.
+- Never auto-enable credentials from `docs/personal-dev-info.txt`; use only approved server-side environment variables and provider contracts.
+- Demo avatars: local `/images/profile-img*.png` in `universityCard` + `resolveUniversityCard`; seed via `npm run seed:test-profiles` (scrypt). Not ImageKit-required for demo accounts.

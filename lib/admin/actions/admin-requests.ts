@@ -12,6 +12,7 @@ import {
   adminRequestReasonSchema,
   parseEntityId,
 } from "@/lib/actionInputs";
+import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 export interface AdminRequest {
   id: string;
@@ -53,7 +54,7 @@ export async function createAdminRequest(
     const actor = await requireAuthenticatedActor();
     const safeReason = adminRequestReasonSchema.parse(requestReason);
 
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const [user] = await tx
         .select({ role: users.role })
         .from(users)
@@ -116,6 +117,8 @@ export async function createAdminRequest(
 
       return { success: true, data: fullRequest };
     });
+    if (result.success) revalidateMutationPaths("admin-request.write");
+    return result;
   } catch (error) {
     console.error("Error creating admin request:", error);
     return {
@@ -204,7 +207,7 @@ export async function approveAdminRequest(
     const actor = await requireAdminActor();
     const safeRequestId = parseEntityId(requestId);
 
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const [request] = await tx
         .select({ userId: adminRequests.userId, status: adminRequests.status })
         .from(adminRequests)
@@ -267,6 +270,8 @@ export async function approveAdminRequest(
 
       return { success: true, data: fullRequest };
     });
+    if (result.success) revalidateMutationPaths("admin-request.write");
+    return result;
   } catch (error) {
     console.error("Error approving admin request:", error);
     return {
@@ -285,7 +290,7 @@ export async function rejectAdminRequest(
     const actor = await requireAdminActor();
     const safeRequestId = parseEntityId(requestId);
 
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const [request] = await tx
         .select({ status: adminRequests.status })
         .from(adminRequests)
@@ -340,6 +345,8 @@ export async function rejectAdminRequest(
 
       return { success: true, data: fullRequest };
     });
+    if (result.success) revalidateMutationPaths("admin-request.write");
+    return result;
   } catch (error) {
     console.error("Error rejecting admin request:", error);
     return {
@@ -387,6 +394,7 @@ export async function removeAdminPrivileges(
       })
       .where(eq(users.id, safeUserId));
 
+    revalidateMutationPaths("admin-request.write");
     return {
       success: true,
     };

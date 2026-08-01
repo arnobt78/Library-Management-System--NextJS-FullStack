@@ -8,12 +8,16 @@ const database = vi.hoisted(() => ({
   transaction: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/database/drizzle", () => ({ db: database }));
 vi.mock("@/database/schema", () => ({
   books: {},
   users: {},
   borrowRecords: {},
   bookReviews: {},
+  reservations: {},
+  reservationEvents: {},
 }));
 vi.mock("@/lib/auth/authorization", () => ({
   requireAdminActor,

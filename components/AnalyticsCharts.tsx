@@ -53,7 +53,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
     {
       popularBooksLimit: 10,
     },
-    initialData
+    initialData,
   );
 
   // CRITICAL: Always prefer React Query data over initialData
@@ -65,12 +65,6 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
   if (analyticsLoading && !initialData) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        {/* Page Header Skeleton */}
-        <div className="mb-6 sm:mb-8">
-          <Skeleton className="mb-2 h-9 w-64" />
-          <Skeleton className="h-5 w-96" />
-        </div>
-
         {/* Key Metrics Cards Skeleton */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
@@ -190,16 +184,6 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
   return (
     <div className="w-full max-w-full space-y-4 overflow-x-hidden sm:space-y-6">
-      {/* Page Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-          📊 Analytics Dashboard
-        </h1>
-        <p className="text-sm text-gray-600 sm:text-base">
-          Comprehensive insights into library operations and user behavior
-        </p>
-      </div>
-
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 sm:p-6">
@@ -267,6 +251,57 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
       </div>
 
+      <section
+        className="rounded-lg border bg-white p-4 shadow-sm sm:p-6"
+        aria-labelledby="deterministic-insights"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2
+              id="deterministic-insights"
+              className="text-lg font-semibold text-gray-900"
+            >
+              Explainable operational insights
+            </h2>
+            <p className="text-xs text-gray-500">
+              Formula {data.deterministicInsights.formulaVersion} ·{" "}
+              {data.deterministicInsights.periodStart} to{" "}
+              {data.deterministicInsights.periodEnd}
+            </p>
+          </div>
+          <span className="text-xs text-gray-500">
+            Deterministic database aggregates; no external AI processing
+          </span>
+        </div>
+        <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+          {[
+            [
+              "30-day circulation",
+              data.deterministicInsights.circulation30Days,
+            ],
+            [
+              "On-time returns",
+              `${data.deterministicInsights.onTimeReturnRate}%`,
+            ],
+            ["Overdue ratio", `${data.deterministicInsights.overdueRatio}%`],
+            [
+              "Outstanding fines",
+              `$${data.deterministicInsights.outstandingFineTotal.toFixed(2)}`,
+            ],
+            ["Demand / copy", data.deterministicInsights.demandToCopyRatio],
+            ["Hold pressure", data.deterministicInsights.holdPressure],
+            ["Renewal rate", `${data.deterministicInsights.renewalRate}%`],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="rounded-lg bg-gray-50 p-3">
+              <dt className="text-xs text-gray-500">{label}</dt>
+              <dd className="mt-1 text-lg font-semibold text-gray-900">
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Borrowing Trends */}
@@ -276,28 +311,28 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           </h3>
           <div className="w-full overflow-x-auto">
             <ResponsiveContainer width="100%" height={200} minWidth={300}>
-            <LineChart data={trendsData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="borrows"
-                stroke="#8884d8"
-                strokeWidth={2}
-                name="Borrows"
-              />
-              <Line
-                type="monotone"
-                dataKey="returns"
-                stroke="#82ca9d"
-                strokeWidth={2}
-                name="Returns"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+              <LineChart data={trendsData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="borrows"
+                  stroke="#8884d8"
+                  strokeWidth={2}
+                  name="Borrows"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="returns"
+                  stroke="#82ca9d"
+                  strokeWidth={2}
+                  name="Returns"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -308,21 +343,21 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           </h3>
           <div className="w-full overflow-x-auto">
             <ResponsiveContainer width="100%" height={200} minWidth={300}>
-            <BarChart data={popularBooksData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="title"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                fontSize={11}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
-            </BarChart>
-          </ResponsiveContainer>
+              <BarChart data={popularBooksData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="title"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  fontSize={11}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -333,27 +368,27 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           </h3>
           <div className="w-full overflow-x-auto">
             <ResponsiveContainer width="100%" height={200} minWidth={300}>
-            <PieChart>
-              <Pie
-                data={genresData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={50}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {genresData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={genresData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={50}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {genresData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -364,21 +399,21 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           </h3>
           <div className="w-full overflow-x-auto">
             <ResponsiveContainer width="100%" height={200} minWidth={300}>
-            <BarChart data={userActivityData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="name"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                fontSize={11}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
-            </BarChart>
-          </ResponsiveContainer>
+              <BarChart data={userActivityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  fontSize={11}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
