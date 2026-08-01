@@ -37,4 +37,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - REQ-0019–0025 re-Prove passes: typecheck, lint, 40 default tests, 4 real PostgreSQL integration tests, audit 0, Next 16.2.12 build.
 - REQ-0025 uses DB-backed actors, owner/admin policy, row locks, atomic lifecycle writes, and environment-only CLI secrets.
 - Apply migration `0009_users_audit_fields.sql` before deploying the matching code.
-- Full Verify is 27/27 PASS; Gate 2 is approved (`GATE-0004`); commit/archive state is in `.agile-v/STATE.md`.
+- Full Verify is 27/27 PASS; Gate 2 is approved (`GATE-0004`); accepted implementation is `d9b9fd9`; C1 is archived.
