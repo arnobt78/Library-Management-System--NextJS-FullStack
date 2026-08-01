@@ -3,7 +3,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import BookCoverSvg from "@/components/BookCoverSvg";
-import { IKImage } from "imagekitio-next";
+import { Image as ImageKitImage } from "@imagekit/next";
 import config from "@/lib/config";
 
 type BookCoverVariant = "extraSmall" | "small" | "medium" | "regular" | "wide";
@@ -60,15 +60,14 @@ const BookCover = React.memo(
               fetchPriority="high"
             />
           ) : coverImage ? (
-            <IKImage
+            <ImageKitImage
               // CRITICAL: Removed key prop - it causes remounts and flickering
               // React.memo handles re-render prevention, key causes unnecessary remounts
-              path={coverImage}
+              src={coverImage}
               urlEndpoint={config.env.imagekit.urlEndpoint}
               alt="Book cover"
               fill
               className="rounded-sm object-fill"
-              lqip={{ active: true }}
             />
           ) : (
             <div className="flex size-full items-center justify-center rounded-sm bg-gray-200">

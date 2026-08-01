@@ -40,7 +40,7 @@ const Layout = async ({ children }: { children: ReactNode }) => {
       <div className="mx-auto w-full max-w-full overflow-x-hidden">
         <Header session={session} />
 
-        <div className="py-4 sm:py-8 w-full max-w-full overflow-x-hidden">{children}</div>
+        <div className="w-full max-w-full overflow-x-hidden py-4 sm:py-8">{children}</div>
       </div>
     </main>
   );

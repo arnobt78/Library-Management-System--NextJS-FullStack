@@ -4,7 +4,7 @@
 
 @layer components {
   .admin-container {
-    @apply flex ml-[15%] w-[85%] flex-1 flex-col bg-light-300 p-3 sm:ml-0 sm:p-5 md:w-[calc(100%-264px)] xs:p-10;
+    @apply flex ml-[15%] w-[85%] flex-1 flex-col bg-light-300 p-2 sm:ml-0 sm:p-4 md:w-[calc(100%-264px)] xs:p-10;
   }
 
   .back-btn {

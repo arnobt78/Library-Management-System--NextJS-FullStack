@@ -20,9 +20,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { books } from "@/database/schema";
-import { desc, asc, eq, like, and, or, sql } from "drizzle-orm";
+import { desc, asc, eq, and, ilike, or, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { parsePagination } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -59,8 +60,7 @@ export async function GET(request: NextRequest) {
     const availability = searchParams.get("availability") || "";
     const rating = searchParams.get("rating") || "";
     const sort = searchParams.get("sort") || "title";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "12", 10);
+    const { page, limit } = parsePagination(searchParams, 12);
 
     // Build where conditions
     const whereConditions = [];
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
       const searchPattern = `%${search}%`;
       whereConditions.push(
         or(
-          sql`${books.title}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
-          sql`${books.author}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`
+          ilike(books.title, searchPattern),
+          ilike(books.author, searchPattern)
         )
       );
     }

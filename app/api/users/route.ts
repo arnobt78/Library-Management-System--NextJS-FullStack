@@ -21,8 +21,9 @@ import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
-import { desc, asc, eq, and, or, sql } from "drizzle-orm";
-import { auth } from "@/auth";
+import { desc, asc, eq, and, ilike, or, sql } from "drizzle-orm";
+import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
+import { parsePagination } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -51,47 +52,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check authentication - only admins can access this endpoint
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-          message: "You must be logged in to access this resource",
-        },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin
-    // CRITICAL: Check role from session first (if available from new JWT)
-    // If not available, fallback to database check (for existing sessions)
-    let isAdmin = false;
-    if ((session.user as { role?: string }).role === "ADMIN") {
-      isAdmin = true;
-    } else {
-      // Fallback: Check database if role not in session (for existing sessions)
-      // This handles cases where JWT was created before role was added
-      const currentUser = await db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, session.user.id))
-        .limit(1);
-
-      isAdmin = currentUser[0]?.role === "ADMIN";
-    }
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Forbidden",
-          message: "Only admins can access this resource",
-        },
-        { status: 403 }
-      );
-    }
+    const authorization = await authorizeAdminRoute();
+    if (!authorization.ok) return authorization.response;
 
     const { searchParams } = new URL(request.url);
 
@@ -100,8 +62,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "";
     const role = searchParams.get("role") || "";
     const sort = searchParams.get("sort") || "name";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const { page, limit } = parsePagination(searchParams, 50);
 
     // Build where conditions
     const whereConditions = [];
@@ -111,9 +72,9 @@ export async function GET(request: NextRequest) {
       const searchPattern = `%${search}%`;
       whereConditions.push(
         or(
-          sql`${users.fullName}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
-          sql`${users.email}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
-          sql`CAST(${users.universityId} AS TEXT) ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`
+          ilike(users.fullName, searchPattern),
+          ilike(users.email, searchPattern),
+          sql`CAST(${users.universityId} AS TEXT) ILIKE ${searchPattern}`
         )
       );
     }

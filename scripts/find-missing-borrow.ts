@@ -9,7 +9,7 @@ import { config } from "dotenv";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { books, borrowRecords } from "@/database/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 config({ path: ".env" });
 
@@ -111,4 +111,3 @@ async function findMissingBorrow() {
 }
 
 findMissingBorrow();
-

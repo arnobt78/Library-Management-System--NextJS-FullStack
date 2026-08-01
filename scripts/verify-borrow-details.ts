@@ -12,7 +12,7 @@ import { config } from "dotenv";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { users, books, borrowRecords } from "@/database/schema";
-import { eq, sql, and, gte, lte } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 config({ path: ".env" });
 
@@ -236,4 +236,3 @@ async function verifyBorrowDetails() {
 
 // Run the verification
 verifyBorrowDetails();
-

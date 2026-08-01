@@ -16,7 +16,6 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession } from "next-auth/react";
@@ -70,7 +69,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const { data: session } = useSession();
   const router = useRouter();
   const searchParamsHook = useSearchParams();
-  const queryClient = useQueryClient();
 
   // Get current search params from URL (default sort to "created" for most recent first)
   const currentSearch = searchParamsHook.get("search") || "";
@@ -85,7 +83,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   React.useEffect(() => {
     const timer = setTimeout(() => {
       if (localSearch !== currentSearch) {
-        console.log("[AdminUsersList] Search changed:", localSearch);
         const params = new URLSearchParams(searchParamsHook.toString());
         const trimmedSearch = localSearch.trim();
 
@@ -100,22 +97,19 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         }
 
         const newUrl = `/admin/users?${params.toString()}`;
-        console.log("[AdminUsersList] Instant search navigating to:", newUrl);
-
         // Update ref before navigation to prevent sync effect from overwriting
         lastSyncedSearchRef.current = trimmedSearch;
-        queryClient.invalidateQueries({ queryKey: ["all-users"] });
         router.replace(newUrl, { scroll: false });
       }
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timer);
-  }, [localSearch, currentSearch, searchParamsHook, queryClient, router]);
+  }, [localSearch, currentSearch, searchParamsHook, router]);
 
   // Build filters from URL params (default sort to "created" for most recent first)
   // Use useMemo to ensure filters object updates when URL params change
   const filters: UserFilters = React.useMemo(() => {
-    const filterObj = {
+    return {
       search: currentSearch || undefined,
       status:
         currentStatus !== "all"
@@ -127,8 +121,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           : undefined,
       sort: (currentSort as UserFilters["sort"]) || "created",
     };
-    console.log("[AdminUsersList] Filters updated:", filterObj);
-    return filterObj;
   }, [currentSearch, currentStatus, currentRole, currentSort]);
 
   // Check if any filters are active (used for conditional initialData and empty state)
@@ -155,16 +147,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     error: usersErrorData,
   } = useAllUsers(filters, initialUsersData);
 
-  // Debug: Log users data
-  React.useEffect(() => {
-    console.log("[AdminUsersList] Users data:", {
-      usersCount: usersData?.users?.length || 0,
-      total: usersData?.total || 0,
-      filters,
-      isLoading: usersLoading,
-    });
-  }, [usersData, filters, usersLoading]);
-
   const {
     data: adminRequestsData,
     isLoading: adminRequestsLoading,
@@ -181,7 +163,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   // Update search params in URL and trigger refetch
   const updateSearchParams = (newParams: Record<string, string>) => {
-    console.log("[AdminUsersList] updateSearchParams called with:", newParams);
     const params = new URLSearchParams(searchParamsHook.toString());
 
     Object.entries(newParams).forEach(([key, value]) => {
@@ -198,12 +179,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     }
 
     const newUrl = `/admin/users?${params.toString()}`;
-    console.log("[AdminUsersList] Navigating to:", newUrl);
-
-    // Invalidate queries to force refetch with new params
-    queryClient.invalidateQueries({ queryKey: ["all-users"] });
-    console.log("[AdminUsersList] Queries invalidated");
-
     // Use replace to avoid adding to history and ensure immediate update
     router.replace(newUrl, { scroll: false });
   };
@@ -211,7 +186,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedSearch = localSearch.trim();
-    console.log("[AdminUsersList] Form submitted with search:", trimmedSearch);
     updateSearchParams({ search: trimmedSearch });
   };
 
@@ -286,41 +260,26 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   };
 
   const handleApproveAdminRequest = async (requestId: string) => {
-    const adminId = session?.user?.id;
-    if (!adminId) {
-      return;
-    }
     const request = adminRequests.find((r) => r.id === requestId);
     approveAdminRequestMutation.mutate({
       requestId,
-      reviewedBy: adminId,
       userName: request?.userFullName,
     });
   };
 
   const handleRejectAdminRequest = async (requestId: string) => {
-    const adminId = session?.user?.id;
-    if (!adminId) {
-      return;
-    }
     const request = adminRequests.find((r) => r.id === requestId);
     rejectAdminRequestMutation.mutate({
       requestId,
-      reviewedBy: adminId,
       rejectionReason: "Rejected by admin",
       userName: request?.userFullName,
     });
   };
 
   const handleRemoveAdminPrivileges = async (userId: string) => {
-    const adminId = session?.user?.id;
-    if (!adminId) {
-      return;
-    }
     const user = users.find((u) => u.id === userId);
     removeAdminPrivilegesMutation.mutate({
       userId,
-      removedBy: adminId,
       userName: user?.fullName,
     });
   };
@@ -478,11 +437,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
               type="text"
               placeholder="Search users..."
               value={localSearch}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                console.log("[AdminUsersList] Input changed:", newValue);
-                setLocalSearch(newValue);
-              }}
+              onChange={(e) => setLocalSearch(e.target.value)}
               className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
             />
           </form>

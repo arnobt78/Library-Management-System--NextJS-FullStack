@@ -17,7 +17,6 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BookCover from "@/components/BookCover";
@@ -53,7 +52,6 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
 }) => {
   const router = useRouter();
   const searchParamsHook = useSearchParams();
-  const queryClient = useQueryClient();
 
   // Get current search params from URL
   const currentSearch = searchParamsHook.get("search") || "";
@@ -94,13 +92,12 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         const newUrl = `/admin/book-requests?${params.toString()}`;
         // Update ref before navigation to prevent sync effect from overwriting
         lastSyncedSearchRef.current = trimmedSearch;
-        queryClient.invalidateQueries({ queryKey: ["borrow-requests"] });
         router.replace(newUrl, { scroll: false });
       }
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timer);
-  }, [localSearch, currentSearch, searchParamsHook, queryClient, router]);
+  }, [localSearch, currentSearch, searchParamsHook, router]);
 
   // Build filters from URL params
   const filters = React.useMemo(
@@ -153,7 +150,6 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
       }
     });
 
-    queryClient.invalidateQueries({ queryKey: ["borrow-requests"] });
     router.replace(`/admin/book-requests?${params.toString()}`, {
       scroll: false,
     });

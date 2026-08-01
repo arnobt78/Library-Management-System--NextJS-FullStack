@@ -83,7 +83,7 @@ export default function ReviewFormDialog({
     }
   };
 
-  const StarRating = () => (
+  const renderStarRating = () => (
     <div className="flex items-center gap-0.5 sm:space-x-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
@@ -124,7 +124,7 @@ export default function ReviewFormDialog({
             <label className="text-xs font-medium text-light-200 sm:text-sm">
               Rating
             </label>
-            <StarRating />
+            {renderStarRating()}
           </div>
 
           <div className="space-y-1.5 sm:space-y-2">

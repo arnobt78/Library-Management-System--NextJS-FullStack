@@ -259,11 +259,6 @@ const ApiStatusClient = ({
     }
   };
 
-  // Initialize last checked date on mount
-  useEffect(() => {
-    setLastChecked(new Date());
-  }, []);
-
   // Update uptime every second
   useEffect(() => {
     const uptimeInterval = setInterval(() => {

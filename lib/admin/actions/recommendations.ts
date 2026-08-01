@@ -316,23 +316,15 @@ export async function updateTrendingBooks(): Promise<{
   };
 }
 
-// Refresh recommendation cache (simulate cache refresh)
+// The browser query cache is invalidated by the calling mutation. There is no
+// server-side recommendation cache, so this action intentionally has no delay.
 export async function refreshRecommendationCache(): Promise<{
   message: string;
   cacheCleared: boolean;
 }> {
-  // In a real application, this would clear Redis cache or similar
-  // For now, we'll just simulate the operation
-
-  console.log("🔄 Refreshing recommendation cache...");
-
-  // Simulate cache operations
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
   return {
-    message:
-      "Recommendation cache refreshed successfully. All cached recommendations have been cleared and will be regenerated on next request.",
-    cacheCleared: true,
+    message: "Recommendation queries are ready to refetch from the database.",
+    cacheCleared: false,
   };
 }
 

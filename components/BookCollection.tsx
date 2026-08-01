@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAllBooks } from "@/hooks/useQueries";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/keys";
 import type { BooksListResponse } from "@/lib/services/books";
 import type { BorrowRecord } from "@/lib/services/borrows";
 
@@ -106,7 +107,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
       if (userId) {
         // Set the query data in React Query cache for the main user-borrows query
         // This is the query key used by BookBorrowButton: ["user-borrows", userId, undefined]
-        const queryKey = ["user-borrows", userId, undefined];
+        const queryKey = queryKeys.borrows.user(userId);
         queryClient.setQueryData(queryKey, initialUserBorrows);
       }
     }
@@ -274,7 +275,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
           </h1>
           <p className="text-sm text-light-200 sm:text-base">Loading books...</p>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(12)].map((_, index) => (
             <BookCardSkeleton key={`skeleton-${index}`} />
           ))}
@@ -482,7 +483,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {books.map((book: Book) => (
                 <BookCard key={book.id} {...book} />
               ))}
@@ -517,7 +518,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                             : "outline"
                         }
                         onClick={() => handlePageChange(pageNum)}
-                        className="h-8 w-8 text-xs sm:h-10 sm:w-10 sm:text-sm"
+                        className="size-8 text-xs sm:size-10 sm:text-sm"
                       >
                         {pageNum}
                       </Button>

@@ -14,8 +14,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { borrowRecords, books, users } from "@/database/schema";
-import { eq, desc, and, or, sql } from "drizzle-orm";
-import { auth } from "@/auth";
+import { eq, desc, and, ilike, or, sql } from "drizzle-orm";
+import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 
 export const runtime = "nodejs";
 
@@ -27,48 +27,8 @@ export const runtime = "nodejs";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    // Check if user is authenticated
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-          message: "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin
-    // CRITICAL: Check role from session first (if available from new JWT)
-    // If not available, fallback to database check (for existing sessions)
-    let isAdmin = false;
-    if ((session.user as { role?: string }).role === "ADMIN") {
-      isAdmin = true;
-    } else {
-      // Fallback: Check database if role not in session (for existing sessions)
-      // This handles cases where JWT was created before role was added
-      const user = await db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, session.user.id))
-        .limit(1);
-
-      isAdmin = user[0]?.role === "ADMIN";
-    }
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Forbidden",
-          message: "Admin access required",
-        },
-        { status: 403 }
-      );
-    }
+    const authorization = await authorizeAdminRoute();
+    if (!authorization.ok) return authorization.response;
 
     const { searchParams } = new URL(request.url);
 
@@ -93,11 +53,11 @@ export async function GET(request: NextRequest) {
       const searchPattern = `%${search}%`;
       whereConditions.push(
         or(
-          sql`${books.title}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
-          sql`${books.author}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
-          sql`${users.fullName}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
-          sql`${users.email}::text ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`,
-          sql`CAST(${users.universityId} AS TEXT) ILIKE ${sql.raw(`'${searchPattern.replace(/'/g, "''")}'`)}`
+          ilike(books.title, searchPattern),
+          ilike(books.author, searchPattern),
+          ilike(users.fullName, searchPattern),
+          ilike(users.email, searchPattern),
+          sql`CAST(${users.universityId} AS TEXT) ILIKE ${searchPattern}`
         )
       );
     }

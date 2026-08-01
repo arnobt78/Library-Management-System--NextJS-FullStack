@@ -11,8 +11,23 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        "ibm-plex-sans": ["IBM Plex Sans", "sans-serif"],
-        "bebas-neue": ["var(--bebas-neue)"],
+        sans: [
+          "var(--font-ibm-plex-sans)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+        "ibm-plex-sans": [
+          "var(--font-ibm-plex-sans)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+        "bebas-neue": [
+          "var(--font-bebas-neue)",
+          "var(--bebas-neue)",
+          "sans-serif",
+        ],
       },
       colors: {
         background: "var(--background)",

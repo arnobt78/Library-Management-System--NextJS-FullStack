@@ -1,0 +1,295 @@
+// Parent: REQ-0025
+// Replay-safe borrow state transitions with inventory updates in one transaction.
+
+import { db } from "@/database/drizzle";
+import { books, borrowRecords, users } from "@/database/schema";
+import {
+  assertOwnerOrAdmin,
+  type AuthorizedActor,
+} from "@/lib/auth/authorization";
+import { and, eq, inArray, sql } from "drizzle-orm";
+import {
+  canApproveBorrow,
+  canReturnBorrow,
+} from "./borrowTransitionPolicy";
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export type BorrowActionResult<T = undefined> = T extends undefined
+  ? { success: true } | { success: false; error: string }
+  : { success: true; data: T } | { success: false; error: string };
+
+interface ReturnResult {
+  fineAmount: number;
+  daysOverdue: number;
+  isOverdue: boolean;
+}
+
+function getDueDate(): string {
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 7);
+  dueDate.setHours(23, 59, 59, 999);
+  return dueDate.toISOString().slice(0, 10);
+}
+
+async function approveWithTransaction(
+  tx: Transaction,
+  recordId: string,
+  actor: AuthorizedActor
+): Promise<BorrowActionResult> {
+  const [record] = await tx
+    .select({
+      bookId: borrowRecords.bookId,
+      status: borrowRecords.status,
+      userEmail: users.email,
+    })
+    .from(borrowRecords)
+    .innerJoin(users, eq(borrowRecords.userId, users.id))
+    .where(eq(borrowRecords.id, recordId))
+    .limit(1)
+    .for("update");
+
+  if (!record) {
+    return { success: false, error: "Borrow record not found" };
+  }
+
+  const [book] = await tx
+    .select({ availableCopies: books.availableCopies })
+    .from(books)
+    .where(eq(books.id, record.bookId))
+    .limit(1)
+    .for("update");
+
+  if (!book) {
+    return { success: false, error: "Book is no longer available" };
+  }
+
+  const decision = canApproveBorrow(record.status, book.availableCopies);
+  if (!decision.allowed) {
+    return { success: false, error: decision.error };
+  }
+
+  const updated = await tx
+    .update(borrowRecords)
+    .set({
+      status: "BORROWED",
+      borrowedBy: record.userEmail,
+      dueDate: getDueDate(),
+      updatedAt: new Date(),
+      updatedBy: actor.email,
+    })
+    .where(
+      and(
+        eq(borrowRecords.id, recordId),
+        eq(borrowRecords.status, "PENDING")
+      )
+    )
+    .returning({ id: borrowRecords.id });
+
+  if (updated.length !== 1) {
+    return { success: false, error: "This request has already been processed" };
+  }
+
+  await tx
+    .update(books)
+    .set({
+      availableCopies: sql`${books.availableCopies} - 1`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(books.id, record.bookId), sql`${books.availableCopies} > 0`));
+
+  return { success: true };
+}
+
+async function returnWithTransaction(
+  tx: Transaction,
+  recordId: string,
+  actor: AuthorizedActor,
+  dailyFineAmount: number
+): Promise<BorrowActionResult<ReturnResult>> {
+  const [record] = await tx
+    .select({
+      bookId: borrowRecords.bookId,
+      userId: borrowRecords.userId,
+      status: borrowRecords.status,
+      dueDate: borrowRecords.dueDate,
+      borrowedBy: borrowRecords.borrowedBy,
+      userEmail: users.email,
+    })
+    .from(borrowRecords)
+    .innerJoin(users, eq(borrowRecords.userId, users.id))
+    .where(eq(borrowRecords.id, recordId))
+    .limit(1)
+    .for("update");
+
+  if (!record) {
+    return { success: false, error: "Borrow record not found" };
+  }
+
+  assertOwnerOrAdmin(actor, record.userId);
+
+  const decision = canReturnBorrow(record.status);
+  if (!decision.allowed) {
+    return { success: false, error: decision.error };
+  }
+
+  const [book] = await tx
+    .select({
+      availableCopies: books.availableCopies,
+      totalCopies: books.totalCopies,
+    })
+    .from(books)
+    .where(eq(books.id, record.bookId))
+    .limit(1)
+    .for("update");
+
+  if (!book) {
+    return { success: false, error: "Book not found" };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const dueDate = record.dueDate ? new Date(record.dueDate) : null;
+  const returnDate = new Date(today);
+  const daysOverdue = dueDate
+    ? Math.max(
+        0,
+        Math.floor(
+          (returnDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+        )
+      )
+    : 0;
+  const fineAmount =
+    daysOverdue > 0
+      ? (daysOverdue * dailyFineAmount).toFixed(2)
+      : "0.00";
+
+  const updated = await tx
+    .update(borrowRecords)
+    .set({
+      status: "RETURNED",
+      returnDate: today,
+      returnedBy: actor.email,
+      borrowedBy: record.borrowedBy || record.userEmail,
+      fineAmount,
+      updatedAt: new Date(),
+      updatedBy: actor.email,
+    })
+    .where(
+      and(
+        eq(borrowRecords.id, recordId),
+        eq(borrowRecords.status, "BORROWED")
+      )
+    )
+    .returning({ id: borrowRecords.id });
+
+  if (updated.length !== 1) {
+    return { success: false, error: "This book has already been returned" };
+  }
+
+  await tx
+    .update(books)
+    .set({
+      availableCopies: sql`LEAST(${books.totalCopies}, ${books.availableCopies} + 1)`,
+      updatedAt: new Date(),
+    })
+    .where(eq(books.id, record.bookId));
+
+  return {
+    success: true,
+    data: {
+      fineAmount: Number(fineAmount),
+      daysOverdue,
+      isOverdue: daysOverdue > 0,
+    },
+  };
+}
+
+export function approveBorrowRecord(
+  recordId: string,
+  actor: AuthorizedActor
+): Promise<BorrowActionResult> {
+  return db.transaction((tx) => approveWithTransaction(tx, recordId, actor));
+}
+
+export function returnBorrowRecord(
+  recordId: string,
+  actor: AuthorizedActor,
+  dailyFineAmount: number
+): Promise<BorrowActionResult<ReturnResult>> {
+  return db.transaction((tx) =>
+    returnWithTransaction(tx, recordId, actor, dailyFineAmount)
+  );
+}
+
+export async function rejectBorrowRecord(
+  recordId: string
+): Promise<BorrowActionResult> {
+  return db.transaction(async (tx) => {
+    const [record] = await tx
+      .select({ status: borrowRecords.status })
+      .from(borrowRecords)
+      .where(eq(borrowRecords.id, recordId))
+      .limit(1)
+      .for("update");
+
+    if (!record) {
+      return { success: false, error: "Borrow record not found" };
+    }
+
+    if (record.status !== "PENDING") {
+      return { success: false, error: "This request has already been processed" };
+    }
+
+    await tx
+      .delete(borrowRecords)
+      .where(
+        and(
+          eq(borrowRecords.id, recordId),
+          eq(borrowRecords.status, "PENDING")
+        )
+      );
+
+    return { success: true };
+  });
+}
+
+export function approveBorrowRecords(
+  recordIds: string[],
+  actor: AuthorizedActor
+): Promise<BorrowActionResult> {
+  return db.transaction(async (tx) => {
+    for (const recordId of [...new Set(recordIds)].sort()) {
+      const result = await approveWithTransaction(tx, recordId, actor);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    }
+    return { success: true };
+  });
+}
+
+export function rejectBorrowRecords(
+  recordIds: string[]
+): Promise<BorrowActionResult> {
+  return db.transaction(async (tx) => {
+    const uniqueIds = [...new Set(recordIds)];
+    const records = await tx
+      .select({ id: borrowRecords.id, status: borrowRecords.status })
+      .from(borrowRecords)
+      .where(inArray(borrowRecords.id, uniqueIds))
+      .orderBy(borrowRecords.id)
+      .for("update");
+
+    if (
+      records.length !== uniqueIds.length ||
+      records.some((record) => record.status !== "PENDING")
+    ) {
+      return { success: false, error: "One or more requests were already processed" };
+    }
+
+    await tx
+      .delete(borrowRecords)
+      .where(inArray(borrowRecords.id, uniqueIds));
+    return { success: true };
+  });
+}

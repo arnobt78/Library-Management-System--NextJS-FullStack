@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { IKVideo, ImageKitProvider } from "imagekitio-next";
+import { ImageKitProvider, Video as ImageKitVideo } from "@imagekit/next";
 import config from "@/lib/config";
 
 const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
@@ -30,21 +30,15 @@ const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
   // even if they have .png extension (they might be misnamed video files)
   if (videoUrl.includes("imagekit.io") && videoUrl.includes("/books/videos/")) {
     return (
-      <ImageKitProvider
-        publicKey={config.env.imagekit.publicKey}
-        urlEndpoint={config.env.imagekit.urlEndpoint}
-      >
-        <IKVideo src={videoUrl} controls={true} className="h-auto w-full max-w-full rounded-xl" />
+      <ImageKitProvider urlEndpoint={config.env.imagekit.urlEndpoint}>
+        <ImageKitVideo src={videoUrl} controls className="h-auto w-full max-w-full rounded-xl" />
       </ImageKitProvider>
     );
   }
 
   return (
-    <ImageKitProvider
-      publicKey={config.env.imagekit.publicKey}
-      urlEndpoint={config.env.imagekit.urlEndpoint}
-    >
-      <IKVideo src={videoUrl} controls={true} className="w-full rounded-xl" />
+    <ImageKitProvider urlEndpoint={config.env.imagekit.urlEndpoint}>
+      <ImageKitVideo src={videoUrl} controls className="w-full rounded-xl" />
     </ImageKitProvider>
   );
 };

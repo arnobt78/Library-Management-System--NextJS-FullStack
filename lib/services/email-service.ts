@@ -132,9 +132,7 @@ export async function sendEmailWithFallback(
 
   for (const provider of providers) {
     try {
-      console.log(`📧 Attempting to send email via ${provider.name}...`);
       const result = await provider.send();
-      console.log(`✅ Email sent successfully via ${provider.name} to ${to}`);
       return {
         success: true,
         provider: result.provider,
@@ -154,4 +152,3 @@ export async function sendEmailWithFallback(
     error: `Failed to send email via all providers. Last error: ${lastError?.message || "Unknown error"}`,
   };
 }
-

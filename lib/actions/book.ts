@@ -2,13 +2,17 @@
 
 import { db } from "@/database/drizzle";
 import { books, borrowRecords } from "@/database/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import {
+  getActionErrorMessage,
+  requireAuthenticatedActor,
+} from "@/lib/auth/authorization";
+import { parseEntityId } from "@/lib/actionInputs";
 
 /**
  * Parameters for borrowing a book
  */
 export interface BorrowBookParams {
-  userId: string;
   bookId: string;
 }
 
@@ -46,52 +50,77 @@ export type BorrowBookResponse =
  * Borrow a book for a user
  * Creates a PENDING borrow request that requires admin approval
  *
- * @param params - Borrow book parameters (userId, bookId)
+ * The authenticated database actor is always the borrower; browser user IDs
+ * are intentionally excluded from this contract.
  * @returns Promise with success status and data or error message
  */
 export const borrowBook = async (
   params: BorrowBookParams
 ): Promise<BorrowBookResponse> => {
-  const { userId, bookId } = params;
-
   try {
-    const book = await db
-      .select({ availableCopies: books.availableCopies })
-      .from(books)
-      .where(eq(books.id, bookId))
-      .limit(1);
+    const actor = await requireAuthenticatedActor();
+    const bookId = parseEntityId(params.bookId);
 
-    if (!book.length || book[0].availableCopies <= 0) {
-      return {
-        success: false,
-        error: "Book is not available for borrowing",
-      };
-    }
+    const result = await db.transaction(async (tx) => {
+      // Locking the book serializes requests for the same title, preventing two
+      // concurrent requests by one user from both passing the duplicate check.
+      const [book] = await tx
+        .select({ availableCopies: books.availableCopies })
+        .from(books)
+        .where(and(eq(books.id, bookId), eq(books.isActive, true)))
+        .limit(1)
+        .for("update");
 
-    // CRITICAL: Use .returning() to get the inserted record
-    // Without this, db.insert() doesn't return the actual record data
-    const [record] = await db
-      .insert(borrowRecords)
-      .values({
-        userId,
-        bookId,
-        dueDate: null, // Will be set when admin approves
-        status: "PENDING",
-      })
-      .returning();
+      if (!book || book.availableCopies <= 0) {
+        return {
+          success: false as const,
+          error: "Book is not available for borrowing",
+        };
+      }
 
-    // Don't decrement available copies until admin approves
+      const [existingRequest] = await tx
+        .select({ id: borrowRecords.id })
+        .from(borrowRecords)
+        .where(
+          and(
+            eq(borrowRecords.userId, actor.id),
+            eq(borrowRecords.bookId, bookId),
+            inArray(borrowRecords.status, ["PENDING", "BORROWED"])
+          )
+        )
+        .limit(1);
 
-    return {
-      success: true,
-      data: [record], // Return as array to match the response type
-    };
+      if (existingRequest) {
+        return {
+          success: false as const,
+          error: "You already have an active request for this book",
+        };
+      }
+
+      const [record] = await tx
+        .insert(borrowRecords)
+        .values({
+          userId: actor.id,
+          bookId,
+          dueDate: null,
+          status: "PENDING",
+          updatedBy: actor.email,
+        })
+        .returning();
+
+      return { success: true as const, data: [record] };
+    });
+
+    return result;
   } catch (error: unknown) {
-    console.log(error);
+    console.error("Failed to borrow book", error);
 
     return {
       success: false,
-      error: "An error occurred while borrowing the book",
+      error: getActionErrorMessage(
+        error,
+        "An error occurred while borrowing the book"
+      ),
     };
   }
 };

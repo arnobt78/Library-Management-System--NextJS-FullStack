@@ -1,13 +1,14 @@
 "use client";
 
-import React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/keys";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
   getBooksList,
   getBook,
   getBookRecommendations,
   getBookBorrowStats,
+  getFeaturedBooks,
   type BookFilters,
   type BooksListResponse,
   type BookBorrowStats,
@@ -111,7 +112,7 @@ export const useBooks = (
   };
 
   // Build query key from filters for proper caching
-  const queryKey = ["books", urlFilters];
+  const queryKey = queryKeys.books.list(urlFilters);
 
   return useQuery({
     queryKey,
@@ -170,7 +171,7 @@ export const useAllBooks = (
   };
 
   // Build query key from filters for proper caching (different from useBooks)
-  const queryKey = ["all-books", urlFilters];
+  const queryKey = queryKeys.books.adminList(urlFilters);
 
   return useQuery({
     queryKey,
@@ -206,7 +207,7 @@ export const useBook = (id: string, initialData?: Book) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["book", id],
+    queryKey: queryKeys.books.detail(id),
     queryFn: () =>
       trackQuery(`book-${id}`, async () => {
         return getBook(id);
@@ -243,7 +244,7 @@ export const useBookBorrowStats = (
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["book-borrow-stats", bookId],
+    queryKey: queryKeys.books.borrowStats(bookId),
     queryFn: () =>
       trackQuery("book-borrow-stats", async () => {
         return getBookBorrowStats(bookId);
@@ -295,7 +296,7 @@ export const useBookRecommendations = (
         : 10;
 
   // Build query key from parameters for proper caching
-  const queryKey = ["book-recommendations", finalUserId, finalLimit];
+  const queryKey = queryKeys.books.recommendations(finalUserId, finalLimit);
 
   return useQuery({
     queryKey,
@@ -310,6 +311,29 @@ export const useBookRecommendations = (
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
     enabled: true, // Always enabled (userId is optional)
+  });
+};
+
+/**
+ * Hook to fetch curated featured books (homepage hero source).
+ * Key `["featured-books", limit]` is invalidated by invalidateBooksQueries /
+ * invalidateAfterBookChange after book create/update/delete.
+ *
+ * @param limit - Max books (default 10; homepage hero uses 1)
+ * @param initialData - Optional SSR data (prevents duplicate fetch)
+ */
+export const useFeaturedBooks = (limit: number = 10, initialData?: Book[]) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery({
+    queryKey: queryKeys.books.featured(limit),
+    queryFn: () =>
+      trackQuery(`featured-books-${limit}`, async () => {
+        return getFeaturedBooks(limit);
+      }),
+    staleTime: Infinity,
+    refetchOnMount: true,
+    initialData,
   });
 };
 
@@ -336,7 +360,7 @@ export const useUserProfile = (userId: string, initialData?: User) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["user", userId],
+    queryKey: queryKeys.users.detail(userId),
     queryFn: () =>
       trackQuery(`user-${userId}`, async () => {
         return getUser(userId);
@@ -392,7 +416,7 @@ export const useAllUsers = (
   };
 
   // Build query key from filters for proper caching
-  const queryKey = ["all-users", urlFilters];
+  const queryKey = queryKeys.users.adminList(urlFilters);
 
   return useQuery({
     queryKey,
@@ -434,7 +458,7 @@ export const usePendingUsers = (
   const searchValue = search || searchParams.get("search") || undefined;
 
   // Build query key from search for proper caching
-  const queryKey = ["pending-users", searchValue];
+  const queryKey = queryKeys.users.pending(searchValue);
 
   return useQuery({
     queryKey,
@@ -506,7 +530,7 @@ export const useBorrowRecords = (
   };
 
   // Build query key from filters for proper caching
-  const queryKey = ["borrow-records", urlFilters];
+  const queryKey = queryKeys.borrows.list(urlFilters);
 
   return useQuery({
     queryKey,
@@ -550,38 +574,13 @@ export const useUserBorrows = (
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
 
   // Get status from URL params if not provided
   const finalStatus: BorrowStatus | undefined =
     status || (searchParams.get("status") as BorrowStatus | null) || undefined;
 
   // Build query key from userId and status for proper caching
-  const queryKey = ["user-borrows", userId, finalStatus];
-
-  // CRITICAL: Use ref to track if we've already used initialData
-  // This ensures initialData is only used on first render (SSR), never on client-side navigation
-  const hasUsedInitialDataRef = React.useRef(false);
-
-  // CRITICAL: Check cache state more thoroughly
-  // Check the data to determine if cache exists
-  const cachedData = queryClient.getQueryData<BorrowRecord[]>(queryKey);
-  const hasCache = cachedData !== undefined && cachedData !== null;
-
-  // Only use initialData if:
-  // 1. We haven't used it before (first render only)
-  // 2. No cache exists
-  // 3. initialData is provided
-  const shouldUseInitialData =
-    !hasUsedInitialDataRef.current && !hasCache && !!initialData;
-
-  // Mark that we've used initialData if we're going to use it
-  if (shouldUseInitialData) {
-    hasUsedInitialDataRef.current = true;
-  }
-
-  // CRITICAL: No cache checking - always fetch fresh data
-  // Removed debug logging since we're not using cache anymore
+  const queryKey = queryKeys.borrows.user(userId, finalStatus);
 
   return useQuery({
     queryKey,
@@ -594,9 +593,8 @@ export const useUserBorrows = (
     refetchOnMount: true, // Always refetch on mount - no cache
     refetchOnWindowFocus: false, // Don't refetch on window focus
     refetchOnReconnect: false, // Don't refetch on reconnect
-    initialData: shouldUseInitialData ? initialData : undefined, // Only use SSR data on first render
-    // CRITICAL: No placeholderData - always fetch fresh data
-    gcTime: 0, // Don't cache - always fetch fresh data
+    // TanStack Query applies initial data only when the key has no cached value.
+    initialData,
   });
 };
 
@@ -622,7 +620,7 @@ export const useAdminStats = (initialData?: AdminStats) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["admin-stats"],
+    queryKey: queryKeys.admin.stats,
     queryFn: () =>
       trackQuery("admin-stats", async () => {
         return getAdminStats();
@@ -671,7 +669,7 @@ export const useBorrowRequests = (
     filters?.search || searchParams.get("search") || undefined;
 
   // Build query key from filters for proper caching
-  const queryKey = ["borrow-requests", { status, search }];
+  const queryKey = queryKeys.borrows.requests({ status, search });
 
   return useQuery({
     queryKey,
@@ -706,7 +704,7 @@ export const usePendingAdminRequests = (initialData?: AdminRequest[]) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["pending-admin-requests"],
+    queryKey: queryKeys.admin.pendingRequests,
     queryFn: () =>
       trackQuery("pending-admin-requests", async () => {
         return getPendingAdminRequests();
@@ -739,7 +737,7 @@ export const useBookReviews = (bookId: string, initialData?: Review[]) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["book-reviews", bookId],
+    queryKey: queryKeys.reviews.book(bookId),
     queryFn: () =>
       trackQuery(`book-reviews-${bookId}`, async () => {
         return getBookReviews(bookId);
@@ -782,7 +780,7 @@ export const useReviewEligibility = (
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["review-eligibility", bookId],
+    queryKey: queryKeys.reviews.eligibility(bookId),
     queryFn: () =>
       trackQuery(`review-eligibility-${bookId}`, async () => {
         return getReviewEligibility(bookId);
@@ -817,7 +815,7 @@ export const useAdminAnalytics = (initialData?: AnalyticsData) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["admin-analytics"],
+    queryKey: queryKeys.admin.analytics,
     queryFn: () =>
       trackQuery("admin-analytics", async () => {
         return getCompleteAnalytics();
@@ -877,7 +875,7 @@ export const useBusinessInsights = (
   };
 
   // Build query key from options for proper caching (different from admin-analytics)
-  const queryKey = ["business-insights", finalOptions];
+  const queryKey = queryKeys.admin.businessInsights(finalOptions);
 
   return useQuery({
     queryKey,
@@ -912,7 +910,7 @@ export const useSystemMetrics = (initialData?: MetricsData) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["system-metrics"],
+    queryKey: queryKeys.admin.systemMetrics,
     queryFn: () =>
       trackQuery("system-metrics", async () => {
         return fetchSystemMetrics();
@@ -948,7 +946,7 @@ export const useServiceHealth = (initialData?: ServiceStatus[]) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery<ServiceStatus[], Error>({
-    queryKey: ["service-health"],
+    queryKey: queryKeys.admin.serviceHealth,
     queryFn: () =>
       trackQuery("service-health", async () => {
         return fetchAllServicesHealth();
@@ -981,7 +979,7 @@ export const useFineConfig = (initialData?: FineConfig) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery<FineConfig, Error>({
-    queryKey: ["fine-config"],
+    queryKey: queryKeys.admin.fineConfig,
     queryFn: () =>
       trackQuery("fine-config", async () => {
         return getFineConfig();
@@ -1013,7 +1011,7 @@ export const useReminderStats = (initialData?: ReminderStats) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["reminder-stats"],
+    queryKey: queryKeys.admin.reminderStats,
     queryFn: () =>
       trackQuery("reminder-stats", async () => {
         return getReminderStats();
@@ -1045,7 +1043,7 @@ export const useExportStats = (initialData?: ExportStats) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
-    queryKey: ["export-stats"],
+    queryKey: queryKeys.admin.exportStats,
     queryFn: () =>
       trackQuery("export-stats", async () => {
         return getExportStats();

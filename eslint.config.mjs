@@ -1,35 +1,25 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
+// Parent: REQ-0022
+import { defineConfig, globalIgnores } from "eslint/config";
+import eslintConfigPrettier from "eslint-config-prettier/flat";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypeScript from "eslint-config-next/typescript";
+import tailwind from "eslint-plugin-tailwindcss";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
-
-const eslintConfig = [
-  ...compat.extends(
-    "next/core-web-vitals",
-    "next/typescript",
-    "plugin:tailwindcss/recommended",
-    "prettier"
-  ),
+export default defineConfig([
+  ...nextVitals,
+  ...nextTypeScript,
+  ...tailwind.configs["flat/recommended"],
+  eslintConfigPrettier,
   {
     rules: {
-      "no-undef": "off",
-      // Ignore unused variable 'users' everywhere
+      "@next/next/no-img-element": "off",
+      // The project intentionally uses semantic CSS classes alongside Tailwind utilities.
+      "tailwindcss/no-custom-classname": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^(users|useState)$" },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      // Ignore <img> element warning from next/next/no-img-element
-      "@next/next/no-img-element": "off",
     },
   },
-];
-
-export default eslintConfig;
+  globalIgnores([".next/**", "coverage/**"]),
+]);

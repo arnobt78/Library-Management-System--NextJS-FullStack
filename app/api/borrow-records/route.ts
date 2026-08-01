@@ -21,11 +21,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
-import { borrowRecords, books, users } from "@/database/schema";
+import { borrowRecords, books } from "@/database/schema";
 import { eq, and, desc, asc, gte, lte, sql } from "drizzle-orm";
-import { auth } from "@/auth";
+import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { parsePagination } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -52,7 +53,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const session = await auth();
+    const authorization = await authorizeAuthenticatedRoute();
+    if (!authorization.ok) return authorization.response;
+    const { actor } = authorization;
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
@@ -67,46 +70,11 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo") || undefined;
     const overdue = searchParams.get("overdue") === "true";
     const sort = searchParams.get("sort") || "date";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const { page, limit } = parsePagination(searchParams, 50);
 
-    // CRITICAL: Authentication required for accessing borrow records
-    // Borrow records contain sensitive user data and should only be accessible to authenticated users
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-          message: "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
+    const finalUserId = userId || actor.id;
 
-    // Check if user is admin
-    // CRITICAL: Check role from session first (if available from new JWT)
-    // If not available, fallback to database check (for existing sessions)
-    let isAdmin = false;
-    if ((session.user as { role?: string }).role === "ADMIN") {
-      isAdmin = true;
-    } else {
-      // Fallback: Check database if role not in session (for existing sessions)
-      // This handles cases where JWT was created before role was added
-      const user = await db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, session.user.id))
-        .limit(1);
-
-      isAdmin = user[0]?.role === "ADMIN";
-    }
-
-    // CRITICAL: Authorization check
-    // Users can only access their own records unless they're admin
-    // If userId is provided in query params, verify it matches the authenticated user (unless admin)
-    const finalUserId = userId || session.user.id;
-
-    if (!isAdmin && userId && userId !== session.user.id) {
+    if (actor.role !== "ADMIN" && userId && userId !== actor.id) {
       return NextResponse.json(
         {
           success: false,

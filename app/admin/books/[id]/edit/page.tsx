@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getBookById } from "@/lib/admin/actions/book";
 import { redirect } from "next/navigation";
 import BookForm from "@/components/admin/forms/BookForm";
+import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
 
 const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
@@ -17,9 +18,18 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <div className="p-3 sm:p-6">
-      <Button asChild className="back-btn mb-6 sm:mb-10">
-        <Link href="/admin/books">Go Back</Link>
-      </Button>
+      <div className="mb-6 flex flex-wrap items-center gap-3 sm:mb-10">
+        <Button asChild className="back-btn">
+          <Link href="/admin/books">Go Back</Link>
+        </Button>
+        {book?.id && book?.title ? (
+          <DeleteBookDialog
+            bookId={book.id}
+            bookTitle={book.title}
+            redirectTo="/admin/books"
+          />
+        ) : null}
+      </div>
 
       <section className="mx-auto w-full max-w-2xl">
         <BookForm type="update" {...book} />

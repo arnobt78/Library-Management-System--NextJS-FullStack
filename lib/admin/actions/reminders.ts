@@ -21,10 +21,6 @@ export class EmailService {
         return { success: false, error: result.error || "Unknown error" };
       }
 
-      console.log(`📧 Email sent successfully to ${to} via ${result.provider}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Message ID: ${result.messageId}`);
-
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error("Email sending failed:", error);

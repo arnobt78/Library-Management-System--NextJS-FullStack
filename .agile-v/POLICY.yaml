@@ -1,0 +1,29 @@
+schema_version: "1.0.0"
+policy_version: "1.0.0"
+project: university-library
+mode: existing-system-baseline
+rules:
+  require_parent_requirement: true
+  require_gate_1_before_synthesis: true
+  require_independent_verification: true
+  require_eval_pass_or_waiver_for_gate_2: true
+  decision_log_append_only: true
+  change_log_append_only: true
+  risk_register_append_only: true
+  no_product_code_during_bootstrap: true
+  secrets_must_not_enter_agent_output: true
+  schema_changes_require_migrations: true
+  auth_changes_minimum_risk: R2
+  external_integration_changes_minimum_risk: R2
+halt_on:
+  - ambiguous_requirement
+  - missing_traceability
+  - conflicting_requirement
+  - unclear_done_criteria
+  - unapproved_gate
+  - exposed_secret
+quality:
+  external_behavior_tests: required
+  realistic_data_types: required
+  negative_and_boundary_tests: required
+  interface_contract_validation: required

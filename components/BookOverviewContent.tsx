@@ -138,7 +138,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
   return (
     <section className="book-overview">
-      <div className="flex flex-1 flex-col gap-3 sm:gap-5 w-full min-w-0 max-w-full">
+      <div className="flex w-full min-w-0 max-w-full flex-1 flex-col gap-3 sm:gap-5">
         <h1 className="break-words">{title}</h1>
 
         <div className="book-info">
@@ -152,7 +152,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
               <span className="font-semibold text-light-200">{genre}</span>
             </p>
 
-            <div className="flex flex-row items-center gap-1 shrink-0">
+            <div className="flex shrink-0 flex-row items-center gap-1">
               <img
                 src="/icons/star.svg"
                 alt="star"

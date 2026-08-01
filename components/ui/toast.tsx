@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable tailwindcss/no-custom-classname */
 import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -34,7 +33,7 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         // 'destructive' is a custom class used for group selectors (e.g., group-[.destructive])
         // This is a standard shadcn/ui pattern and is required for the component to work
-        // eslint-disable-next-line
+
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
       },

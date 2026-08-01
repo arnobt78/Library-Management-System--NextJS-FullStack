@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "project": {
+    "name": "university-library",
+    "type": "existing-nextjs-web-application",
+    "repository_branch": "main",
+    "baseline_commit": "83e3411",
+    "cycle": "C1",
+    "risk_default": "R2"
+  },
+  "pipeline": {
+    "current_stage": 5,
+    "human_gate_0_required": true,
+    "human_gate_1_required": true,
+    "human_gate_2_required": true,
+    "independent_verification_required": true,
+    "max_rework_attempts": 3
+  },
+  "authority_matrix": {
+    "gate_0": ["Product Owner", "Project Owner"],
+    "gate_1": ["Product Owner", "Project Owner", "Technical Lead"],
+    "gate_2": ["Project Owner", "Release Approver"]
+  },
+  "llm_providers": [],
+  "model_versions": [],
+  "classification": {
+    "repository": "internal",
+    "credentials": "restricted",
+    "personal_data": "restricted"
+  },
+  "retention": {
+    "decision_log": "project_lifetime",
+    "approval_records": "project_lifetime",
+    "cycle_archives": "project_lifetime"
+  }
+}

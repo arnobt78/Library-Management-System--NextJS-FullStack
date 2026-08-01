@@ -1,26 +1,32 @@
-import BookOverview from "@/components/BookOverview";
+import HomeFeaturedHero from "@/components/HomeFeaturedHero";
 import HomeRecommendations from "@/components/HomeRecommendations";
 import PerformanceWrapper from "@/components/PerformanceWrapper";
 import { db } from "@/database/drizzle";
 import { books, users, borrowRecords } from "@/database/schema";
 import { auth } from "@/auth";
-import { desc, eq, sql, and, inArray, notInArray } from "drizzle-orm";
+import { count, desc, eq, sql, and, inArray, notInArray } from "drizzle-orm";
 import type { BorrowRecord } from "@/lib/services/borrows";
+import { getHomepageHeroBook } from "@/lib/admin/actions/book";
 
 const Home = async () => {
   const session = await auth();
 
-  // Get the latest book for the hero section
-  const latestBooks = (await db
-    .select()
-    .from(books)
-    .orderBy(desc(books.createdAt))) as Book[];
+  // Curated featured book when set; otherwise newest active (never auto-steal via create alone)
+  const heroBook = await getHomepageHeroBook();
 
   // Fetch user borrows for SSR (if user is logged in)
   // This ensures BookBorrowButton shows correct state immediately on first load
   let initialUserBorrows: BorrowRecord[] | undefined = undefined;
+  let userStatus: string | null = null;
 
   if (session?.user?.id) {
+    const [userRow] = await db
+      .select({ status: users.status })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+    userStatus = userRow?.status ?? null;
+
     // Fetch user's borrow records (matching API response format)
     const userBorrowRecords = await db
       .select({
@@ -90,6 +96,38 @@ const Home = async () => {
         createdAt: record.createdAt, // timestamp() returns Date object
       };
     });
+  }
+
+  // SSR borrow stats for the hero book (zero duplicate fetch on first paint)
+  let heroInitialStats:
+    | {
+        totalBorrows: number;
+        activeBorrows: number;
+        returnedBorrows: number;
+      }
+    | undefined;
+
+  if (heroBook) {
+    const borrowStatsResult = await db
+      .select({
+        totalBorrows: count(),
+        activeBorrows: sql<number>`count(case when ${borrowRecords.status} = 'BORROWED' then 1 end)`,
+        returnedBorrows: sql<number>`count(case when ${borrowRecords.status} = 'RETURNED' then 1 end)`,
+      })
+      .from(borrowRecords)
+      .where(eq(borrowRecords.bookId, heroBook.id));
+
+    const stats = borrowStatsResult[0] || {
+      totalBorrows: 0,
+      activeBorrows: 0,
+      returnedBorrows: 0,
+    };
+
+    heroInitialStats = {
+      totalBorrows: Number(stats.totalBorrows) || 0,
+      activeBorrows: Number(stats.activeBorrows) || 0,
+      returnedBorrows: Number(stats.returnedBorrows) || 0,
+    };
   }
 
   // Get book recommendations based on reading history
@@ -182,12 +220,19 @@ const Home = async () => {
       .limit(6)) as Book[];
   }
 
+  // Serialize hero for client boundary (Dates → JSON-safe)
+  const initialHero = heroBook
+    ? (JSON.parse(JSON.stringify(heroBook)) as Book)
+    : null;
+
   return (
     <PerformanceWrapper pageName="home">
-      <BookOverview
-        {...latestBooks[0]}
-        userId={session?.user?.id as string}
+      <HomeFeaturedHero
+        initialHero={initialHero}
+        userId={session?.user?.id}
+        userStatus={userStatus}
         initialUserBorrows={initialUserBorrows}
+        initialStats={heroInitialStats}
       />
 
       {/* Book Recommendations with React Query */}

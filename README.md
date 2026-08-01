@@ -1,1057 +1,636 @@
-# University Library Management System - Next.js, PostgreSQL, Redis, Upstash, Brevo, Resend, ImageKit FullStack Project
+# University Library Management System - Next.js, TypeScript, Postgres, Drizzle ORM, NextAuth, TanStack Query, Upstash Redis, ImageKit, QStash, Brevo, Resend Full-Stack Project(including Role-Based Access Control + Automated Workflows + Admin Panel + Analytics + Review + Recommendations + Fine Management + User Management + Book Management + Borrow Management + Return Management & more)
 
-A modern, full-stack university library management solution built with Next.js 15, TypeScript, and Drizzle ORM. BookWise provides comprehensive book borrowing, user management, and administrative features for educational institutions.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.8-blue)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Drizzle-336791)](https://orm.drizzle.team/)
+[![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-FF4154)](https://tanstack.com/query)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38B2AC)](https://tailwindcss.com/)
+[![launch with diploi badge](https://diploi.com/launch.svg)](https://diploi.com/launch/arnobt78/university-library)
 
-![Screenshot 2025-09-16 at 15 00 38](https://github.com/user-attachments/assets/e495275c-a7b2-45aa-bd37-cd37ca1dadf8)
-![Screenshot 2025-09-16 at 15 00 50](https://github.com/user-attachments/assets/e39465de-e514-44c6-b385-29ab210717e9)
-![Screenshot 2025-09-16 at 15 01 00](https://github.com/user-attachments/assets/a610b78a-bf72-4371-8f95-abc5c3bf7179)
-![Screenshot 2025-09-16 at 15 02 05](https://github.com/user-attachments/assets/22a8f0bb-ac89-4ab7-a93f-630306d946a1)
-![Screenshot 2025-09-16 at 15 02 23](https://github.com/user-attachments/assets/89349b88-6b62-4099-8e35-fb90056d6cf4)
-![Screenshot 2025-09-16 at 15 02 38](https://github.com/user-attachments/assets/7cdd7016-dd42-4211-bcb2-7abd34caacb1)
-![Screenshot 2025-09-16 at 15 02 58](https://github.com/user-attachments/assets/82ed8082-54b6-41d7-a8ab-0ff5fa59646a)
-![Screenshot 2025-09-16 at 15 04 06](https://github.com/user-attachments/assets/b025b991-5495-49b1-9b6f-a8c8411e204a)
-![Screenshot 2025-09-16 at 15 04 24](https://github.com/user-attachments/assets/c946f818-a44a-4d2e-ba8c-27dea921876e)
-![Screenshot 2025-09-16 at 15 04 41](https://github.com/user-attachments/assets/b60521d6-4597-4ad7-a3a3-1cedf41a0d0e)
-![Screenshot 2025-09-16 at 15 04 58](https://github.com/user-attachments/assets/864b1033-6aa6-420b-a6a4-7420fec78652)
-![Screenshot 2025-09-16 at 15 05 09](https://github.com/user-attachments/assets/854cb805-d12a-4923-8d8a-2832f5594343)
-![Screenshot 2025-09-16 at 15 05 36](https://github.com/user-attachments/assets/0eacf5a5-5b47-43cb-8c05-203aba379296)
-![Screenshot 2025-09-16 at 15 05 50](https://github.com/user-attachments/assets/9d004d70-20ee-406e-8c90-047e05fabb86)
-![Screenshot 2025-09-16 at 15 06 03](https://github.com/user-attachments/assets/beac954e-8ace-452c-9dac-e9518d4ccb14)
-![Screenshot 2025-09-16 at 15 06 14](https://github.com/user-attachments/assets/fe312128-bd0f-427f-ac26-5ad218dc9207)
-![Screenshot 2025-09-16 at 15 06 20](https://github.com/user-attachments/assets/d4d516a9-22d2-4d53-b1bf-9f777cea2906)
-![Screenshot 2025-09-16 at 15 07 49](https://github.com/user-attachments/assets/c2218bb1-52d9-4705-a252-85a2287a0b27)
-![Screenshot 2025-09-16 at 15 08 19](https://github.com/user-attachments/assets/0a3c6b4d-734e-4450-b322-fec62daec6f6)
-![Screenshot 2025-09-16 at 15 08 38](https://github.com/user-attachments/assets/715470c5-db57-4a71-8141-f559bf82ddd1)
-![Screenshot 2025-09-16 at 15 08 50](https://github.com/user-attachments/assets/3db52269-da0a-4bef-9216-8451ac2f7676)
-![Screenshot 2025-09-16 at 15 09 23](https://github.com/user-attachments/assets/1548d4a8-16fc-49b4-a47d-2ea86f257f30)
+A production-oriented full-stack **university library** platform built with **Next.js App Router**, **TypeScript**, **PostgreSQL (Drizzle ORM)**, **NextAuth**, **TanStack Query**, **Upstash Redis**, **ImageKit**, and multi-provider email. It includes public catalog browsing, borrow workflows, reviews, admin CRUD, featured homepage hero, fines/reminders, analytics, and API health docs.
 
----
+- **Live demo:** [https://university-library-managment.vercel.app/](https://university-library-managment.vercel.app/)
+- **Security:** private vulnerability reports → see [SECURITY.md](./SECURITY.md) · [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
+- **Author:** [Arnob Mahmud](https://www.arnobmahmud.com) · [GitHub @arnobt78](https://github.com/arnobt78)
 
-Built with Next.js, TypeScript, Postgres, the University Library Management System is a production-grade platform featuring a public-facing app and admin interface. It offers advanced functionalities like seamless book borrowing with reminders and receipts, robust user management, automated workflows, optimized tech stack for real-world scalability.
+![BookWise screenshot](https://github.com/user-attachments/assets/e495275c-a7b2-45aa-bd37-cd37ca1dadf8)
+![BookWise screenshot](https://github.com/user-attachments/assets/e39465de-e514-44c6-b385-29ab210717e9)
+![BookWise screenshot](https://github.com/user-attachments/assets/a610b78a-bf72-4371-8f95-abc5c3bf7179)
+![BookWise screenshot](https://github.com/user-attachments/assets/22a8f0bb-ac89-4ab7-a93f-630306d946a1)
+![BookWise screenshot](https://github.com/user-attachments/assets/89349b88-6b62-4099-8e35-fb90056d6cf4)
+![BookWise screenshot](https://github.com/user-attachments/assets/7cdd7016-dd42-4211-bcb2-7abd34caacb1)
+![BookWise screenshot](https://github.com/user-attachments/assets/82ed8082-54b6-41d7-a8ab-0ff5fa59646a)
+![BookWise screenshot](https://github.com/user-attachments/assets/b025b991-5495-49b1-9b6f-a8c8411e204a)
+![BookWise screenshot](https://github.com/user-attachments/assets/c946f818-a44a-4d2e-ba8c-27dea921876e)
+![BookWise screenshot](https://github.com/user-attachments/assets/b60521d6-4597-4ad7-a3a3-1cedf41a0d0e)
+![BookWise screenshot](https://github.com/user-attachments/assets/864b1033-6aa6-420b-a6a4-7420fec78652)
+![BookWise screenshot](https://github.com/user-attachments/assets/854cb805-d12a-4923-8d8a-2832f5594343)
+![BookWise screenshot](https://github.com/user-attachments/assets/0eacf5a5-5b47-43cb-8c05-203aba379296)
+![BookWise screenshot](https://github.com/user-attachments/assets/9d004d70-20ee-406e-8c90-047e05fabb86)
+![BookWise screenshot](https://github.com/user-attachments/assets/beac954e-8ace-452c-9dac-e9518d4ccb14)
+![BookWise screenshot](https://github.com/user-attachments/assets/d4d516a9-22d2-4d53-b1bf-9f777cea2906)
+![BookWise screenshot](https://github.com/user-attachments/assets/c2218bb1-52d9-4705-a252-85a2287a0b27)
+![BookWise screenshot](https://github.com/user-attachments/assets/0a3c6b4d-734e-4450-b322-fec62daec6f6)
+![BookWise screenshot](https://github.com/user-attachments/assets/715470c5-db57-4a71-8141-f559bf82ddd1)
+![BookWise screenshot](https://github.com/user-attachments/assets/3db52269-da0a-4bef-9216-8451ac2f7676)
+![BookWise screenshot](https://github.com/user-attachments/assets/1548d4a8-16fc-49b4-a47d-2ea86f257f30)
 
-- **Live-Demo:** [https://university-library-managment.vercel.app/](https://university-library-managment.vercel.app/)
+## Table of Contents
 
----
-
-## 🚀 Features
-
-### **Core Functionality**
-
-- **User Authentication & Authorization** - Secure login with role-based access (USER/ADMIN)
-- **Book Management** - Complete CRUD operations for library books
-- **Borrowing System** - Request, approve, and track book borrows
-- **User Profiles** - Personal dashboards with borrowing history
-- **Review System** - Rate and review books with comments
-- **Admin Dashboard** - Comprehensive administrative controls
-
-### **Advanced Features**
-
-- **Real-time API Monitoring** - Live system health and metrics dashboard
-- **API Documentation** - Interactive Swagger-style API docs
-- **Admin Request System** - Users can request admin privileges
-- **Fine Management** - Automated overdue fine calculations
-- **Email Notifications** - Automated reminders and notifications (Multi-provider: Brevo primary, Resend fallback)
-- **Performance Analytics** - System performance monitoring
-- **Export Functionality** - Data export for analytics and reporting
-
-### **Technical Features**
-
-- **Responsive Design** - Mobile-first approach with Tailwind CSS
-- **Real-time Updates** - Live data updates with React Query
-- **Image Management** - Cloud-based image storage with ImageKit
-- **Rate Limiting** - Protection against abuse with Upstash Redis
-- **Database Migrations** - Version-controlled schema changes
-- **Type Safety** - Full TypeScript implementation
+1. [What You Will Learn](#what-you-will-learn)
+2. [Features Overview](#features-overview)
+3. [Technology Stack](#technology-stack)
+4. [Keywords Glossary](#keywords-glossary)
+5. [Architecture Walkthrough](#architecture-walkthrough)
+6. [Project Structure](#project-structure)
+7. [Database Schema](#database-schema)
+8. [Routes (Pages)](#routes-pages)
+9. [API Endpoints](#api-endpoints)
+10. [Reusable Components](#reusable-components)
+11. [Hooks, Cache & Invalidation](#hooks-cache--invalidation)
+12. [Getting Started](#getting-started)
+13. [Environment Variables](#environment-variables)
+14. [How to Obtain Each Secret](#how-to-obtain-each-secret)
+15. [Scripts & Tooling](#scripts--tooling)
+16. [Educational Code Snippets](#educational-code-snippets)
+17. [Reusing Pieces in Other Projects](#reusing-pieces-in-other-projects)
+18. [Security](#security)
+19. [Contributing & Support](#contributing--support)
+20. [Conclusion](#conclusion)
+21. [License](#license)
 
 ---
 
-## 🛠️ Technology Stack
+## What You Will Learn
 
-### **Frontend**
+This repository is designed both as a **working library product** and as a **learning lab** for full-stack Next.js:
 
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type-safe JavaScript
-- **Tailwind CSS** - Utility-first CSS framework
-- **Shadcn/ui** - Modern component library
-- **Lucide React** - Beautiful icons
-- **React Hook Form** - Form management
-- **Zod** - Schema validation
-- **TanStack Query** - Server state management
-
-### **Backend**
-
-- **Next.js API Routes** - Serverless API endpoints
-- **NextAuth.js** - Authentication framework
-- **Drizzle ORM** - Type-safe database ORM
-- **PostgreSQL** - Primary database (Hetzner VPS)
-- **Redis** - Caching and rate limiting (Upstash)
-
-### **External Services**
-
-- **ImageKit** - Image storage and optimization
-- **Brevo (Sendinblue)** - Primary email delivery service (supports all email providers including Yahoo, Outlook, etc.)
-- **Resend** - Email delivery service (fallback for Gmail)
-- **Upstash** - Redis and QStash for background jobs
-- **Vercel** - Deployment platform
-
-### **Development Tools**
-
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **Drizzle Kit** - Database migrations
-- **Turbopack** - Fast development builds
+- App Router **server components** (`page.tsx`) for fast first paint vs **client components** for interactivity
+- **Drizzle ORM** schema, migrations, and typed queries against PostgreSQL
+- **NextAuth (Auth.js) v5** credentials login, JWT sessions, and role checks (`USER` / `ADMIN`)
+- **TanStack Query** with SSR `initialData`, infinite `staleTime`, and central invalidation after mutations
+- **Zod + React Hook Form** for validated forms
+- **shadcn/ui + Tailwind** for consistent admin and public UI
+- External services: **ImageKit** uploads, **Upstash Redis** rate limits, **QStash** workflows, **Brevo / Resend** email
+- Admin hard-delete gated by `ADMIN_DELETE_SECRET`, featured-book homepage hero, borrow lifecycle, reviews, fines
 
 ---
 
-## 📁 Project Structure
+## Features Overview
 
-```bash
+### Public / student app
+
+| Feature           | What it does                                                           |
+| ----------------- | ---------------------------------------------------------------------- |
+| Auth              | Sign up / sign in; accounts start as `PENDING` until an admin approves |
+| Catalog           | Browse all books, search/filter, open book detail                      |
+| Featured hero     | Homepage shows curated `isFeatured` book (else newest active)          |
+| Borrow            | Request a book → admin approves → due dates / return                   |
+| Profile           | Borrowing history, stats, return flows                                 |
+| Reviews           | Create / edit / delete own reviews (eligibility rules apply)           |
+| API docs & status | In-app API documentation and live health/metrics pages                 |
+
+### Admin app (`/admin`)
+
+| Feature          | What it does                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Books            | Create / edit / soft-deactivate (`isActive`) / hard-delete (secret) / feature on homepage |
+| Users            | Approve / reject accounts, manage roles                                                   |
+| Borrow requests  | Approve / reject pending loans                                                            |
+| Account requests | Review admin-privilege requests                                                           |
+| Automation       | Fine config, overdue fine updates, due/overdue reminders                                  |
+| Analytics        | Business insights, charts, CSV-style exports                                              |
+| Recommendations  | Generate / refresh trending and personalized suggestion data                              |
+
+### Technical features
+
+- Responsive Tailwind layouts (public dark theme + admin light theme)
+- Instant UI updates via React Query invalidation + `router.refresh()` after book CRUD
+- Rate limiting with Upstash Redis
+- TypeScript throughout; Vitest available for tests
+
+---
+
+## Technology Stack
+
+| Layer        | Choice                                      | Role in this project                           |
+| ------------ | ------------------------------------------- | ---------------------------------------------- |
+| Framework    | **Next.js 16** (App Router)                 | Pages, layouts, Route Handlers, server actions |
+| UI library   | **React 19**                                | Components and hooks                           |
+| Language     | **TypeScript 5.9**                          | Static typing across app / API / schema        |
+| Styling      | **Tailwind CSS 3** + **shadcn/ui**          | Utility CSS + accessible primitives            |
+| Auth         | **next-auth 5 (beta)**                      | Credentials provider, JWT session              |
+| ORM          | **Drizzle ORM** + **pg**                    | PostgreSQL access                              |
+| Client cache | **TanStack Query 5**                        | Lists, details, mutations, invalidation        |
+| Forms        | **react-hook-form** + **Zod**               | Validated sign-in/up and book forms            |
+| Media        | **@imagekit/next**                          | Covers, ID cards, trailers                     |
+| Rate limit   | **@upstash/redis** + **@upstash/ratelimit** | Abuse protection                               |
+| Jobs         | **@upstash/workflow** / QStash              | Onboarding workflows when enabled              |
+| Email        | **Brevo** (primary) + **Resend** (fallback) | Receipts / reminders                           |
+| Charts       | **Recharts**                                | Admin analytics                                |
+| Icons        | **lucide-react**                            | UI icons                                       |
+| Tests        | **Vitest**                                  | Unit/integration test runner                   |
+
+**Runtime:** Node.js `>= 20.9.0` (see `package.json` `engines`).
+
+---
+
+## Keywords Glossary
+
+| Keyword              | Meaning here                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| **App Router**       | Next.js file-based routing under `app/` (`page.tsx`, `layout.tsx`, `route.ts`)              |
+| **RSC**              | React Server Component — runs on the server, can talk to DB directly                        |
+| **Client component** | Marked `"use client"` — hooks, browser APIs, interactive UI                                 |
+| **Server action**    | `"use server"` function callable from the client (e.g. `createBook`)                        |
+| **SSR hydration**    | Pass `initialData` from `page.tsx` into React Query so the first paint needs no extra fetch |
+| **Invalidation**     | Mark React Query keys stale so active observers refetch after CRUD                          |
+| **Featured book**    | `books.is_featured` — curated homepage hero (at most one)                                   |
+| **Soft delete**      | `isActive = false` — hide from catalog without removing rows                                |
+| **Hard delete**      | Physically delete book + related reviews/borrows (requires secret)                          |
+| **RBAC**             | Role-based access control — `USER` vs `ADMIN`                                               |
+| **Drizzle**          | TypeScript ORM that generates SQL from schema definitions                                   |
+| **Zod**              | Runtime schema validation for forms and inputs                                              |
+
+---
+
+## Architecture Walkthrough
+
+```text
+Browser
+  │
+  ├─ App Router pages (RSC) ──► PostgreSQL via Drizzle
+  │         │
+  │         └─ pass initialData ──► Client components + TanStack Query
+  │                                      │
+  │                                      ├─ fetch /api/* (Node runtime)
+  │                                      └─ call server actions (admin books, etc.)
+  │
+  ├─ NextAuth session (JWT)
+  ├─ ImageKit (uploads / CDN images)
+  ├─ Upstash Redis (rate limit)
+  └─ Brevo / Resend / QStash (email & workflows)
+```
+
+**Teaching rule used in this codebase:**
+
+1. Put **data loading** that can run on the server in `page.tsx`.
+2. Put **interactive UI** in client components.
+3. After any mutation, call a shared invalidator (e.g. `invalidateAfterBookChange`) and often `router.refresh()` so RSC trees stay in sync.
+
+---
+
+## Project Structure
+
+```text
 university-library/
-├── app/                          # Next.js App Router
-│   ├── (auth)/                   # Authentication pages
-│   │   ├── sign-in/
-│   │   └── sign-up/
-│   ├── (root)/                   # Main application pages
-│   │   ├── all-books/
-│   │   ├── books/[id]/
-│   │   ├── my-profile/
-│   │   └── performance/
-│   ├── admin/                    # Admin dashboard
-│   │   ├── books/
-│   │   ├── users/
-│   │   ├── book-requests/
-│   │   └── business-insights/
-│   ├── api/                      # API endpoints
-│   │   ├── auth/
-│   │   ├── admin/
-│   │   ├── reviews/
-│   │   └── status/
-│   ├── api-docs/                 # API documentation
-│   └── api-status/               # System monitoring
-├── components/                   # Reusable components
-│   ├── ui/                       # Shadcn/ui components
-│   ├── admin/                    # Admin-specific components
-│   └── [feature-components]      # Feature-specific components
-├── database/                     # Database configuration
-│   ├── schema.ts                 # Drizzle schema
-│   ├── drizzle.ts               # Database connection
-│   └── seed.ts                   # Database seeding
-├── lib/                          # Utility libraries
-│   ├── actions/                  # Server actions
-│   ├── admin/                    # Admin utilities
-│   ├── services/                 # External services
-│   └── stores/                   # State management
-├── migrations/                   # Database migrations
-├── public/                       # Static assets
-└── styles/                       # Global styles
+├── app/
+│   ├── (auth)/              # Sign-in / sign-up layouts
+│   ├── (root)/              # Public app (home, books, profile, performance)
+│   ├── admin/               # Admin dashboard pages
+│   ├── api/                 # Route Handlers (REST-style JSON APIs)
+│   ├── api-docs/            # Interactive API documentation UI
+│   ├── api-status/          # Live service health UI
+│   ├── layout.tsx           # Root layout
+│   └── globals.css
+├── components/              # Shared UI (feature + shadcn ui/)
+├── database/
+│   ├── schema.ts            # Drizzle tables & enums
+│   ├── drizzle.ts           # DB pool
+│   ├── redis.ts             # Upstash Redis client
+│   └── seed.ts              # Seed script
+├── hooks/                   # useQueries, useMutations, performance
+├── lib/
+│   ├── admin/actions/       # Server actions (books, users, bulk ops)
+│   ├── services/            # Fetch helpers used by hooks
+│   ├── utils/queryInvalidation.ts
+│   ├── validations.ts       # Zod schemas
+│   ├── config.ts            # Central env access
+│   └── workflow.ts
+├── migrations/              # SQL migrations (e.g. is_featured)
+├── scripts/                 # One-off maintenance (delete-book, migrate-featured)
+├── styles/                  # Admin CSS extras
+├── types.d.ts               # Shared Book / BookParams types
+├── auth.ts                  # NextAuth config
+├── .env.example             # Template for secrets (copy → .env)
+├── SECURITY.md              # Private vulnerability reporting
+└── package.json
 ```
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
-### **Core Tables**
+Defined in [`database/schema.ts`](database/schema.ts):
 
-#### **Users Table**
+| Table            | Purpose                                                                    |
+| ---------------- | -------------------------------------------------------------------------- |
+| `users`          | Accounts, hashed password, `status`, `role`, university card               |
+| `books`          | Catalog metadata, copies, `is_active`, **`is_featured`**, cover/video URLs |
+| `borrow_records` | Loan lifecycle: `PENDING` → `BORROWED` → `RETURNED`, fines, due dates      |
+| `book_reviews`   | Per-user ratings + comments                                                |
+| `admin_requests` | Requests to become admin                                                   |
+| `system_config`  | Runtime config (e.g. fine amounts)                                         |
 
-```typescript
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  fullName: varchar("full_name", { length: 255 }).notNull(),
-  email: text("email").notNull().unique(),
-  universityId: integer("university_id").notNull().unique(),
-  password: text("password").notNull(),
-  universityCard: text("university_card").notNull(),
-  status: STATUS_ENUM("status").default("PENDING"),
-  role: ROLE_ENUM("role").default("USER"),
-  lastActivityDate: date("last_activity_date").defaultNow(),
-  lastLogin: timestamp("last_login", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-```
-
-#### **Books Table**
-
-```typescript
-export const books = pgTable("books", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  title: varchar("title", { length: 255 }).notNull(),
-  author: varchar("author", { length: 255 }).notNull(),
-  genre: text("genre").notNull(),
-  rating: integer("rating").notNull(),
-  coverUrl: text("cover_url").notNull(),
-  coverColor: varchar("cover_color", { length: 7 }).notNull(),
-  description: text("description").notNull(),
-  totalCopies: integer("total_copies").notNull().default(1),
-  availableCopies: integer("available_copies").notNull().default(0),
-  videoUrl: text("video_url").notNull(),
-  summary: varchar("summary").notNull(),
-  // Enhanced fields
-  isbn: varchar("isbn", { length: 20 }),
-  publicationYear: integer("publication_year"),
-  publisher: varchar("publisher", { length: 255 }),
-  language: varchar("language", { length: 50 }).default("English"),
-  pageCount: integer("page_count"),
-  edition: varchar("edition", { length: 50 }),
-  isActive: boolean("is_active").default(true).notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-  updatedBy: uuid("updated_by").references(() => users.id),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-```
-
-#### **Borrow Records Table**
-
-```typescript
-export const borrowRecords = pgTable("borrow_records", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .references(() => users.id)
-    .notNull(),
-  bookId: uuid("book_id")
-    .references(() => books.id)
-    .notNull(),
-  borrowDate: timestamp("borrow_date", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  dueDate: date("due_date"),
-  returnDate: date("return_date"),
-  status: BORROW_STATUS_ENUM("status").default("BORROWED").notNull(),
-  // Enhanced tracking
-  borrowedBy: text("borrowed_by"),
-  returnedBy: text("returned_by"),
-  fineAmount: decimal("fine_amount", { precision: 10, scale: 2 }).default(
-    "0.00"
-  ),
-  notes: text("notes"),
-  renewalCount: integer("renewal_count").default(0).notNull(),
-  lastReminderSent: timestamp("last_reminder_sent", { withTimezone: true }),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-  updatedBy: text("updated_by"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-```
+Enums: `STATUS_ENUM`, `ROLE_ENUM`, `BORROW_STATUS_ENUM`.
 
 ---
 
-## 🔧 Installation & Setup
+## Routes (Pages)
 
-### **Prerequisites**
+### Public (`app/(root)/`)
 
-- Node.js 18+
-- PostgreSQL database (Hetzner VPS or any PostgreSQL instance)
-- Redis instance (Upstash recommended)
+| Path           | Description                     |
+| -------------- | ------------------------------- |
+| `/`            | Featured hero + recommendations |
+| `/all-books`   | Full catalog with filters       |
+| `/books/[id]`  | Book detail, borrow, reviews    |
+| `/my-profile`  | User borrowing dashboard        |
+| `/performance` | Client performance tooling page |
 
-### **1. Clone the Repository**
+### Auth (`app/(auth)/`)
+
+| Path       | Description                                                |
+| ---------- | ---------------------------------------------------------- |
+| `/sign-in` | Credentials login (+ optional test-account dropdown in UI) |
+| `/sign-up` | Registration + university card upload                      |
+
+### Admin (`app/admin/`)
+
+| Path                       | Description                                            |
+| -------------------------- | ------------------------------------------------------ |
+| `/admin`                   | Dashboard home                                         |
+| `/admin/books`             | All books grid (view / edit / delete / featured badge) |
+| `/admin/books/new`         | Create book (+ Feature on homepage checkbox)           |
+| `/admin/books/[id]/edit`   | Update book                                            |
+| `/admin/users`             | User management                                        |
+| `/admin/book-requests`     | Borrow approvals                                       |
+| `/admin/account-requests`  | Admin access requests                                  |
+| `/admin/automation`        | Fines & reminders                                      |
+| `/admin/business-insights` | Analytics                                              |
+
+### Meta
+
+| Path          | Description              |
+| ------------- | ------------------------ |
+| `/api-docs`   | API documentation UI     |
+| `/api-status` | Service health dashboard |
+| `/too-fast`   | Rate-limit friendly page |
+
+---
+
+## API Endpoints
+
+Route Handlers live under `app/api/**/route.ts` (Node.js runtime where DB is needed).
+
+### Books
+
+| Method | Path                           | Notes                                      |
+| ------ | ------------------------------ | ------------------------------------------ |
+| `GET`  | `/api/books`                   | List + search/filter/pagination            |
+| `GET`  | `/api/books/[id]`              | Single book                                |
+| `GET`  | `/api/books/featured`          | Featured first, then newest active fillers |
+| `GET`  | `/api/books/genres`            | Distinct genres                            |
+| `GET`  | `/api/books/recommendations`   | Personalized / fallback recs               |
+| `GET`  | `/api/books/[id]/borrow-stats` | Borrow counters                            |
+
+Book **writes** (create/update/delete) are primarily **server actions** in `lib/admin/actions/`, not REST POST/PUT/DELETE.
+
+### Auth & media
+
+| Method | Path                      | Notes                           |
+| ------ | ------------------------- | ------------------------------- |
+| `*`    | `/api/auth/[...nextauth]` | NextAuth handlers               |
+| `GET`  | `/api/auth/imagekit`      | Upload auth params for ImageKit |
+
+### Borrows, users, reviews
+
+| Method        | Path                                           | Notes                      |
+| ------------- | ---------------------------------------------- | -------------------------- |
+| `GET`/`POST`… | `/api/borrow-records`                          | Borrow list / create flows |
+| `GET`         | `/api/users`                                   | User listing (authorized)  |
+| `GET`         | `/api/reviews/[bookId]`                        | Reviews for a book         |
+| `POST`…       | `/api/reviews/edit`, `/delete`, `/eligibility` | Review mutations & checks  |
+
+### Admin automation & analytics
+
+Examples under `/api/admin/`: `stats`, `fine-config`, `update-overdue-fines`, `send-due-reminders`, `send-overdue-reminders`, `export`, `export-stats`, `reminder-stats`, `generate-recommendations`, `update-trending-books`, `refresh-recommendation-cache`, `borrow-requests`, `admin-requests`.
+
+### Status / health
+
+Under `/api/status/`: `health`, `database`, `authentication`, `email-service`, `file-storage`, `external-apis`, `api-server`, `metrics`.
+
+### Workflows
+
+| Method  | Path                        | Notes                                    |
+| ------- | --------------------------- | ---------------------------------------- |
+| `POST`… | `/api/workflows/onboarding` | Upstash workflow endpoint (when enabled) |
+
+---
+
+## Reusable Components
+
+| Component                               | Kind            | Purpose                                  |
+| --------------------------------------- | --------------- | ---------------------------------------- |
+| `BookCard`                              | Server          | Catalog tile linking to detail           |
+| `BookCover`                             | Client          | ImageKit cover + color frame             |
+| `BookList` / `BookCollection`           | Mixed           | Lists with RQ hydration                  |
+| `HomeFeaturedHero`                      | Client          | Homepage featured book + RQ              |
+| `HomeRecommendations`                   | Client          | Recommendation strip + RQ                |
+| `BookOverview` / `BookOverviewContent`  | Server / Client | Hero overview + live book state          |
+| `BookBorrowButton` / `ReturnBookButton` | Client          | Loan actions                             |
+| `ReviewsSection` / `ReviewForm*`        | Client          | Reviews CRUD UI                          |
+| `AuthForm`                              | Client          | Sign-in / sign-up                        |
+| `FileUpload`                            | Client          | ImageKit picker                          |
+| `QueryProvider`                         | Client          | App-wide React Query                     |
+| `AdminBooksList`                        | Client          | Admin book grid + delete                 |
+| `DeleteBookDialog`                      | Client          | Secret-gated hard delete                 |
+| `components/ui/*`                       | shadcn          | Button, Form, Dialog, Checkbox, Toast, … |
+
+**Reuse tip:** Prefer composing `components/ui/*` + a thin feature component rather than copying markup. Pass `initialData` from RSC pages into hooks to avoid duplicate network calls.
+
+---
+
+## Hooks, Cache & Invalidation
+
+| Hook file                        | Role                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `hooks/useQueries.ts`            | `useBooks`, `useBook`, `useAllBooks`, `useFeaturedBooks`, `useBookRecommendations`, borrows, reviews, admin stats, … |
+| `hooks/useMutations.ts`          | `useCreateBook`, `useUpdateBook`, `useDeleteBook`, borrow/review/user mutations                                      |
+| `lib/utils/queryInvalidation.ts` | `invalidateAfterBookChange`, `invalidateBooksQueries` (includes `["featured-books"]`), etc.                          |
+
+**Featured books key:** `["featured-books", limit]` — invalidated whenever books change so the homepage hero can update without a full browser reload (combined with `router.refresh()` after admin CRUD).
+
+**Redis note:** Upstash Redis is used for **rate limiting**, not as a full book cache layer.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js **20.9+**
+- npm (or pnpm/yarn)
+- A PostgreSQL database (local Docker, Neon, Hetzner, etc.)
+- Optional but recommended for full features: ImageKit, Upstash Redis, Brevo/Resend
+
+### Install & run
 
 ```bash
-git clone https://github.com/your-username/university-library.git
+git clone https://github.com/arnobt78/university-library.git
 cd university-library
-```
-
-### **2. Install Dependencies**
-
-```bash
 npm install
-```
 
-### **3. Environment Variables**
+# Copy env template and fill values (see below)
+cp .env.example .env
 
-Create a `.env.local` file in the root directory:
-
-```env
-# Database
-DATABASE_URL="postgresql://username:password@host:port/database"
-
-# NextAuth.js
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
-
-# ImageKit Configuration
-NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY="your-imagekit-public-key"
-NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/your-id"
-IMAGEKIT_PRIVATE_KEY="your-imagekit-private-key"
-
-# Upstash Redis
-UPSTASH_REDIS_URL="your-redis-url"
-UPSTASH_REDIS_TOKEN="your-redis-token"
-
-# QStash (Background Jobs)
-QSTASH_URL="https://qstash.upstash.io/v2"
-QSTASH_TOKEN="your-qstash-token"
-
-# Email Service Configuration
-# Brevo (Primary - supports all email providers including Yahoo, Outlook, etc.)
-BREVO_API_KEY="your-brevo-api-key"
-BREVO_SENDER_EMAIL="your-email@gmail.com"
-BREVO_SENDER_NAME="BookWise Library"
-
-# Resend (Fallback - currently limited to Gmail)
-RESEND_TOKEN="your-resend-token"
-
-# API Endpoints
-NEXT_PUBLIC_API_ENDPOINT="http://localhost:3000"
-NEXT_PUBLIC_PROD_API_ENDPOINT="https://your-domain.vercel.app"
-
-# SMTP Configuration (Optional)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="587"
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
-```
-
-### **4. Database Setup**
-
-```bash
-# Generate migration files
-npm run db:generate
-
-# Apply migrations
+# Apply schema / featured migration as needed
 npm run db:migrate
+# or specifically:
+npm run db:migrate-featured
 
-# Seed the database with sample data
+# Optional: seed sample books
 npm run seed
-```
 
-### **5. Start Development Server**
-
-```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000` to see the application.
+Open [http://localhost:3000](http://localhost:3000).
 
----
-
-## 🚀 Getting Started
-
-### **Default Admin Account**
-
-After seeding the database, you can log in with:
-
-- **Email**: `test@admin.com`
-- **Password**: `12345678`
-
-### **User Registration**
-
-1. Visit `/sign-up`
-2. Fill in your details
-3. Wait for admin approval
-4. Start borrowing books!
-
-### **Admin Functions**
-
-1. Log in as admin
-2. Visit `/admin` dashboard
-3. Manage users, books, and requests
-4. Monitor system performance
-
----
-
-## 📚 API Documentation
-
-### **Authentication Endpoints**
-
-```typescript
-POST /api/auth/signin     # User login
-POST /api/auth/signout    # User logout
-GET  /api/auth/session    # Get current session
-```
-
-### **Book Management**
-
-```typescript
-GET    /api/books         # Get all books
-GET    /api/books/[id]    # Get book by ID
-POST   /api/books         # Create new book (Admin)
-PUT    /api/books/[id]    # Update book (Admin)
-DELETE /api/books/[id]    # Delete book (Admin)
-```
-
-### **Borrowing System**
-
-```typescript
-POST   /api/borrow        # Request book borrow
-PUT    /api/borrow/[id]   # Update borrow status
-DELETE /api/borrow/[id]   # Cancel borrow request
-```
-
-### **Review System**
-
-```typescript
-GET    /api/reviews/[bookId]     # Get book reviews
-POST   /api/reviews/[bookId]     # Create review
-PUT    /api/reviews/edit         # Update review
-DELETE /api/reviews/delete       # Delete review
-```
-
-### **Admin Endpoints**
-
-```typescript
-GET    /api/admin/users          # Get all users
-PUT    /api/admin/users/[id]     # Update user status
-GET    /api/admin/books          # Get all books
-POST   /api/admin/books          # Create book
-PUT    /api/admin/books/[id]     # Update book
-DELETE /api/admin/books/[id]     # Delete book
-```
-
-### **System Monitoring**
-
-```typescript
-GET    /api/status/health        # Overall system health
-GET    /api/status/database      # Database status
-GET    /api/status/api-server    # API server status
-GET    /api/status/metrics       # System metrics
-```
-
----
-
-## 🎨 Component Architecture
-
-### **Reusable Components**
-
-#### **BookCard Component**
-
-```typescript
-interface BookCardProps {
-  book: Book;
-  onBorrow?: (bookId: string) => void;
-  onViewDetails?: (bookId: string) => void;
-  showBorrowButton?: boolean;
-}
-
-export const BookCard = ({ book, onBorrow, onViewDetails, showBorrowButton }: BookCardProps) => {
-  return (
-    <Card className="group hover:shadow-lg transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex gap-4">
-          <BookCover book={book} />
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg">{book.title}</h3>
-            <p className="text-gray-600">{book.author}</p>
-            <p className="text-sm text-gray-500">{book.genre}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <StarRating rating={book.rating} />
-              <span className="text-sm">{book.rating}/5</span>
-            </div>
-            {showBorrowButton && (
-              <Button onClick={() => onBorrow?.(book.id)} className="mt-3">
-                Borrow Book
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-```
-
-#### **ReviewFormDialog Component**
-
-```typescript
-interface ReviewFormDialogProps {
-  bookId: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onReviewSubmitted: () => void;
-}
-
-export const ReviewFormDialog = ({ bookId, isOpen, onClose, onReviewSubmitted }: ReviewFormDialogProps) => {
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Submit review logic
-    await submitReview(bookId, rating, comment);
-    onReviewSubmitted();
-    onClose();
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Review This Book</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <StarRating value={rating} onChange={setRating} />
-            <Textarea
-              placeholder="Write your review..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
-            <div className="flex gap-2">
-              <Button type="submit">Submit Review</Button>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-```
-
-### **Custom Hooks**
-
-#### **usePerformance Hook**
-
-```typescript
-export const usePerformance = () => {
-  const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const response = await fetch("/api/status/metrics");
-        const data = await response.json();
-        setMetrics(data.metrics);
-      } catch (error) {
-        console.error("Failed to fetch metrics:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000); // Refresh every 30s
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return { metrics, isLoading };
-};
-```
-
----
-
-## 🔐 Authentication & Authorization
-
-### **NextAuth.js Configuration**
-
-```typescript
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  session: { strategy: "jwt" },
-  providers: [
-    CredentialsProvider({
-      async authorize(credentials) {
-        const user = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, credentials.email))
-          .limit(1);
-
-        if (user.length === 0) return null;
-
-        // Password verification with salt
-        const [saltB64, hashB64] = user[0].password.split(":");
-        const salt = Uint8Array.from(Buffer.from(saltB64, "base64"));
-        const expectedHash = Buffer.from(hashB64, "base64");
-
-        const passwordBytes = new TextEncoder().encode(credentials.password);
-        const hashBuffer = sha256(concatUint8Arrays(passwordBytes, salt));
-        const isPasswordValid = Buffer.from(hashBuffer).equals(expectedHash);
-
-        if (!isPasswordValid) return null;
-
-        return {
-          id: user[0].id.toString(),
-          email: user[0].email,
-          name: user[0].fullName,
-        };
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.name = user.name;
-
-        // Update last_login timestamp
-        await db
-          .update(users)
-          .set({ lastLogin: new Date() })
-          .where(eq(users.id, user.id));
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.name = token.name as string;
-      }
-      return session;
-    },
-  },
-});
-```
-
-### **Middleware Protection**
-
-```typescript
-export default auth((req) => {
-  const { nextUrl } = req;
-  const isLoggedIn = !!req.auth;
-
-  // Protect admin routes
-  if (nextUrl.pathname.startsWith("/admin")) {
-    if (!isLoggedIn) {
-      return Response.redirect(new URL("/sign-in", nextUrl));
-    }
-    // Additional admin role check can be added here
-  }
-
-  // Protect authenticated routes
-  if (nextUrl.pathname.startsWith("/my-profile")) {
-    if (!isLoggedIn) {
-      return Response.redirect(new URL("/sign-in", nextUrl));
-    }
-  }
-});
-```
-
----
-
-## 📊 Real-time Monitoring
-
-### **System Health Dashboard**
-
-The application includes a comprehensive monitoring system accessible at `/api-status`:
-
-#### **Service Status Monitoring**
-
-- **API Server** - Response time and uptime tracking
-- **Database** - Connection pool and query performance
-- **File Storage** - ImageKit CDN status
-- **Authentication** - NextAuth.js service health
-- **Email Service** - Multi-provider email service status (Brevo primary, Resend fallback)
-- **External APIs** - Third-party service monitoring
-
-#### **System Metrics**
-
-- **Database Performance** - Active connections and pool status
-- **API Performance** - Requests per minute tracking
-- **Error Rate** - Failed request percentage
-- **Storage Usage** - Database storage consumption
-- **Active Users** - Currently online users
-- **SSL Certificate** - Certificate validity and expiration
-
-### **API Documentation**
-
-Interactive API documentation is available at `/api-docs` with:
-
-- Complete endpoint listings
-- Request/response examples
-- Authentication requirements
-- Interactive testing capabilities
-
----
-
-## 🎯 Key Features Deep Dive
-
-### **1. Book Borrowing System**
-
-```typescript
-// Request a book borrow
-const borrowBook = async (bookId: string, userId: string) => {
-  const borrowRecord = await db.insert(borrowRecords).values({
-    userId,
-    bookId,
-    status: "PENDING",
-    borrowDate: new Date(),
-  });
-
-  // Send notification to admin
-  await sendBorrowRequestNotification(bookId, userId);
-
-  return borrowRecord;
-};
-
-// Admin approval process
-const approveBorrowRequest = async (borrowId: string, dueDate: Date) => {
-  await db
-    .update(borrowRecords)
-    .set({
-      status: "BORROWED",
-      dueDate,
-      updatedAt: new Date(),
-    })
-    .where(eq(borrowRecords.id, borrowId));
-
-  // Update book availability
-  await updateBookAvailability(borrowId);
-};
-```
-
-### **2. Review System**
-
-```typescript
-// Submit a book review
-const submitReview = async (
-  bookId: string,
-  userId: string,
-  rating: number,
-  comment: string
-) => {
-  const review = await db.insert(bookReviews).values({
-    bookId,
-    userId,
-    rating,
-    comment,
-  });
-
-  // Update book average rating
-  await updateBookRating(bookId);
-
-  return review;
-};
-
-// Calculate average rating
-const updateBookRating = async (bookId: string) => {
-  const reviews = await db
-    .select({ rating: bookReviews.rating })
-    .from(bookReviews)
-    .where(eq(bookReviews.bookId, bookId));
-
-  const averageRating =
-    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-
-  await db
-    .update(books)
-    .set({ rating: Math.round(averageRating) })
-    .where(eq(books.id, bookId));
-};
-```
-
-### **3. Admin Request System**
-
-```typescript
-// Request admin privileges
-const createAdminRequest = async (userId: string, reason: string) => {
-  const request = await db.insert(adminRequests).values({
-    userId,
-    requestReason: reason,
-    status: "PENDING",
-  });
-
-  // Notify existing admins
-  await notifyAdminsOfNewRequest(request);
-
-  return request;
-};
-
-// Approve admin request
-const approveAdminRequest = async (requestId: string, reviewedBy: string) => {
-  const request = await db
-    .select()
-    .from(adminRequests)
-    .where(eq(adminRequests.id, requestId))
-    .limit(1);
-
-  if (request.length === 0) return;
-
-  // Update request status
-  await db
-    .update(adminRequests)
-    .set({
-      status: "APPROVED",
-      reviewedBy,
-      reviewedAt: new Date(),
-    })
-    .where(eq(adminRequests.id, requestId));
-
-  // Grant admin role
-  await db
-    .update(users)
-    .set({ role: "ADMIN" })
-    .where(eq(users.id, request[0].userId));
-};
-```
-
----
-
-## 🚀 Deployment
-
-### **Vercel Deployment**
-
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
-
-### **Environment Variables for Production**
-
-```env
-# Production Database
-DATABASE_URL="postgresql://username:password@host:port/database"
-
-# Production URLs
-NEXTAUTH_URL="https://your-domain.vercel.app"
-NEXT_PUBLIC_PROD_API_ENDPOINT="https://your-domain.vercel.app"
-
-# Production Services
-NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/your-id"
-UPSTASH_REDIS_URL="your-production-redis-url"
-
-# Email Service (Production)
-BREVO_API_KEY="your-production-brevo-api-key"
-BREVO_SENDER_EMAIL="your-production-email@gmail.com"
-BREVO_SENDER_NAME="BookWise Library"
-RESEND_TOKEN="your-production-resend-token"
-```
-
-### **Database Migration in Production**
+### Production build
 
 ```bash
-# Generate production migration
-npm run db:generate
-
-# Apply to production database
-npm run db:migrate
+npm run build
+npm start
 ```
 
----
-
-## 🧪 Testing
-
-### **Running Tests**
+### Quality checks
 
 ```bash
-# Run all tests
+npm run typecheck
+npm run lint
 npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
 ```
 
-### **Test Structure**
+---
+
+## Environment Variables
+
+**You need a `.env` file for a real run** of this project (database + auth at minimum). There is **no** “zero-config” mode that skips PostgreSQL and `AUTH_SECRET`.
+
+Start from [`.env.example`](.env.example):
 
 ```bash
-__tests__/
-├── components/          # Component tests
-├── pages/              # Page tests
-├── api/                # API endpoint tests
-└── utils/              # Utility function tests
+cp .env.example .env
 ```
 
+Never commit `.env`. Only commit `.env.example` with placeholders.
+
+### Required for basic local app
+
+| Variable                        | Public? | Purpose                                           |
+| ------------------------------- | ------- | ------------------------------------------------- |
+| `DATABASE_URL`                  | No      | PostgreSQL connection string                      |
+| `AUTH_SECRET`                   | No      | NextAuth / Auth.js signing secret                 |
+| `NEXTAUTH_URL`                  | No      | App origin, e.g. `http://localhost:3000`          |
+| `NEXT_PUBLIC_API_ENDPOINT`      | Yes     | Browser-visible API base (often same as site URL) |
+| `NEXT_PUBLIC_PROD_API_ENDPOINT` | Yes     | Production origin                                 |
+
+### Required for uploads (ImageKit)
+
+| Variable                            | Public? | Purpose                      |
+| ----------------------------------- | ------- | ---------------------------- |
+| `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`   | Yes     | Client upload / display      |
+| `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT` | Yes     | CDN URL endpoint             |
+| `IMAGEKIT_PRIVATE_KEY`              | No      | Server-side auth for uploads |
+
+### Required for rate limiting (Upstash Redis)
+
+Code reads Redis via `lib/config.ts`:
+
+| Variable              | Purpose                       |
+| --------------------- | ----------------------------- |
+| `UPSTASH_REDIS_URL`   | REST URL from Upstash console |
+| `UPSTASH_REDIS_TOKEN` | REST token                    |
+
+(Some docs also mention `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — align names with what `lib/config.ts` expects: **`UPSTASH_REDIS_URL`** and **`UPSTASH_REDIS_TOKEN`**.)
+
+### Email (optional until you send mail)
+
+| Variable             | Purpose                                 |
+| -------------------- | --------------------------------------- |
+| `BREVO_API_KEY`      | Primary transactional email             |
+| `BREVO_SENDER_EMAIL` | Verified sender                         |
+| `BREVO_SENDER_NAME`  | Display name (default BookWise Library) |
+| `RESEND_TOKEN`       | Fallback provider                       |
+
+### Workflows (optional)
+
+| Variable           | Purpose                                                |
+| ------------------ | ------------------------------------------------------ |
+| `QSTASH_URL`       | QStash API base                                        |
+| `QSTASH_TOKEN`     | QStash token                                           |
+| `ENABLE_WORKFLOWS` | `"true"` to enable locally; prod may enable by default |
+
+### Admin hard delete
+
+| Variable              | Purpose                                              |
+| --------------------- | ---------------------------------------------------- |
+| `ADMIN_DELETE_SECRET` | Typed in admin delete dialog / `npm run delete-book` |
+
+### Optional Google OAuth
+
+| Variable                                    | Purpose                           |
+| ------------------------------------------- | --------------------------------- |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Only if you enable Google sign-in |
+
 ---
 
-## 📈 Performance Optimization
+## How to Obtain Each Secret
 
-### **Database Optimization**
+1. **`AUTH_SECRET` / `ADMIN_DELETE_SECRET`**
 
-- **Indexes** - Strategic indexing on frequently queried columns
-- **Connection Pooling** - Efficient database connection management
-- **Query Optimization** - Optimized Drizzle ORM queries
+   ```bash
+   openssl rand -base64 32
+   ```
 
-### **Frontend Optimization**
+   Use **different** values for each.
 
-- **Code Splitting** - Automatic route-based code splitting
-- **Image Optimization** - Next.js Image component with ImageKit
-- **Caching** - React Query for server state caching
-- **Bundle Analysis** - Regular bundle size monitoring
+2. **`DATABASE_URL`**
+   - Local: Docker Postgres or Homebrew Postgres → `postgresql://user:pass@localhost:5432/library`
+   - Cloud: Neon / Supabase / Railway / Hetzner → copy the connection string (include `sslmode=require` when required)
 
-### **API Optimization**
+3. **ImageKit** — [https://imagekit.io](https://imagekit.io) → Developer options → API keys + URL endpoint
 
-- **Rate Limiting** - Upstash Redis for API protection
-- **Response Caching** - Strategic caching of API responses
-- **Background Jobs** - QStash for non-blocking operations
+4. **Upstash Redis** — [https://upstash.com](https://upstash.com) → Redis → REST URL + token → map to `UPSTASH_REDIS_URL` / `UPSTASH_REDIS_TOKEN`
+
+5. **QStash** — Upstash → QStash → token / URL
+
+6. **Brevo** — [https://www.brevo.com](https://www.brevo.com) → SMTP & API → API key; verify a sender
+
+7. **Resend** — [https://resend.com](https://resend.com) → API Keys (+ domain verification for production)
+
+8. **Vercel** — Project → Settings → Environment Variables → paste the same keys for Production / Preview
 
 ---
 
-## 🔧 Customization Guide
+## Scripts & Tooling
 
-### **Adding New Features**
+| Script             | Command                              | Use                                                                      |
+| ------------------ | ------------------------------------ | ------------------------------------------------------------------------ |
+| Dev server         | `npm run dev`                        | Local development                                                        |
+| Build              | `npm run build`                      | Production build                                                         |
+| Start              | `npm start`                          | Serve build                                                              |
+| Typecheck          | `npm run typecheck`                  | `tsc --noEmit`                                                           |
+| Lint               | `npm run lint`                       | ESLint                                                                   |
+| Test               | `npm test`                           | Vitest                                                                   |
+| Seed               | `npm run seed`                       | Seed DB                                                                  |
+| Featured migration | `npm run db:migrate-featured`        | Add `is_featured` column/index                                           |
+| Delete book CLI    | `npm run delete-book -- --id <uuid>` | Hard-delete (needs secret); `--force-return` closes active borrows first |
+| Drizzle studio     | `npm run db:studio`                  | Browse data                                                              |
 
-#### **1. Create New Database Table**
+---
 
-```typescript
-// database/schema.ts
-export const newTable = pgTable("new_table", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+## Educational Code Snippets
+
+### Server page loads data; client hydrates
+
+```tsx
+// app/(root)/page.tsx (Server Component)
+const heroBook = await getHomepageHeroBook();
+
+return (
+  <HomeFeaturedHero
+    initialHero={heroBook ? JSON.parse(JSON.stringify(heroBook)) : null}
+    userId={session?.user?.id}
+  />
+);
+```
+
+```tsx
+// components/HomeFeaturedHero.tsx ("use client")
+const { data } = useFeaturedBooks(1, initialHero ? [initialHero] : []);
+const hero = data?.[0] ?? initialHero;
+```
+
+### Invalidate after book mutations
+
+```ts
+// hooks/useMutations.ts (concept)
+onSuccess: () => {
+  invalidateAfterBookChange(queryClient); // books, featured-books, borrows, …
+};
+// BookForm also calls router.refresh() for RSC sync
+```
+
+### Featured exclusivity (server action)
+
+When `isFeatured === true`, `createBook` / `updateBook` clear other featured rows in a **transaction**, then save the new featured flag — so the homepage always has at most one curated hero.
+
+### Zod book schema (excerpt)
+
+```ts
+// lib/validations.ts
+export const bookSchema = z.object({
+  title: z.string().trim().min(2).max(100),
+  // ...
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
 });
 ```
 
-#### **2. Generate Migration**
+---
 
-```bash
-npm run db:generate
-npm run db:migrate
-```
+## Reusing Pieces in Other Projects
 
-#### **3. Create API Endpoints**
+| Piece                                  | How to reuse                                                        |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| `components/ui/*`                      | Copy with shadcn CLI or paste; keep `lib/utils.ts` `cn()` helper    |
+| `QueryProvider` + invalidation helpers | Drop into any App Router app; standardize mutation `onSuccess`      |
+| `FileUpload` + `/api/auth/imagekit`    | Needs ImageKit env vars; works for any media form                   |
+| `AuthForm` + `auth.ts`                 | Adapt Zod schemas and credentials provider                          |
+| Drizzle `schema.ts`                    | Start a new DB module; keep snake_case DB / camelCase TS convention |
+| Admin `DeleteBookDialog` pattern       | Reuse for any destructive action gated by an env secret             |
 
-```typescript
-// app/api/new-feature/route.ts
-export async function GET() {
-  const data = await db.select().from(newTable);
-  return NextResponse.json(data);
-}
-
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const result = await db.insert(newTable).values(body);
-  return NextResponse.json(result);
-}
-```
-
-#### **4. Create Components**
-
-```typescript
-// components/NewFeatureComponent.tsx
-export const NewFeatureComponent = () => {
-  const [data, setData] = useState([]);
-
-  useEffect(() => {
-    fetch('/api/new-feature')
-      .then(res => res.json())
-      .then(setData);
-  }, []);
-
-  return (
-    <div>
-      {data.map(item => (
-        <div key={item.id}>{item.name}</div>
-      ))}
-    </div>
-  );
-};
-```
-
-### **Styling Customization**
-
-```typescript
-// tailwind.config.ts
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        primary: {
-          50: "#eff6ff",
-          500: "#3b82f6",
-          900: "#1e3a8a",
-        },
-      },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-      },
-    },
-  },
-};
-```
+When porting, keep the **SSR `initialData` + invalidate** pattern so navigation stays instant and data stays fresh.
 
 ---
 
-## 🤝 Contributing
+## Security
 
-### **Development Workflow**
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Make your changes
-4. Run tests: `npm test`
-5. Commit changes: `git commit -m 'Add new feature'`
-6. Push to branch: `git push origin feature/new-feature`
-7. Create a Pull Request
-
-### **Code Standards**
-
-- Use TypeScript for all new code
-- Follow ESLint configuration
-- Write tests for new features
-- Update documentation as needed
-- Use conventional commit messages
-
-### **Pull Request Guidelines**
-
-- Clear description of changes
-- Reference related issues
-- Include screenshots for UI changes
-- Ensure all tests pass
-- Update README if needed
+- See **[SECURITY.md](./SECURITY.md)** for private vulnerability reporting (`contact@arnobmahmud.com`).
+- Do not expose `IMAGEKIT_PRIVATE_KEY`, `DATABASE_URL`, `AUTH_SECRET`, or `ADMIN_DELETE_SECRET` to the client.
+- Prefer hard-delete only for junk/test data; soft-deactivate (`isActive`) for normal catalog removal.
+- Rotate secrets if they ever leak into git history.
 
 ---
 
-## 📝 License
+## Contributing & Support
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Repo: [https://github.com/arnobt78/university-library](https://github.com/arnobt78/university-library)
+- Portfolio: [https://www.arnobmahmud.com](https://www.arnobmahmud.com)
+- Security contact: [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
 
----
-
-## 🙏 Acknowledgments
-
-- **Next.js Team** - For the amazing React framework
-- **Drizzle Team** - For the excellent TypeScript ORM
-- **Shadcn/ui** - For beautiful component library
-- **Vercel** - For seamless deployment platform
-- **Hetzner** - For VPS and PostgreSQL hosting
-- **Upstash** - For Redis and background jobs
-- **ImageKit** - For image optimization
-- **Brevo (Sendinblue)** - For email delivery (primary provider, supports all email providers)
-- **Resend** - For email delivery (fallback provider)
+Issues and PRs that improve docs, tests, accessibility, or performance are welcome.
 
 ---
 
-## 📞 Support
+## Conclusion
 
-### **Getting Help**
-
-- 📧 Email: <arnob_t78@yahoo.com>
-- 🌐 Portfolio: [https://arnob-mahmud.vercel.app/](https://arnob-mahmud.vercel.app/)
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/university-library/issues)
-
-### **Documentation**
-
-- 📚 [Next.js Documentation](https://nextjs.org/docs)
-- 🗄️ [Drizzle ORM Documentation](https://orm.drizzle.team/)
-- 🎨 [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- 🔐 [NextAuth.js Documentation](https://next-auth.js.org/)
+**BookWise** is a complete learning-friendly library platform: catalog, borrow lifecycle, reviews, admin operations, featured homepage hero, monitoring pages, and a modern Next.js data architecture. Use it as a deployable product, a study reference for App Router + Drizzle + TanStack Query, or a toolkit of reusable forms, uploads, and invalidation patterns for your next project.
 
 ---
 
-## 🎯 Roadmap
+## License
 
-### **Upcoming Features**
-
-- [ ] **Mobile App** - React Native mobile application
-- [ ] **Advanced Analytics** - Detailed usage analytics
-- [ ] **Multi-language Support** - Internationalization
-- [ ] **Advanced Search** - Full-text search with filters
-- [ ] **Notification System** - Real-time push notifications
-- [ ] **Integration APIs** - Third-party library system integration
-- [ ] **Automated Testing** - Comprehensive test suite
-- [ ] **Performance Monitoring** - Advanced APM integration
-
-### **Technical Improvements**
-
-- [ ] **GraphQL API** - Alternative to REST API
-- [ ] **Microservices** - Service-oriented architecture
-- [ ] **Docker Support** - Containerization
-- [ ] **CI/CD Pipeline** - Automated deployment
-- [ ] **Security Audit** - Comprehensive security review
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT). Feel free to use, modify, and distribute the code as per the terms of the license.
 
 ---
 
 ## Happy Coding! 🎉
 
-Free to use this project repository and extend this project further!
+This is an **open-source project** - feel free to use, enhance, and extend this project further!
 
-If you have any questions or want to share your work, reach out via GitHub or my portfolio at [https://arnob-mahmud.vercel.app/](https://arnob-mahmud.vercel.app/).
-
-**Enjoy building and learning!** 🚀
-
-Thank you! 😊
-
----
+If you have any questions or want to share your work, reach out via GitHub or my portfolio at [https://www.arnobmahmud.com](https://www.arnobmahmud.com).

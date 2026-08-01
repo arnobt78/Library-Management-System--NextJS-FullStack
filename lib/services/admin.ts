@@ -210,19 +210,15 @@ export async function getFineConfig(): Promise<FineConfig> {
  * Updates the daily fine amount for overdue books.
  *
  * @param fineAmount - New daily fine amount (must be >= 0)
- * @param updatedBy - Email of admin making the change (optional)
  * @returns Promise with updated fine configuration
  * @throws {ApiError} Error with message and status code
  *
  * @example
  * ```typescript
- * const config = await updateFineConfig(1.50, "admin@example.com");
+ * const config = await updateFineConfig(1.50);
  * ```
  */
-export async function updateFineConfig(
-  fineAmount: number,
-  updatedBy?: string
-): Promise<FineConfig> {
+export async function updateFineConfig(fineAmount: number): Promise<FineConfig> {
   if (typeof fineAmount !== "number" || fineAmount < 0) {
     throw new ApiError("Fine amount must be a positive number", 400);
   }
@@ -234,7 +230,6 @@ export async function updateFineConfig(
     },
     body: JSON.stringify({
       fineAmount,
-      updatedBy,
     }),
   });
 
@@ -611,7 +606,8 @@ export interface UpdateTrendingBooksResponse {
 }
 
 /**
- * Refresh recommendation cache response
+ * Recommendation refresh response. `cacheCleared` remains for API compatibility;
+ * it is false because recommendations have no server-side cache.
  */
 export interface RefreshRecommendationCacheResponse {
   success: boolean;
@@ -722,9 +718,9 @@ export async function updateTrendingBooks(): Promise<UpdateTrendingBooksResponse
 }
 
 /**
- * Refresh recommendation cache
+ * Request recommendation-query refresh
  *
- * Refreshes the recommendation cache by clearing and regenerating cached recommendations.
+ * Confirms the refresh request; the calling mutation invalidates browser queries.
  *
  * @returns Promise with refresh results
  * @throws {ApiError} Error with message and status code
@@ -732,7 +728,6 @@ export async function updateTrendingBooks(): Promise<UpdateTrendingBooksResponse
  * @example
  * ```typescript
  * const result = await refreshRecommendationCache();
- * console.log(`Cache refreshed: ${result.cacheCleared}`);
  * ```
  */
 export async function refreshRecommendationCache(): Promise<RefreshRecommendationCacheResponse> {
@@ -760,7 +755,7 @@ export async function refreshRecommendationCache(): Promise<RefreshRecommendatio
   if (data.success !== undefined) {
     return {
       success: data.success,
-      message: data.message || "Recommendation cache refreshed",
+      message: data.message || "Recommendations are ready to refresh",
       cacheCleared: data.cacheCleared || false,
     };
   }

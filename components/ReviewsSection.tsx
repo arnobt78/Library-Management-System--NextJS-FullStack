@@ -64,7 +64,7 @@ function ReviewCard({
     new Date(review.createdAt).getTime() !==
       new Date(review.updatedAt).getTime();
 
-  const StarRating = ({ rating }: { rating: number }) => (
+  const renderStarRating = (rating: number) => (
     <div className="flex items-center gap-0.5 sm:space-x-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
@@ -97,12 +97,12 @@ function ReviewCard({
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-800/50 p-3 shadow-sm sm:p-4">
       <div className="flex flex-row items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
             <h4 className="text-sm font-medium text-light-100 sm:text-base">
               {review.userFullName}
             </h4>
-            <StarRating rating={review.rating} />
+            {renderStarRating(review.rating)}
           </div>
 
           <p className="mt-2 text-sm text-light-200 sm:text-base">
@@ -300,7 +300,7 @@ function EditReviewForm({ review, onCancel, onUpdate }: EditReviewFormProps) {
     );
   };
 
-  const StarRating = () => (
+  const renderStarRating = () => (
     <div className="flex items-center gap-0.5 sm:space-x-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
@@ -335,7 +335,7 @@ function EditReviewForm({ review, onCancel, onUpdate }: EditReviewFormProps) {
           <label className="mb-1.5 block text-xs font-medium text-light-200 sm:mb-2 sm:text-sm">
             Rating
           </label>
-          <StarRating />
+          {renderStarRating()}
         </div>
 
         <div>
@@ -355,7 +355,7 @@ function EditReviewForm({ review, onCancel, onUpdate }: EditReviewFormProps) {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:space-x-3 sm:gap-0">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-3">
           <Button
             type="button"
             variant="outline"

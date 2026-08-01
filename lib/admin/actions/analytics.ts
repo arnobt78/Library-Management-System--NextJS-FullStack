@@ -88,8 +88,7 @@ export async function getOverdueAnalysis() {
   const { getDailyFineAmount } = await import("./config");
   const dailyFineAmount = await getDailyFineAmount();
 
-  // Create SQL fragment for daily fine amount with explicit numeric cast
-  const dailyFineAmountSql = sql.raw(`${dailyFineAmount}::numeric`);
+  const dailyFineAmountSql = sql`${dailyFineAmount}::numeric`;
 
   const overdueBooks = await db
     .select({
@@ -133,8 +132,7 @@ export async function getOverdueStats() {
   const { getDailyFineAmount } = await import("./config");
   const dailyFineAmount = await getDailyFineAmount();
 
-  // Create SQL fragment for daily fine amount with explicit numeric cast
-  const dailyFineAmountSql = sql.raw(`${dailyFineAmount}::numeric`);
+  const dailyFineAmountSql = sql`${dailyFineAmount}::numeric`;
 
   const stats = await db
     .select({

@@ -3,25 +3,16 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { sha256 } from "@noble/hashes/sha256";
-import { randomBytes } from "@noble/hashes/utils";
-
-function concatUint8Arrays(a: Uint8Array, b: Uint8Array): Uint8Array {
-  const c = new Uint8Array(a.length + b.length);
-  c.set(a, 0);
-  c.set(b, a.length);
-  return c;
-}
 import { signIn } from "@/auth";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { redirect } from "next/navigation";
 import { workflowClient } from "@/lib/workflow";
 import config from "@/lib/config";
+import { hashPassword } from "@/lib/auth/password";
 
 export const signInWithCredentials = async (
-  params: Pick<AuthCredentials, "email" | "password">
+  params: Pick<AuthCredentials, "email" | "password">,
 ) => {
   const { email, password } = params;
 
@@ -43,7 +34,7 @@ export const signInWithCredentials = async (
 
     return { success: true };
   } catch (error) {
-    console.log(error, "Signin error");
+    console.error("Sign-in failed", error);
     return { success: false, error: "Signin error" };
   }
 };
@@ -108,7 +99,8 @@ export const signUp = async (params: AuthCredentials) => {
     return {
       success: false,
       error: "email",
-      fieldError: "This email is already registered. Please use a different email or sign in.",
+      fieldError:
+        "This email is already registered. Please use a different email or sign in.",
     };
   }
 
@@ -123,17 +115,13 @@ export const signUp = async (params: AuthCredentials) => {
     return {
       success: false,
       error: "universityId",
-      fieldError: "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
+      fieldError:
+        "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
     };
   }
 
-  // Generate a random salt
-  const salt = randomBytes(16);
-  // Hash the password with the salt
-  const passwordBytes = new TextEncoder().encode(password);
-  const hashBuffer = sha256(concatUint8Arrays(passwordBytes, salt));
-  // Store salt and hash as base64
-  const hashedPassword = `${Buffer.from(salt).toString("base64")}:${Buffer.from(hashBuffer).toString("base64")}`;
+  // Same salted SHA-256 as before (shared helper for sign-up + seed scripts)
+  const hashedPassword = hashPassword(password);
 
   try {
     await db.insert(users).values({
@@ -156,8 +144,6 @@ export const signUp = async (params: AuthCredentials) => {
           fullName,
         },
       });
-    } else {
-      console.log("Skipping workflow trigger in development mode");
     }
 
     await signInWithCredentials({ email, password });
@@ -174,7 +160,8 @@ export const signUp = async (params: AuthCredentials) => {
       return {
         success: false,
         error: "universityId",
-        fieldError: "University ID is too large. Maximum allowed 8-digit number.",
+        fieldError:
+          "University ID is too large. Maximum allowed 8-digit number.",
       };
     }
 
@@ -190,21 +177,26 @@ export const signUp = async (params: AuthCredentials) => {
         return {
           success: false,
           error: "email",
-          fieldError: "This email is already registered. Please use a different email or sign in.",
+          fieldError:
+            "This email is already registered. Please use a different email or sign in.",
         };
       } else if (error.message.includes("university_id")) {
         return {
           success: false,
           error: "universityId",
-          fieldError: "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
+          fieldError:
+            "This University ID is already registered. Please use a different ID or contact support if this is your ID.",
         };
       }
     }
 
-    console.log(error, "Signup error");
+    console.error("Sign-up failed", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Signup error. Please check your information and try again.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Signup error. Please check your information and try again.",
     };
   }
 };

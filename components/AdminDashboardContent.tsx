@@ -79,7 +79,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     return (
       <div className="space-y-4 sm:space-y-6">
         {/* Statistics Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-5">
           {[...Array(5)].map((_, i) => (
             <AdminStatsSkeleton key={`stat-${i}`} variant="stat" />
           ))}
@@ -377,9 +377,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                   key={borrow.id}
                   className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium break-words">{borrow.bookTitle}</p>
-                    <p className="text-xs text-gray-600 break-words">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm font-medium">{borrow.bookTitle}</p>
+                    <p className="break-words text-xs text-gray-600">
                       by {borrow.userName}
                     </p>
                   </div>
@@ -412,9 +412,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                   key={user.id}
                   className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium break-words">{user.fullName}</p>
-                    <p className="text-xs text-gray-600 break-words">{user.email}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm font-medium">{user.fullName}</p>
+                    <p className="break-words text-xs text-gray-600">{user.email}</p>
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
@@ -517,7 +517,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       </div>
 
       {/* Additional Statistics Section */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
         {/* Books by Language */}
         <div className="stat">
           <h3 className="mb-4 text-base font-semibold sm:text-lg">🌍 Books by Language</h3>

@@ -15,7 +15,7 @@ export const signUpSchema = z.object({
     .min(1, "Password is required")
     .min(8, "Password must be at least 8 characters"),
   universityId: z.preprocess(
-    (val: number | string | null | undefined) => {
+    (val: unknown) => {
       // Convert empty string, null, or undefined to undefined
       if (val === "" || val === null || val === undefined) {
         return undefined;
@@ -24,8 +24,10 @@ export const signUpSchema = z.object({
     },
     z.coerce
       .number({
-        required_error: "University ID is required",
-        invalid_type_error: "University ID must be a number",
+        error: (issue) =>
+          issue.input === undefined
+            ? "University ID is required"
+            : "University ID must be a number",
       })
       .int("University ID must be a whole number (no decimals)")
       .min(1, "University ID must be a positive number")
@@ -33,7 +35,7 @@ export const signUpSchema = z.object({
         99999999,
         "University ID is too large. Maximum allowed 8-digit number"
       )
-  ) as z.ZodType<number, z.ZodTypeDef, number | string | null | undefined>,
+  ),
   universityCard: z
     .string()
     .min(
@@ -74,16 +76,20 @@ export const bookSchema = z.object({
     .max(50, "Genre must be less than 50 characters"),
   rating: z.coerce
     .number({
-      required_error: "Rating is required",
-      invalid_type_error: "Rating must be a number",
+      error: (issue) =>
+        issue.input === undefined
+          ? "Rating is required"
+          : "Rating must be a number",
     })
     .int("Rating must be a whole number")
     .min(1, "Rating must be at least 1 star")
     .max(5, "Rating cannot exceed 5 stars"),
   totalCopies: z.coerce
     .number({
-      required_error: "Total copies is required",
-      invalid_type_error: "Total copies must be a number",
+      error: (issue) =>
+        issue.input === undefined
+          ? "Total copies is required"
+          : "Total copies must be a number",
     })
     .int("Total copies must be a whole number")
     .positive("Total copies must be a positive number")
@@ -115,7 +121,7 @@ export const bookSchema = z.object({
     .optional(),
   publicationYear: z.coerce
     .number({
-      invalid_type_error: "Publication year must be a number",
+      error: "Publication year must be a number",
     })
     .int("Publication year must be a whole number")
     .min(1000, "Publication year must be at least 1000")
@@ -136,7 +142,7 @@ export const bookSchema = z.object({
     .optional(),
   pageCount: z.coerce
     .number({
-      invalid_type_error: "Page count must be a number",
+      error: "Page count must be a number",
     })
     .int("Page count must be a whole number")
     .positive("Page count must be a positive number")
@@ -147,4 +153,9 @@ export const bookSchema = z.object({
     .max(50, "Edition must be less than 50 characters")
     .optional(),
   isActive: z.boolean().optional(),
+  // Homepage hero: checking this unfeatures any previously featured book server-side
+  isFeatured: z.boolean().optional(),
 });
+
+// Server actions reuse the same allowlist while permitting partial book edits.
+export const bookUpdateSchema = bookSchema.partial();

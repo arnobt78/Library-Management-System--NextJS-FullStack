@@ -75,6 +75,8 @@ export const users = pgTable("users", {
   role: ROLE_ENUM("role").default("USER"), // Default role is USER (not admin)
   lastActivityDate: date("last_activity_date").defaultNow(), // Tracks user engagement
   lastLogin: timestamp("last_login", { withTimezone: true }), // Updated on each login
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(), // Last account/permission change
+  updatedBy: text("updated_by"), // Server-derived actor email for permission/status auditability
   createdAt: timestamp("created_at", {
     withTimezone: true,
   }).defaultNow(), // Account creation timestamp
@@ -114,7 +116,9 @@ export const books = pgTable("books", {
   language: varchar("language", { length: 50 }).default("English"), // Book language
   pageCount: integer("page_count"), // Number of pages
   edition: varchar("edition", { length: 50 }), // Edition number/version
-  isActive: boolean("is_active").default(true).notNull(), // Soft delete flag
+  isActive: boolean("is_active").default(true).notNull(), // Soft delete flag (catalog visibility)
+  // Curated homepage hero: at most one row should be true (enforced by partial unique index)
+  isFeatured: boolean("is_featured").default(false).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(), // Last modification
   updatedBy: uuid("updated_by").references(() => users.id), // Who last updated (admin)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(), // When added to catalog

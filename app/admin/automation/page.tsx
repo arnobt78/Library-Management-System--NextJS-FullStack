@@ -12,45 +12,11 @@ import {
   getDailyFineAmount,
   initializeDefaultConfigs,
 } from "@/lib/admin/actions/config";
-import {
-  generateAllUserRecommendations,
-  updateTrendingBooks,
-  refreshRecommendationCache,
-} from "@/lib/admin/actions/recommendations";
 import { redirect } from "next/navigation";
 import AdminAutomationClient from "@/components/AdminAutomationClient";
 import type { FineConfig } from "@/lib/services/admin";
 
 export const runtime = "nodejs";
-
-// Server Actions for recommendation functions
-async function handleGenerateAllUserRecommendations() {
-  "use server";
-  const results = await generateAllUserRecommendations();
-  const totalUsers = results.length;
-  const totalRecommendations = results.reduce(
-    (sum, user) => sum + user.recommendations.length,
-    0
-  );
-
-  redirect(
-    `/admin/automation?success=recommendations-generated&users=${totalUsers}&recommendations=${totalRecommendations}`
-  );
-}
-
-async function handleUpdateTrendingBooks() {
-  "use server";
-  const result = await updateTrendingBooks();
-  redirect(
-    `/admin/automation?success=trending-updated&count=${result.trendingCount}`
-  );
-}
-
-async function handleRefreshRecommendationCache() {
-  "use server";
-  await refreshRecommendationCache();
-  redirect("/admin/automation?success=cache-refreshed");
-}
 
 // Server Actions for Bulk Operations (Coming Soon)
 async function handleBulkEditBooks() {
@@ -151,9 +117,6 @@ const AutomationDashboard = async ({
       initialFineConfig={initialFineConfig}
       searchParams={params}
       serverActions={{
-        handleGenerateAllUserRecommendations,
-        handleUpdateTrendingBooks,
-        handleRefreshRecommendationCache,
         handleBulkEditBooks,
         handleBulkActivateBooks,
         handleBulkDeactivateBooks,

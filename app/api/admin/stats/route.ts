@@ -20,9 +20,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAllUsers } from "@/lib/admin/actions/user";
 import { getAllBorrowRequests } from "@/lib/admin/actions/borrow";
 import { db } from "@/database/drizzle";
-import { books, users } from "@/database/schema";
-import { eq } from "drizzle-orm";
-import { auth } from "@/auth";
+import { books } from "@/database/schema";
+import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 
 export const runtime = "nodejs";
 
@@ -34,47 +33,8 @@ export const runtime = "nodejs";
  */
 export async function GET(_request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-          message: "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin
-    // CRITICAL: Check role from session first (if available from new JWT)
-    // If not available, fallback to database check (for existing sessions)
-    let isAdmin = false;
-    if ((session.user as { role?: string }).role === "ADMIN") {
-      isAdmin = true;
-    } else {
-      // Fallback: Check database if role not in session (for existing sessions)
-      // This handles cases where JWT was created before role was added
-      const user = await db
-        .select({ role: users.role })
-        .from(users)
-        .where(eq(users.id, session.user.id))
-        .limit(1);
-
-      isAdmin = user[0]?.role === "ADMIN";
-    }
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Forbidden",
-          message: "Admin access required",
-        },
-        { status: 403 }
-      );
-    }
+    const authorization = await authorizeAdminRoute();
+    if (!authorization.ok) return authorization.response;
 
     // Fetch all data for dashboard in parallel
     const [usersResult, borrowResult, booksResult] = await Promise.all([
@@ -83,17 +43,17 @@ export async function GET(_request: NextRequest) {
       db.select().from(books),
     ]);
 
-    const users = usersResult.success ? usersResult.data : [];
+    const allUsers = usersResult.success ? usersResult.data : [];
     const borrowRequests = borrowResult.success ? borrowResult.data : [];
     const allBooks = booksResult;
 
     // Calculate user statistics
-    const totalUsers = users?.length || 0;
+    const totalUsers = allUsers?.length || 0;
     const approvedUsers =
-      users?.filter((u) => u.status === "APPROVED").length || 0;
+      allUsers?.filter((u) => u.status === "APPROVED").length || 0;
     const pendingUsers =
-      users?.filter((u) => u.status === "PENDING").length || 0;
-    const adminUsers = users?.filter((u) => u.role === "ADMIN").length || 0;
+      allUsers?.filter((u) => u.status === "PENDING").length || 0;
+    const adminUsers = allUsers?.filter((u) => u.role === "ADMIN").length || 0;
 
     // Calculate book statistics
     const totalBooks = allBooks.length;
@@ -133,7 +93,7 @@ export async function GET(_request: NextRequest) {
 
     // Recent activity
     const recentBorrows = borrowRequests?.slice(0, 5) || [];
-    const recentUsers = users?.slice(0, 5) || [];
+    const recentUsers = allUsers?.slice(0, 5) || [];
 
     // Calculate book categories
     const categoryStats = allBooks.reduce(

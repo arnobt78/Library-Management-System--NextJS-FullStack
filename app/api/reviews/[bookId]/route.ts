@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { bookReviews, users, borrowRecords } from "@/database/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { auth } from "@/auth";
+import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 
@@ -97,19 +97,9 @@ export async function POST(
       );
     }
 
-    // CRITICAL: Authentication required for creating reviews
-    // Reviews can only be created by authenticated users who have borrowed and returned the book
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-          message: "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
+    const authorization = await authorizeAuthenticatedRoute();
+    if (!authorization.ok) return authorization.response;
+    const { actor } = authorization;
 
     const { bookId } = await params;
 
@@ -146,7 +136,7 @@ export async function POST(
       .from(borrowRecords)
       .where(
         and(
-          eq(borrowRecords.userId, session.user.id),
+          eq(borrowRecords.userId, actor.id),
           eq(borrowRecords.bookId, bookId),
           eq(borrowRecords.status, "RETURNED")
         )
@@ -169,7 +159,7 @@ export async function POST(
       .from(bookReviews)
       .where(
         and(
-          eq(bookReviews.userId, session.user.id),
+          eq(bookReviews.userId, actor.id),
           eq(bookReviews.bookId, bookId)
         )
       )
@@ -187,7 +177,7 @@ export async function POST(
       .insert(bookReviews)
       .values({
         bookId,
-        userId: session.user.id,
+        userId: actor.id,
         rating,
         comment: comment.trim(),
       })

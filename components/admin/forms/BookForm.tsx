@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,8 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import FileUpload from "@/components/FileUpload";
 import ColorPicker from "@/components/admin/ColorPicker";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateBook, useUpdateBook } from "@/hooks/useMutations";
-import { useSession } from "next-auth/react";
 import { BOOK_FIELD_PLACEHOLDERS } from "@/constants";
 
 interface Props extends Partial<Book> {
@@ -29,15 +30,15 @@ interface Props extends Partial<Book> {
 
 const BookForm = ({ type = "create", ...book }: Props) => {
   const router = useRouter();
-  const { data: session } = useSession();
 
   // React Query mutations
   const createBookMutation = useCreateBook();
   const updateBookMutation = useUpdateBook();
 
-  type BookFormValues = z.infer<typeof bookSchema>;
+  type BookFormInput = z.input<typeof bookSchema>;
+  type BookFormValues = z.output<typeof bookSchema>;
 
-  const form = useForm<BookFormValues>({
+  const form = useForm<BookFormInput, unknown, BookFormValues>({
     resolver: zodResolver(bookSchema),
     defaultValues: {
       title: book.title || "",
@@ -68,23 +69,19 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       pageCount: book.pageCount ?? undefined,
       edition: book.edition || undefined,
       isActive: book.isActive ?? true,
+      isFeatured: book.isFeatured ?? false,
     },
   });
 
   const onSubmit = async (values: BookFormValues): Promise<void> => {
-    const updatedBy = session?.user?.id || undefined;
-
     if (type === "create") {
       // Use React Query mutation for creating book
       createBookMutation.mutate(
-        { ...values, updatedBy },
+        values,
         {
           onSuccess: async () => {
-            // Wait a brief moment for cache invalidation to complete
-            // This ensures queries refetch before navigation
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            // Navigate to books list after successful creation
-            // Toast is already shown by the mutation hook
+            // Refresh RSC trees (homepage hero) then navigate — no full browser reload
+            router.refresh();
             router.push(`/admin/books`);
           },
         }
@@ -92,14 +89,10 @@ const BookForm = ({ type = "create", ...book }: Props) => {
     } else {
       // Use React Query mutation for updating book
       updateBookMutation.mutate(
-        { bookId: book.id!, ...values, updatedBy },
+        { bookId: book.id!, ...values },
         {
           onSuccess: async () => {
-            // Wait a brief moment for cache invalidation to complete
-            // This ensures queries refetch before navigation
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            // Navigate to books list after successful update
-            // Toast is already shown by the mutation hook
+            router.refresh();
             router.push(`/admin/books`);
           },
         }
@@ -190,11 +183,9 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   placeholder={BOOK_FIELD_PLACEHOLDERS.rating}
                   {...field}
                   value={
-                    field.value === undefined ||
-                    field.value === null ||
-                    field.value === 0
-                      ? ""
-                      : field.value
+                    typeof field.value === "number"
+                      ? field.value
+                      : ("" as const)
                   }
                   onChange={(e) => {
                     const value = e.target.value;
@@ -224,11 +215,9 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   placeholder={BOOK_FIELD_PLACEHOLDERS.totalCopies}
                   {...field}
                   value={
-                    field.value === undefined ||
-                    field.value === null ||
-                    field.value === 0
-                      ? ""
-                      : field.value
+                    typeof field.value === "number"
+                      ? field.value
+                      : ("" as const)
                   }
                   onChange={(e) => {
                     const value = e.target.value;
@@ -393,11 +382,9 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       placeholder={BOOK_FIELD_PLACEHOLDERS.publicationYear}
                       {...field}
                       value={
-                        field.value === undefined ||
-                        field.value === null ||
-                        field.value === 0
-                          ? ""
-                          : field.value
+                        typeof field.value === "number"
+                          ? field.value
+                          : ("" as const)
                       }
                       onChange={(e) => {
                         const value = e.target.value;
@@ -468,11 +455,9 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       placeholder={BOOK_FIELD_PLACEHOLDERS.pageCount}
                       {...field}
                       value={
-                        field.value === undefined ||
-                        field.value === null ||
-                        field.value === 0
-                          ? ""
-                          : field.value
+                        typeof field.value === "number"
+                          ? field.value
+                          : ("" as const)
                       }
                       onChange={(e) => {
                         const value = e.target.value;
@@ -513,19 +498,48 @@ const BookForm = ({ type = "create", ...book }: Props) => {
             control={form.control}
             name={"isActive"}
             render={({ field }) => (
-              <FormItem className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-3 sm:space-y-0">
+              <FormItem className="mt-4 flex flex-row items-start gap-3 space-y-0">
                 <FormControl>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={field.value}
-                    onChange={field.onChange}
-                    className="size-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked === true)
+                    }
                   />
                 </FormControl>
-                <FormLabel className="text-base font-normal text-dark-500">
-                  Book is active and available for borrowing
-                </FormLabel>
-                <FormMessage />
+                <div className="space-y-1 leading-none">
+                  <FormLabel className="text-base font-normal text-dark-500">
+                    Book is active and available for borrowing
+                  </FormLabel>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name={"isFeatured"}
+            render={({ field }) => (
+              <FormItem className="mt-4 flex flex-row items-start gap-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked === true)
+                    }
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className="text-base font-normal text-dark-500">
+                    Feature on homepage
+                  </FormLabel>
+                  <FormDescription className="text-sm text-gray-500">
+                    Checking this replaces any currently featured book as the
+                    homepage hero.
+                  </FormDescription>
+                  <FormMessage />
+                </div>
               </FormItem>
             )}
           />

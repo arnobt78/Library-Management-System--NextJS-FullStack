@@ -9,11 +9,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { IKImage } from "imagekitio-next";
-import config from "@/lib/config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { showToast } from "@/lib/toast";
+import UserAvatar from "@/components/UserAvatar";
 
 interface ProfileDropdownProps {
   fullName: string;
@@ -80,7 +78,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       setIsLoggingOut(false);
       showToast.error(
         "Logout Failed",
-        "There was an error logging out. Please try again."
+        "There was an error logging out. Please try again.",
       );
     }
   };
@@ -89,35 +87,12 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button className="relative size-8 overflow-hidden rounded-full border-2 border-gray-600 transition-all hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 sm:size-10">
-          {universityCard ? (
-            universityCard.startsWith("http") ? (
-              <Image
-                src={universityCard}
-                alt="Profile"
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 32px, 40px"
-              />
-            ) : (
-              <IKImage
-                path={
-                  universityCard.startsWith("/")
-                    ? universityCard.slice(1)
-                    : universityCard
-                }
-                urlEndpoint={config.env.imagekit.urlEndpoint}
-                alt="Profile"
-                fill
-                className="rounded-full object-cover"
-              />
-            )
-          ) : (
-            <div className="flex size-full items-center justify-center bg-gray-700 text-light-100">
-              <span className="text-[10px] font-semibold sm:text-xs">
-                {fullName.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          )}
+          <UserAvatar
+            universityCard={universityCard}
+            fullName={fullName}
+            size={40}
+            className="size-full"
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -126,7 +101,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       >
         <DropdownMenuLabel className="px-2.5 py-1.5 sm:px-3 sm:py-2">
           <div className="space-y-0.5 sm:space-y-1">
-            <p className="text-xs font-semibold text-light-100 sm:text-sm">{fullName}</p>
+            <p className="text-xs font-semibold text-light-100 sm:text-sm">
+              {fullName}
+            </p>
             <p className="text-[10px] text-light-200/70 sm:text-xs">{email}</p>
             <p className="text-[10px] text-light-200/70 sm:text-xs">
               University ID: {universityId}
@@ -139,7 +116,10 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             asChild
             className="cursor-pointer rounded-md px-0 py-2 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 focus:bg-gray-700 focus:text-light-200 sm:py-3 [&>a]:block [&>a]:w-full"
           >
-            <Link href="/make-admin" className="px-2.5 text-xs sm:px-3 sm:text-sm">
+            <Link
+              href="/make-admin"
+              className="px-2.5 text-xs sm:px-3 sm:text-sm"
+            >
               Become Admin
             </Link>
           </DropdownMenuItem>

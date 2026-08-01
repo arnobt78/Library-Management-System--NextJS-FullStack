@@ -140,14 +140,7 @@ const Page = async ({
                       redirect("/make-admin?error=failed");
                     }
 
-                    if (!session.user?.id) {
-                      redirect("/make-admin?error=failed");
-                    }
-
-                    const result = await createAdminRequest(
-                      session.user.id,
-                      requestReason
-                    );
+                    const result = await createAdminRequest(requestReason);
 
                     if (result.success) {
                       redirect("/make-admin?success=request-sent");

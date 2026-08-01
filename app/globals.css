@@ -5,6 +5,8 @@
 @layer base {
   :root {
     --radius: 0.5rem;
+    /* Alias so existing font-bebas-neue / var(--bebas-neue) keep working */
+    --bebas-neue: var(--font-bebas-neue);
   }
 
   html,

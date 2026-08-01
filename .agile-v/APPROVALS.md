@@ -1,0 +1,12 @@
+# Human Gate Approvals (Append Only)
+
+Current approval records follow.
+
+Required entry fields: `GATE-ID | Gate type | Cycle | Scope | Decision | Conditions | Approver full name | Role/Authority | ISO-8601 timestamp | Signature method | Evidence commit | INTERRUPT-ID | resume_token`.
+
+| Gate ID | Gate type | Cycle | Scope | Decision | Conditions | Approver | Role/Authority | Timestamp | Signature method | Evidence reference | Interrupt | Resume token |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| GATE-0001 | Gate 0 | C1 | Existing-system discovery and C1-draft.2 scope | Approved | Requirements remain subject to Logic Gatekeeper validation and Gate 1 | Arnob Mahmud | Project Owner | 2026-08-01T17:43:32+02:00 | Explicit chat approval | `83e341147363015a6ace86f1665d4d6b9e5eb390` | INT-0001 | C1-G0-20260801-9f3c |
+| GATE-0002 | Gate 1 | C1 | Validated REQ-0019 through REQ-0024 for R2 synthesis | Approved | None | Arnob Mahmud | Project Owner | 2026-08-01T17:49:40+02:00 | Explicit chat approval | `83e341147363015a6ace86f1665d4d6b9e5eb390` | INT-0002 | C1-G1-20260801-32c05c48 |
+| GATE-0003 | Gate 1 delta | C1 | Logic-validated REQ-0025 corrective security scope | Approved | Preserve current UI and product behavior while enforcing server-derived identity and atomic transitions | Arnob Mahmud | Project Owner | 2026-08-01T19:09:07+02:00 | Explicit chat authorization to implement the presented critical correction | `83e341147363015a6ace86f1665d4d6b9e5eb390` | INT-0003 | C1-G1D-20260801-1010659a |
+| GATE-0004 | Gate 2 | C1 | Verified REQ-0019 through REQ-0025; TC-0019 through TC-0045 | Approved | Perform final pre-commit audit, keep documentation current, then commit and push only if clean | Arnob Mahmud | Project Owner | 2026-08-01T20:25:25+02:00 | Explicit chat approval with matching resume token | `ER-C1-FINAL-VERIFY` on baseline `83e341147363015a6ace86f1665d4d6b9e5eb390` | INT-0004 | C1-G2-20260801-6e7b0d4c |

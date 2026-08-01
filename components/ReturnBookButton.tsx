@@ -28,8 +28,6 @@ const ReturnBookButton = ({ recordId, bookTitle, dueDate }: Props) => {
   const returnBookMutation = useReturnBook();
 
   const handleReturnBook = () => {
-    console.log("[ReturnBookButton] Starting return mutation", { recordId, bookTitle });
-
     // Use mutation to return book
     returnBookMutation.mutate(
       {
@@ -37,8 +35,7 @@ const ReturnBookButton = ({ recordId, bookTitle, dueDate }: Props) => {
         bookTitle,
       },
       {
-        onSuccess: (data) => {
-          console.log("[ReturnBookButton] Mutation successful", data);
+        onSuccess: () => {
           // Toast notifications and cache invalidation handled by mutation
           // No page refresh needed - React Query will update UI
         },

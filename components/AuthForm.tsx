@@ -7,7 +7,6 @@ import {
   Path,
   SubmitHandler,
   useForm,
-  UseFormReturn,
 } from "react-hook-form";
 import { ZodType } from "zod";
 import { useState } from "react";
@@ -30,66 +29,74 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
-import { FIELD_NAMES, FIELD_TYPES, FIELD_PLACEHOLDERS } from "@/constants";
+import {
+  FIELD_NAMES,
+  FIELD_TYPES,
+  FIELD_PLACEHOLDERS,
+  TEST_ACCOUNTS,
+} from "@/constants";
 import FileUpload from "@/components/FileUpload";
 import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
+import UserAvatar from "@/components/UserAvatar";
 
-interface Props<T extends FieldValues> {
-  schema: ZodType<T>;
-  defaultValues: T;
+type AuthFields = FieldValues & { email: string; password: string };
+
+interface Props<
+  TInput extends AuthFields,
+  TOutput extends AuthFields,
+> {
+  schema: ZodType<TOutput, TInput>;
+  defaultValues: DefaultValues<TInput>;
   onSubmit: (
-    data: T
+    data: TOutput
   ) => Promise<
     { success: true } | { success: false; error?: string; fieldError?: string }
   >;
   type: "SIGN_IN" | "SIGN_UP";
 }
 
-const AuthForm = <T extends FieldValues>({
+const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
   type,
   schema,
   defaultValues,
   onSubmit,
-}: Props<T>) => {
+}: Props<TInput, TOutput>) => {
   const router = useRouter();
 
   const isSignIn = type === "SIGN_IN";
   const [selectedRole, setSelectedRole] = useState<string>("");
 
-  const form: UseFormReturn<T> = useForm({
+  const form = useForm<TInput, unknown, TOutput>({
     resolver: zodResolver(schema),
-    defaultValues: defaultValues as DefaultValues<T>,
+    defaultValues,
   });
 
-  // Test account credentials
-  const testAccounts = {
-    "guest-user": {
-      email: "test@user.com",
-      password: "12345678",
-    },
-    "guest-admin": {
-      email: "test@admin.com",
-      password: "12345678",
-    },
-  };
+  // Shared TEST_ACCOUNTS (constants) — fills email/password; name/image are display-only
+  const selectedAccount = TEST_ACCOUNTS.find((a) => a.id === selectedRole);
 
   const handleRoleSelect = (value: string) => {
     if (value === "clear") {
       setSelectedRole("");
-      form.setValue("email" as Path<T>, "" as T[Path<T>]);
-      form.setValue("password" as Path<T>, "" as T[Path<T>]);
+      form.setValue("email" as Path<TInput>, "" as TInput[Path<TInput>]);
+      form.setValue("password" as Path<TInput>, "" as TInput[Path<TInput>]);
     } else {
       setSelectedRole(value);
-      const account = testAccounts[value as keyof typeof testAccounts];
+      const account = TEST_ACCOUNTS.find((a) => a.id === value);
       if (account) {
-        form.setValue("email" as Path<T>, account.email as T[Path<T>]);
-        form.setValue("password" as Path<T>, account.password as T[Path<T>]);
+        form.setValue(
+          "email" as Path<TInput>,
+          account.email as TInput[Path<TInput>]
+        );
+        form.setValue(
+          "password" as Path<TInput>,
+          account.password as TInput[Path<TInput>]
+        );
       }
     }
   };
 
-  const handleSubmit: SubmitHandler<T> = async (data) => {
+  const handleSubmit: SubmitHandler<TOutput> = async (data) => {
     const result = await onSubmit(data);
 
     if (result.success) {
@@ -102,7 +109,7 @@ const AuthForm = <T extends FieldValues>({
     } else {
       // Handle field-specific errors
       if (result.error && result.fieldError) {
-        const fieldName = result.error as Path<T>;
+        const fieldName = result.error as Path<TInput>;
         const errorMessage = result.fieldError;
 
         // Set field-specific error
@@ -143,29 +150,62 @@ const AuthForm = <T extends FieldValues>({
         >
           {/* Role Based Test Account Selector - Only for Sign In */}
           {isSignIn && (
-            <div className="space-y-1.5 sm:space-y-2">
-              <FormLabel className="text-sm text-white sm:text-base">Select Test Account</FormLabel>
+            <div className="space-y-1.5 font-sans sm:space-y-2">
+              <FormLabel className="text-sm text-white sm:text-base">
+                Select Test Account
+              </FormLabel>
               <Select
                 key={`select-${selectedRole || "empty"}`}
                 value={selectedRole || undefined}
                 onValueChange={handleRoleSelect}
               >
-                <SelectTrigger className="form-input border-gray-600 bg-transparent text-white">
-                  <SelectValue placeholder="Select Role Based Test Account" />
+                <SelectTrigger className="form-input h-auto min-h-14 border-gray-600 bg-transparent py-2 font-sans text-white">
+                  {selectedAccount ? (
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+                      <UserAvatar
+                        universityCard={selectedAccount.image}
+                        fullName={selectedAccount.fullName}
+                        size={36}
+                        className="border border-gray-600"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-white">
+                          {selectedAccount.fullName}
+                        </p>
+                        <p className="truncate text-xs text-light-200/70">
+                          {selectedAccount.email}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="Select Role Based Test Account" />
+                  )}
                 </SelectTrigger>
-                <SelectContent className="border-gray-600 bg-gray-800">
-                  <SelectItem
-                    value="guest-user"
-                    className="cursor-pointer text-white focus:bg-gray-700 focus:text-white"
-                  >
-                    Guest User
-                  </SelectItem>
-                  <SelectItem
-                    value="guest-admin"
-                    className="cursor-pointer text-white focus:bg-gray-700 focus:text-white"
-                  >
-                    Guest Admin
-                  </SelectItem>
+                <SelectContent className="border-gray-600 bg-gray-800 font-sans">
+                  {TEST_ACCOUNTS.map((account) => (
+                    <SelectItem
+                      key={account.id}
+                      value={account.id}
+                      className="cursor-pointer py-2.5 text-white focus:bg-gray-700 focus:text-white"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <UserAvatar
+                          universityCard={account.image}
+                          fullName={account.fullName}
+                          size={36}
+                          className="border border-gray-600"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">
+                            {account.fullName}
+                          </p>
+                          <p className="truncate text-xs text-light-200/70">
+                            {account.email}
+                          </p>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
                   {selectedRole && (
                     <SelectItem
                       value="clear"
@@ -183,7 +223,7 @@ const AuthForm = <T extends FieldValues>({
               <FormField
               key={field}
               control={form.control}
-              name={field as Path<T>}
+              name={field as Path<TInput>}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm capitalize sm:text-base">
@@ -220,7 +260,7 @@ const AuthForm = <T extends FieldValues>({
                           field.value === null ||
                           field.value === 0
                             ? ""
-                            : field.value
+                            : String(field.value)
                         }
                         onChange={(e) => {
                           const value = e.target.value;

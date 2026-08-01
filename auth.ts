@@ -5,38 +5,22 @@
  * - Credentials-based authentication (email/password)
  * - SHA-256 password hashing with salt
  * - JWT session strategy
- * - Lazy imports to support Edge runtime (middleware compatibility)
+ * - Lazy imports keep database work out of request-policy evaluation
  *
- * IMPORTANT: This file uses lazy imports for database operations because:
- * - Next.js middleware runs in Edge runtime (doesn't support Node.js modules like 'pg')
- * - Database modules are only loaded when actually needed (in Node.js runtime contexts)
- * - This prevents "crypto module not supported" errors in Edge runtime
+ * Next.js 16 Proxy runs in Node.js, while lazy imports still avoid loading database
+ * modules until credential authorization or JWT persistence actually needs them.
  */
 
 import NextAuth, { User } from "next-auth";
-import { sha256 } from "@noble/hashes/sha256";
+import { createHash, timingSafeEqual } from "node:crypto";
 import CredentialsProvider from "next-auth/providers/credentials";
-
-/**
- * Helper function to concatenate two Uint8Arrays
- * Used for password hashing: combines password bytes with salt
- * @param a - First array (password bytes)
- * @param b - Second array (salt)
- * @returns Combined Uint8Array
- */
-function concatUint8Arrays(a: Uint8Array, b: Uint8Array): Uint8Array {
-  const c = new Uint8Array(a.length + b.length);
-  c.set(a, 0);
-  c.set(b, a.length);
-  return c;
-}
+import { authorizeProxyPath } from "@/lib/auth/proxyAuthorization";
 
 /**
  * Lazy import pattern for database connection
  *
  * WHY LAZY IMPORTS?
- * - This file is imported by middleware.ts which runs in Edge runtime
- * - Edge runtime doesn't support Node.js modules (like 'pg' for PostgreSQL)
+ * - This file is imported by proxy.ts for request authorization
  * - By using dynamic imports, we only load the database when actually needed
  * - Database operations only happen in Node.js runtime (authorize/jwt callbacks)
  *
@@ -122,8 +106,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const passwordBytes = new TextEncoder().encode(
           credentials.password.toString()
         );
-        const hashBuffer = sha256(concatUint8Arrays(passwordBytes, salt));
-        const isPasswordValid = Buffer.from(hashBuffer).equals(expectedHash);
+        const hashBuffer = createHash("sha256")
+          .update(passwordBytes)
+          .update(salt)
+          .digest();
+        const isPasswordValid =
+          hashBuffer.length === expectedHash.length &&
+          timingSafeEqual(hashBuffer, expectedHash);
 
         if (!isPasswordValid) return null;
 
@@ -142,6 +131,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/sign-in",
   },
   callbacks: {
+    authorized({ auth: currentSession, request }) {
+      return authorizeProxyPath(
+        request.nextUrl.pathname,
+        Boolean(currentSession?.user)
+      );
+    },
     /**
      * JWT Callback - Called when JWT token is created or updated
      *

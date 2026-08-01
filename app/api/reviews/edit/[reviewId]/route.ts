@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { bookReviews } from "@/database/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@/auth";
+import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 
@@ -29,19 +29,8 @@ export async function PUT(
       );
     }
 
-    // CRITICAL: Authentication required for updating reviews
-    // Reviews can only be updated by authenticated users who own the review
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-          message: "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
+    const authorization = await authorizeAuthenticatedRoute();
+    if (!authorization.ok) return authorization.response;
 
     const { reviewId } = await params;
 
@@ -80,7 +69,7 @@ export async function PUT(
       .where(
         and(
           eq(bookReviews.id, reviewId),
-          eq(bookReviews.userId, session.user.id)
+          eq(bookReviews.userId, authorization.actor.id)
         )
       )
       .limit(1);
@@ -152,19 +141,8 @@ export async function DELETE(
       );
     }
 
-    // CRITICAL: Authentication required for deleting reviews
-    // Reviews can only be deleted by authenticated users who own the review
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized",
-          message: "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
+    const authorization = await authorizeAuthenticatedRoute();
+    if (!authorization.ok) return authorization.response;
 
     const { reviewId } = await params;
 
@@ -186,7 +164,7 @@ export async function DELETE(
       .where(
         and(
           eq(bookReviews.id, reviewId),
-          eq(bookReviews.userId, session.user.id)
+          eq(bookReviews.userId, authorization.actor.id)
         )
       )
       .limit(1);

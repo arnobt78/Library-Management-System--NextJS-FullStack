@@ -9,13 +9,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { IKImage } from "imagekitio-next";
-import config from "@/lib/config";
 import { showToast } from "@/lib/toast";
+import UserAvatar from "@/components/UserAvatar";
 
 interface MobileMenuProps {
   fullName: string;
@@ -58,7 +56,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       setIsLoggingOut(false);
       showToast.error(
         "Logout Failed",
-        "There was an error logging out. Please try again."
+        "There was an error logging out. Please try again.",
       );
     }
   };
@@ -79,7 +77,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         className="text-light-100 hover:text-light-200 focus:outline-none md:hidden"
         aria-label="Toggle menu"
       >
-        {isOpen ? <X className="size-5 sm:size-6" /> : <Menu className="size-5 sm:size-6" />}
+        {isOpen ? (
+          <X className="size-5 sm:size-6" />
+        ) : (
+          <Menu className="size-5 sm:size-6" />
+        )}
       </button>
 
       {/* Mobile Menu Overlay */}
@@ -101,39 +103,18 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         <div className="flex h-full flex-col overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-600 p-3 sm:p-4">
-            {/* Profile Image */}
+            {/* Profile Image — local /images, remote URL, or ImageKit via UserAvatar */}
             <div className="relative size-7 overflow-hidden rounded-full border-2 border-gray-600 sm:size-8">
-              {universityCard ? (
-                universityCard.startsWith("http") ? (
-                  <Image
-                    src={universityCard}
-                    alt="Profile"
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 28px, 32px"
-                  />
-                ) : (
-                  <IKImage
-                    path={
-                      universityCard.startsWith("/")
-                        ? universityCard.slice(1)
-                        : universityCard
-                    }
-                    urlEndpoint={config.env.imagekit.urlEndpoint}
-                    alt="Profile"
-                    fill
-                    className="rounded-full object-cover"
-                  />
-                )
-              ) : (
-                <div className="flex size-full items-center justify-center bg-gray-700 text-light-100">
-                  <span className="text-[10px] font-semibold sm:text-xs">
-                    {fullName.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <UserAvatar
+                universityCard={universityCard}
+                fullName={fullName}
+                size={32}
+                className="size-full"
+              />
             </div>
-            <h2 className="text-base font-semibold text-light-100 sm:text-lg">Menu</h2>
+            <h2 className="text-base font-semibold text-light-100 sm:text-lg">
+              Menu
+            </h2>
             <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={(e) => {
@@ -150,8 +131,12 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
           {/* User Info Section */}
           <div className="border-b border-gray-600 p-3 sm:p-4">
-            <p className="text-xs font-semibold text-light-100 sm:text-sm">{fullName}</p>
-            <p className="mt-1 text-[10px] text-light-200/70 sm:text-xs">{email}</p>
+            <p className="text-xs font-semibold text-light-100 sm:text-sm">
+              {fullName}
+            </p>
+            <p className="mt-1 text-[10px] text-light-200/70 sm:text-xs">
+              {email}
+            </p>
             <p className="mt-1 text-[10px] text-light-200/70 sm:text-xs">
               University ID: {universityId}
             </p>

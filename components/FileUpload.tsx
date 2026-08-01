@@ -1,43 +1,30 @@
 "use client";
 
-import { IKImage, ImageKitProvider, IKUpload, IKVideo } from "imagekitio-next";
+// Parent: REQ-0021
+import {
+  Image as ImageKitImage,
+  ImageKitProvider,
+  Video as ImageKitVideo,
+  upload,
+  type UploadResponse,
+} from "@imagekit/next";
+import { useRef, useState } from "react";
 import config from "@/lib/config";
-import { useRef, useState, useEffect } from "react";
-// import Image from "next/image";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const {
   env: {
-    imagekit: { publicKey, urlEndpoint },
+    imagekit: { urlEndpoint },
   },
 } = config;
 
-const authenticator = async () => {
-  try {
-    const response = await fetch("/api/auth/imagekit");
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      throw new Error(
-        `Request failed with status ${response.status}: ${errorText}`
-      );
-    }
-
-    const data = await response.json();
-
-    const { signature, expire, token } = data;
-
-    return { token, expire, signature };
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(`Authentication request failed: ${error.message}`);
-    } else {
-      throw new Error("Authentication request failed: Unknown error");
-    }
-  }
-};
+interface UploadAuthentication {
+  token: string;
+  expire: number;
+  signature: string;
+  publicKey: string;
+}
 
 interface Props {
   type: "image" | "video";
@@ -49,6 +36,33 @@ interface Props {
   value?: string;
 }
 
+function isUploadAuthentication(value: unknown): value is UploadAuthentication {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<UploadAuthentication>;
+  return (
+    typeof candidate.token === "string" &&
+    typeof candidate.expire === "number" &&
+    typeof candidate.signature === "string" &&
+    typeof candidate.publicKey === "string"
+  );
+}
+
+async function getUploadAuthentication(): Promise<UploadAuthentication> {
+  const response = await fetch("/api/auth/imagekit", { cache: "no-store" });
+
+  if (!response.ok) {
+    throw new Error(`Upload authorization failed with status ${response.status}`);
+  }
+
+  const data: unknown = await response.json();
+  if (!isUploadAuthentication(data)) {
+    throw new Error("Upload authorization returned an invalid response");
+  }
+
+  return data;
+}
+
 const FileUpload = ({
   type,
   accept,
@@ -58,205 +72,164 @@ const FileUpload = ({
   onFileChange,
   value,
 }: Props) => {
-  const ikUploadRef = useRef(null);
-  const [file, setFile] = useState<{ filePath: string | null }>({
-    filePath: value ?? null,
-  });
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // CRITICAL: Sync value prop with internal state
-  // This ensures the component updates when SSR data is provided (e.g., when editing a book)
-  // The value prop comes from form fields (react-hook-form) which may be initialized with SSR data
-  useEffect(() => {
-    if (value !== undefined && value !== file.filePath) {
-      setFile({ filePath: value ?? null });
-    }
-  }, [value, file.filePath]);
+  const filePath = uploadedFilePath ?? value ?? null;
 
   const styles = {
     button:
       variant === "dark"
         ? "bg-dark-300"
-        : "bg-light-600 border-gray-100 border",
+        : "border border-gray-100 bg-light-600",
     placeholder: variant === "dark" ? "text-light-100" : "text-slate-500",
     text: variant === "dark" ? "text-light-100" : "text-dark-400",
   };
 
-  /**
-   * Handle file upload errors
-   *
-   * @param error - Error object from ImageKit upload
-   */
-  const onError = (error: unknown): void => {
-    console.log(error);
+  const validateFile = (file: File): boolean => {
+    const maxBytes = type === "image" ? 20 * 1024 * 1024 : 50 * 1024 * 1024;
+    if (file.size <= maxBytes) return true;
 
     showToast.error(
-      `${type === "image" ? "Image" : "Video"} Upload Failed`,
-      `Your ${type} could not be uploaded. Please try again.`
+      "📁 File Too Large",
+      `${type === "image" ? "Image" : "Video"} files must be smaller than ${type === "image" ? "20MB" : "50MB"}.`
     );
+    return false;
   };
 
-  /**
-   * Upload success response type from ImageKit
-   * Note: imagekitio-next types may not fully match, so we use a flexible interface
-   */
-  interface UploadSuccessResponse {
-    filePath: string;
-    [key: string]: unknown;
-  }
+  const handleUpload = async (selectedFile: File): Promise<void> => {
+    if (!validateFile(selectedFile)) return;
 
-  /**
-   * Handle successful file upload
-   *
-   * @param res - Upload success response from ImageKit containing filePath
-   * Note: Using type assertion because imagekitio-next's IKUploadResponse type
-   * doesn't match the actual response structure at runtime
-   */
-  const onSuccess = (res: unknown): void => {
-    // Type guard: Check if response has filePath property
-    const response = res as UploadSuccessResponse;
+    setIsUploading(true);
+    setProgress(0);
 
-    if (!response.filePath || typeof response.filePath !== "string") {
-      console.error("Upload response missing filePath:", res);
-      onError(new Error("Upload response missing filePath"));
-      return;
-    }
+    try {
+      const authentication = await getUploadAuthentication();
+      const result: UploadResponse = await upload({
+        file: selectedFile,
+        fileName: selectedFile.name,
+        folder,
+        useUniqueFileName: true,
+        ...authentication,
+        onProgress: ({
+          loaded,
+          total,
+        }: {
+          loaded: number;
+          total: number;
+        }) => {
+          setProgress(total > 0 ? Math.round((loaded / total) * 100) : 0);
+        },
+      });
 
-    // Construct full ImageKit URL from the relative filePath
-    const fullUrl = `${urlEndpoint}${response.filePath}`;
-
-    setFile({ filePath: fullUrl });
-    onFileChange(fullUrl);
-
-    showToast.success(
-      `✅ ${type === "image" ? "Image" : "Video"} Uploaded Successfully!`,
-      `${response.filePath} has been uploaded and is ready to use.`
-    );
-  };
-
-  /**
-   * Validate file before upload
-   *
-   * @param file - File to validate
-   * @returns true if file is valid, false otherwise
-   */
-  const onValidate = (file: File): boolean => {
-    if (type === "image") {
-      if (file.size > 20 * 1024 * 1024) {
-        showToast.error(
-          "📁 File Too Large",
-          "Image files must be smaller than 20MB. Please compress your image and try again."
-        );
-
-        return false;
+      if (!result.filePath) {
+        throw new Error("Upload completed without a file path");
       }
-    } else if (type === "video") {
-      if (file.size > 50 * 1024 * 1024) {
-        showToast.error(
-          "📁 File Too Large",
-          "Video files must be smaller than 50MB. Please compress your video and try again."
-        );
-        return false;
-      }
-    }
 
-    return true;
+      const uploadedUrl = `${urlEndpoint}${result.filePath}`;
+      setUploadedFilePath(uploadedUrl);
+      onFileChange(uploadedUrl);
+      showToast.success(
+        `✅ ${type === "image" ? "Image" : "Video"} Uploaded Successfully!`,
+        `${result.filePath} is ready to use.`
+      );
+    } catch (error: unknown) {
+      console.error("ImageKit upload failed", error);
+      showToast.error(
+        `${type === "image" ? "Image" : "Video"} Upload Failed`,
+        "The file could not be uploaded. Please try again."
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
-    <ImageKitProvider
-      publicKey={publicKey}
-      urlEndpoint={urlEndpoint}
-      authenticator={authenticator}
-    >
-      <IKUpload
-        ref={ikUploadRef}
-        onError={onError}
-        onSuccess={onSuccess}
-        useUniqueFileName={true}
-        validateFile={onValidate}
-        onUploadStart={() => setProgress(0)}
-        onUploadProgress={({ loaded, total }) => {
-          const percent = Math.round((loaded / total) * 100);
-          setProgress(percent);
-        }}
-        folder={folder}
+    <ImageKitProvider urlEndpoint={urlEndpoint}>
+      <input
+        ref={inputRef}
+        type="file"
         accept={accept}
         className="hidden"
+        onChange={(event) => {
+          const selectedFile = event.target.files?.[0];
+          if (selectedFile) void handleUpload(selectedFile);
+          event.target.value = "";
+        }}
       />
 
       <button
+        type="button"
         className={cn("upload-btn", styles.button)}
-        onClick={(e) => {
-          e.preventDefault();
-          if (ikUploadRef.current) {
-            // @ts-expect-error - IKUpload ref type doesn't expose click method, but it exists on the underlying input element
-            ikUploadRef.current?.click();
-          }
-        }}
+        disabled={isUploading}
+        onClick={() => inputRef.current?.click()}
       >
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center gap-1.5">
             <img
               src="/icons/upload.svg"
-              alt="upload-icon"
+              alt=""
               width={20}
               height={20}
               className="size-4 shrink-0 object-contain sm:size-5"
             />
-            <p className={cn("text-sm sm:text-base", styles.placeholder)}>{placeholder}</p>
+            <p className={cn("text-sm sm:text-base", styles.placeholder)}>
+              {isUploading ? "Uploading…" : placeholder}
+            </p>
           </div>
-
-          {file && (
-            <p className={cn("upload-filename text-[10px] sm:text-xs break-all", styles.text)}>{file.filePath}</p>
-          )}
+          {filePath ? (
+            <p
+              className={cn(
+                "upload-filename break-all text-[10px] sm:text-xs",
+                styles.text
+              )}
+            >
+              {filePath}
+            </p>
+          ) : null}
         </div>
       </button>
 
-      {progress > 0 && progress !== 100 && (
+      {progress > 0 && progress < 100 ? (
         <div className="w-full rounded-full bg-green-200">
-          <div className="progress text-[7px] sm:text-[8px]" style={{ width: `${progress}%` }}>
+          <div
+            className="progress text-[7px] sm:text-[8px]"
+            style={{ width: `${progress}%` }}
+          >
             {progress}%
           </div>
         </div>
-      )}
+      ) : null}
 
-      {file &&
-        (type === "image" ? (
-          // Check if filePath is already a full URL
-          file.filePath?.startsWith("http") ? (
-            <img
-              src={file.filePath}
-              alt="Uploaded image"
-              width={500}
-              height={300}
-              className="h-auto w-full max-w-full rounded-xl"
-            />
-          ) : (
-            <IKImage
-              alt={file.filePath ?? ""}
-              path={file.filePath ?? ""}
-              width={500}
-              height={300}
-              className="h-auto w-full max-w-full"
-            />
-          )
-        ) : type === "video" ? (
-          // Check if filePath is already a full URL
-          file.filePath?.startsWith("http") ? (
-            <video
-              src={file.filePath}
-              controls={true}
-              className="h-64 w-full rounded-xl sm:h-96"
-            />
-          ) : (
-            <IKVideo
-              path={file.filePath ?? ""}
-              controls={true}
-              className="h-64 w-full rounded-xl sm:h-96"
-            />
-          )
-        ) : null)}
+      {filePath && type === "image" ? (
+        filePath.startsWith("http") ? (
+          <img
+            src={filePath}
+            alt="Uploaded preview"
+            width={500}
+            height={300}
+            className="h-auto w-full max-w-full rounded-xl"
+          />
+        ) : (
+          <ImageKitImage
+            src={filePath}
+            alt="Uploaded preview"
+            width={500}
+            height={300}
+            className="h-auto w-full max-w-full rounded-xl"
+          />
+        )
+      ) : null}
+
+      {filePath && type === "video" ? (
+        <ImageKitVideo
+          src={filePath}
+          controls
+          className="h-64 w-full rounded-xl sm:h-96"
+        />
+      ) : null}
     </ImageKitProvider>
   );
 };

@@ -50,6 +50,34 @@ export const adminSideBarLinks = [
   },
 ];
 
+/**
+ * Sign-in test accounts (dropdown + seed script).
+ * Images are local public assets stored in users.university_card after seed.
+ */
+export const TEST_ACCOUNTS = [
+  {
+    id: "guest-user",
+    fullName: "Test User",
+    email: "test@user.com",
+    password: "12345678",
+    image: "/images/profile-img1.png",
+    role: "USER" as const,
+    /** Reserved seed university ID; preserved on update if the row already exists */
+    universityId: 900001,
+  },
+  {
+    id: "guest-admin",
+    fullName: "Test Admin",
+    email: "test@admin.com",
+    password: "12345678",
+    image: "/images/profile-img2.png",
+    role: "ADMIN" as const,
+    universityId: 900002,
+  },
+] as const;
+
+export type TestAccountId = (typeof TEST_ACCOUNTS)[number]["id"];
+
 export const FIELD_NAMES = {
   fullName: "Full name",
   email: "Email",

@@ -14,7 +14,7 @@
  * - Supports SSR initial data to prevent duplicate fetches
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFineConfig } from "@/hooks/useQueries";
 import {
@@ -42,19 +42,13 @@ export default function FineManagement({
   const updateOverdueFinesMutation = useUpdateOverdueFines();
 
   const fineAmount = fineConfig?.fineAmount || 1.0;
-  const [editableAmount, setEditableAmount] = useState<number>(fineAmount);
+  const [draftAmount, setDraftAmount] = useState<number | null>(null);
+  const editableAmount = draftAmount ?? fineAmount;
   const [isEditing, setIsEditing] = useState(false);
-
-  // Update editable amount when fine config loads
-  useEffect(() => {
-    if (fineConfig?.fineAmount) {
-      setEditableAmount(fineConfig.fineAmount);
-    }
-  }, [fineConfig?.fineAmount]);
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditableAmount(fineAmount);
+    setDraftAmount(null);
   };
 
   const handleSaveAmount = () => {
@@ -66,7 +60,6 @@ export default function FineManagement({
     updateFineConfigMutation.mutate(
       {
         fineAmount: editableAmount,
-        updatedBy: "admin",
       },
       {
         onSuccess: () => {
@@ -90,7 +83,7 @@ export default function FineManagement({
 
   const handleEditMode = () => {
     setIsEditing(true);
-    setEditableAmount(fineAmount);
+    setDraftAmount(fineAmount);
   };
 
   return (
@@ -126,7 +119,7 @@ export default function FineManagement({
                   max="100"
                   value={editableAmount}
                   onChange={(e) =>
-                    setEditableAmount(parseFloat(e.target.value) || 0)
+                    setDraftAmount(parseFloat(e.target.value) || 0)
                   }
                   className="w-20 rounded border border-blue-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 sm:text-sm"
                   placeholder="1.00"

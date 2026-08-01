@@ -16,7 +16,6 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -24,6 +23,7 @@ import BookCover from "@/components/BookCover";
 import { useAllBooks } from "@/hooks/useQueries";
 import { getBookGenres } from "@/lib/services/books";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
+import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
 import type { BookFilters } from "@/lib/services/books";
 
 interface AdminBooksListProps {
@@ -36,7 +36,6 @@ interface AdminBooksListProps {
 const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   const router = useRouter();
   const searchParamsHook = useSearchParams();
-  const queryClient = useQueryClient();
 
   // Get current search params from URL
   const currentSearch = searchParamsHook.get("search") || "";
@@ -86,13 +85,12 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
         const newUrl = `/admin/books?${params.toString()}`;
         // Update ref before navigation to prevent sync effect from overwriting
         lastSyncedSearchRef.current = trimmedSearch;
-        queryClient.invalidateQueries({ queryKey: ["all-books"] });
         router.replace(newUrl, { scroll: false });
       }
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timer);
-  }, [localSearch, currentSearch, searchParamsHook, queryClient, router]);
+  }, [localSearch, currentSearch, searchParamsHook, router]);
 
   // Build filters from URL params
   const filters: BookFilters = React.useMemo(
@@ -152,7 +150,6 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
       }
     });
 
-    queryClient.invalidateQueries({ queryKey: ["all-books"] });
     router.replace(`/admin/books?${params.toString()}`, { scroll: false });
   };
 
@@ -387,9 +384,18 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                           {book.isActive ? "Active" : "Inactive"}
                         </span>
                       </div>
+
+                      {book.isFeatured ? (
+                        <div className="flex justify-between text-sm">
+                          <span>Featured:</span>
+                          <span className="font-medium text-blue-600">
+                            Homepage
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
 
-                    <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row">
+                    <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
                       <Button size="sm" asChild>
                         <Link href={`/books/${book.id}`} className="text-white">
                           View Details
@@ -400,6 +406,10 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                           Edit Book
                         </Link>
                       </Button>
+                      <DeleteBookDialog
+                        bookId={book.id}
+                        bookTitle={book.title}
+                      />
                     </div>
                   </div>
                 </div>

@@ -50,9 +50,6 @@ interface ExportStats {
 }
 
 interface ServerActions {
-  handleGenerateAllUserRecommendations: () => Promise<void>;
-  handleUpdateTrendingBooks: () => Promise<void>;
-  handleRefreshRecommendationCache: () => Promise<void>;
   handleBulkEditBooks: () => Promise<void>;
   handleBulkActivateBooks: () => Promise<void>;
   handleBulkDeactivateBooks: () => Promise<void>;
@@ -152,54 +149,12 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
     cacheRefreshed?: boolean;
   }>({});
 
-  // Update local state when mutations succeed
-  useEffect(() => {
-    if (generateRecommendationsMutation.isSuccess) {
-      setRecentActions((prev) => ({
-        ...prev,
-        recommendationsGenerated: true,
-      }));
-      // Reset after 5 seconds
-      setTimeout(() => {
-        setRecentActions((prev) => ({
-          ...prev,
-          recommendationsGenerated: false,
-        }));
-      }, 5000);
-    }
-  }, [generateRecommendationsMutation.isSuccess]);
-
-  useEffect(() => {
-    if (updateTrendingMutation.isSuccess) {
-      setRecentActions((prev) => ({
-        ...prev,
-        trendingUpdated: true,
-      }));
-      // Reset after 5 seconds
-      setTimeout(() => {
-        setRecentActions((prev) => ({
-          ...prev,
-          trendingUpdated: false,
-        }));
-      }, 5000);
-    }
-  }, [updateTrendingMutation.isSuccess]);
-
-  useEffect(() => {
-    if (refreshCacheMutation.isSuccess) {
-      setRecentActions((prev) => ({
-        ...prev,
-        cacheRefreshed: true,
-      }));
-      // Reset after 5 seconds
-      setTimeout(() => {
-        setRecentActions((prev) => ({
-          ...prev,
-          cacheRefreshed: false,
-        }));
-      }, 5000);
-    }
-  }, [refreshCacheMutation.isSuccess]);
+  const markRecentAction = (action: keyof typeof recentActions) => {
+    setRecentActions((previous) => ({ ...previous, [action]: true }));
+    setTimeout(() => {
+      setRecentActions((previous) => ({ ...previous, [action]: false }));
+    }, 5000);
+  };
 
   // Display toasts for server-side messages (from URL params)
   useEffect(() => {
@@ -497,12 +452,11 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-green-800">
-                ✅ Recommendation Cache Refreshed!
+                ✅ Recommendations Refreshed!
               </h3>
               <div className="mt-2 text-sm text-green-700">
                 <p>
-                  Recommendation cache has been cleared and refreshed. All
-                  cached recommendations will be regenerated on next request.
+                  Recommendation queries will refetch current database results.
                 </p>
               </div>
             </div>
@@ -1018,7 +972,12 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
               </h4>
               <div className="space-y-3">
                 <Button
-                  onClick={() => generateRecommendationsMutation.mutate()}
+                  onClick={() =>
+                    generateRecommendationsMutation.mutate(undefined, {
+                      onSuccess: () =>
+                        markRecentAction("recommendationsGenerated"),
+                    })
+                  }
                   className={`w-full break-words disabled:opacity-50 ${
                     params.success === "recommendations-generated" ||
                     recentActions.recommendationsGenerated
@@ -1035,7 +994,11 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   </span>
                 </Button>
                 <Button
-                  onClick={() => updateTrendingMutation.mutate()}
+                  onClick={() =>
+                    updateTrendingMutation.mutate(undefined, {
+                      onSuccess: () => markRecentAction("trendingUpdated"),
+                    })
+                  }
                   className={`w-full break-words disabled:opacity-50 ${
                     params.success === "trending-updated" ||
                     recentActions.trendingUpdated
@@ -1052,7 +1015,11 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   </span>
                 </Button>
                 <Button
-                  onClick={() => refreshCacheMutation.mutate()}
+                  onClick={() =>
+                    refreshCacheMutation.mutate(undefined, {
+                      onSuccess: () => markRecentAction("cacheRefreshed"),
+                    })
+                  }
                   className={`w-full break-words disabled:opacity-50 ${
                     params.success === "cache-refreshed" ||
                     recentActions.cacheRefreshed
@@ -1065,7 +1032,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   <span className="break-words text-xs sm:text-sm">
                     {refreshCacheMutation.isPending
                       ? "Refreshing..."
-                      : "Refresh Recommendation Cache"}
+                      : "Refresh Recommendations"}
                   </span>
                 </Button>
               </div>

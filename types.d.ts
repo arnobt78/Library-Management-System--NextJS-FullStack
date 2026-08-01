@@ -31,6 +31,8 @@ interface Book {
   pageCount?: number | null;
   edition?: string | null;
   isActive: boolean;
+  /** Curated homepage hero; at most one active featured book */
+  isFeatured: boolean;
   updatedAt: Date | null;
   updatedBy?: string | null;
   createdAt: Date | null;
@@ -63,11 +65,12 @@ interface BookParams {
   pageCount?: number;
   edition?: string;
   isActive?: boolean;
+  /** When true, clears featured on all other books in the same write transaction */
+  isFeatured?: boolean;
 }
 
 interface BorrowBookParams {
   bookId: string;
-  userId: string;
 }
 
 interface BorrowRecord {

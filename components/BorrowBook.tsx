@@ -43,8 +43,6 @@ const BorrowBook = ({
       return; // Validation handled by mutation
     }
 
-    console.log("[BorrowBook] Starting mutation", { userId, bookId });
-
     // Use mutation to borrow book
     borrowBookMutation.mutate(
       {
@@ -52,8 +50,7 @@ const BorrowBook = ({
         bookId,
       },
       {
-        onSuccess: (data) => {
-          console.log("[BorrowBook] Mutation successful", data);
+        onSuccess: () => {
           // CRITICAL: Navigate after mutation completes
           // The optimistic update is already in the cache, and now we have the real data
           // React Query will use the cached data instead of refetching

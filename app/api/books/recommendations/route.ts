@@ -25,6 +25,7 @@ import { desc, eq, sql, and, inArray, notInArray } from "drizzle-orm";
 import { auth } from "@/auth";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { parsePositiveInteger } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") || undefined;
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const limit = parsePositiveInteger(searchParams.get("limit"), 10, 50);
 
     // Get session to determine user if userId not provided
     // Note: Authentication is optional - works for both authenticated and anonymous users

@@ -16,7 +16,12 @@
  * ```
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/keys";
 import { createBook, updateBook } from "@/lib/admin/actions/book";
 import { bulkDeleteBooks } from "@/lib/admin/actions/bulk-operations";
 import {
@@ -55,10 +60,6 @@ import {
   invalidateAfterReviewChange,
   invalidateAfterAdminChange,
   invalidateAfterRecommendationChange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  invalidateBooksQueries, // Used indirectly via invalidateAfter* functions
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  invalidateReviewsQueries, // Used indirectly via invalidateAfter* functions
 } from "@/lib/utils/queryInvalidation";
 // BookParams is a global type from types.d.ts, no import needed
 
@@ -78,7 +79,6 @@ import {
  *   author: "Author Name",
  *   genre: "Fiction",
  *   // ... other BookParams fields
- *   updatedBy: userId,
  * });
  * ```
  */
@@ -86,7 +86,7 @@ export const useCreateBook = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: BookParams & { updatedBy?: string }) => {
+    mutationFn: async (params: BookParams) => {
       const result = await createBook(params);
       if (!result.success) {
         throw new Error(result.message || "Failed to create book");
@@ -127,7 +127,6 @@ export const useCreateBook = () => {
  *   title: "Updated Book Title",
  *   author: "Updated Author",
  *   // ... other Partial<BookParams> fields
- *   updatedBy: userId,
  * });
  * ```
  */
@@ -140,7 +139,7 @@ export const useUpdateBook = () => {
       ...params
     }: {
       bookId: string;
-    } & Partial<BookParams> & { updatedBy?: string }) => {
+    } & Partial<BookParams>) => {
       const result = await updateBook(bookId, params);
       if (!result.success) {
         throw new Error(result.message || "Failed to update book");
@@ -199,11 +198,14 @@ export const useDeleteBook = () => {
   return useMutation({
     mutationFn: async ({
       bookIds,
+      deleteSecret,
     }: {
       bookIds: string[];
       bookTitle?: string; // Optional, for toast message
+      /** Required ADMIN_DELETE_SECRET — verified server-side only */
+      deleteSecret: string;
     }) => {
-      const result = await bulkDeleteBooks(bookIds);
+      const result = await bulkDeleteBooks(bookIds, deleteSecret);
       if (!result.success) {
         throw new Error(result.message || "Failed to delete book(s)");
       }
@@ -507,18 +509,13 @@ export const useBorrowBook = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      userId,
-      bookId,
-    }: {
+    mutationFn: async ({ bookId }: {
       userId: string;
       bookId: string;
       bookTitle?: string; // Optional, for toast message
     }) => {
-      console.log("[useBorrowBook] Calling server action", { userId, bookId });
       try {
-        const result = await borrowBook({ userId, bookId });
-        console.log("[useBorrowBook] Server action result", result);
+        const result = await borrowBook({ bookId });
         if (!result.success) {
           throw new Error(result.error || "Failed to request book");
         }
@@ -532,7 +529,7 @@ export const useBorrowBook = () => {
     // This eliminates flicker by updating UI instantly before server responds
     onMutate: async ({ userId, bookId, bookTitle }) => {
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["user-borrows"] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
 
       // Get book details from cache (from book detail query)
       const bookData = queryClient.getQueryData<{
@@ -552,11 +549,11 @@ export const useBorrowBook = () => {
         createdAt: Date | null;
         updatedAt: Date | null;
         [key: string]: unknown;
-      }>(["book", bookId]);
+      }>(queryKeys.books.detail(bookId));
 
       // Get all user-borrows queries for rollback
       const previousQueries: Array<{
-        queryKey: unknown[];
+        queryKey: QueryKey;
         data: unknown;
       }> = [];
 
@@ -639,7 +636,7 @@ export const useBorrowBook = () => {
               // Store previous data for rollback
               previousQueries.push({
                 queryKey,
-                data: JSON.parse(JSON.stringify(existingData)), // Deep clone
+                data: structuredClone(existingData),
               });
 
               // Check if optimistic record already exists (prevent duplicates)
@@ -664,7 +661,7 @@ export const useBorrowBook = () => {
 
       // CRITICAL: Also ensure the main query exists even if it wasn't in the cache
       // This is the query key used by MyProfileTabs: ["user-borrows", userId, undefined]
-      const mainQueryKey: unknown[] = ["user-borrows", userId, undefined];
+      const mainQueryKey = queryKeys.borrows.user(userId);
       const mainQueryExists = queryClient.getQueryCache().find({
         queryKey: mainQueryKey,
       });
@@ -694,50 +691,7 @@ export const useBorrowBook = () => {
       return { previousQueries, optimisticRecordId: optimisticRecord.id };
     },
     onSuccess: async (_data, _variables, _context) => {
-      // CRITICAL: Only invalidate user-borrows to trigger fresh fetch (causes 1 blink, but ensures fresh data)
-      // Other queries will refetch when user visits those pages (no immediate blink)
-      queryClient.invalidateQueries({
-        queryKey: ["user-borrows", _variables.userId],
-        exact: false,
-        refetchType: "active", // Refetch active queries immediately (only user-borrows on my-profile page)
-      });
-
-      // Mark other queries as stale (they'll refetch when visited, not immediately)
-      queryClient.invalidateQueries({
-        queryKey: ["books"],
-        exact: false,
-        refetchType: "none", // Don't refetch immediately - prevents blinks
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["all-books"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["book"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["book-borrow-stats"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["book-reviews"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["review-eligibility"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["borrow-requests"],
-        exact: false,
-        refetchType: "none",
-      });
+      await invalidateAfterBorrowChange(queryClient);
 
       // Show success toast
       const bookTitle = _variables.bookTitle || "Book";
@@ -920,46 +874,8 @@ export const useReturnBook = () => {
     },
     // CRITICAL: No optimistic updates - just invalidate to trigger fresh API fetch
     // This ensures we always have fresh data from server (1 blink is acceptable)
-    onSuccess: (data, variables) => {
-      // CRITICAL: Only invalidate user-borrows to trigger fresh fetch (causes 1 blink, but ensures fresh data)
-      // Other queries will refetch when user visits those pages (no immediate blink)
-      queryClient.invalidateQueries({
-        queryKey: ["user-borrows"],
-        exact: false,
-        refetchType: "active", // Refetch active queries immediately (only user-borrows on my-profile page)
-      });
-
-      // Mark other queries as stale (they'll refetch when visited, not immediately)
-      queryClient.invalidateQueries({
-        queryKey: ["books"],
-        exact: false,
-        refetchType: "none", // Don't refetch immediately - prevents blinks
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["all-books"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["book"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["book-borrow-stats"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["book-reviews"],
-        exact: false,
-        refetchType: "none",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["review-eligibility"],
-        exact: false,
-        refetchType: "none",
-      });
+    onSuccess: async (data, variables) => {
+      await invalidateAfterBorrowChange(queryClient);
 
       // Show toast notification
       const bookTitle = variables.bookTitle || "Book";
@@ -1172,7 +1088,6 @@ export const useDeleteReview = () => {
  * // Approve an admin request:
  * approveAdminRequestMutation.mutate({
  *   requestId: "request-123",
- *   reviewedBy: "admin-user-id",
  *   userName: "John Doe", // Optional, for toast message
  * });
  * ```
@@ -1181,15 +1096,11 @@ export const useApproveAdminRequest = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      requestId,
-      reviewedBy,
-    }: {
+    mutationFn: async ({ requestId }: {
       requestId: string;
-      reviewedBy: string;
       userName?: string; // Optional, for toast message
     }) => {
-      const result = await approveAdminRequest(requestId, reviewedBy);
+      const result = await approveAdminRequest(requestId);
       if (!result.success) {
         throw new Error(result.error || "Failed to approve admin request");
       }
@@ -1198,7 +1109,6 @@ export const useApproveAdminRequest = () => {
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, admin requests, admin stats)
       invalidateAfterAdminChange(queryClient);
-      invalidateAfterUserChange(queryClient); // User role changed
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -1233,7 +1143,6 @@ export const useApproveAdminRequest = () => {
  * // Reject an admin request:
  * rejectAdminRequestMutation.mutate({
  *   requestId: "request-123",
- *   reviewedBy: "admin-user-id",
  *   rejectionReason: "Insufficient experience", // Optional
  *   userName: "John Doe", // Optional, for toast message
  * });
@@ -1245,19 +1154,13 @@ export const useRejectAdminRequest = () => {
   return useMutation({
     mutationFn: async ({
       requestId,
-      reviewedBy,
       rejectionReason,
     }: {
       requestId: string;
-      reviewedBy: string;
       rejectionReason?: string; // Optional rejection reason
       userName?: string; // Optional, for toast message
     }) => {
-      const result = await rejectAdminRequest(
-        requestId,
-        reviewedBy,
-        rejectionReason
-      );
+      const result = await rejectAdminRequest(requestId, rejectionReason);
       if (!result.success) {
         throw new Error(result.error || "Failed to reject admin request");
       }
@@ -1266,7 +1169,6 @@ export const useRejectAdminRequest = () => {
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, admin requests, admin stats)
       invalidateAfterAdminChange(queryClient);
-      invalidateAfterUserChange(queryClient); // May affect user queries
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -1301,7 +1203,6 @@ export const useRejectAdminRequest = () => {
  * // Remove admin privileges:
  * removeAdminPrivilegesMutation.mutate({
  *   userId: "user-123",
- *   removedBy: "admin-user-id",
  *   userName: "John Doe", // Optional, for toast message
  * });
  * ```
@@ -1310,15 +1211,11 @@ export const useRemoveAdminPrivileges = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      userId,
-      removedBy,
-    }: {
+    mutationFn: async ({ userId }: {
       userId: string;
-      removedBy: string;
       userName?: string; // Optional, for toast message
     }) => {
-      const result = await removeAdminPrivileges(userId, removedBy);
+      const result = await removeAdminPrivileges(userId);
       if (!result.success) {
         throw new Error(result.error || "Failed to remove admin privileges");
       }
@@ -1327,7 +1224,6 @@ export const useRemoveAdminPrivileges = () => {
     onSuccess: (data, variables) => {
       // Invalidate all related queries (users, admin requests, admin stats)
       invalidateAfterAdminChange(queryClient);
-      invalidateAfterUserChange(queryClient); // User role changed
 
       // Show success toast
       const userName = variables.userName || "User";
@@ -1361,7 +1257,6 @@ export const useRemoveAdminPrivileges = () => {
  * // Update fine amount:
  * updateFineConfigMutation.mutate({
  *   fineAmount: 1.50,
- *   updatedBy: "admin@example.com", // Optional
  * });
  * ```
  */
@@ -1369,20 +1264,15 @@ export const useUpdateFineConfig = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      fineAmount,
-      updatedBy,
-    }: {
+    mutationFn: async ({ fineAmount }: {
       fineAmount: number;
-      updatedBy?: string; // Optional, admin email
     }) => {
-      const config = await updateFineConfig(fineAmount, updatedBy);
+      const config = await updateFineConfig(fineAmount);
       return config;
     },
     onSuccess: (data, variables) => {
       // Invalidate all related queries (admin stats, fine config, borrows)
       invalidateAfterAdminChange(queryClient);
-      invalidateAfterBorrowChange(queryClient); // Fine changes affect borrow records
 
       // Show success toast
       showToast.success(
@@ -1427,7 +1317,6 @@ export const useSendDueReminders = () => {
     onSuccess: (data) => {
       // Invalidate all related queries (admin stats, borrows)
       invalidateAfterAdminChange(queryClient);
-      invalidateAfterBorrowChange(queryClient);
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -1472,7 +1361,6 @@ export const useSendOverdueReminders = () => {
     onSuccess: (data) => {
       // Invalidate all related queries (admin stats, borrows)
       invalidateAfterAdminChange(queryClient);
-      invalidateAfterBorrowChange(queryClient);
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -1526,7 +1414,6 @@ export const useUpdateOverdueFines = () => {
     onSuccess: (data) => {
       // Invalidate all related queries (admin stats, borrows, analytics)
       invalidateAfterAdminChange(queryClient);
-      invalidateAfterBorrowChange(queryClient);
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -1632,9 +1519,7 @@ export const useUpdateTrendingBooks = () => {
 };
 
 /**
- * Hook to refresh recommendation cache (admin action).
- * Automatically invalidates related queries and shows success/error toasts.
- * Refreshes the recommendation cache by clearing and regenerating cached recommendations.
+ * Marks recommendation queries stale so active consumers refetch from the database.
  *
  * @returns React Query mutation object with mutate function and loading/error states
  *
@@ -1654,14 +1539,12 @@ export const useRefreshRecommendationCache = () => {
       const result = await refreshRecommendationCache();
       return result;
     },
-    onSuccess: (_data) => {
-      // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
+    onSuccess: (data) => {
       invalidateAfterRecommendationChange(queryClient);
 
-      // Show success toast
       showToast.success(
-        "Recommendation Cache Refreshed",
-        "Recommendation cache has been cleared and refreshed. All cached recommendations will be regenerated on next request."
+        "Recommendations Refreshed",
+        data.message
       );
     },
     onError: (error: Error) => {
