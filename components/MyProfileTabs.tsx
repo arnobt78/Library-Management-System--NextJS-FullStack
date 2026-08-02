@@ -27,7 +27,8 @@ import {
   Calendar,
   AlertTriangle,
   Star,
-  Eye,
+  BookOpenText,
+  Sparkles,
   RotateCcw,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -686,11 +687,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       }`}
                     >
                       {isOverdue ? (
-                        <AlertTriangle className="size-3 text-red-400 sm:size-4" />
+                        <AlertTriangle className="inline size-3 text-red-400 sm:size-4" />
                       ) : daysRemaining <= 2 ? (
                         <AlertTriangle className="size-3 text-orange-600 sm:size-4" />
                       ) : (
-                        <BookOpen className="size-3 text-blue-400 sm:size-4" />
+                        <BookOpen className="inline size-3 text-blue-400 sm:size-4" />
                       )}
                       <span
                         className={`text-xs sm:text-sm ${
@@ -712,7 +713,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
                   {record.status === "RETURNED" && (
                     <div className="flex items-center gap-1.5 rounded bg-green-500/10 px-2 py-1 sm:gap-2">
-                      <Calendar className="size-3 text-green-600 sm:size-4" />
+                      <Calendar className="inline size-3 text-green-600 sm:size-4" />
                       <span className="text-xs text-green-600 sm:text-sm">
                         Successfully returned
                       </span>
@@ -724,7 +725,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 <div className="mb-2 flex flex-wrap gap-2">
                   {(record.fineAmount > 0 || calculatedFine > 0) && (
                     <div className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
-                      <AlertTriangle className="size-3 text-red-400 sm:size-4" />
+                      <AlertTriangle className="inline size-3 text-red-400 sm:size-4" />
                       <span className="text-xs font-medium text-red-400 sm:text-sm">
                         $
                         {(record.fineAmount > 0
@@ -740,7 +741,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
                   {record.renewalCount > 0 && (
                     <div className="flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
-                      <RotateCcw className="size-3 text-purple-400 sm:size-4" />
+                      <RotateCcw className="inline size-3 text-purple-400 sm:size-4" />
                       <span className="text-xs font-medium text-purple-400 sm:text-sm">
                         {record.renewalCount}
                       </span>
@@ -777,7 +778,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                           disabled={isRenewPending}
                           className="flex items-center gap-1 rounded bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50 sm:px-3 sm:text-sm"
                         >
-                          <RotateCcw className="size-3 sm:size-4" />
+                          <Sparkles className="size-3 sm:size-4" />
                           {renewingRecordId === record.id
                             ? "Renewing…"
                             : "Renew Loan"}
@@ -791,7 +792,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       onClick={handleViewDetails}
                       className="flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 sm:px-3 sm:text-sm"
                     >
-                      <Eye className="size-3 sm:size-4" />
+                      <BookOpenText className="inline size-3 sm:size-4" />
                       <span>View Details</span>
                     </button>
                   )}
@@ -801,7 +802,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       onClick={handleViewDetails}
                       className="flex items-center gap-1 rounded bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 sm:px-3 sm:text-sm"
                     >
-                      <Star className="size-3 sm:size-4" />
+                      <Star className="inline size-3 sm:size-4" />
                       <span>Review Book</span>
                     </button>
                   )}
