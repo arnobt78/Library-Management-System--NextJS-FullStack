@@ -169,7 +169,7 @@ This repository is both a **working library product** and a **full-stack learnin
 
 ## Architecture Walkthrough
 
-```text
+```bash
 Browser
   │
   ├─ App Router pages (RSC) ──► PostgreSQL via Drizzle
@@ -196,7 +196,7 @@ Browser
 
 ## Project Structure
 
-```text
+```bash
 university-library/
 ├── app/
 │   ├── (auth)/                 # Sign-in / sign-up
