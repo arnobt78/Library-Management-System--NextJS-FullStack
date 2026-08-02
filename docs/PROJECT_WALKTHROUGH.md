@@ -101,7 +101,7 @@ Accepted implementation commit: `d9b9fd9`. Agile V cycle C1 is complete and froz
 
 ## Agent resume
 
-Read `CLAUDE.md`, `.agile-v/STATE.md`, `.agile-v/CHECKPOINTS.md`, `.agile-v/REQUIREMENTS.md`, and `.agile-v/VALIDATION_SUMMARY.md` before the next change.
+Read `CLAUDE.md`, `.agile-v/STATE.md`, `.agile-v/CHECKPOINTS.md`, `.agile-v/REQUIREMENTS.md`, and `.agile-v/VALIDATION_SUMMARY.md` before the next change. Learner-facing docs: educational `README.md` + `SECURITY.md` (seed via `npm run seed:reset`; Borrow History profile SSR/`BorrowRecordFull`).
 
 ## C2 implementation boundary
 

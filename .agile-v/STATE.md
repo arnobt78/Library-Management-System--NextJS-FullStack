@@ -39,3 +39,4 @@ Collect deployed provider receipt, browser/performance, alert-route, load, backu
 - `npm run seed:reset`: FK-safe wipe + 17 books + `test@user.com` / `test@admin.com` (APPROVED, local avatars). Owner ran successfully on configured DB.
 - Borrow History nav; profile Unknown Book flash fixed (`initialDataUpdatedAt` + `BorrowRecordFull` + book-title guard).
 - Sign-in Select / ProfileDropdown / MobileMenu use `UserAvatar`. Login: `0009` applied; rehash non-fatal. GitGuardian scrypt dummy string = FP.
+- Educational README + SECURITY refreshed (seed:reset docs; private reports contact@arnobmahmud.com).
