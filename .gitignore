@@ -52,4 +52,7 @@ BREVO_INTEGRATION_GUIDE.md
 DATABASE_SETUP_GUIDE.md
 DATABASE_CONNECTION_GUIDE.md
 docs/personal-dev-info.txt
+
+# Ignore all env files except the committed template
 .env*
+!.env.example
