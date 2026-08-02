@@ -64,6 +64,7 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Borrow approval/return/rejection, fine batches, bulk lifecycle work, admin-request approval, and hard deletion use transactions and row locks to prevent partial or replayed state changes.
 - User permission/status writes and fine updates record the authenticated admin; migration `0009_users_audit_fields.sql` adds the user audit columns.
 - Sign-in demo dropdown: `TEST_ACCOUNTS` (Test User / Test Admin). Seed with `npm run seed:test-profiles`. Avatars are local `universityCard` paths (`/images/profile-img1.png`, `/images/profile-img2.png`) rendered by `UserAvatar` via `resolveUniversityCard` (local | http | ImageKit).
+- Login hardening (2026-08-02): shared DB must have `users.updated_at`/`updated_by` (`0009`); password rehash failures must not abort credentials authorize. Do not write scrypt hashes into a DB while production still runs a pre-scrypt build.
 
 ## Environment
 

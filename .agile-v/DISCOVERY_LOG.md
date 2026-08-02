@@ -96,4 +96,5 @@ Insight INS-0005 (OBS-0010, OBS-0011): Documentation and process scaffold may la
 - gRPC adds no demonstrated value inside the current Next.js monolith and is a C2 non-goal.
 - Apply the referenced design guides selectively: preserve current tokens/layout, use granular stable data slots, and gate motion/media polish on accessibility and performance.
 - Never auto-enable credentials from `docs/personal-dev-info.txt`; use only approved server-side environment variables and provider contracts.
-- Demo avatars: local `/images/profile-img*.png` in `universityCard` + `resolveUniversityCard`; seed via `npm run seed:test-profiles` (scrypt). Not ImageKit-required for demo accounts.
+- Demo avatars: local `/images/profile-img*.png` in `universityCard` + `resolveUniversityCard`; seed via `npm run seed:test-profiles`. Not ImageKit-required for demo accounts.
+- Shared-DB ops: never leave production on a pre-scrypt build while writing `$scrypt$` hashes; always apply `0009` before code that selects `users.updated_at`/`updated_by`.

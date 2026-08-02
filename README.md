@@ -1,18 +1,19 @@
-# University Library Management System - Next.js, TypeScript, Postgres, Drizzle ORM, NextAuth, TanStack Query, Upstash Redis, ImageKit, QStash, Brevo, Resend Full-Stack Project(including Role-Based Access Control + Automated Workflows + Admin Panel + Analytics + Review + Recommendations + Fine Management + User Management + Book Management + Borrow Management + Return Management & more)
+# University Library Management System — Next.js, TypeScript, PostgreSQL, Drizzle ORM, Auth.js, TanStack Query, Upstash Redis, ImageKit, QStash, Brevo, Resend Full-Stack Project (RBAC + Workflows + Admin + Analytics + Reviews + Reservations + Recommendations + Fines + Borrow Lifecycle & more)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2.12-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2.8-blue)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Drizzle-336791)](https://orm.drizzle.team/)
 [![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-FF4154)](https://tanstack.com/query)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38B2AC)](https://tailwindcss.com/)
-[![launch with diploi badge](https://diploi.com/launch.svg)](https://diploi.com/launch/arnobt78/university-library)
+[![Auth.js](https://img.shields.io/badge/Auth.js-v5-black)](https://authjs.dev/)
+[![launch with diploi badge](https://diploi.com/launch.svg)](https://diploi.com/launch/arnobt78/Library-Management-System--NextJS-FullStack)
 
-A production-oriented full-stack **university library** platform built with **Next.js App Router**, **TypeScript**, **PostgreSQL (Drizzle ORM)**, **NextAuth**, **TanStack Query**, **Upstash Redis**, **ImageKit**, and multi-provider email. It includes public catalog browsing, borrow workflows, reviews, admin CRUD, featured homepage hero, fines/reminders, analytics, and API health docs.
+A production-oriented full-stack **university library** platform (**BookWise**) built with the **Next.js App Router**, **React 19**, **strict TypeScript**, **PostgreSQL + Drizzle ORM**, **Auth.js (NextAuth v5)**, **TanStack Query**, **Upstash Redis** (rate limits only), **ImageKit**, and multi-provider email. It teaches a real architecture: server-first pages, client hydration, typed mutations, domain invalidation, and secure admin operations.
 
 - **Live demo:** [https://university-library-managment.vercel.app/](https://university-library-managment.vercel.app/)
-- **Security:** private vulnerability reports → see [SECURITY.md](./SECURITY.md) · [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
+- **Security:** private reports → [SECURITY.md](./SECURITY.md) · [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
 - **Author:** [Arnob Mahmud](https://www.arnobmahmud.com) · [GitHub @arnobt78](https://github.com/arnobt78)
 
 ![BookWise screenshot](https://github.com/user-attachments/assets/e495275c-a7b2-45aa-bd37-cd37ca1dadf8)
@@ -50,31 +51,35 @@ A production-oriented full-stack **university library** platform built with **Ne
 9. [API Endpoints](#api-endpoints)
 10. [Reusable Components](#reusable-components)
 11. [Hooks, Cache & Invalidation](#hooks-cache--invalidation)
-12. [Getting Started](#getting-started)
-13. [Environment Variables](#environment-variables)
-14. [How to Obtain Each Secret](#how-to-obtain-each-secret)
-15. [Scripts & Tooling](#scripts--tooling)
-16. [Educational Code Snippets](#educational-code-snippets)
-17. [Reusing Pieces in Other Projects](#reusing-pieces-in-other-projects)
-18. [Security](#security)
-19. [Contributing & Support](#contributing--support)
-20. [Conclusion](#conclusion)
-21. [License](#license)
+12. [Authentication & Security Model](#authentication--security-model)
+13. [Getting Started](#getting-started)
+14. [Environment Variables](#environment-variables)
+15. [How to Obtain Each Secret](#how-to-obtain-each-secret)
+16. [Demo Test Accounts](#demo-test-accounts)
+17. [Scripts & Tooling](#scripts--tooling)
+18. [Educational Code Snippets](#educational-code-snippets)
+19. [Important Libraries (Beginner Notes)](#important-libraries-beginner-notes)
+20. [Reusing Pieces in Other Projects](#reusing-pieces-in-other-projects)
+21. [Security](#security)
+22. [Contributing & Support](#contributing--support)
+23. [Conclusion](#conclusion)
+24. [License](#license)
 
 ---
 
 ## What You Will Learn
 
-This repository is designed both as a **working library product** and as a **learning lab** for full-stack Next.js:
+This repository is both a **working library product** and a **full-stack learning lab**:
 
-- App Router **server components** (`page.tsx`) for fast first paint vs **client components** for interactivity
-- **Drizzle ORM** schema, migrations, and typed queries against PostgreSQL
-- **NextAuth (Auth.js) v5** credentials login, JWT sessions, and role checks (`USER` / `ADMIN`)
-- **TanStack Query** with SSR `initialData`, infinite `staleTime`, and central invalidation after mutations
-- **Zod + React Hook Form** for validated forms
-- **shadcn/ui + Tailwind** for consistent admin and public UI
-- External services: **ImageKit** uploads, **Upstash Redis** rate limits, **QStash** workflows, **Brevo / Resend** email
-- Admin hard-delete gated by `ADMIN_DELETE_SECRET`, featured-book homepage hero, borrow lifecycle, reviews, fines
+- **App Router** server components (`page.tsx`) for fast first paint vs **`"use client"`** for interactivity
+- **Drizzle ORM** schema, SQL migrations, and typed PostgreSQL access
+- **Auth.js v5** credentials login, JWT sessions, DB-backed role/status authority
+- **scrypt** password hashing with safe legacy SHA-256 verify + rehash-on-login
+- **TanStack Query** with SSR `initialData`, typed query keys, mutation-domain invalidation, same-origin tab sync
+- **Zod + React Hook Form** for validated auth and book forms
+- **shadcn/ui + Tailwind** for public (dark) and admin (light) UI
+- External services: **ImageKit**, **Upstash Redis** (rate limit only), **QStash** workflows, **Brevo / Resend**
+- Library domain: featured hero, borrow lifecycle, **reservations / waitlist / renewals**, reviews, fines, analytics, user 360
 
 ---
 
@@ -82,77 +87,83 @@ This repository is designed both as a **working library product** and as a **lea
 
 ### Public / student app
 
-| Feature           | What it does                                                           |
-| ----------------- | ---------------------------------------------------------------------- |
-| Auth              | Sign up / sign in; accounts start as `PENDING` until an admin approves |
-| Catalog           | Browse all books, search/filter, open book detail                      |
-| Featured hero     | Homepage shows curated `isFeatured` book (else newest active)          |
-| Borrow            | Request a book → admin approves → due dates / return                   |
-| Profile           | Borrowing history, stats, return flows                                 |
-| Reviews           | Create / edit / delete own reviews (eligibility rules apply)           |
-| API docs & status | In-app API documentation and live health/metrics pages                 |
+| Feature           | What it does                                                               |
+| ----------------- | -------------------------------------------------------------------------- |
+| Auth              | Sign up / sign in; new accounts often start `PENDING` until admin approval |
+| Demo dropdown     | Sign-in Select shows Test User / Test Admin with avatar + email (seeded)   |
+| Catalog           | Browse, search/filter, open book detail                                    |
+| Featured hero     | Homepage curated `isFeatured` book (else newest active)                    |
+| Borrow            | Request → admin approve → due dates / return                               |
+| Reservations      | Hold / waitlist / READY notifications (outbox + cron recovery)             |
+| Profile           | Borrowing history, reservations panel, stats                               |
+| Reviews           | Create / edit / delete own reviews (eligibility rules)                     |
+| API docs & status | In-app API documentation and health/metrics pages                          |
 
 ### Admin app (`/admin`)
 
-| Feature          | What it does                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------- |
-| Books            | Create / edit / soft-deactivate (`isActive`) / hard-delete (secret) / feature on homepage |
-| Users            | Approve / reject accounts, manage roles                                                   |
-| Borrow requests  | Approve / reject pending loans                                                            |
-| Account requests | Review admin-privilege requests                                                           |
-| Automation       | Fine config, overdue fine updates, due/overdue reminders                                  |
-| Analytics        | Business insights, charts, CSV-style exports                                              |
-| Recommendations  | Generate / refresh trending and personalized suggestion data                              |
+| Feature          | What it does                                                                 |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Books            | Create / edit / soft-deactivate / hard-delete (secret) / feature on homepage |
+| Users            | Approve / reject, roles; user 360 detail at `/admin/users/[id]`              |
+| Borrow requests  | Approve / reject / return lifecycle (transactional)                          |
+| Account requests | Review “become admin” requests                                               |
+| Automation       | Fine config, overdue fines, due/overdue reminders                            |
+| Analytics        | Business insights, charts, exports                                           |
+| Recommendations  | Generate / refresh trending & personalized data                              |
 
 ### Technical features
 
-- Responsive Tailwind layouts (public dark theme + admin light theme)
-- Instant UI updates via React Query invalidation + `router.refresh()` after book CRUD
-- Rate limiting with Upstash Redis
-- TypeScript throughout; Vitest available for tests
+- Instant UI updates via typed mutation → domain invalidation (+ `router.refresh()` where needed)
+- Same-origin tab coherence via data-free `BroadcastChannel` (not cross-device push)
+- Rate limiting with Upstash Redis (Redis is **not** a business-data cache)
+- Vitest unit + disposable-PostgreSQL integration tests
+- Vercel-friendly Node runtime (recommend **Node 24.x** on Vercel; app requires `>=20.9.0`)
 
 ---
 
 ## Technology Stack
 
-| Layer        | Choice                                      | Role in this project                           |
-| ------------ | ------------------------------------------- | ---------------------------------------------- |
-| Framework    | **Next.js 16** (App Router)                 | Pages, layouts, Route Handlers, server actions |
-| UI library   | **React 19**                                | Components and hooks                           |
-| Language     | **TypeScript 5.9**                          | Static typing across app / API / schema        |
-| Styling      | **Tailwind CSS 3** + **shadcn/ui**          | Utility CSS + accessible primitives            |
-| Auth         | **next-auth 5 (beta)**                      | Credentials provider, JWT session              |
-| ORM          | **Drizzle ORM** + **pg**                    | PostgreSQL access                              |
-| Client cache | **TanStack Query 5**                        | Lists, details, mutations, invalidation        |
-| Forms        | **react-hook-form** + **Zod**               | Validated sign-in/up and book forms            |
-| Media        | **@imagekit/next**                          | Covers, ID cards, trailers                     |
-| Rate limit   | **@upstash/redis** + **@upstash/ratelimit** | Abuse protection                               |
-| Jobs         | **@upstash/workflow** / QStash              | Onboarding workflows when enabled              |
-| Email        | **Brevo** (primary) + **Resend** (fallback) | Receipts / reminders                           |
-| Charts       | **Recharts**                                | Admin analytics                                |
-| Icons        | **lucide-react**                            | UI icons                                       |
-| Tests        | **Vitest**                                  | Unit/integration test runner                   |
+| Layer        | Choice                                               | Role                                           |
+| ------------ | ---------------------------------------------------- | ---------------------------------------------- |
+| Framework    | **Next.js 16.2.12** (App Router)                     | Pages, layouts, Route Handlers, server actions |
+| UI           | **React 19.2.8**                                     | Components and hooks                           |
+| Language     | **TypeScript ~5.9**                                  | Static typing across app / API / schema        |
+| Styling      | **Tailwind CSS 3** + **shadcn/ui** (Radix)           | Utility CSS + accessible primitives            |
+| Auth         | **next-auth 5.0.0-beta.32**                          | Credentials provider, JWT session              |
+| Passwords    | **Node scrypt** (`lib/auth/password.ts`)             | Memory-hard hashes + legacy upgrade            |
+| ORM          | **Drizzle ORM** + **pg**                             | PostgreSQL access                              |
+| Client cache | **TanStack Query 5**                                 | Lists, details, mutations, invalidation        |
+| Forms        | **react-hook-form** + **Zod 4**                      | Validated forms / inputs                       |
+| Media        | **@imagekit/next**                                   | Covers, ID cards, trailers                     |
+| Rate limit   | **@upstash/redis** + **ratelimit**                   | Abuse protection                               |
+| Jobs         | **@upstash/workflow** / QStash                       | Optional onboarding workflows                  |
+| Email        | **Brevo** (primary) + **Resend** (fallback / outbox) | Receipts, reminders, READY mail                |
+| Charts       | **Recharts**                                         | Admin analytics                                |
+| Icons        | **lucide-react**                                     | UI icons                                       |
+| Tests        | **Vitest**                                           | Unit / integration runner                      |
 
-**Runtime:** Node.js `>= 20.9.0` (see `package.json` `engines`).
+**Runtime:** Node.js `>= 20.9.0` (`package.json` `engines`). On Vercel, prefer **24.x** project + production Node settings.
 
 ---
 
 ## Keywords Glossary
 
-| Keyword              | Meaning here                                                                                |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| **App Router**       | Next.js file-based routing under `app/` (`page.tsx`, `layout.tsx`, `route.ts`)              |
-| **RSC**              | React Server Component — runs on the server, can talk to DB directly                        |
-| **Client component** | Marked `"use client"` — hooks, browser APIs, interactive UI                                 |
-| **Server action**    | `"use server"` function callable from the client (e.g. `createBook`)                        |
-| **SSR hydration**    | Pass `initialData` from `page.tsx` into React Query so the first paint needs no extra fetch |
-| **Invalidation**     | Mark React Query keys stale so active observers refetch after CRUD                          |
-| **Featured book**    | `books.is_featured` — curated homepage hero (at most one)                                   |
-| **Soft delete**      | `isActive = false` — hide from catalog without removing rows                                |
-| **Hard delete**      | Physically delete book + related reviews/borrows (requires secret)                          |
-| **RBAC**             | Role-based access control — `USER` vs `ADMIN`                                               |
-| **Drizzle**          | TypeScript ORM that generates SQL from schema definitions                                   |
-| **Zod**              | Runtime schema validation for forms and inputs                                              |
+| Keyword                | Meaning here                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| **App Router**         | File-based routing under `app/` (`page.tsx`, `layout.tsx`, `route.ts`)                |
+| **RSC**                | React Server Component — can query the DB on the server                               |
+| **Client component**   | `"use client"` — hooks, browser APIs, interactive UI                                  |
+| **Server action**      | `"use server"` callable from the client (e.g. book CRUD)                              |
+| **SSR hydration**      | Pass `initialData` from `page.tsx` into React Query                                   |
+| **Invalidation**       | Mark query keys stale so active observers refetch after CRUD                          |
+| **Mutation registry**  | Typed family → query domains + RSC paths (`queryInvalidation` / `revalidateMutation`) |
+| **Featured book**      | `books.is_featured` — at most one curated homepage hero                               |
+| **Soft delete**        | `isActive = false` — hide without removing rows                                       |
+| **Hard delete**        | Physically delete book + related rows (needs `ADMIN_DELETE_SECRET`)                   |
+| **RBAC**               | `USER` vs `ADMIN` (DB role is authoritative over JWT claims)                          |
+| **Reservation outbox** | Retry-safe READY email delivery with lease / dead-letter / cron                       |
+| **Drizzle**            | TypeScript ORM mapping schema → SQL                                                   |
+| **Zod**                | Runtime schema validation                                                             |
 
 ---
 
@@ -163,22 +174,23 @@ Browser
   │
   ├─ App Router pages (RSC) ──► PostgreSQL via Drizzle
   │         │
-  │         └─ pass initialData ──► Client components + TanStack Query
-  │                                      │
-  │                                      ├─ fetch /api/* (Node runtime)
-  │                                      └─ call server actions (admin books, etc.)
+  │         └─ initialData ──► Client components + TanStack Query
+  │                                 ├─ fetch /api/* (Node runtime)
+  │                                 └─ server actions (admin / circulation)
   │
-  ├─ NextAuth session (JWT)
-  ├─ ImageKit (uploads / CDN images)
-  ├─ Upstash Redis (rate limit)
-  └─ Brevo / Resend / QStash (email & workflows)
+  ├─ Auth.js session (JWT) + DB role/status checks
+  ├─ ImageKit (uploads / CDN)
+  ├─ Upstash Redis (rate limit only)
+  ├─ Brevo / Resend (+ reservation outbox worker / cron)
+  └─ QStash workflows (optional)
 ```
 
 **Teaching rule used in this codebase:**
 
-1. Put **data loading** that can run on the server in `page.tsx`.
-2. Put **interactive UI** in client components.
-3. After any mutation, call a shared invalidator (e.g. `invalidateAfterBookChange`) and often `router.refresh()` so RSC trees stay in sync.
+1. Load data that can run on the server in `page.tsx`.
+2. Put interactive UI in client components.
+3. After mutations, use the **typed mutation registry** so related domains and RSC paths stay fresh (active refetch; inactive keys stale until next visit / focus / back navigation).
+4. Never trust browser-supplied actor IDs for privileged writes — resolve the current user from the session + database.
 
 ---
 
@@ -187,35 +199,41 @@ Browser
 ```text
 university-library/
 ├── app/
-│   ├── (auth)/              # Sign-in / sign-up layouts
-│   ├── (root)/              # Public app (home, books, profile, performance)
-│   ├── admin/               # Admin dashboard pages
-│   ├── api/                 # Route Handlers (REST-style JSON APIs)
-│   ├── api-docs/            # Interactive API documentation UI
-│   ├── api-status/          # Live service health UI
-│   ├── layout.tsx           # Root layout
-│   └── globals.css
-├── components/              # Shared UI (feature + shadcn ui/)
-├── database/
-│   ├── schema.ts            # Drizzle tables & enums
-│   ├── drizzle.ts           # DB pool
-│   ├── redis.ts             # Upstash Redis client
-│   └── seed.ts              # Seed script
-├── hooks/                   # useQueries, useMutations, performance
+│   ├── (auth)/                 # Sign-in / sign-up
+│   ├── (root)/                 # Public app (home, books, profile, performance)
+│   ├── admin/                  # Admin dashboard (+ users/[id] 360)
+│   ├── api/                    # Route Handlers (REST-style JSON)
+│   │   ├── auth/               # NextAuth + ImageKit auth
+│   │   ├── books/              # Catalog, featured, recommendations
+│   │   ├── borrow-records/
+│   │   ├── reviews/
+│   │   ├── admin/              # Stats, fines, exports, analytics, …
+│   │   ├── cron/               # Reservation notification recovery
+│   │   ├── status/             # Health / metrics
+│   │   └── workflows/          # Optional QStash onboarding
+│   ├── api-docs/ · api-status/
+│   ├── fonts/                  # next/font/local (IBM Plex, Bebas)
+│   ├── layout.tsx · globals.css
+├── components/                 # Feature UI + components/ui (shadcn)
+├── constants/                  # Nav, FIELD_*, TEST_ACCOUNTS
+├── database/                   # schema.ts, drizzle.ts, redis.ts, seed.ts
+├── hooks/                      # useQueries, useMutations, useSafeMedia
 ├── lib/
-│   ├── admin/actions/       # Server actions (books, users, bulk ops)
-│   ├── services/            # Fetch helpers used by hooks
-│   ├── utils/queryInvalidation.ts
-│   ├── validations.ts       # Zod schemas
-│   ├── config.ts            # Central env access
-│   └── workflow.ts
-├── migrations/              # SQL migrations (e.g. is_featured)
-├── scripts/                 # One-off maintenance (delete-book, migrate-featured)
-├── styles/                  # Admin CSS extras
-├── types.d.ts               # Shared Book / BookParams types
-├── auth.ts                  # NextAuth config
-├── .env.example             # Template for secrets (copy → .env)
-├── SECURITY.md              # Private vulnerability reporting
+│   ├── auth/                   # password (scrypt), authorization
+│   ├── admin/actions/          # Privileged server operations
+│   ├── circulation/            # Reservations, outbox, renewals
+│   ├── media/                  # universityCard resolver, upload validation
+│   ├── query/keys.ts           # Query-key factory
+│   ├── utils/queryInvalidation.ts · revalidateMutation.ts
+│   ├── validations.ts          # Zod schemas
+│   └── services/               # Fetch helpers for hooks
+├── migrations/                 # SQL (featured, audit, reservations, …)
+├── scripts/                    # seed-test-profiles, delete-book, …
+├── docs/                       # Walkthrough, guides, playbooks
+├── .agile-v/                   # Requirements / gates / decisions (agents)
+├── auth.ts · proxy.ts
+├── .env.example                # Env template (copy → .env)
+├── SECURITY.md
 └── package.json
 ```
 
@@ -225,16 +243,22 @@ university-library/
 
 Defined in [`database/schema.ts`](database/schema.ts):
 
-| Table            | Purpose                                                                    |
-| ---------------- | -------------------------------------------------------------------------- |
-| `users`          | Accounts, hashed password, `status`, `role`, university card               |
-| `books`          | Catalog metadata, copies, `is_active`, **`is_featured`**, cover/video URLs |
-| `borrow_records` | Loan lifecycle: `PENDING` → `BORROWED` → `RETURNED`, fines, due dates      |
-| `book_reviews`   | Per-user ratings + comments                                                |
-| `admin_requests` | Requests to become admin                                                   |
-| `system_config`  | Runtime config (e.g. fine amounts)                                         |
+| Table                  | Purpose                                                                    |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `users`                | Accounts, password hash, `status`, `role`, `university_card`, audit fields |
+| `books`                | Catalog, copies, `is_active`, **`is_featured`**, cover/video URLs          |
+| `borrow_records`       | `PENDING` → `BORROWED` → `RETURNED`, fines, due dates                      |
+| `reservations`         | Waitlist / hold / READY lifecycle                                          |
+| `reservation_events`   | Reservation event history                                                  |
+| `circulation_commands` | Idempotent circulation command ledger                                      |
+| `operation_telemetry`  | Bounded ops / SLO telemetry                                                |
+| `book_reviews`         | Ratings + comments                                                         |
+| `admin_requests`       | Become-admin requests                                                      |
+| `system_config`        | Fine amounts and runtime knobs                                             |
 
-Enums: `STATUS_ENUM`, `ROLE_ENUM`, `BORROW_STATUS_ENUM`.
+Enums include status, role, borrow status, and reservation status.
+
+Apply SQL under `migrations/` (including `0010_reservations.sql` for circulation) before expecting reservation features.
 
 ---
 
@@ -242,34 +266,32 @@ Enums: `STATUS_ENUM`, `ROLE_ENUM`, `BORROW_STATUS_ENUM`.
 
 ### Public (`app/(root)/`)
 
-| Path           | Description                     |
-| -------------- | ------------------------------- |
-| `/`            | Featured hero + recommendations |
-| `/all-books`   | Full catalog with filters       |
-| `/books/[id]`  | Book detail, borrow, reviews    |
-| `/my-profile`  | User borrowing dashboard        |
-| `/performance` | Client performance tooling page |
+| Path           | Description                        |
+| -------------- | ---------------------------------- |
+| `/`            | Featured hero + recommendations    |
+| `/all-books`   | Full catalog with filters          |
+| `/books/[id]`  | Detail, borrow, reserve, reviews   |
+| `/my-profile`  | Borrowing + reservations dashboard |
+| `/performance` | Performance / metrics UI           |
 
 ### Auth (`app/(auth)/`)
 
-| Path       | Description                                                |
-| ---------- | ---------------------------------------------------------- |
-| `/sign-in` | Credentials login (+ optional test-account dropdown in UI) |
-| `/sign-up` | Registration + university card upload                      |
+| Path       | Description                                                     |
+| ---------- | --------------------------------------------------------------- |
+| `/sign-in` | Credentials login + test-account Select (avatar / name / email) |
+| `/sign-up` | Registration + university ID card upload                        |
 
 ### Admin (`app/admin/`)
 
-| Path                       | Description                                            |
-| -------------------------- | ------------------------------------------------------ |
-| `/admin`                   | Dashboard home                                         |
-| `/admin/books`             | All books grid (view / edit / delete / featured badge) |
-| `/admin/books/new`         | Create book (+ Feature on homepage checkbox)           |
-| `/admin/books/[id]/edit`   | Update book                                            |
-| `/admin/users`             | User management                                        |
-| `/admin/book-requests`     | Borrow approvals                                       |
-| `/admin/account-requests`  | Admin access requests                                  |
-| `/admin/automation`        | Fines & reminders                                      |
-| `/admin/business-insights` | Analytics                                              |
+| Path                                   | Description                   |
+| -------------------------------------- | ----------------------------- |
+| `/admin`                               | Dashboard home                |
+| `/admin/books` · `/new` · `/[id]/edit` | Book CRUD + featured checkbox |
+| `/admin/users` · `/admin/users/[id]`   | Users list + 360 profile      |
+| `/admin/book-requests`                 | Borrow approvals              |
+| `/admin/account-requests`              | Admin access requests         |
+| `/admin/automation`                    | Fines & reminders             |
+| `/admin/business-insights`             | Analytics                     |
 
 ### Meta
 
@@ -278,6 +300,7 @@ Enums: `STATUS_ENUM`, `ROLE_ENUM`, `BORROW_STATUS_ENUM`.
 | `/api-docs`   | API documentation UI     |
 | `/api-status` | Service health dashboard |
 | `/too-fast`   | Rate-limit friendly page |
+| `/make-admin` | Request elevated access  |
 
 ---
 
@@ -287,36 +310,42 @@ Route Handlers live under `app/api/**/route.ts` (Node.js runtime where DB is nee
 
 ### Books
 
-| Method | Path                           | Notes                                      |
-| ------ | ------------------------------ | ------------------------------------------ |
-| `GET`  | `/api/books`                   | List + search/filter/pagination            |
-| `GET`  | `/api/books/[id]`              | Single book                                |
-| `GET`  | `/api/books/featured`          | Featured first, then newest active fillers |
-| `GET`  | `/api/books/genres`            | Distinct genres                            |
-| `GET`  | `/api/books/recommendations`   | Personalized / fallback recs               |
-| `GET`  | `/api/books/[id]/borrow-stats` | Borrow counters                            |
+| Method | Path                           | Notes                               |
+| ------ | ------------------------------ | ----------------------------------- |
+| `GET`  | `/api/books`                   | List + search / filter / pagination |
+| `GET`  | `/api/books/[id]`              | Single book                         |
+| `GET`  | `/api/books/featured`          | Featured first, then newest active  |
+| `GET`  | `/api/books/genres`            | Distinct genres                     |
+| `GET`  | `/api/books/recommendations`   | Personalized / fallback             |
+| `GET`  | `/api/books/[id]/borrow-stats` | Borrow counters                     |
 
-Book **writes** (create/update/delete) are primarily **server actions** in `lib/admin/actions/`, not REST POST/PUT/DELETE.
+Book **writes** are primarily **server actions** in `lib/admin/actions/` (not REST PUT/DELETE).
 
 ### Auth & media
 
 | Method | Path                      | Notes                           |
 | ------ | ------------------------- | ------------------------------- |
-| `*`    | `/api/auth/[...nextauth]` | NextAuth handlers               |
+| `*`    | `/api/auth/[...nextauth]` | Auth.js handlers                |
 | `GET`  | `/api/auth/imagekit`      | Upload auth params for ImageKit |
 
 ### Borrows, users, reviews
 
-| Method        | Path                                           | Notes                      |
-| ------------- | ---------------------------------------------- | -------------------------- |
-| `GET`/`POST`… | `/api/borrow-records`                          | Borrow list / create flows |
-| `GET`         | `/api/users`                                   | User listing (authorized)  |
-| `GET`         | `/api/reviews/[bookId]`                        | Reviews for a book         |
-| `POST`…       | `/api/reviews/edit`, `/delete`, `/eligibility` | Review mutations & checks  |
+| Method          | Path                                           | Notes                     |
+| --------------- | ---------------------------------------------- | ------------------------- |
+| `GET` / `POST`… | `/api/borrow-records`                          | Borrow list / create      |
+| `GET`           | `/api/users`                                   | Authorized user listing   |
+| `GET`           | `/api/reviews/[bookId]`                        | Reviews for a book        |
+| `POST`…         | `/api/reviews/edit`, `/delete`, `/eligibility` | Review mutations & checks |
 
 ### Admin automation & analytics
 
-Examples under `/api/admin/`: `stats`, `fine-config`, `update-overdue-fines`, `send-due-reminders`, `send-overdue-reminders`, `export`, `export-stats`, `reminder-stats`, `generate-recommendations`, `update-trending-books`, `refresh-recommendation-cache`, `borrow-requests`, `admin-requests`.
+Under `/api/admin/`: `stats`, `analytics`, `fine-config`, `update-overdue-fines`, `send-due-reminders`, `send-overdue-reminders`, `export/*`, `export-stats`, `reminder-stats`, `generate-recommendations`, `update-trending-books`, `refresh-recommendation-cache`, `borrow-requests`, `admin-requests`.
+
+### Cron / circulation recovery
+
+| Method       | Path                                  | Notes                           |
+| ------------ | ------------------------------------- | ------------------------------- |
+| `GET`/`POST` | `/api/cron/reservation-notifications` | Secured by `CRON_SECRET` Bearer |
 
 ### Status / health
 
@@ -324,46 +353,63 @@ Under `/api/status/`: `health`, `database`, `authentication`, `email-service`, `
 
 ### Workflows
 
-| Method  | Path                        | Notes                                    |
-| ------- | --------------------------- | ---------------------------------------- |
-| `POST`… | `/api/workflows/onboarding` | Upstash workflow endpoint (when enabled) |
+| Method  | Path                        | Notes                         |
+| ------- | --------------------------- | ----------------------------- |
+| `POST`… | `/api/workflows/onboarding` | Upstash workflow when enabled |
 
 ---
 
 ## Reusable Components
 
-| Component                               | Kind            | Purpose                                  |
-| --------------------------------------- | --------------- | ---------------------------------------- |
-| `BookCard`                              | Server          | Catalog tile linking to detail           |
-| `BookCover`                             | Client          | ImageKit cover + color frame             |
-| `BookList` / `BookCollection`           | Mixed           | Lists with RQ hydration                  |
-| `HomeFeaturedHero`                      | Client          | Homepage featured book + RQ              |
-| `HomeRecommendations`                   | Client          | Recommendation strip + RQ                |
-| `BookOverview` / `BookOverviewContent`  | Server / Client | Hero overview + live book state          |
-| `BookBorrowButton` / `ReturnBookButton` | Client          | Loan actions                             |
-| `ReviewsSection` / `ReviewForm*`        | Client          | Reviews CRUD UI                          |
-| `AuthForm`                              | Client          | Sign-in / sign-up                        |
-| `FileUpload`                            | Client          | ImageKit picker                          |
-| `QueryProvider`                         | Client          | App-wide React Query                     |
-| `AdminBooksList`                        | Client          | Admin book grid + delete                 |
-| `DeleteBookDialog`                      | Client          | Secret-gated hard delete                 |
-| `components/ui/*`                       | shadcn          | Button, Form, Dialog, Checkbox, Toast, … |
+| Component                                                     | Kind   | Purpose                                          |
+| ------------------------------------------------------------- | ------ | ------------------------------------------------ |
+| `BookCard` / `BookCover` / `BookList`                         | Mixed  | Catalog tiles & covers                           |
+| `HomeFeaturedHero` / `HomeRecommendations`                    | Client | Homepage + RQ hydration                          |
+| `BookBorrowButton` / `ReturnBookButton` / `ReserveBookButton` | Client | Circulation actions                              |
+| `ReservationsPanel`                                           | Client | Profile / book reservation UI                    |
+| `ReviewsSection` / `ReviewFormDialog`                         | Client | Reviews CRUD                                     |
+| `AuthForm` / `SignInFormPage` / `SignUpFormPage`              | Client | Auth UX                                          |
+| `UserAvatar`                                                  | Client | Local `/images`, remote URL, or ImageKit card    |
+| `FileUpload`                                                  | Client | ImageKit picker                                  |
+| `QueryProvider`                                               | Client | App-wide React Query + invalidation subscription |
+| `AdminBooksList` / `DeleteBookDialog`                         | Client | Admin grid + secret-gated hard delete            |
+| `PerformanceDashboard` / `AnalyticsCharts`                    | Client | Ops & charts                                     |
+| `components/ui/*`                                             | shadcn | Button, Form, Dialog, Select, Avatar, Toast, …   |
 
-**Reuse tip:** Prefer composing `components/ui/*` + a thin feature component rather than copying markup. Pass `initialData` from RSC pages into hooks to avoid duplicate network calls.
+**Reuse tip:** Compose `components/ui/*` + a thin feature wrapper. Pass RSC `initialData` into hooks to avoid duplicate first fetches.
 
 ---
 
 ## Hooks, Cache & Invalidation
 
-| Hook file                        | Role                                                                                                                 |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `hooks/useQueries.ts`            | `useBooks`, `useBook`, `useAllBooks`, `useFeaturedBooks`, `useBookRecommendations`, borrows, reviews, admin stats, … |
-| `hooks/useMutations.ts`          | `useCreateBook`, `useUpdateBook`, `useDeleteBook`, borrow/review/user mutations                                      |
-| `lib/utils/queryInvalidation.ts` | `invalidateAfterBookChange`, `invalidateBooksQueries` (includes `["featured-books"]`), etc.                          |
+| Piece                             | Role                                                       |
+| --------------------------------- | ---------------------------------------------------------- |
+| `hooks/useQueries.ts`             | Typed readers with optional SSR `initialData`              |
+| `hooks/useMutations.ts`           | Central mutations, rollback, toasts, registry invalidation |
+| `lib/query/keys.ts`               | Query-key factory / prefixes                               |
+| `lib/utils/queryInvalidation.ts`  | Mutation → domains + BroadcastChannel tab sync             |
+| `lib/utils/revalidateMutation.ts` | RSC path revalidation consumers                            |
 
-**Featured books key:** `["featured-books", limit]` — invalidated whenever books change so the homepage hero can update without a full browser reload (combined with `router.refresh()` after admin CRUD).
+**Learner model:**
 
-**Redis note:** Upstash Redis is used for **rate limiting**, not as a full book cache layer.
+1. RSC paints with server data.
+2. Query hooks reuse that data (bounded freshness).
+3. A successful mutation picks a **typed family** (e.g. `book.write`, `borrow.lifecycle`).
+4. Active queries refetch; inactive ones go stale and refresh on navigation / back / focus.
+5. Book CRUD may also call `router.refresh()` for the current RSC tree.
+
+**Redis note:** Upstash Redis is for **rate limiting only**. PostgreSQL is the source of truth for catalog and circulation data.
+
+---
+
+## Authentication & Security Model
+
+- Credentials sign-in via Auth.js; passwords hashed with **versioned scrypt** (`hashPassword` / `verifyPassword` in `lib/auth/password.ts`).
+- Legacy `salt:hash` SHA-256 still verifies and upgrades on successful login.
+- Privileged actions use `lib/auth/authorization.ts` — **current DB** role/status, not stale JWT claims alone.
+- User writes enforce ownership; admin actor IDs are server-derived.
+- Borrow / fine / hard-delete paths use transactions and row locks where required.
+- Hard delete requires `ADMIN_DELETE_SECRET` (never reuse `AUTH_SECRET`).
 
 ---
 
@@ -371,28 +417,29 @@ Under `/api/status/`: `health`, `database`, `authentication`, `email-service`, `
 
 ### Prerequisites
 
-- Node.js **20.9+**
-- npm (or pnpm/yarn)
-- A PostgreSQL database (local Docker, Neon, Hetzner, etc.)
-- Optional but recommended for full features: ImageKit, Upstash Redis, Brevo/Resend
+- Node.js **20.9+** (24.x recommended on Vercel)
+- npm
+- PostgreSQL (local Docker, Neon, etc.)
+- Recommended for full features: ImageKit, Upstash Redis, Brevo and/or Resend
 
 ### Install & run
 
 ```bash
-git clone https://github.com/arnobt78/university-library.git
-cd university-library
+git clone https://github.com/arnobt78/Library-Management-System--NextJS-FullStack.git
+cd Library-Management-System--NextJS-FullStack
 npm install
 
-# Copy env template and fill values (see below)
+# Copy env template and fill values (see Environment Variables)
 cp .env.example .env
 
-# Apply schema / featured migration as needed
+# Push / apply schema (and run SQL migrations as needed, e.g. 0010_reservations.sql)
 npm run db:migrate
-# or specifically:
-npm run db:migrate-featured
 
 # Optional: seed sample books
 npm run seed
+
+# Optional: upsert demo Test User / Test Admin with avatars
+npm run seed:test-profiles
 
 npm run dev
 ```
@@ -412,124 +459,143 @@ npm start
 npm run typecheck
 npm run lint
 npm test
+# Optional real DB suite (disposable DB only):
+TEST_DATABASE_URL=postgresql://… npm run test:integration
 ```
 
 ---
 
 ## Environment Variables
 
-**You need a `.env` file for a real run** of this project (database + auth at minimum). There is **no** “zero-config” mode that skips PostgreSQL and `AUTH_SECRET`.
+**You need a `.env` for a real local/production run** (at least PostgreSQL + auth). There is **no** zero-config mode that skips `DATABASE_URL` and `AUTH_SECRET`.
 
-Start from [`.env.example`](.env.example):
+Optional features (uploads, rate limits, email, workflows, cron) can be left empty until you enable them — but those features will not work until configured.
 
 ```bash
 cp .env.example .env
 ```
 
-Never commit `.env`. Only commit `.env.example` with placeholders.
+Never commit `.env`. Commit only [`.env.example`](.env.example) with placeholders.
 
 ### Required for basic local app
 
-| Variable                        | Public? | Purpose                                           |
-| ------------------------------- | ------- | ------------------------------------------------- |
-| `DATABASE_URL`                  | No      | PostgreSQL connection string                      |
-| `AUTH_SECRET`                   | No      | NextAuth / Auth.js signing secret                 |
-| `NEXTAUTH_URL`                  | No      | App origin, e.g. `http://localhost:3000`          |
-| `NEXT_PUBLIC_API_ENDPOINT`      | Yes     | Browser-visible API base (often same as site URL) |
-| `NEXT_PUBLIC_PROD_API_ENDPOINT` | Yes     | Production origin                                 |
+| Variable                        | Public? | Purpose                                  |
+| ------------------------------- | ------- | ---------------------------------------- |
+| `DATABASE_URL`                  | No      | PostgreSQL URI                           |
+| `AUTH_SECRET`                   | No      | Auth.js signing secret                   |
+| `NEXTAUTH_URL`                  | No      | App origin, e.g. `http://localhost:3000` |
+| `NEXT_PUBLIC_API_ENDPOINT`      | Yes     | Browser API base (often same origin)     |
+| `NEXT_PUBLIC_PROD_API_ENDPOINT` | Yes     | Production origin                        |
 
-### Required for uploads (ImageKit)
+### Uploads (ImageKit) — required for media features
 
-| Variable                            | Public? | Purpose                      |
-| ----------------------------------- | ------- | ---------------------------- |
-| `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`   | Yes     | Client upload / display      |
-| `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT` | Yes     | CDN URL endpoint             |
-| `IMAGEKIT_PRIVATE_KEY`              | No      | Server-side auth for uploads |
+| Variable                            | Public? | Purpose                 |
+| ----------------------------------- | ------- | ----------------------- |
+| `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`   | Yes     | Client upload / display |
+| `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT` | Yes     | CDN endpoint            |
+| `IMAGEKIT_PRIVATE_KEY`              | No      | Server upload auth      |
 
-### Required for rate limiting (Upstash Redis)
+### Rate limiting (Upstash Redis)
 
-Code reads Redis via `lib/config.ts`:
+| Variable                                              | Purpose                                       |
+| ----------------------------------------------------- | --------------------------------------------- |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Preferred REST credentials                    |
+| `UPSTASH_REDIS_URL` / `UPSTASH_REDIS_TOKEN`           | Compatibility aliases used by `lib/config.ts` |
 
-| Variable              | Purpose                       |
-| --------------------- | ----------------------------- |
-| `UPSTASH_REDIS_URL`   | REST URL from Upstash console |
-| `UPSTASH_REDIS_TOKEN` | REST token                    |
+### Email
 
-(Some docs also mention `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — align names with what `lib/config.ts` expects: **`UPSTASH_REDIS_URL`** and **`UPSTASH_REDIS_TOKEN`**.)
-
-### Email (optional until you send mail)
-
-| Variable             | Purpose                                 |
-| -------------------- | --------------------------------------- |
-| `BREVO_API_KEY`      | Primary transactional email             |
-| `BREVO_SENDER_EMAIL` | Verified sender                         |
-| `BREVO_SENDER_NAME`  | Display name (default BookWise Library) |
-| `RESEND_TOKEN`       | Fallback provider                       |
+| Variable                                                     | Purpose                               |
+| ------------------------------------------------------------ | ------------------------------------- |
+| `BREVO_API_KEY` · `BREVO_SENDER_EMAIL` · `BREVO_SENDER_NAME` | Primary transactional email           |
+| `RESEND_TOKEN` · `RESEND_SENDER_EMAIL`                       | Fallback / reservation READY delivery |
 
 ### Workflows (optional)
 
-| Variable           | Purpose                                                |
-| ------------------ | ------------------------------------------------------ |
-| `QSTASH_URL`       | QStash API base                                        |
-| `QSTASH_TOKEN`     | QStash token                                           |
-| `ENABLE_WORKFLOWS` | `"true"` to enable locally; prod may enable by default |
+| Variable                      | Purpose                    |
+| ----------------------------- | -------------------------- |
+| `QSTASH_URL` · `QSTASH_TOKEN` | QStash API                 |
+| `ENABLE_WORKFLOWS`            | `"true"` to enable locally |
 
-### Admin hard delete
+### Admin hard delete & cron
 
-| Variable              | Purpose                                              |
-| --------------------- | ---------------------------------------------------- |
-| `ADMIN_DELETE_SECRET` | Typed in admin delete dialog / `npm run delete-book` |
+| Variable              | Purpose                                          |
+| --------------------- | ------------------------------------------------ |
+| `ADMIN_DELETE_SECRET` | Typed in delete dialog / CLI                     |
+| `CRON_SECRET`         | Bearer for `/api/cron/reservation-notifications` |
 
-### Optional Google OAuth
+### Optional
 
-| Variable                                    | Purpose                           |
-| ------------------------------------------- | --------------------------------- |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Only if you enable Google sign-in |
+| Variable                                    | Purpose                                  |
+| ------------------------------------------- | ---------------------------------------- |
+| `AUTH_TRUST_HOST`                           | `"true"` only behind a trusted proxy     |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | If Google OAuth is enabled               |
+| `TEST_DATABASE_URL`                         | Disposable DB for integration tests only |
+
+Platform-injected values (`NODE_ENV`, `VERCEL`, `VERCEL_URL`) should **not** be hand-set in `.env`.
 
 ---
 
 ## How to Obtain Each Secret
 
-1. **`AUTH_SECRET` / `ADMIN_DELETE_SECRET`**
+1. **`AUTH_SECRET` / `ADMIN_DELETE_SECRET` / `CRON_SECRET`**
 
    ```bash
    openssl rand -base64 32
+   # stronger cron example:
+   openssl rand -base64 48
    ```
 
-   Use **different** values for each.
+   Use **different** values for each secret.
 
 2. **`DATABASE_URL`**
-   - Local: Docker Postgres or Homebrew Postgres → `postgresql://user:pass@localhost:5432/library`
-   - Cloud: Neon / Supabase / Railway / Hetzner → copy the connection string (include `sslmode=require` when required)
+   - Local: Docker / Homebrew Postgres → `postgresql://user:pass@localhost:5432/library`
+   - Cloud: Neon / Supabase / Railway → copy URI (`sslmode=require` when required)
 
-3. **ImageKit** — [https://imagekit.io](https://imagekit.io) → Developer options → API keys + URL endpoint
+3. **ImageKit** — [imagekit.io](https://imagekit.io) → Developer → API keys + URL endpoint
 
-4. **Upstash Redis** — [https://upstash.com](https://upstash.com) → Redis → REST URL + token → map to `UPSTASH_REDIS_URL` / `UPSTASH_REDIS_TOKEN`
+4. **Upstash Redis** — [console.upstash.com/redis](https://console.upstash.com/redis) → REST URL + token
 
-5. **QStash** — Upstash → QStash → token / URL
+5. **QStash** — Upstash → QStash → URL + token ([local QStash docs](https://upstash.com/docs/qstash/howto/local-development))
 
-6. **Brevo** — [https://www.brevo.com](https://www.brevo.com) → SMTP & API → API key; verify a sender
+6. **Brevo** — [app.brevo.com](https://app.brevo.com) → API keys; verify sender
 
-7. **Resend** — [https://resend.com](https://resend.com) → API Keys (+ domain verification for production)
+7. **Resend** — [resend.com/api-keys](https://resend.com/api-keys) + domain verification for production
 
-8. **Vercel** — Project → Settings → Environment Variables → paste the same keys for Production / Preview
+8. **Vercel** — Project → Settings → Environment Variables → paste the same keys for Production / Preview; set Node.js to **24.x** (project + overrides) and redeploy
+
+---
+
+## Demo Test Accounts
+
+Shared constants live in `constants/index.ts` as `TEST_ACCOUNTS`. Seed (or refresh) them with:
+
+```bash
+npm run seed:test-profiles
+```
+
+| Role       | Email            | Password   | Avatar (`university_card`) |
+| ---------- | ---------------- | ---------- | -------------------------- |
+| Test User  | `test@user.com`  | `12345678` | `/images/profile-img1.png` |
+| Test Admin | `test@admin.com` | `12345678` | `/images/profile-img2.png` |
+
+The sign-in Select shows a **circle avatar + name + email**. After login, `UserAvatar` + `resolveUniversityCard` render local `/images/*`, remote `http(s)`, or ImageKit paths correctly.
+
+> Demo passwords are for local/shared demo DBs only — never reuse them as real user credentials in production.
 
 ---
 
 ## Scripts & Tooling
 
-| Script             | Command                              | Use                                                                      |
-| ------------------ | ------------------------------------ | ------------------------------------------------------------------------ |
-| Dev server         | `npm run dev`                        | Local development                                                        |
-| Build              | `npm run build`                      | Production build                                                         |
-| Start              | `npm start`                          | Serve build                                                              |
-| Typecheck          | `npm run typecheck`                  | `tsc --noEmit`                                                           |
-| Lint               | `npm run lint`                       | ESLint                                                                   |
-| Test               | `npm test`                           | Vitest                                                                   |
-| Seed               | `npm run seed`                       | Seed DB                                                                  |
-| Featured migration | `npm run db:migrate-featured`        | Add `is_featured` column/index                                           |
-| Delete book CLI    | `npm run delete-book -- --id <uuid>` | Hard-delete (needs secret); `--force-return` closes active borrows first |
-| Drizzle studio     | `npm run db:studio`                  | Browse data                                                              |
+| Script                    | Command                               | Use                                       |
+| ------------------------- | ------------------------------------- | ----------------------------------------- |
+| Dev                       | `npm run dev`                         | Local development                         |
+| Build / Start             | `npm run build` · `npm start`         | Production                                |
+| Typecheck / Lint / Test   | `npm run typecheck` · `lint` · `test` | Quality gates                             |
+| Seed books                | `npm run seed`                        | Sample catalog                            |
+| Seed demo profiles        | `npm run seed:test-profiles`          | Test User / Admin                         |
+| Featured migration helper | `npm run db:migrate-featured`         | `is_featured` column/index                |
+| Delete book CLI           | `npm run delete-book -- --id <uuid>`  | Hard-delete (+ optional `--force-return`) |
+| Drizzle studio            | `npm run db:studio`                   | Browse data                               |
 
 ---
 
@@ -558,16 +624,30 @@ const hero = data?.[0] ?? initialHero;
 ### Invalidate after book mutations
 
 ```ts
-// hooks/useMutations.ts (concept)
+// Concept from hooks/useMutations.ts + lib/utils/queryInvalidation.ts
 onSuccess: () => {
-  invalidateAfterBookChange(queryClient); // books, featured-books, borrows, …
+  invalidateAfterBookChange(queryClient); // typed family → domains + tab broadcast
 };
-// BookForm also calls router.refresh() for RSC sync
+// Book forms may also call router.refresh() for RSC sync
 ```
 
-### Featured exclusivity (server action)
+### Password hashing (scrypt)
 
-When `isFeatured === true`, `createBook` / `updateBook` clear other featured rows in a **transaction**, then save the new featured flag — so the homepage always has at most one curated hero.
+```ts
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
+
+const encoded = await hashPassword("correct horse battery staple");
+const ok = await verifyPassword("correct horse battery staple", encoded);
+```
+
+### Resolve profile / university card images
+
+```ts
+import { resolveUniversityCard } from "@/lib/media/universityCard";
+
+const resolved = resolveUniversityCard("/images/profile-img1.png");
+// { kind: "local", src: "/images/profile-img1.png" }
+```
 
 ### Zod book schema (excerpt)
 
@@ -575,41 +655,62 @@ When `isFeatured === true`, `createBook` / `updateBook` clear other featured row
 // lib/validations.ts
 export const bookSchema = z.object({
   title: z.string().trim().min(2).max(100),
-  // ...
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  // …
 });
 ```
 
 ---
 
+## Important Libraries (Beginner Notes)
+
+| Library             | What it is           | How this project uses it                     |
+| ------------------- | -------------------- | -------------------------------------------- |
+| **Next.js**         | React meta-framework | App Router pages, API routes, server actions |
+| **React**           | UI library           | Components; Server vs Client split           |
+| **TypeScript**      | Typed JavaScript     | Catch contract bugs before runtime           |
+| **Drizzle**         | Type-safe ORM        | `database/schema.ts` → PostgreSQL            |
+| **Auth.js**         | Auth toolkit         | Credentials login + JWT session              |
+| **TanStack Query**  | Server-state cache   | Lists/details + invalidation after mutations |
+| **Zod**             | Schema validation    | Forms and trusted input boundaries           |
+| **React Hook Form** | Form state           | Auth + Book forms with Zod resolver          |
+| **ImageKit**        | Media CDN            | Covers, ID cards, video                      |
+| **Upstash Redis**   | Serverless Redis     | Rate limits only                             |
+| **Resend / Brevo**  | Transactional email  | Reminders + reservation READY mail           |
+| **Vitest**          | Test runner          | Unit + integration tests                     |
+
+---
+
 ## Reusing Pieces in Other Projects
 
-| Piece                                  | How to reuse                                                        |
-| -------------------------------------- | ------------------------------------------------------------------- |
-| `components/ui/*`                      | Copy with shadcn CLI or paste; keep `lib/utils.ts` `cn()` helper    |
-| `QueryProvider` + invalidation helpers | Drop into any App Router app; standardize mutation `onSuccess`      |
-| `FileUpload` + `/api/auth/imagekit`    | Needs ImageKit env vars; works for any media form                   |
-| `AuthForm` + `auth.ts`                 | Adapt Zod schemas and credentials provider                          |
-| Drizzle `schema.ts`                    | Start a new DB module; keep snake_case DB / camelCase TS convention |
-| Admin `DeleteBookDialog` pattern       | Reuse for any destructive action gated by an env secret             |
+| Piece                                   | How to reuse                                                   |
+| --------------------------------------- | -------------------------------------------------------------- |
+| `components/ui/*`                       | Copy via shadcn CLI; keep `cn()` in `lib/utils.ts`             |
+| `QueryProvider` + invalidation registry | Drop into any App Router app; standardize mutation `onSuccess` |
+| `UserAvatar` + `resolveUniversityCard`  | Any profile image that may be local, URL, or ImageKit          |
+| `FileUpload` + `/api/auth/imagekit`     | Needs ImageKit env vars                                        |
+| `AuthForm` + `lib/auth/password.ts`     | Adapt Zod schemas; keep scrypt verify/rehash pattern           |
+| Drizzle `schema.ts`                     | Start a new DB module; snake_case DB / camelCase TS            |
+| `DeleteBookDialog` pattern              | Any destructive action gated by an env secret                  |
+| Circulation outbox pattern              | Retry-safe side effects with lease + cron recovery             |
 
-When porting, keep the **SSR `initialData` + invalidate** pattern so navigation stays instant and data stays fresh.
+When porting, keep **SSR `initialData` + typed invalidation** so navigation stays fast and data stays coherent.
 
 ---
 
 ## Security
 
 - See **[SECURITY.md](./SECURITY.md)** for private vulnerability reporting (`contact@arnobmahmud.com`).
-- Do not expose `IMAGEKIT_PRIVATE_KEY`, `DATABASE_URL`, `AUTH_SECRET`, or `ADMIN_DELETE_SECRET` to the client.
-- Prefer hard-delete only for junk/test data; soft-deactivate (`isActive`) for normal catalog removal.
-- Rotate secrets if they ever leak into git history.
+- Never expose `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_DELETE_SECRET`, `IMAGEKIT_PRIVATE_KEY`, Redis/email/cron tokens to the browser.
+- Prefer soft-deactivate (`isActive`) for normal catalog removal; hard-delete only for junk/test cleanup.
+- Rotate secrets if they leak into git history, logs, or chat.
 
 ---
 
 ## Contributing & Support
 
-- Repo: [https://github.com/arnobt78/university-library](https://github.com/arnobt78/university-library)
+- Repo: [https://github.com/arnobt78/Library-Management-System--NextJS-FullStack](https://github.com/arnobt78/Library-Management-System--NextJS-FullStack)
 - Portfolio: [https://www.arnobmahmud.com](https://www.arnobmahmud.com)
 - Security contact: [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
 
@@ -619,7 +720,7 @@ Issues and PRs that improve docs, tests, accessibility, or performance are welco
 
 ## Conclusion
 
-**BookWise** is a complete learning-friendly library platform: catalog, borrow lifecycle, reviews, admin operations, featured homepage hero, monitoring pages, and a modern Next.js data architecture. Use it as a deployable product, a study reference for App Router + Drizzle + TanStack Query, or a toolkit of reusable forms, uploads, and invalidation patterns for your next project.
+**BookWise** is a complete, learning-friendly university library platform: catalog, borrow + reservation lifecycle, reviews, admin operations, featured homepage hero, monitoring pages, scrypt auth, and a modern Next.js data architecture (RSC + TanStack Query + typed invalidation). Use it as a deployable demo, a study reference, or a toolkit of reusable forms, uploads, avatars, and cache-coherence patterns for your next project.
 
 ---
 

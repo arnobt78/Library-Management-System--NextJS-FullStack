@@ -105,18 +105,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!isPasswordValid) return null;
 
         // Compare-and-swap prevents concurrent valid logins from overwriting a newer hash.
+        // Never fail sign-in if upgrade write fails (schema drift / transient DB errors).
         if (needsPasswordRehash(user[0].password)) {
-          const { and } = await import("drizzle-orm");
-          const upgradedPassword = await hashPassword(plainPassword);
-          await db
-            .update(users)
-            .set({ password: upgradedPassword, updatedAt: new Date() })
-            .where(
-              and(
-                eq(users.id, user[0].id),
-                eq(users.password, user[0].password),
-              ),
-            );
+          try {
+            const { and } = await import("drizzle-orm");
+            const upgradedPassword = await hashPassword(plainPassword);
+            await db
+              .update(users)
+              .set({ password: upgradedPassword, updatedAt: new Date() })
+              .where(
+                and(
+                  eq(users.id, user[0].id),
+                  eq(users.password, user[0].password),
+                ),
+              );
+          } catch {
+            // Login still succeeds; password upgrade can retry on a later sign-in.
+          }
         }
 
         // Return user object for NextAuth (will be stored in JWT token)
