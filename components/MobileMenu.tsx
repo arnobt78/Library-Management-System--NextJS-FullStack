@@ -192,7 +192,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
               aria-current={pathname === "/my-profile" ? "page" : undefined}
             >
-              My Profile
+              Borrow History
             </Link>
             {UTILITY_NAVIGATION_ITEMS.filter(
               (item) => !item.adminOnly || isAdmin,

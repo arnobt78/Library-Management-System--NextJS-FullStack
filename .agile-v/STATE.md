@@ -36,6 +36,6 @@ Collect deployed provider receipt, browser/performance, alert-route, load, backu
 
 ## Demo / UX notes (2026-08-02)
 
-- `seed:test-profiles` upserts `test@user.com` / `test@admin.com` (APPROVED, local avatars).
-- Sign-in Select shows circle avatar + name + email; ProfileDropdown/MobileMenu use shared `UserAvatar`.
-- Login fix: applied `0009` audit columns on shared DB; rehash-on-login non-fatal; README/SECURITY refreshed. Redeploy Vercel when shipping scrypt-only hashes.
+- `npm run seed:reset`: FK-safe wipe + 17 books + `test@user.com` / `test@admin.com` (APPROVED, local avatars). Owner ran successfully on configured DB.
+- Borrow History nav; profile Unknown Book flash fixed (`initialDataUpdatedAt` + `BorrowRecordFull` + book-title guard).
+- Sign-in Select / ProfileDropdown / MobileMenu use `UserAvatar`. Login: `0009` applied; rehash non-fatal. GitGuardian scrypt dummy string = FP.

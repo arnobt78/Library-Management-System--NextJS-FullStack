@@ -1,32 +1,20 @@
-import dummyBooks from "../dummybooks.json";
-import { books } from "@/database/schema";
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { config } from "dotenv";
+/**
+ * database/seed.ts — RETIRED
+ *
+ * This file previously inserted books without resetting the database first,
+ * which led to data-integrity issues (available_copies > total_copies, duplicate rows).
+ *
+ * Use the unified reset-and-seed script instead:
+ *
+ *   npm run seed:reset
+ *
+ * That script wipes all transactional data in FK-safe order and re-seeds:
+ *   - 17 canonical books (from dummybooks.json) with full schema coverage
+ *   - 2 test accounts (Test User + Test Admin) with scrypt-hashed passwords
+ */
 
-config({ path: ".env" });
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL!,
-});
-export const db = drizzle(pool);
-
-const seed = async () => {
-  console.log("Seeding data...");
-
-  try {
-    for (const book of dummyBooks) {
-      await db.insert(books).values({
-        ...book,
-        coverUrl: book.coverUrl,
-        videoUrl: book.videoUrl,
-      });
-    }
-
-    console.log("Data seeded successfully!");
-  } catch (error) {
-    console.error("Error seeding data:", error);
-  }
-};
-
-seed();
+console.error(
+  "This script is retired. Run `npm run seed:reset` instead.\n" +
+    "See scripts/reset-and-seed.ts for the full implementation."
+);
+process.exit(1);

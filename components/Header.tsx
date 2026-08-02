@@ -46,7 +46,7 @@ const Header = async ({ session }: HeaderProps) => {
           <Link href="/all-books">All Books</Link>
         </li>
         <li className="hover:text-light-200">
-          <Link href="/my-profile">My Profile</Link>
+          <Link href="/my-profile">Borrow History</Link>
         </li>
         {/* Admin-only navigation items */}
         {isAdmin && (

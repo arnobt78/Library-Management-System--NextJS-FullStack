@@ -45,6 +45,46 @@ export interface BorrowRecord {
 }
 
 /**
+ * The nested book shape returned when /api/borrow-records JOINs the books table.
+ * Keeps the React Query cache type-safe end-to-end instead of relying on `any` casts.
+ */
+export interface BorrowRecordBook {
+  id: string;
+  title: string;
+  author: string;
+  genre: string;
+  rating: number;
+  totalCopies: number;
+  availableCopies: number;
+  description: string;
+  coverColor: string;
+  coverUrl: string;
+  videoUrl: string;
+  summary: string;
+  isbn?: string | null;
+  publicationYear?: number | null;
+  publisher?: string | null;
+  language?: string | null;
+  pageCount?: number | null;
+  edition?: string | null;
+  isActive: boolean;
+  isFeatured?: boolean;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  updatedBy?: string | null;
+}
+
+/**
+ * BorrowRecord with the full book object embedded.
+ * Returned by GET /api/borrow-records (INNER JOIN on books).
+ * Stored in the React Query cache so the book field is available throughout the UI pipeline
+ * without any-casting at component boundaries.
+ */
+export interface BorrowRecordFull extends BorrowRecord {
+  book?: BorrowRecordBook;
+}
+
+/**
  * Borrow record with user and book details (for admin views)
  */
 export interface BorrowRecordWithDetails extends BorrowRecord {
@@ -215,7 +255,7 @@ export async function getBorrowsList(
 export async function getUserBorrows(
   userId: string,
   status?: BorrowStatus
-): Promise<BorrowRecord[]> {
+): Promise<BorrowRecordFull[]> {
   if (!userId) {
     throw new ApiError("User ID is required", 400);
   }
@@ -226,7 +266,9 @@ export async function getUserBorrows(
   if (status) filters.status = status;
 
   const response = await getBorrowsList(filters);
-  return response.borrows as BorrowRecord[];
+  // API route uses INNER JOIN on books, so each record carries a nested `book` object.
+  // Cast to BorrowRecordFull so the cache is typed end-to-end.
+  return response.borrows as BorrowRecordFull[];
 }
 
 /**

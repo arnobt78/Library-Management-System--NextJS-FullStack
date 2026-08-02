@@ -33,7 +33,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUserBorrows } from "@/hooks/useQueries";
 import { useReturnBook } from "@/hooks/useMutations";
-import type { BorrowRecord } from "@/lib/services/borrows";
+import type { BorrowRecordFull } from "@/lib/services/borrows";
 import { useQueryClient } from "@tanstack/react-query";
 import { renewBorrowedBook } from "@/lib/actions/circulation";
 import { beginMutation, isLatestMutation } from "@/lib/utils/mutationOrdering";
@@ -116,14 +116,16 @@ interface MyProfileTabsProps {
 
 const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   userId,
-  initialActiveBorrows,
-  initialPendingRequests,
+  // initialActiveBorrows / initialPendingRequests are kept in the interface for
+  // backward compatibility; superseded by initialBorrowHistory as the single source.
+  initialActiveBorrows: _initialActiveBorrows,
+  initialPendingRequests: _initialPendingRequests,
   initialBorrowHistory,
   totalReviews,
-  // Legacy props for backward compatibility
-  activeBorrows: legacyActiveBorrows,
-  pendingRequests: legacyPendingRequests,
-  borrowHistory: legacyBorrowHistory,
+  // Legacy props kept for external callers — allBorrows memo is the authoritative source.
+  activeBorrows: _legacyActiveBorrows,
+  pendingRequests: _legacyPendingRequests,
+  borrowHistory: _legacyBorrowHistory,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -137,9 +139,51 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     string | null
   >(null);
 
-  // Use React Query to fetch all user borrows (no status filter to get all)
-  // The API returns borrow records WITH book details (from /api/borrow-records)
-  // React Query will invalidate and refetch when mutations happen, ensuring immediate UI updates
+  // Build typed SSR initialData once per mount so React Query treats it as fresh.
+  // BorrowRecordFull extends BorrowRecord with an optional nested `book`, matching
+  // what the API's INNER JOIN actually returns, so no any-casting is needed.
+  const ssrSource = initialBorrowHistory ?? _legacyBorrowHistory;
+  const ssrInitialData: BorrowRecordFull[] | undefined = ssrSource
+    ? ssrSource.map((record): BorrowRecordFull => ({
+        id: record.id,
+        userId: record.userId,
+        bookId: record.bookId,
+        borrowDate: record.borrowDate,
+        dueDate: record.dueDate
+          ? new Date(record.dueDate).toISOString().split("T")[0]
+          : null,
+        returnDate: record.returnDate
+          ? new Date(record.returnDate).toISOString().split("T")[0]
+          : null,
+        status: record.status,
+        borrowedBy: record.borrowedBy ?? null,
+        returnedBy: record.returnedBy ?? null,
+        fineAmount:
+          typeof record.fineAmount === "number"
+            ? record.fineAmount.toString()
+            : String(record.fineAmount || "0"),
+        notes: record.notes ?? null,
+        renewalCount: record.renewalCount,
+        lastReminderSent: record.lastReminderSent ?? null,
+        updatedAt: record.updatedAt,
+        updatedBy: record.updatedBy ?? null,
+        createdAt: record.createdAt,
+        // Preserve the nested book from SSR — this is what prevents "Unknown Book"
+        // on first navigation before the background API fetch completes.
+        book: record.book,
+      }))
+    : undefined;
+
+  // Stable timestamp captured once at mount via useState lazy initialiser.
+  // The function is only called on the first render (never on re-renders), keeping
+  // the value stable across the component's lifetime.
+  // Passed as initialDataUpdatedAt to tell React Query the SSR snapshot is fresh,
+  // preventing an immediate background refetch that could overwrite valid book data.
+  const [ssrTimestamp] = React.useState<number>(() => Date.now());
+
+  // Use React Query to fetch all user borrows (no status filter to get all).
+  // The API returns borrow records WITH book details (from /api/borrow-records INNER JOIN).
+  // React Query invalidates and refetches on mutations, ensuring immediate UI updates.
   const {
     data: reactQueryBorrows,
     isLoading,
@@ -147,189 +191,105 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     error,
   } = useUserBorrows(
     userId,
-    undefined, // No status filter - get all
-    // Use initial borrow history as initial data (transform to BorrowRecord format for React Query)
-    initialBorrowHistory || legacyBorrowHistory
-      ? ((initialBorrowHistory || legacyBorrowHistory || []).map((record) => {
-          // CRITICAL: Preserve the book field from SSR data
-          // The SSR data includes book details, and we need to keep them for the UI
-          // Even though BorrowRecord type doesn't include book, we cast it to include it
-          const baseRecord = {
-            id: record.id,
-            userId: record.userId,
-            bookId: record.bookId,
-            borrowDate: record.borrowDate,
-            dueDate: record.dueDate
-              ? new Date(record.dueDate).toISOString().split("T")[0]
-              : null,
-            returnDate: record.returnDate
-              ? new Date(record.returnDate).toISOString().split("T")[0]
-              : null,
-            status: record.status,
-            borrowedBy: record.borrowedBy,
-            returnedBy: record.returnedBy,
-            fineAmount:
-              typeof record.fineAmount === "number"
-                ? record.fineAmount.toString()
-                : String(record.fineAmount || "0"),
-            notes: record.notes,
-            renewalCount: record.renewalCount,
-            lastReminderSent: record.lastReminderSent,
-            updatedAt: record.updatedAt,
-            updatedBy: record.updatedBy,
-            createdAt: record.createdAt,
-          };
-          // Preserve book field if it exists (SSR data includes it)
-          return {
-            ...baseRecord,
-            ...(record.book && { book: record.book }),
-          };
-        }) as (BorrowRecord & { book?: Book })[])
-      : undefined
+    undefined, // no status filter — fetch all, filter client-side
+    ssrInitialData,
+    ssrInitialData ? ssrTimestamp : undefined
   );
 
-  // CRITICAL: No cache - always use React Query data directly
-  // React Query will always fetch fresh data on mount (staleTime: 0, refetchOnMount: true)
-  // No cache fallback - just use whatever React Query returns
-
-  // CRITICAL: Always prefer React Query data over initial/legacy data
-  // React Query data is fresh and updates immediately after mutations
-  // The API returns borrow records WITH book details (the 'book' field is included)
-  // initial/legacy data is only used as fallback during initial load
-  // Transform React Query data to BorrowRecordWithBook[] format (API includes book details)
-  // TanStack Query provides structural sharing, so a pure memoized transform keeps
-  // stable references without reading or mutating refs during render.
+  // Transform React Query data (BorrowRecordFull[]) into the local BorrowRecordWithBook shape.
+  // TanStack Query provides structural sharing, so a pure memoized transform keeps stable
+  // references across renders and avoids unnecessary downstream recalculations.
   const allBorrowsFromQuery: BorrowRecordWithBook[] = React.useMemo(() => {
     if (!reactQueryBorrows || reactQueryBorrows.length === 0) {
       return [];
     }
 
-    // Transform the data
-    // CRITICAL: Cast to include book field - API and initialData both include it
-    // Use reactQueryBorrows directly - no cache fallback
-    const transformed = (
-      reactQueryBorrows as (BorrowRecord & { book?: Book })[]
-    ).map((record) => {
-      const recordWithBook = record as BorrowRecord & { book?: Book };
+    const getStableDate = (
+      dateString: string | Date | null | undefined
+    ): Date | null => {
+      if (!dateString) return null;
+      const timestamp =
+        typeof dateString === "string"
+          ? new Date(dateString).getTime()
+          : dateString.getTime();
+      return new Date(timestamp);
+    };
 
-      const getStableDate = (
-        dateString: string | Date | null | undefined
-      ): Date | null => {
-        if (!dateString) return null;
-        const timestamp =
-          typeof dateString === "string"
-            ? new Date(dateString).getTime()
-            : dateString.getTime();
+    // reactQueryBorrows is BorrowRecordFull[] — `record.book` is properly typed,
+    // no any-casting needed. The API's INNER JOIN guarantees book is present
+    // whenever the record is returned.
+    return reactQueryBorrows.map((record): BorrowRecordWithBook => ({
+      id: record.id,
+      userId: record.userId,
+      bookId: record.bookId,
+      borrowDate: getStableDate(record.borrowDate) || new Date(),
+      dueDate: getStableDate(record.dueDate),
+      returnDate: getStableDate(record.returnDate),
+      status: record.status,
+      borrowedBy: record.borrowedBy,
+      returnedBy: record.returnedBy,
+      fineAmount:
+        typeof record.fineAmount === "string"
+          ? parseFloat(record.fineAmount)
+          : record.fineAmount || 0,
+      notes: record.notes,
+      renewalCount: record.renewalCount || 0,
+      lastReminderSent: getStableDate(record.lastReminderSent),
+      updatedAt: getStableDate(record.updatedAt),
+      updatedBy: record.updatedBy,
+      createdAt: getStableDate(record.createdAt),
+      // Use the API's book JOIN result; fall back to a sentinel only when truly absent
+      // (should not happen with INNER JOIN, but guards against orphaned cache entries).
+      book: record.book ?? {
+        id: record.bookId,
+        title: "Unknown Book",
+        author: "Unknown Author",
+        genre: "",
+        rating: 0,
+        totalCopies: 0,
+        availableCopies: 0,
+        description: "",
+        coverColor: "",
+        coverUrl: "",
+        videoUrl: "",
+        summary: "",
+        isActive: true,
+        createdAt: null,
+        updatedAt: null,
+      },
+    }));
+  }, [reactQueryBorrows]);
 
-        return new Date(timestamp);
-      };
-
-      const transformedRecord: BorrowRecordWithBook = {
-        id: record.id,
-        userId: record.userId,
-        bookId: record.bookId,
-        borrowDate:
-          getStableDate(record.borrowDate) || new Date(),
-        dueDate: getStableDate(record.dueDate),
-        returnDate: getStableDate(record.returnDate),
-        status: record.status,
-        borrowedBy: record.borrowedBy,
-        returnedBy: record.returnedBy,
-        fineAmount:
-          typeof record.fineAmount === "string"
-            ? parseFloat(record.fineAmount)
-            : record.fineAmount || 0,
-        notes: record.notes,
-        renewalCount: record.renewalCount || 0,
-        lastReminderSent: getStableDate(record.lastReminderSent),
-        updatedAt: getStableDate(record.updatedAt),
-        updatedBy: record.updatedBy,
-        createdAt: getStableDate(record.createdAt),
-        // Book details from API response (the API includes 'book' field)
-        book: recordWithBook.book || {
-            id: record.bookId,
-            title: "Unknown Book",
-            author: "Unknown Author",
-            genre: "",
-            rating: 0,
-            totalCopies: 0,
-            availableCopies: 0,
-            description: "",
-            coverColor: "",
-            coverUrl: "",
-            videoUrl: "",
-            summary: "",
-            isActive: true,
-            createdAt: null,
-            updatedAt: null,
-          },
-      };
-
-      return transformedRecord;
-    });
-    return transformed;
-  }, [reactQueryBorrows]); // Transform whenever reactQueryBorrows changes
-
-  // Use React Query data if available, otherwise fall back to initial/legacy data
-  // CRITICAL: Memoize to prevent unnecessary recalculations in filtered arrays
+  // Single authoritative source for all three tab filters.
+  // Prefers React Query data ONLY when it contains valid book data (title !== sentinel).
+  // Falls back to SSR initialBorrowHistory when the cache lacks the book JOIN field
+  // (e.g. stale entry from an older code version without the INNER JOIN).
   const allBorrows: BorrowRecordWithBook[] = React.useMemo(() => {
-    return allBorrowsFromQuery.length > 0
-      ? allBorrowsFromQuery
-      : (initialBorrowHistory ?? legacyBorrowHistory ?? []);
-  }, [allBorrowsFromQuery, initialBorrowHistory, legacyBorrowHistory]);
-
-  // Filter borrows by status (client-side filtering)
-  // CRITICAL: Memoize filtered arrays to prevent unnecessary re-renders
-  const activeBorrows: BorrowRecordWithBook[] = React.useMemo(() => {
-    return allBorrowsFromQuery.length > 0
-      ? allBorrowsFromQuery.filter((record) => record.status === "BORROWED")
-      : (legacyActiveBorrows ??
-          initialActiveBorrows ??
-          allBorrows.filter((record) => record.status === "BORROWED"));
-  }, [
-    allBorrowsFromQuery,
-    legacyActiveBorrows,
-    initialActiveBorrows,
-    allBorrows,
-  ]);
-
-  const pendingRequests: BorrowRecordWithBook[] = React.useMemo(() => {
-    if (allBorrowsFromQuery.length > 0) {
-      return allBorrowsFromQuery.filter(
-        (record) => record.status === "PENDING"
+    const hasValidBooks =
+      allBorrowsFromQuery.length > 0 &&
+      allBorrowsFromQuery.some(
+        (r) => r.book?.title && r.book.title !== "Unknown Book"
       );
-    }
-    return (
-      legacyPendingRequests ??
-      initialPendingRequests ??
-      allBorrows.filter((record) => record.status === "PENDING")
-    );
-  }, [
-    allBorrowsFromQuery,
-    legacyPendingRequests,
-    initialPendingRequests,
-    allBorrows,
-  ]);
+    if (hasValidBooks) return allBorrowsFromQuery;
+    return initialBorrowHistory ?? _legacyBorrowHistory ?? [];
+  }, [allBorrowsFromQuery, initialBorrowHistory, _legacyBorrowHistory]);
 
-  const borrowHistory: BorrowRecordWithBook[] = React.useMemo(() => {
-    if (allBorrowsFromQuery.length > 0) {
-      // CRITICAL: Filter for RETURNED status only (borrow history)
-      return allBorrowsFromQuery.filter(
-        (record) => record.status === "RETURNED"
-      );
-    }
-    // Fallback to legacy/initial data, but also filter for RETURNED
-    return (
-      legacyBorrowHistory ??
-      initialBorrowHistory ??
-      allBorrows.filter((record) => record.status === "RETURNED")
-    );
-  }, [
-    allBorrowsFromQuery,
-    legacyBorrowHistory,
-    initialBorrowHistory,
-    allBorrows,
-  ]);
+  // Filter borrows by status (client-side) — all derived from the single guarded source.
+  const activeBorrows: BorrowRecordWithBook[] = React.useMemo(
+    () => allBorrows.filter((r) => r.status === "BORROWED"),
+    [allBorrows]
+  );
+
+  const pendingRequests: BorrowRecordWithBook[] = React.useMemo(
+    () => allBorrows.filter((r) => r.status === "PENDING"),
+    [allBorrows]
+  );
+
+  const borrowHistory: BorrowRecordWithBook[] = React.useMemo(
+    () => allBorrows.filter((r) => r.status === "RETURNED"),
+    [allBorrows]
+  );
+
 
   const requestedTab = searchParams.get("tab");
   const initialTab =
@@ -519,7 +479,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               showToast.error("Renewal Failed", result.error);
               return;
             }
-            queryClient.setQueryData<BorrowRecord[]>(
+            queryClient.setQueryData<BorrowRecordFull[]>(
               queryKeys.borrows.user(userId, undefined),
               (current) => current?.map((item) => item.id === record.id
                 ? { ...item, dueDate: result.data.dueDate, renewalCount: result.data.renewalCount }

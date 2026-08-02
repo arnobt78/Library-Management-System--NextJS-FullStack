@@ -63,7 +63,8 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - User writes enforce ownership; admin/reviewer/audit identities come from the server and cannot be supplied by the browser.
 - Borrow approval/return/rejection, fine batches, bulk lifecycle work, admin-request approval, and hard deletion use transactions and row locks to prevent partial or replayed state changes.
 - User permission/status writes and fine updates record the authenticated admin; migration `0009_users_audit_fields.sql` adds the user audit columns.
-- Sign-in demo dropdown: `TEST_ACCOUNTS` (Test User / Test Admin). Seed with `npm run seed:test-profiles`. Avatars are local `universityCard` paths (`/images/profile-img1.png`, `/images/profile-img2.png`) rendered by `UserAvatar` via `resolveUniversityCard` (local | http | ImageKit).
+- Sign-in demo dropdown: `TEST_ACCOUNTS` (Test User / Test Admin). Reset DB with `npm run seed:reset` (17 books + both accounts; avatars `/images/profile-img*.png` via `UserAvatar`/`resolveUniversityCard`).
+- Borrow History (`/my-profile`): RSC INNER JOIN seeds `initialBorrowHistory`; `useUserBorrows` takes `BorrowRecordFull` + `initialDataUpdatedAt`; UI prefers RQ only when `book.title` is valid (no Unknown Book flash).
 - Login hardening (2026-08-02): shared DB must have `users.updated_at`/`updated_by` (`0009`); password rehash failures must not abort credentials authorize. Do not write scrypt hashes into a DB while production still runs a pre-scrypt build.
 
 ## Environment

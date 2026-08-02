@@ -29,7 +29,7 @@ import {
   getUserBorrows,
   type BorrowFilters,
   type BorrowStatus,
-  type BorrowRecord,
+  type BorrowRecordFull,
   type BorrowRecordWithDetails,
   type BorrowsListResponse,
 } from "@/lib/services/borrows";
@@ -570,7 +570,13 @@ export const useBorrowRecords = (
 export const useUserBorrows = (
   userId: string,
   status?: BorrowStatus,
-  initialData?: BorrowRecord[]
+  initialData?: BorrowRecordFull[],
+  /**
+   * Pass Date.now() when SSR data is provided so React Query treats the
+   * initial data as fresh (age < staleTime) and avoids an immediate background
+   * refetch that could briefly show stale cache entries without the book JOIN.
+   */
+  initialDataUpdatedAt?: number
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
@@ -595,6 +601,9 @@ export const useUserBorrows = (
     refetchOnReconnect: true,
     // TanStack Query applies initial data only when the key has no cached value.
     initialData,
+    // Marks the SSR snapshot as "just fetched", keeping it within staleTime so
+    // no background refetch fires on mount and overwrites fresh book data.
+    initialDataUpdatedAt,
   });
 };
 

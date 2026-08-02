@@ -24,21 +24,10 @@
     "test": "vitest run",
     "test:integration": "vitest run lib/admin/security-transactions.integration.test.ts",
     "test:watch": "vitest",
-    "seed": "tsx database/seed.ts",
-    "seed:test-profiles": "tsx scripts/seed-test-profiles.ts",
-    "db:migrate-csv": "tsx database/migrate-from-csv.ts",
+    "seed:reset": "tsx scripts/reset-and-seed.ts",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "verify-stats": "tsx scripts/verify-stats.ts",
-    "verify-borrow": "tsx scripts/verify-borrow-details.ts",
-    "fix-borrow-sync": "tsx scripts/fix-borrow-sync.ts",
-    "fix-overcorrection": "tsx scripts/fix-overcorrection.ts",
-    "find-missing-borrow": "tsx scripts/find-missing-borrow.ts",
-    "check-all-books": "tsx scripts/check-all-books.ts",
-    "fix-coding-interview": "tsx scripts/fix-coding-interview.ts",
-    "delete-book": "tsx scripts/delete-book.ts",
-    "db:migrate-featured": "tsx scripts/apply-is-featured-migration.ts"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.6.0",
