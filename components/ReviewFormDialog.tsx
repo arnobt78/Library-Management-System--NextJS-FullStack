@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Star } from "lucide-react";
+import { Send, Star, X } from "lucide-react";
 import { useCreateReview } from "@/hooks/useMutations";
 
 interface ReviewFormDialogProps {
@@ -152,6 +152,7 @@ export default function ReviewFormDialog({
               disabled={createReviewMutation.isPending}
               className="w-full border-gray-500 bg-gray-600 text-xs text-white hover:bg-gray-500 hover:text-white sm:w-auto sm:text-sm"
             >
+              <X className="size-4" />
               Cancel
             </Button>
             <Button
@@ -159,6 +160,7 @@ export default function ReviewFormDialog({
               disabled={createReviewMutation.isPending || !comment.trim()}
               className="w-full bg-green-600 text-xs text-white hover:bg-green-700 sm:w-auto sm:text-sm"
             >
+              <Send className="size-4" />
               {createReviewMutation.isPending ? "Submitting..." : "Submit Review"}
             </Button>
           </DialogFooter>

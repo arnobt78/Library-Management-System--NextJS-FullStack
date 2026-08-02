@@ -62,7 +62,7 @@ async function AdminUserDetail({
           >
             ← All users
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-dark-400">
+          <h1 className="mt-2 text-xl font-semibold text-dark-400">
             {data.user.fullName}
           </h1>
           <p className="text-sm text-gray-500">
@@ -233,7 +233,7 @@ export default function AdminUserDetailPage(props: {
           >
             ← All users
           </Link>
-          <h1 className="text-2xl font-semibold text-dark-400">User profile</h1>
+          <h1 className="text-xl font-semibold text-dark-400">User profile</h1>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="h-20 animate-pulse rounded-xl bg-gray-100" />
             <div className="h-20 animate-pulse rounded-xl bg-gray-100" />

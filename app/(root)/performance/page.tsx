@@ -1,8 +1,8 @@
 // Parent: REQ-0028, REQ-0033
-// The route stays server-owned while browser-only performance metrics remain isolated.
+// Standalone Performance UI lives on /api-status; keep this path for old bookmarks.
 
-import PerformanceDashboard from "@/components/PerformanceDashboard";
+import { redirect } from "next/navigation";
 
 export default function PerformancePage() {
-  return <PerformanceDashboard />;
+  redirect("/api-status");
 }

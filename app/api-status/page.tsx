@@ -7,6 +7,7 @@
 
 import React from "react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { auth } from "@/auth";
 import ApiStatusClient from "@/components/ApiStatusClient";
 import type { ServiceStatus } from "@/lib/services/health-monitor";
@@ -21,18 +22,19 @@ const ApiStatusPage = async () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-6">
-        <div className="mx-auto max-w-7xl">
-          <div className="py-6 text-center sm:py-8">
-            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+      <main className="root-container">
+        <div className="page-shell flex min-h-screen flex-col">
+          <div className="page-shell-main empty-panel flex-1">
+            <p className="mb-2 text-base font-semibold text-red-400 sm:text-lg">
               Authentication Required
             </p>
-            <p className="text-xs text-gray-500 sm:text-sm">
+            <p className="text-xs text-light-100/70 sm:text-sm">
               Please sign in to view API status.
             </p>
           </div>
+          <Footer />
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -174,20 +176,16 @@ const ApiStatusPage = async () => {
 
   return (
     <main className="root-container">
-      <div className="mx-auto w-full">
+      <div className="page-shell flex min-h-screen flex-col">
         <Header session={session} />
-
-        <div className="py-0">
-          <div className="min-h-screen bg-transparent py-0">
-            <div className="mx-auto max-w-7xl px-3 sm:px-4">
-              <ApiStatusClient
-                initialServices={initialServices}
-                initialMetrics={initialMetrics}
-                operatorMode={isAdmin}
-              />
-            </div>
-          </div>
+        <div className="page-shell-main flex-1">
+          <ApiStatusClient
+            initialServices={initialServices}
+            initialMetrics={initialMetrics}
+            operatorMode={isAdmin}
+          />
         </div>
+        <Footer />
       </div>
     </main>
   );

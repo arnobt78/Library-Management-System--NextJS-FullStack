@@ -48,3 +48,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Nav `/my-profile` label: Borrow History. Profile SSR uses `BorrowRecordFull` + `initialDataUpdatedAt` so RQ does not flash Unknown Book.
 - Docs: educational `README.md` + `SECURITY.md` (contact@arnobmahmud.com); title/screenshots preserved; seed commands match `seed:reset`.
 - Auth ops: apply `0009` before `users.updated_at`/`updated_by`; rehash-on-login non-fatal. Legacy + scrypt verify; keep prod deploy in sync with hash format. GitGuardian `$scrypt$ln` on `UNKNOWN_ACCOUNT_PASSWORD` is FP (dummy equal-cost hash).
+- UI shell: `.page-shell` + `max-w-9xl` (96rem); root Header/main/`Footer`; auth `Footer variant="auth"`; admin no footer.
+- Nav: API Docs + API Status only; `/performance` → `/api-status` (embedded `PerformanceDashboard`).
+- Select: FilterSelect icons (`lib/ui/filterOptionStyles.ts`); scroll-lock gutter fix (`body[data-scroll-locked]`).
+- Buttons: ripple baked into `ui/button` (`.btn-ripple`); CTA shine on Borrow/Details/Discover; CSS-var primary hover via `color-mix` (not `@apply …/90`).

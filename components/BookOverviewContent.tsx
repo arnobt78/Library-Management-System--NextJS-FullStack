@@ -90,8 +90,8 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
   // Show error state
   if (isError && !initialBook) {
     return (
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
-        <div className="rounded-lg border border-red-500 bg-red-50 p-4 text-center sm:p-8">
+      <div className="w-full">
+        <div className="empty-panel rounded-lg border border-red-500 bg-red-50">
           <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load book
           </p>
@@ -318,17 +318,22 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                   initialUserBorrows={initialUserBorrows}
                   initialReviewEligibility={initialReviewEligibility}
                 />
-                <Button
-                  asChild
-                  className="hover:bg-primary/90 mt-0 min-h-14 w-full bg-primary text-dark-100 sm:mt-4 sm:w-fit"
-                >
-                  <Link href={`/books/${id}`}>
-                    <BookOpen className="size-4 text-dark-100 sm:size-5" />
-                    <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
-                      Book Details
-                    </p>
-                  </Link>
-                </Button>
+                <span className="cta-shine-wrap mt-0 w-full sm:mt-4 sm:w-fit">
+                  <Button
+                    asChild
+                    className="cta-shine-button hover:bg-primary/90 min-h-14 w-full bg-primary text-dark-100"
+                  >
+                    <Link
+                      href={`/books/${id}`}
+                      className="inline-flex items-center justify-center gap-2"
+                    >
+                      <BookOpen className="size-4 text-dark-100 sm:size-5" />
+                      <span className="font-bebas-neue text-base text-dark-100 sm:text-xl">
+                        Book Details
+                      </span>
+                    </Link>
+                  </Button>
+                </span>
               </>
             )}
           </div>

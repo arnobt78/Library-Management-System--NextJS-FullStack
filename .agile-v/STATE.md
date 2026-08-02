@@ -40,3 +40,4 @@ Collect deployed provider receipt, browser/performance, alert-route, load, backu
 - Borrow History nav; profile Unknown Book flash fixed (`initialDataUpdatedAt` + `BorrowRecordFull` + book-title guard).
 - Sign-in Select / ProfileDropdown / MobileMenu use `UserAvatar`. Login: `0009` applied; rehash non-fatal. GitGuardian scrypt dummy string = FP.
 - Educational README + SECURITY refreshed (seed:reset docs; private reports contact@arnobmahmud.com).
+- Page shell `max-w-9xl` + Footer; Performance embedded in API Status; FilterSelect + scroll-lock gutter; Button ripple + book CTA shine; form primary hover via `color-mix`.

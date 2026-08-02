@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions/circulation";
 import { invalidateMutation } from "@/lib/utils/queryInvalidation";
 import { showToast } from "@/lib/toast";
+import { BookOpen, X } from "lucide-react";
 
 export interface ReservationSummary {
   id: string;
@@ -120,6 +121,7 @@ export default function ReservationsPanel({
                   disabled={isPending}
                   onClick={() => run(item.id, "claim")}
                 >
+                  <BookOpen className="size-4" />
                   {pendingId === item.id ? "Working…" : "Borrow now"}
                 </Button>
               ) : null}
@@ -129,6 +131,7 @@ export default function ReservationsPanel({
                 disabled={isPending}
                 onClick={() => run(item.id, "cancel")}
               >
+                <X className="size-4" />
                 Cancel
               </Button>
             </div>

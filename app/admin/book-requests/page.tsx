@@ -24,7 +24,7 @@ const Page = async ({
   if (!result.success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-6">
-        <div className="mx-auto max-w-7xl">
+        <div className="w-full">
           <div className="py-6 text-center sm:py-8">
             <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
               Failed to load borrow requests

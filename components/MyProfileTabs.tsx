@@ -134,7 +134,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   const returnBookMutation = useReturnBook();
   const queryClient = useQueryClient();
   const [isRenewPending, startRenewTransition] = React.useTransition();
-  const [renewingRecordId, setRenewingRecordId] = React.useState<string | null>(null);
+  const [renewingRecordId, setRenewingRecordId] = React.useState<string | null>(
+    null,
+  );
   const [returningRecordId, setReturningRecordId] = React.useState<
     string | null
   >(null);
@@ -193,7 +195,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     userId,
     undefined, // no status filter — fetch all, filter client-side
     ssrInitialData,
-    ssrInitialData ? ssrTimestamp : undefined
+    ssrInitialData ? ssrTimestamp : undefined,
   );
 
   // Transform React Query data (BorrowRecordFull[]) into the local BorrowRecordWithBook shape.
@@ -205,7 +207,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     }
 
     const getStableDate = (
-      dateString: string | Date | null | undefined
+      dateString: string | Date | null | undefined,
     ): Date | null => {
       if (!dateString) return null;
       const timestamp =
@@ -268,7 +270,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     const hasValidBooks =
       allBorrowsFromQuery.length > 0 &&
       allBorrowsFromQuery.some(
-        (r) => r.book?.title && r.book.title !== "Unknown Book"
+        (r) => r.book?.title && r.book.title !== "Unknown Book",
       );
     if (hasValidBooks) return allBorrowsFromQuery;
     return initialBorrowHistory ?? _legacyBorrowHistory ?? [];
@@ -277,19 +279,18 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // Filter borrows by status (client-side) — all derived from the single guarded source.
   const activeBorrows: BorrowRecordWithBook[] = React.useMemo(
     () => allBorrows.filter((r) => r.status === "BORROWED"),
-    [allBorrows]
+    [allBorrows],
   );
 
   const pendingRequests: BorrowRecordWithBook[] = React.useMemo(
     () => allBorrows.filter((r) => r.status === "PENDING"),
-    [allBorrows]
+    [allBorrows],
   );
 
   const borrowHistory: BorrowRecordWithBook[] = React.useMemo(
     () => allBorrows.filter((r) => r.status === "RETURNED"),
-    [allBorrows]
+    [allBorrows],
   );
-
 
   const requestedTab = searchParams.get("tab");
   const initialTab =
@@ -307,7 +308,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     (!initialBorrowHistory || initialBorrowHistory.length === 0)
   ) {
     return (
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
+      <div className="w-full">
         <Tabs
           value={activeTabValue}
           onValueChange={setActiveTabValue}
@@ -378,9 +379,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // Show error state
   if (isError && (!initialBorrowHistory || initialBorrowHistory.length === 0)) {
     return (
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
+      <div className="w-full">
         <Card>
-          <CardContent className="p-4 text-center sm:p-8">
+          <CardContent className="empty-panel">
             <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
               Failed to load borrow records
             </p>
@@ -453,7 +454,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             onSettled: () => {
               setReturningRecordId(null);
             },
-          }
+          },
           // CRITICAL: No onSuccess callback needed here
           // The useReturnBook mutation already handles all cache invalidation
           // via invalidateAfterBorrowChange() which invalidates:
@@ -473,7 +474,10 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         setRenewingRecordId(record.id);
         startRenewTransition(async () => {
           try {
-            const result = await renewBorrowedBook(record.id, crypto.randomUUID());
+            const result = await renewBorrowedBook(
+              record.id,
+              crypto.randomUUID(),
+            );
             if (!isLatestMutation(mutationKey, mutationGeneration)) return;
             if (!result.success) {
               showToast.error("Renewal Failed", result.error);
@@ -481,12 +485,22 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             }
             queryClient.setQueryData<BorrowRecordFull[]>(
               queryKeys.borrows.user(userId, undefined),
-              (current) => current?.map((item) => item.id === record.id
-                ? { ...item, dueDate: result.data.dueDate, renewalCount: result.data.renewalCount }
-                : item),
+              (current) =>
+                current?.map((item) =>
+                  item.id === record.id
+                    ? {
+                        ...item,
+                        dueDate: result.data.dueDate,
+                        renewalCount: result.data.renewalCount,
+                      }
+                    : item,
+                ),
             );
             await invalidateMutation(queryClient, "renewal.write");
-            showToast.success("Loan Renewed", `New due date: ${result.data.dueDate}`);
+            showToast.success(
+              "Loan Renewed",
+              `New due date: ${result.data.dueDate}`,
+            );
           } finally {
             setRenewingRecordId(null);
           }
@@ -497,7 +511,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       const today = new Date();
       // Use UTC dates for consistent comparison
       const todayUTC = new Date(
-        today.getTime() + today.getTimezoneOffset() * 60000
+        today.getTime() + today.getTimezoneOffset() * 60000,
       );
       const dueDateUTC = record.dueDate ? new Date(record.dueDate) : null;
 
@@ -511,16 +525,16 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         Date.UTC(
           todayUTC.getUTCFullYear(),
           todayUTC.getUTCMonth(),
-          todayUTC.getUTCDate()
-        )
+          todayUTC.getUTCDate(),
+        ),
       );
       const dueDateOnlyUTC = dueDateUTC
         ? new Date(
             Date.UTC(
               dueDateUTC.getUTCFullYear(),
               dueDateUTC.getUTCMonth(),
-              dueDateUTC.getUTCDate()
-            )
+              dueDateUTC.getUTCDate(),
+            ),
           )
         : null;
 
@@ -528,7 +542,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         isOverdue && dueDateOnlyUTC
           ? Math.floor(
               (todayDateUTC.getTime() - dueDateOnlyUTC.getTime()) /
-                (1000 * 60 * 60 * 24)
+                (1000 * 60 * 60 * 24),
             )
           : 0;
 
@@ -536,7 +550,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         record.status === "BORROWED" && dueDateUTC && !isOverdue
           ? Math.ceil(
               (dueDateUTC.getTime() - todayUTC.getTime()) /
-                (1000 * 60 * 60 * 24)
+                (1000 * 60 * 60 * 24),
             )
           : 0;
       const calculatedFine = isOverdue ? daysOverdue * 1.0 : 0;
@@ -745,18 +759,28 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         onClick={handleReturnBook}
                         disabled={returningRecordId === record.id}
                         className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm ${
-                        isOverdue
-                          ? "bg-red-600 text-white hover:bg-red-700"
-                          : "bg-orange-600 text-white hover:bg-orange-700"
+                          isOverdue
+                            ? "bg-red-600 text-white hover:bg-red-700"
+                            : "bg-orange-600 text-white hover:bg-orange-700"
                         }`}
                       >
                         <RotateCcw className="size-3 sm:size-4" />
-                        <span>{returningRecordId === record.id ? "Returning..." : "Return Book"}</span>
+                        <span>
+                          {returningRecordId === record.id
+                            ? "Returning..."
+                            : "Return Book"}
+                        </span>
                       </button>
                       {!isOverdue ? (
-                        <button onClick={handleRenewBook} disabled={isRenewPending} className="flex items-center gap-1 rounded bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50 sm:px-3 sm:text-sm">
+                        <button
+                          onClick={handleRenewBook}
+                          disabled={isRenewPending}
+                          className="flex items-center gap-1 rounded bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50 sm:px-3 sm:text-sm"
+                        >
                           <RotateCcw className="size-3 sm:size-4" />
-                          {renewingRecordId === record.id ? "Renewing…" : "Renew Loan"}
+                          {renewingRecordId === record.id
+                            ? "Renewing…"
+                            : "Renew Loan"}
                         </button>
                       ) : null}
                     </>
@@ -826,15 +850,15 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
       // Return true if all props are equal (skip re-render)
       return recordEqual && countdownEqual;
-    }
+    },
   );
 
   // Set display name for React DevTools
   BorrowCard.displayName = "BorrowCard";
 
   return (
-    <div className="container mx-auto">
-      <h1 className="mb-4 text-2xl font-bold text-light-100 sm:mb-6 sm:text-3xl">
+    <div className="w-full">
+      <h1 className="mb-4 text-xl font-semibold text-light-100 sm:mb-6 sm:text-3xl">
         My Borrowing History
       </h1>
 
@@ -960,7 +984,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   <CardContent className="pt-0">
                     <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
                       <div className="rounded-lg bg-gray-50 p-1.5 text-center sm:p-2">
-                        <p className="text-lg font-bold text-gray-900 sm:text-xl">
+                        <p className="text-lg font-semibold text-gray-900 sm:text-xl">
                           {allBorrows.length}
                         </p>
                         <p className="text-[10px] text-gray-600 sm:text-xs">
@@ -968,7 +992,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         </p>
                       </div>
                       <div className="rounded-lg bg-blue-50 p-1.5 text-center sm:p-2">
-                        <p className="text-lg font-bold text-blue-600 sm:text-xl">
+                        <p className="text-lg font-semibold text-blue-600 sm:text-xl">
                           {pendingRequests.length}
                         </p>
                         <p className="text-[10px] text-blue-700 sm:text-xs">
@@ -976,7 +1000,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         </p>
                       </div>
                       <div className="rounded-lg bg-orange-50 p-1.5 text-center sm:p-2">
-                        <p className="text-lg font-bold text-orange-600 sm:text-xl">
+                        <p className="text-lg font-semibold text-orange-600 sm:text-xl">
                           {activeBorrows.length}
                         </p>
                         <p className="text-[10px] text-orange-700 sm:text-xs">
@@ -984,7 +1008,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         </p>
                       </div>
                       <div className="rounded-lg bg-green-100 p-1.5 text-center sm:p-2">
-                        <p className="text-lg font-bold text-green-600 sm:text-xl">
+                        <p className="text-lg font-semibold text-green-600 sm:text-xl">
                           {borrowHistory.length}
                         </p>
                         <p className="text-[10px] text-green-700 sm:text-xs">
@@ -995,14 +1019,14 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
                     <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3 md:grid-cols-4">
                       <div className="rounded-lg bg-red-50 p-1.5 text-center sm:p-2">
-                        <p className="text-base font-bold text-red-600 sm:text-lg">
+                        <p className="text-base font-semibold text-red-600 sm:text-lg">
                           {
                             allBorrows.filter((r) => {
                               // Use same logic as individual cards for consistency
                               const today = new Date();
                               const todayUTC = new Date(
                                 today.getTime() +
-                                  today.getTimezoneOffset() * 60000
+                                  today.getTimezoneOffset() * 60000,
                               );
                               const dueDateUTC = r.dueDate
                                 ? new Date(r.dueDate)
@@ -1018,20 +1042,20 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                                   Date.UTC(
                                     todayUTC.getUTCFullYear(),
                                     todayUTC.getUTCMonth(),
-                                    todayUTC.getUTCDate()
-                                  )
+                                    todayUTC.getUTCDate(),
+                                  ),
                                 );
                                 const dueDateOnlyUTC = new Date(
                                   Date.UTC(
                                     dueDateUTC.getUTCFullYear(),
                                     dueDateUTC.getUTCMonth(),
-                                    dueDateUTC.getUTCDate()
-                                  )
+                                    dueDateUTC.getUTCDate(),
+                                  ),
                                 );
                                 const daysOverdue = Math.floor(
                                   (todayDateUTC.getTime() -
                                     dueDateOnlyUTC.getTime()) /
-                                    (1000 * 60 * 60 * 24)
+                                    (1000 * 60 * 60 * 24),
                                 );
                                 return daysOverdue > 0;
                               }
@@ -1049,7 +1073,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         </p>
                       </div>
                       <div className="rounded-lg bg-red-50 p-1.5 text-center sm:p-2">
-                        <p className="text-base font-bold text-red-600 sm:text-lg">
+                        <p className="text-base font-semibold text-red-600 sm:text-lg">
                           $
                           {allBorrows
                             .reduce((sum, r) => {
@@ -1057,7 +1081,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                               const today = new Date();
                               const todayUTC = new Date(
                                 today.getTime() +
-                                  today.getTimezoneOffset() * 60000
+                                  today.getTimezoneOffset() * 60000,
                               );
                               const dueDateUTC = r.dueDate
                                 ? new Date(r.dueDate)
@@ -1073,20 +1097,20 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                                   Date.UTC(
                                     todayUTC.getUTCFullYear(),
                                     todayUTC.getUTCMonth(),
-                                    todayUTC.getUTCDate()
-                                  )
+                                    todayUTC.getUTCDate(),
+                                  ),
                                 );
                                 const dueDateOnlyUTC = new Date(
                                   Date.UTC(
                                     dueDateUTC.getUTCFullYear(),
                                     dueDateUTC.getUTCMonth(),
-                                    dueDateUTC.getUTCDate()
-                                  )
+                                    dueDateUTC.getUTCDate(),
+                                  ),
                                 );
                                 const daysOverdue = Math.floor(
                                   (todayDateUTC.getTime() -
                                     dueDateOnlyUTC.getTime()) /
-                                    (1000 * 60 * 60 * 24)
+                                    (1000 * 60 * 60 * 24),
                                 );
                                 return sum + daysOverdue * 1.0;
                               }
@@ -1105,10 +1129,10 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         </p>
                       </div>
                       <div className="rounded-lg bg-purple-50 p-1.5 text-center sm:p-2">
-                        <p className="text-base font-bold text-purple-600 sm:text-lg">
+                        <p className="text-base font-semibold text-purple-600 sm:text-lg">
                           {allBorrows.reduce(
                             (sum, r) => sum + (r.renewalCount || 0),
-                            0
+                            0,
                           )}
                         </p>
                         <p className="text-[10px] text-purple-700 sm:text-xs">
@@ -1116,7 +1140,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         </p>
                       </div>
                       <div className="rounded-lg bg-indigo-50 p-1.5 text-center sm:p-2">
-                        <p className="text-base font-bold text-indigo-600 sm:text-lg">
+                        <p className="text-base font-semibold text-indigo-600 sm:text-lg">
                           {totalReviews}
                         </p>
                         <p className="text-[10px] text-indigo-700 sm:text-xs">
@@ -1132,7 +1156,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   .sort(
                     (a, b) =>
                       new Date(b.createdAt || 0).getTime() -
-                      new Date(a.createdAt || 0).getTime()
+                      new Date(a.createdAt || 0).getTime(),
                   )
                   .map((record) => (
                     <BorrowCard key={record.id} record={record} />

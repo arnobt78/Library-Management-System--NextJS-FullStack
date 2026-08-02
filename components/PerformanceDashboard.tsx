@@ -6,7 +6,14 @@ import { Button } from "@/components/ui/button";
 import PerformanceWrapper from "@/components/PerformanceWrapper";
 import { Badge } from "@/components/ui/badge";
 
-const PerformanceDashboard = () => {
+type PerformanceDashboardProps = {
+  /** When true (API Status embed), use section heading instead of page H1 */
+  embedded?: boolean;
+};
+
+const PerformanceDashboard = ({
+  embedded = false,
+}: PerformanceDashboardProps) => {
   const { metrics, resetMetrics } = usePerformanceStore();
 
   const averagePageLoadTime =
@@ -48,19 +55,33 @@ const PerformanceDashboard = () => {
     ([key]) =>
       key.includes("ssr-") ||
       key.includes("-hydration") ||
-      key.includes("-visible")
+      key.includes("-visible"),
   );
 
   return (
     <PerformanceWrapper pageName="performance">
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-8">
+      <div className="w-full">
         <div className="mb-6 sm:mb-8">
-          <h1 className="mb-2 text-2xl font-bold text-light-100 sm:text-3xl">
-            Performance Dashboard
-          </h1>
-          <p className="text-sm text-light-200 sm:text-base">
-            Monitor your application&apos;s performance metrics
-          </p>
+          {embedded ? (
+            <>
+              <h2 className="text-xl font-semibold text-light-100 sm:text-3xl">
+                Client Performance
+              </h2>
+              <p className="text-sm text-light-200 sm:text-base">
+                Browser-collected metrics (page load, queries, cache) — separate
+                from server health above.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+                Performance Dashboard
+              </h1>
+              <p className="text-sm text-light-200 sm:text-base">
+                Monitor your application&apos;s performance metrics
+              </p>
+            </>
+          )}
         </div>
 
         {/* Educational Section */}
@@ -140,11 +161,11 @@ const PerformanceDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <span className="text-xl font-bold text-light-100 sm:text-2xl">
+                <span className="text-xl font-semibold text-light-100 sm:text-xl">
                   {averagePageLoadTime.toFixed(0)}ms
                 </span>
                 <span
-                  className={`text-base font-bold sm:text-lg ${pageGrade.color}`}
+                  className={`text-base font-semibold sm:text-lg ${pageGrade.color}`}
                 >
                   {pageGrade.grade}
                 </span>
@@ -161,11 +182,11 @@ const PerformanceDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <span className="text-xl font-bold text-light-100 sm:text-2xl">
+                <span className="text-xl font-semibold text-light-100 sm:text-xl">
                   {averageQueryTime.toFixed(0)}ms
                 </span>
                 <span
-                  className={`text-base font-bold sm:text-lg ${queryGrade.color}`}
+                  className={`text-base font-semibold sm:text-lg ${queryGrade.color}`}
                 >
                   {queryGrade.grade}
                 </span>
@@ -182,11 +203,11 @@ const PerformanceDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <span className="text-xl font-bold text-light-100 sm:text-2xl">
+                <span className="text-xl font-semibold text-light-100 sm:text-xl">
                   {cacheHitRate.toFixed(1)}%
                 </span>
                 <span
-                  className={`text-base font-bold sm:text-lg ${
+                  className={`text-base font-semibold sm:text-lg ${
                     cacheHitRate > 80
                       ? "text-green-400"
                       : cacheHitRate > 60
@@ -209,7 +230,7 @@ const PerformanceDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-start justify-between gap-1 sm:flex-row sm:items-center sm:gap-0">
-                <span className="text-xl font-bold text-light-100 sm:text-2xl">
+                <span className="text-xl font-semibold text-light-100 sm:text-xl">
                   {metrics.totalRequests}
                 </span>
                 <span className="text-xs text-light-200 sm:text-sm">
@@ -273,7 +294,7 @@ const PerformanceDashboard = () => {
                       ([key]) =>
                         !key.includes("ssr-") &&
                         !key.includes("-hydration") &&
-                        !key.includes("-visible")
+                        !key.includes("-visible"),
                     )
                     .map(([page, time]) => {
                       const grade = getPerformanceGrade(time, "page");

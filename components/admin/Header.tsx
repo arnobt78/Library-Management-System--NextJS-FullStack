@@ -4,7 +4,7 @@ const Header = ({ session }: { session: Session }) => {
   return (
     <header className="admin-header">
       <div className="space-y-1 sm:space-y-2">
-        <h2 className="text-xl font-semibold text-dark-400 sm:text-2xl">
+        <h2 className="text-xl font-semibold text-dark-400 sm:text-xl">
           {session?.user?.name}
         </h2>
         <p className="text-sm text-slate-500 sm:text-base">

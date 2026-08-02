@@ -40,6 +40,7 @@ import {
   Eye,
   Shield,
   Clock,
+  FilterX,
 } from "lucide-react";
 import { usePendingUsers } from "@/hooks/useQueries";
 import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
@@ -183,11 +184,11 @@ const AccountRequestsClient = ({
   if (usersLoading && (!initialUsers || initialUsers.length === 0)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-0 sm:p-6">
-        <div className="mx-auto max-w-7xl">
+        <div className="w-full">
           <div className="mb-6 sm:mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                <h1 className="text-xl font-semibold text-gray-900 sm:text-3xl">
                   Account Requests
                 </h1>
                 <p className="mt-1.5 text-sm text-gray-600 sm:mt-2 sm:text-base">
@@ -211,7 +212,7 @@ const AccountRequestsClient = ({
   if (usersError && (!initialUsers || initialUsers.length === 0)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-0 sm:p-6">
-        <div className="mx-auto max-w-7xl">
+        <div className="w-full">
           <div className="py-6 text-center sm:py-8">
             <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
               Failed to load account requests
@@ -229,12 +230,12 @@ const AccountRequestsClient = ({
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gradient-to-br from-slate-50 to-blue-50 p-0 sm:p-6">
-      <div className="mx-auto w-full max-w-7xl">
+      <div className="w-full">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="break-words text-2xl font-bold text-gray-900 sm:text-3xl">
+              <h1 className="break-words text-xl font-semibold text-gray-900 sm:text-3xl">
                 Account Requests
               </h1>
               <p className="mt-1.5 break-words text-sm text-gray-600 sm:mt-2 sm:text-base">
@@ -323,6 +324,7 @@ const AccountRequestsClient = ({
                   onClick={clearFilters}
                   className="mt-1.5 border-gray-300 text-xs text-gray-700 hover:bg-gray-100 sm:mt-2 sm:text-sm"
                 >
+                  <FilterX className="size-4" />
                   Clear All Filters
                 </Button>
               )}

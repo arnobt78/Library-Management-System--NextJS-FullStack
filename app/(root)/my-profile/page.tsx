@@ -13,7 +13,7 @@ const Page = async () => {
 
   if (!session?.user?.id) {
     return (
-      <div className="px-3 py-4 text-center sm:px-4 sm:py-6">
+      <div className="empty-panel">
         <p className="text-sm text-light-200 sm:text-base">
           Please sign in to view your profile.
         </p>

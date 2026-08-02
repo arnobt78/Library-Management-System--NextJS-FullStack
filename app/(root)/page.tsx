@@ -1,6 +1,7 @@
 import HomeFeaturedHero from "@/components/HomeFeaturedHero";
 import HomeRecommendations from "@/components/HomeRecommendations";
 import PerformanceWrapper from "@/components/PerformanceWrapper";
+import AuthToastBridge from "@/components/AuthToastBridge";
 import { db } from "@/database/drizzle";
 import { books, users, borrowRecords } from "@/database/schema";
 import { auth } from "@/auth";
@@ -227,6 +228,8 @@ const Home = async () => {
 
   return (
     <PerformanceWrapper pageName="home">
+      {/* Deferred welcome/signup toast after auth navigation */}
+      <AuthToastBridge kinds={["welcome", "signup"]} />
       <HomeFeaturedHero
         initialHero={initialHero}
         userId={session?.user?.id}

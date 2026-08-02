@@ -7,6 +7,11 @@
     @apply flex ml-[15%] w-[85%] flex-1 flex-col bg-light-300 p-2 sm:ml-0 sm:p-4 md:w-[calc(100%-264px)] xs:p-10;
   }
 
+  /* Shared white section shell for admin list pages (books, users, etc.) */
+  .admin-panel {
+    @apply w-full rounded-2xl bg-white p-4 sm:p-7;
+  }
+
   .back-btn {
     @apply mb-10 w-fit border border-light-300 bg-white text-xs font-medium text-dark-200 hover:bg-light-300 !important;
   }
@@ -37,7 +42,7 @@
   }
 
   .confirm-btn {
-    @apply w-full min-h-14 rounded-xl font-bold text-base text-light-800 !important;
+    @apply w-full min-h-14 rounded-xl font-semibold text-base text-light-800 !important;
   }
 
   /* Book Form */
@@ -174,7 +179,7 @@
   }
 
   .admin-sidebar .logo h1 {
-    @apply text-2xl font-semibold text-primary-admin max-md:hidden;
+    @apply text-xl font-semibold text-primary-admin max-md:hidden;
   }
 
   .admin-sidebar .link {

@@ -18,6 +18,11 @@ import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
+import {
+  genreFilterOptions,
+  availabilityFilterOptions,
+} from "@/lib/ui/filterOptionStyles";
 import Link from "next/link";
 import BookCover from "@/components/BookCover";
 import { useAllBooks } from "@/hooks/useQueries";
@@ -25,6 +30,13 @@ import { getBookGenres } from "@/lib/services/books";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
 import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
 import type { BookFilters } from "@/lib/services/books";
+import {
+  Search,
+  FilterX,
+  Plus,
+  Eye,
+  Pencil,
+} from "lucide-react";
 
 interface AdminBooksListProps {
   /**
@@ -165,12 +177,13 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   // Show skeleton while loading (only if no initial data)
   if (isLoading && (!initialBooks || initialBooks.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+      <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold sm:text-xl">All Books</h2>
           <Button className="bg-primary-admin" asChild>
             <Link href="/admin/books/new" className="text-white">
-              + Create a New Book
+              <Plus className="size-4" />
+              Create a New Book
             </Link>
           </Button>
         </div>
@@ -189,12 +202,13 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   // Show error state
   if (isError && (!initialBooks || initialBooks.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+      <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold sm:text-xl">All Books</h2>
           <Button className="bg-primary-admin" asChild>
             <Link href="/admin/books/new" className="text-white">
-              + Create a New Book
+              <Plus className="size-4" />
+              Create a New Book
             </Link>
           </Button>
         </div>
@@ -216,7 +230,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   }
 
   return (
-    <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+    <section className="admin-panel">
       <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
           All Books ({allBooks.length})
@@ -231,45 +245,35 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             }}
             className="flex-1 sm:min-w-[250px]"
           >
-            <Input
-              type="text"
-              placeholder="Search books..."
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
-            />
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search books..."
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
           </form>
           {/* Filter Dropdowns */}
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-              <span className="text-sm text-dark-400">Genre:</span>
-              <select
-                value={currentGenre}
-                onChange={(e) => handleFilterChange("genre", e.target.value)}
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
-              >
-                <option value="all">All</option>
-                {genres.map((genre) => (
-                  <option key={genre} value={genre}>
-                    {genre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-              <span className="text-sm text-dark-400">Availability:</span>
-              <select
-                value={currentAvailability}
-                onChange={(e) =>
-                  handleFilterChange("availability", e.target.value)
-                }
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
-              >
-                <option value="all">All</option>
-                <option value="available">Available</option>
-                <option value="unavailable">Unavailable</option>
-              </select>
-            </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
+            <FilterSelect
+              label="Genre"
+              variant="light"
+              className="w-full sm:min-w-[170px]"
+              value={currentGenre || "all"}
+              onValueChange={(v) => handleFilterChange("genre", v)}
+              options={genreFilterOptions(genres, "All")}
+            />
+            <FilterSelect
+              label="Availability"
+              variant="light"
+              className="w-full sm:min-w-[170px]"
+              value={currentAvailability || "all"}
+              onValueChange={(v) => handleFilterChange("availability", v)}
+              options={availabilityFilterOptions("All")}
+            />
           </div>
         </div>
       </div>
@@ -277,7 +281,8 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button className="bg-primary-admin" asChild>
           <Link href="/admin/books/new" className="text-white">
-            + Create a New Book
+            <Plus className="size-4" />
+            Create a New Book
           </Link>
         </Button>
       </div>
@@ -296,6 +301,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                 onClick={clearFilters}
                 className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
               >
+                <FilterX className="size-4" />
                 Clear All Filters
               </Button>
             )}
@@ -397,12 +403,14 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
                     <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
                       <Button size="sm" asChild>
-                        <Link href={`/books/${book.id}`} className="text-white">
+                        <Link href={`/books/${book.id}`} className="inline-flex items-center gap-2 text-white">
+                          <Eye className="size-4" />
                           View Details
                         </Link>
                       </Button>
                       <Button size="sm" variant="outline" asChild>
-                        <Link href={`/admin/books/${book.id}/edit`}>
+                        <Link href={`/admin/books/${book.id}/edit`} className="inline-flex items-center gap-2">
+                          <Pencil className="size-4" />
                           Edit Book
                         </Link>
                       </Button>

@@ -279,7 +279,6 @@ Apply SQL under `migrations/` (including `0010_reservations.sql` for circulation
 | `/all-books` | Full catalog with filters |
 | `/books/[id]` | Detail, borrow, reserve, reviews |
 | `/my-profile` | **Borrow History** — loans + reservations |
-| `/performance` | Client performance / metrics UI |
 
 ### Auth (`app/(auth)/`)
 
@@ -305,7 +304,7 @@ Apply SQL under `migrations/` (including `0010_reservations.sql` for circulation
 | Path | Description |
 | --- | --- |
 | `/api-docs` | API documentation UI |
-| `/api-status` | Service health dashboard |
+| `/api-status` | Service health + client performance metrics |
 | `/too-fast` | Rate-limit friendly page |
 | `/make-admin` | Request elevated access |
 

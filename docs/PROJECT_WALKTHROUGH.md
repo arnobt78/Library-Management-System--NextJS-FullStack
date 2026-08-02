@@ -67,6 +67,13 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Borrow History (`/my-profile`): RSC INNER JOIN seeds `initialBorrowHistory`; `useUserBorrows` takes `BorrowRecordFull` + `initialDataUpdatedAt`; UI prefers RQ only when `book.title` is valid (no Unknown Book flash).
 - Login hardening (2026-08-02): shared DB must have `users.updated_at`/`updated_by` (`0009`); password rehash failures must not abort credentials authorize. Do not write scrypt hashes into a DB while production still runs a pre-scrypt build.
 
+## UI shell and controls (2026-08-02)
+
+- Root layout: Header + main + `Footer` inside `.page-shell` / `max-w-9xl` (96rem). Auth layout uses `Footer variant="auth"`. Admin has no site footer.
+- Meta nav: API Docs + API Status. `/performance` redirects to `/api-status`; dashboard mounts embedded.
+- Filters: `FilterSelect` + `lib/ui/filterOptionStyles.ts`. Select scroll-lock: unlayered `body[data-scroll-locked]` margin/overflow rules in `globals.css`.
+- Buttons: click ripple in `components/ui/button.tsx` (`.btn-ripple`). Optional `.cta-shine-wrap` on Borrow / Book Details / Discover. Do not `@apply hover:bg-primary/90` — CSS-var primary needs `:hover { color-mix(...) }`. Spec: `docs/RIPPLE_BUTTON_EFFECT.md`.
+
 ## Environment
 
 Copy `.env.example` to `.env`. It documents required/optional scope, safe formats and provider acquisition links. Never commit `.env`. Important server-only values include `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_DELETE_SECRET`, `IMAGEKIT_PRIVATE_KEY`, Redis/QStash tokens, `RESEND_TOKEN`, `RESEND_SENDER_EMAIL`, and `CRON_SECRET`.

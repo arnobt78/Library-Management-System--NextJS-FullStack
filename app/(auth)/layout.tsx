@@ -1,20 +1,25 @@
 import { ReactNode } from "react";
-// import Image from "next/image";
 import { auth } from "@/auth";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Footer from "@/components/Footer";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   const session = await auth();
 
-  // CRITICAL: Redirect authenticated users to home
-  // NextAuth's signOut already clears the session before redirecting here
-  // So if we reach this point with a session, user should be redirected to home
-  if (session) {
+  // During logout, session cookie can briefly still exist while we land on /sign-in.
+  // Honor logout-in-progress so we do not bounce back home before the goodbye toast.
+  const cookieStore = await cookies();
+  const logoutInProgress =
+    cookieStore.get("logout-in-progress")?.value === "true";
+
+  if (session && !logoutInProgress) {
     redirect("/");
   }
 
   return (
     <main className="auth-container">
+      {/* Left pane: form + auth footer (illustration stays right) */}
       <section className="auth-form">
         <div className="auth-box">
           <div className="flex flex-row gap-2 sm:gap-3">
@@ -25,13 +30,14 @@ const Layout = async ({ children }: { children: ReactNode }) => {
               height={37}
               className="size-7 sm:size-[37px]"
             />
-            <h1 className="text-xl font-semibold text-white sm:text-2xl">
+            <h1 className="text-xl font-semibold text-white sm:text-xl">
               BookWise
             </h1>
           </div>
 
           <div>{children}</div>
         </div>
+        <Footer variant="auth" />
       </section>
 
       <section className="auth-illustration">

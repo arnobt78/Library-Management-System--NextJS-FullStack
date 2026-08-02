@@ -31,10 +31,18 @@ const Header = async ({ session }: HeaderProps) => {
   const isAdmin = userData?.role === "ADMIN";
 
   return (
-    <header className="my-6 flex justify-between sm:my-10">
+    <header className="my-4 flex justify-between">
       <Link href="/" className="flex items-center gap-2 sm:gap-3">
-        <img src="/icons/logo.svg" alt="logo" width={40} height={40} className="size-8 sm:size-10" />
-        <span className="text-lg font-bold text-light-100 sm:text-xl">BookWise</span>
+        <img
+          src="/icons/logo.svg"
+          alt="logo"
+          width={40}
+          height={40}
+          className="size-8 sm:size-10"
+        />
+        <span className="text-lg font-semibold text-light-100 sm:text-xl">
+          BookWise
+        </span>
       </Link>
 
       {/* Desktop Navigation - Hidden on mobile and sm screens */}

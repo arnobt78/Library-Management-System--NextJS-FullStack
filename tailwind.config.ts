@@ -118,6 +118,10 @@ export default {
       screens: {
         xs: "480px",
       },
+      // Wider than default 7xl (80rem); 96rem = 1536px
+      maxWidth: {
+        "9xl": "96rem",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

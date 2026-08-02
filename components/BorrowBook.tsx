@@ -16,7 +16,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { BookOpen } from "lucide-react";
+import { BookMarked } from "lucide-react";
 import { useBorrowBook } from "@/hooks/useMutations";
 
 interface Props {
@@ -61,21 +61,23 @@ const BorrowBook = ({
           // Show error to user
           alert(`Failed to borrow book: ${error.message}`);
         },
-      }
+      },
     );
   };
 
   return (
-    <Button
-      className="hover:bg-primary/90 mt-3 min-h-12 w-full bg-primary text-dark-100 sm:mt-4 sm:min-h-14 sm:w-fit"
-      onClick={handleBorrowBook}
-      disabled={borrowBookMutation.isPending || !isEligible}
-    >
-      <BookOpen className="size-4 text-dark-100 sm:size-5" />
-      <p className="font-bebas-neue text-base text-dark-100 sm:text-xl">
-        {borrowBookMutation.isPending ? "Borrowing ..." : "Borrow Book"}
-      </p>
-    </Button>
+    <span className="cta-shine-wrap mt-3 w-full sm:mt-4 sm:w-fit">
+      <Button
+        className="cta-shine-button hover:bg-primary/90 min-h-12 w-full bg-primary text-dark-100 sm:min-h-14"
+        onClick={handleBorrowBook}
+        disabled={borrowBookMutation.isPending || !isEligible}
+      >
+        <BookMarked className="size-4 text-dark-100 sm:size-5" />
+        <span className="font-bebas-neue text-base text-dark-100 sm:text-xl">
+          {borrowBookMutation.isPending ? "Borrowing ..." : "Borrow Book"}
+        </span>
+      </Button>
+    </span>
   );
 };
 export default BorrowBook;

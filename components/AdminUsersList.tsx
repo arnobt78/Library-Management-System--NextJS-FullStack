@@ -19,6 +19,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
+import {
+  userStatusFilterOptions,
+  userRoleFilterOptions,
+} from "@/lib/ui/filterOptionStyles";
 import { useSession } from "next-auth/react";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +41,14 @@ import type {
   UserFilters,
 } from "@/lib/services/users";
 import type { AdminRequest } from "@/lib/services/users";
+import {
+  Search,
+  FilterX,
+  Shield,
+  ShieldOff,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 
 interface AdminUsersListProps {
   /**
@@ -292,7 +305,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       (!initialAdminRequests || initialAdminRequests.length === 0))
   ) {
     return (
-      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+      <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold sm:text-xl">All Users</h2>
         </div>
@@ -348,7 +361,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       (!initialAdminRequests || initialAdminRequests.length === 0))
   ) {
     return (
-      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+      <section className="admin-panel">
         <div className="py-6 text-center sm:py-8">
           <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load users
@@ -366,7 +379,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   }
 
   return (
-    <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+    <section className="admin-panel">
       {/* Success/Error Messages */}
       {successMessage && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
@@ -436,41 +449,35 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {/* Search Input */}
           <form onSubmit={handleSearch} className="flex-1 sm:min-w-[250px]">
-            <Input
-              type="text"
-              placeholder="Search users..."
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
-            />
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search users..."
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
           </form>
           {/* Filter Dropdowns */}
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-              <span className="text-sm text-dark-400">Status:</span>
-              <select
-                value={currentStatus}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
-              >
-                <option value="all">All</option>
-                <option value="APPROVED">Approved</option>
-                <option value="PENDING">Pending</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
-            </div>
-            <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-              <span className="text-sm text-dark-400">Role:</span>
-              <select
-                value={currentRole}
-                onChange={(e) => handleFilterChange("role", e.target.value)}
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
-              >
-                <option value="all">All</option>
-                <option value="USER">Users</option>
-                <option value="ADMIN">Admins</option>
-              </select>
-            </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
+            <FilterSelect
+              label="Status"
+              variant="light"
+              className="w-full sm:min-w-[170px]"
+              value={currentStatus || "all"}
+              onValueChange={(v) => handleFilterChange("status", v)}
+              options={userStatusFilterOptions()}
+            />
+            <FilterSelect
+              label="Role"
+              variant="light"
+              className="w-full sm:min-w-[170px]"
+              value={currentRole || "all"}
+              onValueChange={(v) => handleFilterChange("role", v)}
+              options={userRoleFilterOptions()}
+            />
           </div>
         </div>
       </div>
@@ -517,6 +524,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                         rejectAdminRequestMutation.isPending
                       }
                     >
+                      <CheckCircle className="size-4" />
                       Approve
                     </Button>
                     <Button
@@ -528,6 +536,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                         rejectAdminRequestMutation.isPending
                       }
                     >
+                      <XCircle className="size-4" />
                       Decline
                     </Button>
                   </div>
@@ -583,6 +592,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                           onClick={clearFilters}
                           className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
                         >
+                          <FilterX className="size-4" />
                           Clear All Filters
                         </Button>
                       )}
@@ -649,6 +659,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                               }
                               disabled={removeAdminPrivilegesMutation.isPending}
                             >
+                              <ShieldOff className="size-4" />
                               Remove Admin
                             </Button>
                           )}
@@ -663,6 +674,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                             }
                             disabled={updateUserRoleMutation.isPending}
                           >
+                            <Shield className="size-4" />
                             Make Admin
                           </Button>
                         )}
@@ -678,6 +690,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                               }
                               disabled={updateUserStatusMutation.isPending}
                             >
+                              <CheckCircle className="size-4" />
                               Approve
                             </Button>
                             <Button
@@ -688,6 +701,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                               }
                               disabled={updateUserStatusMutation.isPending}
                             >
+                              <XCircle className="size-4" />
                               Reject
                             </Button>
                           </>

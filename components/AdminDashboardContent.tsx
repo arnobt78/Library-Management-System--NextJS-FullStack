@@ -218,7 +218,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Total Users</h3>
-            <p className="text-xl font-bold text-blue-600 sm:text-2xl">{totalUsers}</p>
+            <p className="text-xl font-semibold text-blue-600 sm:text-xl">
+              {totalUsers}
+            </p>
           </div>
           <div className="text-sm text-gray-500">
             {approvedUsers} approved, {pendingUsers} pending
@@ -228,7 +230,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Total Books</h3>
-            <p className="text-xl font-bold text-green-600 sm:text-2xl">{totalBooks}</p>
+            <p className="text-xl font-semibold text-green-600 sm:text-xl">
+              {totalBooks}
+            </p>
           </div>
           <div className="text-sm text-gray-500">
             {totalCopies} total copies
@@ -238,7 +242,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Active Borrows</h3>
-            <p className="text-xl font-bold text-purple-600 sm:text-2xl">
+            <p className="text-xl font-semibold text-purple-600 sm:text-xl">
               {activeBorrows}
             </p>
           </div>
@@ -250,7 +254,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Admins</h3>
-            <p className="text-xl font-bold text-orange-600 sm:text-2xl">{adminUsers}</p>
+            <p className="text-xl font-semibold text-orange-600 sm:text-xl">
+              {adminUsers}
+            </p>
           </div>
           <div className="text-sm text-gray-500">System administrators</div>
         </div>
@@ -258,7 +264,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         <div className="stat">
           <div className="stat-info">
             <h3 className="stat-label">Book Status</h3>
-            <p className="text-xl font-bold text-indigo-600 sm:text-2xl">{activeBooks}</p>
+            <p className="text-xl font-semibold text-indigo-600 sm:text-xl">
+              {activeBooks}
+            </p>
           </div>
           <div className="text-sm text-gray-500">
             {activeBooks} active, {inactiveBooks} inactive
@@ -270,7 +278,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Book Availability Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Book Availability</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Book Availability
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm">Available Copies</span>
@@ -298,7 +308,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* User Status Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">User Status</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            User Status
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm">Approved Users</span>
@@ -326,7 +338,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Enhanced Book Information Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Book Information</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Book Information
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm">Books with ISBN</span>
@@ -368,7 +382,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Recent Borrows */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Recent Borrows</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Recent Borrows
+          </h3>
           <div className="space-y-3">
             {recentBorrows.length === 0 ? (
               <p className="text-sm text-gray-500">No recent borrows</p>
@@ -379,7 +395,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                   className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="break-words text-sm font-medium">{borrow.bookTitle}</p>
+                    <p className="break-words text-sm font-medium">
+                      {borrow.bookTitle}
+                    </p>
                     <p className="break-words text-xs text-gray-600">
                       by {borrow.userName}
                     </p>
@@ -389,8 +407,8 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                       borrow.status === "BORROWED"
                         ? "bg-blue-100 text-blue-800"
                         : borrow.status === "PENDING"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
                     }`}
                   >
                     {borrow.status}
@@ -403,7 +421,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Recent Users */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">Recent Users</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Recent Users
+          </h3>
           <div className="space-y-3">
             {recentUsers.length === 0 ? (
               <p className="text-sm text-gray-500">No recent users</p>
@@ -414,8 +434,15 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                   className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
                 >
                   <div className="min-w-0 flex-1">
-                    <Link href={`/admin/users/${user.id}`} className="break-words text-sm font-medium text-blue-700 hover:underline">{user.fullName}</Link>
-                    <p className="break-words text-xs text-gray-600">{user.email}</p>
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      className="break-words text-sm font-medium text-blue-700 hover:underline"
+                    >
+                      {user.fullName}
+                    </Link>
+                    <p className="break-words text-xs text-gray-600">
+                      {user.email}
+                    </p>
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
@@ -439,7 +466,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Book Categories */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">📚 Book Categories</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            📚 Book Categories
+          </h3>
           <div className="space-y-3">
             {categoryStats.length === 0 ? (
               <p className="text-sm text-gray-500">No books found</p>
@@ -454,7 +483,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                       <span className="font-medium text-gray-900">
                         {category.genre}
                       </span>
-                      <span className="text-sm font-bold text-blue-600">
+                      <span className="text-sm font-semibold text-blue-600">
                         {category.count} books
                       </span>
                     </div>
@@ -500,7 +529,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     <span className="font-medium text-gray-900">{year}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-bold text-green-600">
+                    <span className="text-sm font-semibold text-green-600">
                       {count} books
                     </span>
                     <div className="h-2 w-16 rounded-full bg-gray-200">
@@ -521,7 +550,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
         {/* Books by Language */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">🌍 Books by Language</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            🌍 Books by Language
+          </h3>
           <div className="space-y-2">
             {booksByLanguage.length === 0 ? (
               <p className="text-sm text-gray-500">No language data</p>
@@ -535,7 +566,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     {language}
                   </span>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-bold text-purple-600">
+                    <span className="text-sm font-semibold text-purple-600">
                       {count}
                     </span>
                     <div className="h-1 w-12 rounded-full bg-gray-200">
@@ -553,7 +584,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Top Rated Books */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">⭐ Top Rated Books</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            ⭐ Top Rated Books
+          </h3>
           <div className="space-y-2">
             {topRatedBooks.length === 0 ? (
               <p className="text-sm text-gray-500">No rated books</p>
@@ -572,7 +605,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     </p>
                   </div>
                   <div className="ml-2 flex items-center space-x-1">
-                    <span className="text-xs font-bold text-yellow-600">
+                    <span className="text-xs font-semibold text-yellow-600">
                       ⭐ {book.rating}
                     </span>
                   </div>
@@ -584,13 +617,15 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Library Health Metrics */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">🏥 Library Health</h3>
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            🏥 Library Health
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">
                 Collection Diversity
               </span>
-              <span className="text-sm font-bold text-indigo-600">
+              <span className="text-sm font-semibold text-indigo-600">
                 {categoryStats.length} categories
               </span>
             </div>
@@ -605,7 +640,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Availability Rate</span>
-              <span className="text-sm font-bold text-green-600">
+              <span className="text-sm font-semibold text-green-600">
                 {totalCopies > 0
                   ? Math.round((availableCopies / totalCopies) * 100)
                   : 0}
@@ -623,7 +658,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">User Engagement</span>
-              <span className="text-sm font-bold text-purple-600">
+              <span className="text-sm font-semibold text-purple-600">
                 {totalUsers > 0
                   ? Math.round((activeBorrows / totalUsers) * 100)
                   : 0}

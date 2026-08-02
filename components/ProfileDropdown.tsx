@@ -22,6 +22,8 @@ import { showToast } from "@/lib/toast";
 import UserAvatar from "@/components/UserAvatar";
 import { UTILITY_NAVIGATION_ITEMS } from "@/constants/navigation";
 import { usePathname } from "next/navigation";
+import { LogOut, Loader2, ShieldCheck } from "lucide-react";
+import { setPendingAuthToast } from "@/lib/auth/authToast";
 
 interface ProfileDropdownProps {
   fullName: string;
@@ -48,11 +50,11 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     try {
       setIsLoggingOut(true);
 
-      // Show toast notification first
-      showToast.auth.logoutSuccess();
+      // Defer toast until /sign-in mounts (full redirect clears in-memory toasts)
+      setPendingAuthToast("logout", fullName);
 
       // CRITICAL: Set logout flag to prevent UI updates during logout
-      // This prevents flickering/blinking of images and components during logout transition
+      // Also keeps auth layout from redirecting home while session cookie clears
       document.cookie =
         "logout-in-progress=true; path=/; max-age=10; SameSite=Lax";
 
@@ -66,7 +68,6 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         redirect: true, // Standard NextAuth redirect (handles everything)
         callbackUrl: "/sign-in", // Where to redirect after logout
       });
-
     } catch {
       setIsLoggingOut(false);
       showToast.error(
@@ -115,8 +116,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             <Link
               href={item.href}
               aria-current={pathname === item.href ? "page" : undefined}
-              className="px-2.5 text-xs sm:px-3 sm:text-sm"
+              className="flex items-center gap-2 px-2.5 text-xs sm:px-3 sm:text-sm"
             >
+              <item.icon className="size-4 shrink-0 opacity-90" aria-hidden />
               {item.label}
             </Link>
           </DropdownMenuItem>
@@ -129,8 +131,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           >
             <Link
               href="/make-admin"
-              className="px-2.5 text-xs sm:px-3 sm:text-sm"
+              className="flex items-center px-2.5 text-xs sm:px-3 sm:text-sm"
             >
+              <ShieldCheck className="mr-2 inline size-4" />
               Become Admin
             </Link>
           </DropdownMenuItem>
@@ -140,7 +143,12 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           disabled={isLoggingOut}
           className="cursor-pointer rounded-md px-0 py-2 text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 focus:bg-gray-700 focus:text-light-200 disabled:opacity-50 sm:py-3"
         >
-          <span className="block w-full px-2.5 py-0 text-left text-xs sm:px-3 sm:text-sm">
+          <span className="flex w-full items-center gap-2 px-2.5 py-0 text-left text-xs sm:px-3 sm:text-sm">
+            {isLoggingOut ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <LogOut className="size-4" />
+            )}
             {isLoggingOut ? "Logging out..." : "Logout"}
           </span>
         </DropdownMenuItem>

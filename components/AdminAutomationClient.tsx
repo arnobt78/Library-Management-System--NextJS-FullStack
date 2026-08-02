@@ -34,6 +34,22 @@ import { useReminderStats, useExportStats } from "@/hooks/useQueries";
 import { showToast } from "@/lib/toast";
 import FineManagement from "@/components/FineManagement";
 import { useRouter } from "next/navigation";
+import {
+  BarChart3,
+  Check,
+  CheckCircle,
+  Download,
+  Mail,
+  Pencil,
+  RefreshCw,
+  Shield,
+  ShieldOff,
+  Sparkles,
+  Trash2,
+  TrendingUp,
+  UserX,
+  X,
+} from "lucide-react";
 
 // Types for reminder and export stats
 interface ReminderStats {
@@ -118,7 +134,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
           dueSoon: Number(initialReminderStats.dueSoon || 0),
           overdue: Number(initialReminderStats.overdue || 0),
           remindersSentToday: Number(
-            initialReminderStats.remindersSentToday || 0
+            initialReminderStats.remindersSentToday || 0,
           ),
         }
       : {
@@ -165,7 +181,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
         "Due Soon Reminders Sent",
         `Successfully sent ${count} due soon reminder(s) via email.${
           failed !== "0" ? ` ${failed} reminder(s) failed to send.` : ""
-        }`
+        }`,
       );
       router.replace("/admin/automation", undefined);
     }
@@ -176,21 +192,21 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
         "Overdue Reminders Sent",
         `Successfully sent ${count} overdue reminder(s) via email.${
           failed !== "0" ? ` ${failed} reminder(s) failed to send.` : ""
-        }`
+        }`,
       );
       router.replace("/admin/automation", undefined);
     }
     if (params.error === "due-soon-failed") {
       showToast.error(
         "Failed to Send Due Soon Reminders",
-        "There was an error sending due soon reminders. Please try again."
+        "There was an error sending due soon reminders. Please try again.",
       );
       router.replace("/admin/automation", undefined);
     }
     if (params.error === "overdue-failed") {
       showToast.error(
         "Failed to Send Overdue Reminders",
-        "There was an error sending overdue reminders. Please try again."
+        "There was an error sending overdue reminders. Please try again.",
       );
       router.replace("/admin/automation", undefined);
     }
@@ -217,7 +233,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
     if (dueSoonCount === 0 || sendDueRemindersMutation.isPending) {
       console.warn(
         "Cannot send due soon reminders: count is 0 or already pending",
-        { dueSoonCount, isPending: sendDueRemindersMutation.isPending }
+        { dueSoonCount, isPending: sendDueRemindersMutation.isPending },
       );
       return;
     }
@@ -232,7 +248,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
     if (overdueCount === 0 || sendOverdueRemindersMutation.isPending) {
       console.warn(
         "Cannot send overdue reminders: count is 0 or already pending",
-        { overdueCount, isPending: sendOverdueRemindersMutation.isPending }
+        { overdueCount, isPending: sendOverdueRemindersMutation.isPending },
       );
       return;
     }
@@ -598,7 +614,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
 
       {/* Page Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="break-words text-2xl font-bold text-gray-900 sm:text-3xl">
+        <h1 className="break-words text-xl font-semibold text-gray-900 sm:text-3xl">
           Smart Automation Dashboard
         </h1>
         <p className="break-words text-sm text-gray-600 sm:text-base">
@@ -615,7 +631,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-blue-900 sm:text-2xl">
+            <div className="text-xl font-semibold text-blue-900 sm:text-xl">
               {reminderStats?.dueSoon || 0}
             </div>
             <p className="text-xs text-blue-600">Books due in 2 days</p>
@@ -629,7 +645,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-red-900 sm:text-2xl">
+            <div className="text-xl font-semibold text-red-900 sm:text-xl">
               {reminderStats?.overdue || 0}
             </div>
             <p className="text-xs text-red-600">Books past due date</p>
@@ -643,7 +659,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-green-900 sm:text-2xl">
+            <div className="text-xl font-semibold text-green-900 sm:text-xl">
               {reminderStats?.remindersSentToday || 0}
             </div>
             <p className="text-xs text-green-600">Today&apos;s reminders</p>
@@ -657,7 +673,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-purple-900 sm:text-2xl">
+            <div className="text-xl font-semibold text-purple-900 sm:text-xl">
               {(exportStats?.totalBooks || 0) +
                 (exportStats?.totalUsers || 0) +
                 (exportStats?.totalBorrows || 0)}
@@ -707,6 +723,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                           type="button"
                           aria-disabled={true}
                         >
+                          <Mail className="size-4" />
                           Send Due Soon Reminders
                         </Button>
                       </div>
@@ -723,6 +740,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={sendDueRemindersMutation.isPending}
                   type="button"
                 >
+                  <Mail className="size-4" />
                   {sendDueRemindersMutation.isPending
                     ? "Sending..."
                     : "Send Due Soon Reminders"}
@@ -757,6 +775,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                           type="button"
                           aria-disabled={true}
                         >
+                          <Mail className="size-4" />
                           Send Overdue Reminders
                         </Button>
                       </div>
@@ -774,6 +793,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={sendOverdueRemindersMutation.isPending}
                   type="button"
                 >
+                  <Mail className="size-4" />
                   {sendOverdueRemindersMutation.isPending
                     ? "Sending..."
                     : "Send Overdue Reminders"}
@@ -987,6 +1007,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={generateRecommendationsMutation.isPending}
                   type="button"
                 >
+                  <Sparkles className="size-4" />
                   <span className="break-words text-xs sm:text-sm">
                     {generateRecommendationsMutation.isPending
                       ? "Generating..."
@@ -1008,6 +1029,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={updateTrendingMutation.isPending}
                   type="button"
                 >
+                  <TrendingUp className="size-4" />
                   <span className="break-words text-xs sm:text-sm">
                     {updateTrendingMutation.isPending
                       ? "Updating..."
@@ -1029,6 +1051,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                   disabled={refreshCacheMutation.isPending}
                   type="button"
                 >
+                  <RefreshCw className="size-4" />
                   <span className="break-words text-xs sm:text-sm">
                     {refreshCacheMutation.isPending
                       ? "Refreshing..."
@@ -1063,7 +1086,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    📚 Bulk Edit Books
+                    <Pencil className="size-4" />
+                    Bulk Edit Books
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkActivateBooks}>
@@ -1072,7 +1096,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    ✅ Bulk Activate Books
+                    <CheckCircle className="size-4" />
+                    Bulk Activate Books
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkDeactivateBooks}>
@@ -1081,7 +1106,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    ❌ Bulk Deactivate Books
+                    <X className="size-4" />
+                    Bulk Deactivate Books
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkDeleteBooks}>
@@ -1090,7 +1116,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start text-red-600"
                   >
-                    🗑️ Bulk Delete Books
+                    <Trash2 className="size-4" />
+                    Bulk Delete Books
                   </Button>
                 </form>
               </div>
@@ -1106,7 +1133,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    ✅ Bulk Approve Users
+                    <Check className="size-4" />
+                    Bulk Approve Users
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkRejectUsers}>
@@ -1115,7 +1143,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    ❌ Bulk Reject Users
+                    <UserX className="size-4" />
+                    Bulk Reject Users
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkMakeAdmin}>
@@ -1124,7 +1153,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    👑 Bulk Make Admin
+                    <Shield className="size-4" />
+                    Bulk Make Admin
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkRemoveAdmin}>
@@ -1133,7 +1163,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    👤 Bulk Remove Admin
+                    <ShieldOff className="size-4" />
+                    Bulk Remove Admin
                   </Button>
                 </form>
               </div>
@@ -1149,7 +1180,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    ✅ Bulk Approve Requests
+                    <CheckCircle className="size-4" />
+                    Bulk Approve Requests
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkRejectRequests}>
@@ -1158,7 +1190,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    ❌ Bulk Reject Requests
+                    <X className="size-4" />
+                    Bulk Reject Requests
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkSendReminders}>
@@ -1167,7 +1200,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    📧 Bulk Send Reminders
+                    <Mail className="size-4" />
+                    Bulk Send Reminders
                   </Button>
                 </form>
                 <form action={serverActions.handleBulkUpdateStatus}>
@@ -1176,7 +1210,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     variant="outline"
                     className="w-full justify-start"
                   >
-                    📊 Bulk Update Status
+                    <BarChart3 className="size-4" />
+                    Bulk Update Status
                   </Button>
                 </form>
               </div>
@@ -1242,12 +1277,14 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     <form action="/api/admin/export/books" method="POST">
                       <input type="hidden" name="format" value="csv" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         CSV
                       </Button>
                     </form>
                     <form action="/api/admin/export/books" method="POST">
                       <input type="hidden" name="format" value="json" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         JSON
                       </Button>
                     </form>
@@ -1256,7 +1293,9 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
 
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="break-words font-medium text-gray-900">Users Data</p>
+                    <p className="break-words font-medium text-gray-900">
+                      Users Data
+                    </p>
                     <p className="break-words text-sm text-gray-600">
                       {exportStats?.totalUsers || 0} users
                     </p>
@@ -1265,12 +1304,14 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     <form action="/api/admin/export/users" method="POST">
                       <input type="hidden" name="format" value="csv" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         CSV
                       </Button>
                     </form>
                     <form action="/api/admin/export/users" method="POST">
                       <input type="hidden" name="format" value="json" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         JSON
                       </Button>
                     </form>
@@ -1279,7 +1320,9 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
 
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="break-words font-medium text-gray-900">Borrows Data</p>
+                    <p className="break-words font-medium text-gray-900">
+                      Borrows Data
+                    </p>
                     <p className="break-words text-sm text-gray-600">
                       {exportStats?.totalBorrows || 0} borrows
                     </p>
@@ -1288,12 +1331,14 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     <form action="/api/admin/export/borrows" method="POST">
                       <input type="hidden" name="format" value="csv" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         CSV
                       </Button>
                     </form>
                     <form action="/api/admin/export/borrows" method="POST">
                       <input type="hidden" name="format" value="json" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         JSON
                       </Button>
                     </form>
@@ -1302,7 +1347,9 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
 
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="break-words font-medium text-gray-900">Analytics Data</p>
+                    <p className="break-words font-medium text-gray-900">
+                      Analytics Data
+                    </p>
                     <p className="break-words text-sm text-gray-600">
                       Complete analytics report
                     </p>
@@ -1311,12 +1358,14 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     <form action="/api/admin/export/analytics" method="POST">
                       <input type="hidden" name="format" value="csv" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         CSV
                       </Button>
                     </form>
                     <form action="/api/admin/export/analytics" method="POST">
                       <input type="hidden" name="format" value="json" />
                       <Button type="submit" size="sm" variant="outline">
+                        <Download className="size-4" />
                         JSON
                       </Button>
                     </form>
@@ -1330,7 +1379,9 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
               <h4 className="font-medium text-gray-900">Export Settings</h4>
               <div className="space-y-3">
                 <div className="rounded-lg bg-blue-50 p-3">
-                  <p className="break-words font-medium text-blue-900">Date Range Export</p>
+                  <p className="break-words font-medium text-blue-900">
+                    Date Range Export
+                  </p>
                   <p className="break-words text-sm text-blue-600">
                     Export borrows data for a specific date range
                   </p>
@@ -1352,7 +1403,12 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                         className="w-full flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
                         required
                       />
-                      <Button type="submit" size="sm" className="w-full sm:w-auto">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        className="w-full sm:w-auto"
+                      >
+                        <Download className="size-4" />
                         Export
                       </Button>
                     </div>
@@ -1360,7 +1416,9 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                 </div>
 
                 <div className="rounded-lg bg-green-50 p-3">
-                  <p className="break-words font-medium text-green-900">Last Export</p>
+                  <p className="break-words font-medium text-green-900">
+                    Last Export
+                  </p>
                   <p className="break-words text-sm text-green-600">
                     {exportStats?.lastExportDate
                       ? new Date(exportStats.lastExportDate).toLocaleString()

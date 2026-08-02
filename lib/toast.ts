@@ -33,24 +33,25 @@ export const showToast = {
 
   // Specific action toasts
   auth: {
-    signInSuccess: () => {
+    signInSuccess: (name?: string) => {
+      const who = name?.trim() || "friend";
       toast({
-        title: "🎉 Welcome Back!",
-        description: "You have successfully signed in to BookWise.",
+        title: `🎉 Welcome back, ${who}!`,
+        description: "Enjoy discovering books & happy learning!",
       });
     },
-    signUpSuccess: () => {
+    signUpSuccess: (name?: string) => {
+      const who = name?.trim() || "friend";
       toast({
-        title: "🎉 Account Created!",
-        description:
-          "Welcome to BookWise! Your account has been created successfully.",
+        title: `🎉 Welcome, ${who}!`,
+        description: "Your account is ready — enjoy discovering books & happy learning!",
       });
     },
-    logoutSuccess: () => {
+    logoutSuccess: (name?: string) => {
+      const who = name?.trim() || "friend";
       toast({
-        title: "👋 Logged Out",
-        description:
-          "You have been logged out successfully. Thank you for using BookWise!",
+        title: `👋 Goodbye, ${who}!`,
+        description: "Hope to see you soon again!",
       });
     },
   },

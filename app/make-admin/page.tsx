@@ -4,8 +4,9 @@ import { createAdminRequest } from "@/lib/admin/actions/admin-requests";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Footer from "@/components/Footer";
 
 const Page = async ({
   searchParams,
@@ -21,8 +22,8 @@ const Page = async ({
 
   return (
     <main className="root-container">
-      <div className="mx-auto w-full">
-        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
+      <div className="page-shell flex min-h-screen flex-col">
+        <div className="page-shell-main flex-1">
           {/* Back Button */}
           <div className="mb-4 sm:mb-6">
             <Button
@@ -41,7 +42,7 @@ const Page = async ({
           <div className="mx-auto max-w-2xl">
             <Card className="border-2 border-gray-600 bg-gray-800/30">
               <CardHeader>
-                <CardTitle className="text-center text-xl font-bold text-light-300 sm:text-3xl">
+                <CardTitle className="text-center text-xl font-semibold text-light-300 sm:text-3xl">
                   Request Admin Access
                 </CardTitle>
               </CardHeader>
@@ -133,7 +134,7 @@ const Page = async ({
                   action={async (formData) => {
                     "use server";
                     const requestReason = formData.get(
-                      "requestReason"
+                      "requestReason",
                     ) as string;
 
                     if (!requestReason || requestReason.trim().length < 10) {
@@ -183,6 +184,7 @@ const Page = async ({
                     type="submit"
                     className="w-full bg-purple-600 text-xs text-white hover:bg-purple-700 sm:text-sm"
                   >
+                    <Shield className="size-4" />
                     Submit Admin Request
                   </Button>
                 </form>
@@ -203,6 +205,7 @@ const Page = async ({
             </Card>
           </div>
         </div>
+        <Footer />
       </div>
     </main>
   );

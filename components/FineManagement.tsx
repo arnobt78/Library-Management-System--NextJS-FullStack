@@ -22,6 +22,7 @@ import {
   useUpdateOverdueFines,
 } from "@/hooks/useMutations";
 import type { FineConfig } from "@/lib/services/admin";
+import { Pencil, Save, X } from "lucide-react";
 
 interface FineManagementProps {
   /**
@@ -147,6 +148,7 @@ export default function FineManagement({
                   size="sm"
                   className="w-full border-green-200 bg-green-100 text-green-700 hover:bg-green-200 sm:w-auto"
                 >
+                  <Save className="size-4" />
                   {updateFineConfigMutation.isPending ||
                   updateOverdueFinesMutation.isPending
                     ? "Saving..."
@@ -162,6 +164,7 @@ export default function FineManagement({
                   size="sm"
                   className="w-full border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-200 sm:w-auto"
                 >
+                  <X className="size-4" />
                   Cancel
                 </Button>
               </>
@@ -173,6 +176,7 @@ export default function FineManagement({
                 size="sm"
                 className="w-full border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 sm:w-auto"
               >
+                <Pencil className="size-4" />
                 Update Fines
               </Button>
             )}

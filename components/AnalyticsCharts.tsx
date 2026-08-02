@@ -189,13 +189,13 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-xl sm:text-2xl">📚</div>
+              <div className="text-xl sm:text-xl">📚</div>
             </div>
             <div className="ml-3 sm:ml-4">
               <div className="text-xs font-medium text-blue-600 sm:text-sm">
                 Total Books
               </div>
-              <div className="text-xl font-bold text-blue-900 sm:text-2xl">
+              <div className="text-xl font-semibold text-blue-900 sm:text-xl">
                 {data.systemHealth?.totalBooks || 0}
               </div>
             </div>
@@ -205,13 +205,13 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         <div className="rounded-lg border border-green-200 bg-green-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-xl sm:text-2xl">👥</div>
+              <div className="text-xl sm:text-xl">👥</div>
             </div>
             <div className="ml-3 sm:ml-4">
               <div className="text-xs font-medium text-green-600 sm:text-sm">
                 Total Users
               </div>
-              <div className="text-xl font-bold text-green-900 sm:text-2xl">
+              <div className="text-xl font-semibold text-green-900 sm:text-xl">
                 {data.systemHealth?.totalUsers || 0}
               </div>
             </div>
@@ -221,13 +221,13 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-xl sm:text-2xl">📖</div>
+              <div className="text-xl sm:text-xl">📖</div>
             </div>
             <div className="ml-3 sm:ml-4">
               <div className="text-xs font-medium text-purple-600 sm:text-sm">
                 Active Borrows
               </div>
-              <div className="text-xl font-bold text-purple-900 sm:text-2xl">
+              <div className="text-xl font-semibold text-purple-900 sm:text-xl">
                 {data.systemHealth?.activeBorrows || 0}
               </div>
             </div>
@@ -237,13 +237,13 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 sm:p-6">
           <div className="flex items-center">
             <div className="shrink-0">
-              <div className="text-xl sm:text-2xl">⚠️</div>
+              <div className="text-xl sm:text-xl">⚠️</div>
             </div>
             <div className="ml-3 sm:ml-4">
               <div className="text-xs font-medium text-orange-600 sm:text-sm">
                 Overdue Books
               </div>
-              <div className="text-xl font-bold text-orange-900 sm:text-2xl">
+              <div className="text-xl font-semibold text-orange-900 sm:text-xl">
                 {data.systemHealth?.overdueBooks || 0}
               </div>
             </div>
@@ -449,7 +449,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     className="px-2 py-6 text-center text-gray-500 sm:px-4 sm:py-8"
                   >
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="text-3xl sm:text-4xl">✅</div>
+                      <div className="text-3xl sm:text-3xl">✅</div>
                       <div className="text-base font-medium sm:text-lg">
                         No Overdue Books
                       </div>

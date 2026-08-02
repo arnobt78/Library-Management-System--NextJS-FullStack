@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/database/drizzle";
@@ -35,12 +36,13 @@ const Layout = async ({ children }: { children: ReactNode }) => {
     }
   }
 
+  // Single page-shell aligns Header, main, and Footer on the same gutters
   return (
     <main className="root-container">
-      <div className="mx-auto w-full max-w-full overflow-x-hidden">
+      <div className="page-shell flex min-h-screen flex-col">
         <Header session={session} />
-
-        <div className="w-full max-w-full overflow-x-hidden py-4 sm:py-8">{children}</div>
+        <div className="page-shell-main flex-1">{children}</div>
+        <Footer />
       </div>
     </main>
   );

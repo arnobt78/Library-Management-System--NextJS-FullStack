@@ -83,8 +83,8 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
   // Show error state for book
   if (isErrorBook || !book) {
     return (
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6">
-        <div className="rounded-lg border border-red-500 bg-red-50 p-4 text-center sm:p-8">
+      <div className="w-full">
+        <div className="empty-panel rounded-lg border border-red-500 bg-red-50">
           <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load book
           </p>
@@ -112,16 +112,22 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
       <div className="w-full min-w-0 max-w-full flex-[1.5] overflow-hidden">
         {/* Video Section */}
         <section className="flex flex-col gap-4 sm:gap-7">
-          <h3 className="text-base font-semibold text-primary sm:text-lg">Video</h3>
+          <h3 className="text-base font-semibold text-primary sm:text-lg">
+            Video
+          </h3>
           <BookVideo videoUrl={bookData.videoUrl} />
         </section>
 
         {/* Summary Section */}
         <section className="mt-6 flex flex-col gap-4 sm:mt-10 sm:gap-7">
-          <h3 className="text-base font-semibold text-primary sm:text-lg">Summary</h3>
+          <h3 className="text-base font-semibold text-primary sm:text-lg">
+            Summary
+          </h3>
           <div className="space-y-3 break-words text-base text-light-100 sm:space-y-5 sm:text-xl">
             {bookData.summary?.split("\n").map((line: string, i: number) => (
-              <p key={i} className="break-words">{line}</p>
+              <p key={i} className="break-words">
+                {line}
+              </p>
             ))}
           </div>
         </section>
@@ -139,7 +145,9 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
           {/* Show error message for reviews if failed but book loaded */}
           {isErrorReviews && (
             <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-3 text-yellow-800 sm:p-4">
-              <p className="text-sm font-semibold sm:text-base">Failed to load reviews</p>
+              <p className="text-sm font-semibold sm:text-base">
+                Failed to load reviews
+              </p>
               <p className="text-xs sm:text-sm">
                 {reviewsError instanceof Error
                   ? reviewsError.message

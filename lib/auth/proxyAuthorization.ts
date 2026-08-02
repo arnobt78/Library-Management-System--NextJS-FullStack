@@ -5,7 +5,6 @@ const PROTECTED_APP_PREFIXES = [
   "/all-books",
   "/books",
   "/my-profile",
-  "/performance",
   "/make-admin",
 ] as const;
 

@@ -10,11 +10,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut, Loader2 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { showToast } from "@/lib/toast";
 import UserAvatar from "@/components/UserAvatar";
 import { UTILITY_NAVIGATION_ITEMS } from "@/constants/navigation";
+import { setPendingAuthToast } from "@/lib/auth/authToast";
 
 interface MobileMenuProps {
   fullName: string;
@@ -67,7 +68,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
     try {
       setIsLoggingOut(true);
-      showToast.auth.logoutSuccess();
+      setPendingAuthToast("logout", fullName);
       document.cookie =
         "logout-in-progress=true; path=/; max-age=10; SameSite=Lax";
 
@@ -201,9 +202,10 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 key={item.href}
                 href={item.href}
                 onClick={closeMenu}
-                className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
+                className="flex items-center gap-2 rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 aria-current={pathname === item.href ? "page" : undefined}
               >
+                <item.icon className="size-4 shrink-0 opacity-90" aria-hidden />
                 {item.label}
               </Link>
             ))}
@@ -280,8 +282,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="w-full rounded-md bg-red-600 p-2.5 text-sm text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:p-3 sm:text-base"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-red-600 p-2.5 text-sm text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:p-3 sm:text-base"
             >
+              {isLoggingOut ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <LogOut className="size-4" />
+              )}
               {isLoggingOut ? "Logging out..." : "Logout"}
             </button>
           </div>

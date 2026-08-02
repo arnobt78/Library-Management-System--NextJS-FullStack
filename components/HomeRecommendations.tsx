@@ -54,7 +54,7 @@ const HomeRecommendations: React.FC<HomeRecommendationsProps> = ({
   ) {
     return (
       <section className="mt-12 sm:mt-24">
-        <h2 className="font-bebas-neue text-2xl text-light-100 sm:text-4xl">
+        <h2 className="font-bebas-neue text-xl text-light-100 sm:text-3xl">
           Book Recommendations
         </h2>
         <ul className="book-list">
@@ -70,11 +70,13 @@ const HomeRecommendations: React.FC<HomeRecommendationsProps> = ({
   if (isError) {
     return (
       <section className="mt-12 sm:mt-24">
-        <h2 className="font-bebas-neue text-2xl text-light-100 sm:text-4xl">
+        <h2 className="font-bebas-neue text-xl text-light-100 sm:text-3xl">
           Book Recommendations
         </h2>
         <div className="mt-3 rounded-lg border border-red-500 bg-red-50 p-3 text-red-800 sm:mt-4 sm:p-4">
-          <p className="text-sm font-semibold sm:text-base">Failed to load recommendations</p>
+          <p className="text-sm font-semibold sm:text-base">
+            Failed to load recommendations
+          </p>
           <p className="text-xs sm:text-sm">
             {error instanceof Error
               ? error.message

@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 
 interface DeleteBookDialogProps {
   bookId: string;
@@ -92,6 +93,7 @@ const DeleteBookDialog = ({
           className={triggerClassName}
           type="button"
         >
+          <Trash2 className="size-4" />
           Delete
         </Button>
       </AlertDialogTrigger>
@@ -147,6 +149,7 @@ const DeleteBookDialog = ({
             disabled={!canSubmit}
             onClick={handleDelete}
           >
+            <Trash2 className="size-4" />
             {deleteBookMutation.isPending ? "Deleting…" : "Delete permanently"}
           </Button>
         </AlertDialogFooter>

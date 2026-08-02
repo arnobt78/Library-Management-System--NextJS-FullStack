@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import PerformanceDashboard from "@/components/PerformanceDashboard";
 import {
   Server,
   RefreshCw,
@@ -104,7 +105,7 @@ const ApiStatusClient = ({
 
   // Convert metrics data to component format (defined before useMemo to avoid hoisting issues)
   const convertMetricsToSystemMetrics = (
-    metricsData: MetricsData
+    metricsData: MetricsData,
   ): SystemMetric[] => {
     return [
       {
@@ -117,7 +118,10 @@ const ApiStatusClient = ({
       },
       {
         title: "API Performance",
-        value: metricsData.apiPerformance.status === "HEALTHY" ? `${metricsData.apiPerformance.requestsPerMinute} req/min` : "Unavailable",
+        value:
+          metricsData.apiPerformance.status === "HEALTHY"
+            ? `${metricsData.apiPerformance.requestsPerMinute} req/min`
+            : "Unavailable",
         status:
           metricsData.apiPerformance.status === "HEALTHY" ? "good" : "critical",
         icon: <TrendingUp className="size-5" />,
@@ -179,7 +183,7 @@ const ApiStatusClient = ({
   const overallStatus = useMemo(() => {
     if (!services || services.length === 0) return "HEALTHY" as const;
     const healthyServices = services.filter(
-      (s) => s.status === "HEALTHY"
+      (s) => s.status === "HEALTHY",
     ).length;
     const totalServices = services.length;
 
@@ -299,8 +303,7 @@ const ApiStatusClient = ({
         refetchServices(),
         ...(operatorMode ? [refetchMetrics()] : []),
       ]);
-    } catch {
-    }
+    } catch {}
 
     setIsRefreshing(false);
   };
@@ -412,7 +415,9 @@ const ApiStatusClient = ({
       {/* Header */}
       <div className="mb-4 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mb-2 text-2xl font-bold text-light-100 sm:text-4xl">API Status</h1>
+          <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+            API Status
+          </h1>
           <p className="text-sm text-light-100 sm:text-lg">
             Real-time monitoring of BookWise API services
           </p>
@@ -457,7 +462,7 @@ const ApiStatusClient = ({
                 <Zap className="size-4 text-blue-600" />
               </div>
               <p className="text-xs text-light-200 sm:text-sm">Response Time</p>
-              <p className="text-xl font-bold text-light-100 sm:text-2xl">
+              <p className="text-xl font-semibold text-light-100 sm:text-xl">
                 {responseTime}ms
               </p>
             </div>
@@ -466,7 +471,7 @@ const ApiStatusClient = ({
                 <Clock className="size-4 text-green-600" />
               </div>
               <p className="text-xs text-light-200 sm:text-sm">Uptime</p>
-              <p className="text-xl font-bold text-light-100 sm:text-2xl">
+              <p className="text-xl font-semibold text-light-100 sm:text-xl">
                 {uptime.hours}h {uptime.minutes}m {uptime.seconds}s
               </p>
             </div>
@@ -475,7 +480,7 @@ const ApiStatusClient = ({
                 <TrendingUp className="size-4 text-purple-600" />
               </div>
               <p className="text-xs text-light-200 sm:text-sm">Health Score</p>
-              <p className="text-xl font-bold text-light-100 sm:text-2xl">
+              <p className="text-xl font-semibold text-light-100 sm:text-xl">
                 {healthScore.toFixed(1)}%
               </p>
             </div>
@@ -523,7 +528,9 @@ const ApiStatusClient = ({
                           {service.name}
                         </CardTitle>
                       </div>
-                      <Badge className={`w-fit ${getStatusColor(service.status)}`}>
+                      <Badge
+                        className={`w-fit ${getStatusColor(service.status)}`}
+                      >
                         {service.status}
                       </Badge>
                     </div>
@@ -575,69 +582,88 @@ const ApiStatusClient = ({
       </Card>
 
       {/* Detailed metrics remain private operator diagnostics. */}
-      {operatorMode && <Card className="border-gray-700 bg-gray-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
-            <TrendingUp className="size-4 text-purple-500 sm:size-5" />
-            System Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {systemMetrics.length === 0 ? (
-            <div className="py-6 text-center text-sm text-light-200 sm:py-8 sm:text-base">
-              No system metrics available. Please refresh.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {systemMetrics.map((metric, index) => {
-                // Get colorful icon based on metric title
-                const getMetricIcon = () => {
-                  if (metric.title.includes("Database")) {
-                    return <Database className="size-4 text-green-500 sm:size-5" />;
-                  } else if (metric.title.includes("API Performance")) {
-                    return <TrendingUp className="size-4 text-blue-500 sm:size-5" />;
-                  } else if (metric.title.includes("Error Rate")) {
-                    return <AlertCircle className="size-4 text-red-500 sm:size-5" />;
-                  } else if (metric.title.includes("Storage")) {
-                    return <HardDrive className="size-4 text-orange-500 sm:size-5" />;
-                  } else if (metric.title.includes("Active Users")) {
-                    return <Users className="size-4 text-cyan-500 sm:size-5" />;
-                  } else if (metric.title.includes("SSL")) {
-                    return <Shield className="size-4 text-yellow-500 sm:size-5" />;
-                  }
-                  return metric.icon;
-                };
+      {operatorMode && (
+        <Card className="border-gray-700 bg-gray-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
+              <TrendingUp className="size-4 text-purple-500 sm:size-5" />
+              System Metrics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {systemMetrics.length === 0 ? (
+              <div className="py-6 text-center text-sm text-light-200 sm:py-8 sm:text-base">
+                No system metrics available. Please refresh.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {systemMetrics.map((metric, index) => {
+                  // Get colorful icon based on metric title
+                  const getMetricIcon = () => {
+                    if (metric.title.includes("Database")) {
+                      return (
+                        <Database className="size-4 text-green-500 sm:size-5" />
+                      );
+                    } else if (metric.title.includes("API Performance")) {
+                      return (
+                        <TrendingUp className="size-4 text-blue-500 sm:size-5" />
+                      );
+                    } else if (metric.title.includes("Error Rate")) {
+                      return (
+                        <AlertCircle className="size-4 text-red-500 sm:size-5" />
+                      );
+                    } else if (metric.title.includes("Storage")) {
+                      return (
+                        <HardDrive className="size-4 text-orange-500 sm:size-5" />
+                      );
+                    } else if (metric.title.includes("Active Users")) {
+                      return (
+                        <Users className="size-4 text-cyan-500 sm:size-5" />
+                      );
+                    } else if (metric.title.includes("SSL")) {
+                      return (
+                        <Shield className="size-4 text-yellow-500 sm:size-5" />
+                      );
+                    }
+                    return metric.icon;
+                  };
 
-                return (
-                  <Card
-                    key={index}
-                    className="relative border-gray-600 bg-gray-700"
-                  >
-                    <CardContent className="pt-4 sm:pt-6">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div>{getMetricIcon()}</div>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-light-100 sm:text-sm">
-                            {metric.title}
-                          </p>
-                          <p
-                            className={`text-base font-bold sm:text-lg ${getMetricStatusColor(metric.status)}`}
-                          >
-                            {metric.value}
-                          </p>
-                          <p className="text-xs text-light-200">
-                            {metric.description}
-                          </p>
+                  return (
+                    <Card
+                      key={index}
+                      className="relative border-gray-600 bg-gray-700"
+                    >
+                      <CardContent className="pt-4 sm:pt-6">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div>{getMetricIcon()}</div>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-light-100 sm:text-sm">
+                              {metric.title}
+                            </p>
+                            <p
+                              className={`text-base font-semibold sm:text-lg ${getMetricStatusColor(metric.status)}`}
+                            >
+                              {metric.value}
+                            </p>
+                            <p className="text-xs text-light-200">
+                              {metric.description}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Client/Zustand metrics formerly on /performance */}
+      <div className="mt-6 border-t border-gray-700/60 pt-6 sm:mt-8 sm:pt-8">
+        <PerformanceDashboard embedded />
+      </div>
 
       {/* Footer */}
       <div className="my-4 text-center">

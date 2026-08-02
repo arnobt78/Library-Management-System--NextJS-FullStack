@@ -39,17 +39,16 @@ import FileUpload from "@/components/FileUpload";
 import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import UserAvatar from "@/components/UserAvatar";
+import { Users, XIcon, Sparkles, Zap, Loader2 } from "lucide-react";
+import { setPendingAuthToast } from "@/lib/auth/authToast";
 
 type AuthFields = FieldValues & { email: string; password: string };
 
-interface Props<
-  TInput extends AuthFields,
-  TOutput extends AuthFields,
-> {
+interface Props<TInput extends AuthFields, TOutput extends AuthFields> {
   schema: ZodType<TOutput, TInput>;
   defaultValues: DefaultValues<TInput>;
   onSubmit: (
-    data: TOutput
+    data: TOutput,
   ) => Promise<
     { success: true } | { success: false; error?: string; fieldError?: string }
   >;
@@ -66,6 +65,8 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
 
   const isSignIn = type === "SIGN_IN";
   const [selectedRole, setSelectedRole] = useState<string>("");
+  // Keep spinner visible through navigation so the button does not flash idle
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const form = useForm<TInput, unknown, TOutput>({
     resolver: zodResolver(schema),
@@ -86,11 +87,11 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
       if (account) {
         form.setValue(
           "email" as Path<TInput>,
-          account.email as TInput[Path<TInput>]
+          account.email as TInput[Path<TInput>],
         );
         form.setValue(
           "password" as Path<TInput>,
-          account.password as TInput[Path<TInput>]
+          account.password as TInput[Path<TInput>],
         );
       }
     }
@@ -100,13 +101,24 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
     const result = await onSubmit(data);
 
     if (result.success) {
-      if (isSignIn) {
-        showToast.auth.signInSuccess();
-      } else {
-        showToast.auth.signUpSuccess();
-      }
+      // Resolve a friendly display name for the deferred welcome toast
+      const dataRecord = data as Record<string, unknown>;
+      const signupName =
+        typeof dataRecord.fullName === "string"
+          ? dataRecord.fullName
+          : undefined;
+      const displayName =
+        signupName?.trim() ||
+        selectedAccount?.fullName ||
+        TEST_ACCOUNTS.find((a) => a.email === data.email)?.fullName ||
+        data.email.split("@")[0];
+
+      // Defer welcome toast until homepage mounts (avoids toast on auth page)
+      setPendingAuthToast(isSignIn ? "welcome" : "signup", displayName);
+      setIsNavigating(true);
       router.push("/");
     } else {
+      setIsNavigating(false);
       // Handle field-specific errors
       if (result.error && result.fieldError) {
         const fieldName = result.error as Path<TInput>;
@@ -124,18 +136,17 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
         // Generic error
         showToast.error(
           "Authentication Error",
-          result.error ?? "An unexpected error occurred. Please try again."
+          result.error ?? "An unexpected error occurred. Please try again.",
         );
       }
     }
   };
 
-  // Get form submission state for loading indicator
-  const isSubmitting = form.formState.isSubmitting;
+  const isSubmitting = form.formState.isSubmitting || isNavigating;
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <h1 className="text-xl font-semibold text-white sm:text-2xl">
+      <h1 className="text-xl font-semibold text-white sm:text-xl">
         {isSignIn ? "Welcome back to BookWise" : "Create your library account"}
       </h1>
       <p className="text-sm text-light-100 sm:text-base">
@@ -152,7 +163,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
           {isSignIn && (
             <div className="space-y-1.5 font-sans sm:space-y-2">
               <FormLabel className="text-sm text-white sm:text-base">
-                Select Test Account
+                Test Accounts To Login With
               </FormLabel>
               <Select
                 key={`select-${selectedRole || "empty"}`}
@@ -178,7 +189,10 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
                       </div>
                     </div>
                   ) : (
-                    <SelectValue placeholder="Select Role Based Test Account" />
+                    <div className="flex items-center font-normal">
+                      <Users className="mr-2 inline size-4" />
+                      <SelectValue placeholder="Select Role Based Test Account" />
+                    </div>
                   )}
                 </SelectTrigger>
                 <SelectContent className="border-gray-600 bg-gray-800 font-sans">
@@ -209,8 +223,9 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
                   {selectedRole && (
                     <SelectItem
                       value="clear"
-                      className="cursor-pointer text-gray-400 opacity-60 focus:bg-gray-700 focus:text-gray-400"
+                      className="cursor-pointer text-white opacity-70 focus:bg-gray-700 focus:text-white"
                     >
+                      <XIcon className="mr-2 inline size-4" />
                       Clear Selection
                     </SelectItem>
                   )}
@@ -220,7 +235,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
           )}
 
           {Object.keys(defaultValues).map((field) => (
-              <FormField
+            <FormField
               key={field}
               control={form.control}
               name={field as Path<TInput>}
@@ -267,7 +282,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
                           // For number inputs, convert empty string to undefined
                           if (field.name === "universityId") {
                             field.onChange(
-                              value === "" ? undefined : Number(value)
+                              value === "" ? undefined : Number(value),
                             );
                           } else {
                             field.onChange(value);
@@ -284,13 +299,22 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
           ))}
 
           <Button type="submit" className="form-btn" disabled={isSubmitting}>
-            {isSubmitting
-              ? isSignIn
-                ? "Signing in..."
-                : "Signing up..."
-              : isSignIn
-                ? "Sign In"
-                : "Sign Up"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {isSignIn ? "Signing in..." : "Signing up..."}
+              </>
+            ) : isSignIn ? (
+              <>
+                <Sparkles className="size-4" />
+                Sign In
+              </>
+            ) : (
+              <>
+                <Zap className="size-4" />
+                Sign Up
+              </>
+            )}
           </Button>
         </form>
       </Form>
@@ -300,7 +324,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
 
         <Link
           href={isSignIn ? "/sign-up" : "/sign-in"}
-          className="font-bold text-primary"
+          className="font-semibold text-primary"
         >
           {isSignIn ? "Create an account" : "Sign in"}
         </Link>

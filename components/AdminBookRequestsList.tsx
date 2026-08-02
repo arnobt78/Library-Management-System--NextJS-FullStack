@@ -19,6 +19,8 @@ import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
+import { borrowStatusFilterOptions } from "@/lib/ui/filterOptionStyles";
 import BookCover from "@/components/BookCover";
 import BorrowSkeleton from "@/components/skeletons/BorrowSkeleton";
 import { useBorrowRequests } from "@/hooks/useQueries";
@@ -28,6 +30,13 @@ import {
   useReturnBook,
 } from "@/hooks/useMutations";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
+import {
+  Search,
+  FilterX,
+  CheckCircle,
+  XCircle,
+  Undo2,
+} from "lucide-react";
 import type { BorrowStatus } from "@/lib/services/borrows";
 
 interface AdminBookRequestsListProps {
@@ -194,7 +203,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   // Show skeleton while loading (only if no initial data)
   if (requestsLoading && (!initialRequests || initialRequests.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+      <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold sm:text-xl">Borrow Requests</h2>
         </div>
@@ -213,7 +222,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   // Show error state
   if (requestsError && (!initialRequests || initialRequests.length === 0)) {
     return (
-      <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+      <section className="admin-panel">
         <div className="py-6 text-center sm:py-8">
           <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
             Failed to load borrow requests
@@ -229,7 +238,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   }
 
   return (
-    <section className="w-full rounded-2xl bg-white p-4 sm:p-7">
+    <section className="admin-panel">
       {/* Success/Error Messages */}
       {successMessage && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
@@ -300,28 +309,25 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
             }}
             className="flex-1 sm:min-w-[250px]"
           >
-            <Input
-              type="text"
-              placeholder="Search by book, author, user..."
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
-            />
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by book, author, user..."
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
           </form>
-          {/* Filter Dropdown */}
-          <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-            <span className="text-sm text-dark-400">Status:</span>
-            <select
-              value={currentStatus}
-              onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-dark-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:min-w-[170px]"
-            >
-              <option value="all">All</option>
-              <option value="PENDING">Pending</option>
-              <option value="BORROWED">Borrowed</option>
-              <option value="RETURNED">Returned</option>
-            </select>
-          </div>
+          <FilterSelect
+            label="Status"
+            variant="light"
+            className="w-full sm:min-w-[170px]"
+            value={currentStatus || "all"}
+            onValueChange={(v) => handleFilterChange("status", v)}
+            options={borrowStatusFilterOptions()}
+          />
         </div>
       </div>
 
@@ -340,6 +346,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                   onClick={clearFilters}
                   className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
                 >
+                  <FilterX className="size-4" />
                   Clear All Filters
                 </Button>
               )}
@@ -437,6 +444,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                             rejectBorrowMutation.isPending
                           }
                         >
+                          <CheckCircle className="size-4" />
                           Approve
                         </Button>
                         <Button
@@ -447,6 +455,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                             rejectBorrowMutation.isPending
                           }
                         >
+                          <XCircle className="size-4" />
                           Reject
                         </Button>
                       </div>
@@ -457,6 +466,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                         onClick={() => handleReturnBook(request.id)}
                         disabled={returnBookMutation.isPending}
                       >
+                        <Undo2 className="size-4" />
                         Mark as Returned
                       </Button>
                     )}
