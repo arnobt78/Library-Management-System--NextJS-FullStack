@@ -42,9 +42,10 @@ This project (FreeScribe) **exceeded Vercel free tier limits in production** wit
 
 ### Firewall / Bot (Vercel Dashboard - manual steps)
 
-- Turn on `Firewall -> Bot Management -> Bot Protection`.
-- Turn on `Firewall -> Bot Management -> AI Bots`.
+- Set `Firewall -> Bot Management -> Bot Protection` to **Challenge** (not merely ON).
+- Set `Firewall -> Bot Management -> AI Bots` to **Deny**.
 - Keep `Attack Mode` **off** by default (use only during active attack windows).
+- These managed rulesets are **dashboard-only** — they cannot be fully expressed in `vercel.json` / app code.
 
 ### Security Headers (code - `next.config.ts`)
 
@@ -198,7 +199,7 @@ What to watch:
 ## 4) Incident Playbook (When Metrics Spike)
 
 1. Confirm top source in `Observability` by `Project`, `Bot Name`, `Routes`.
-2. If bot-driven: ensure `Bot Protection` and `AI Bots` are ON. Keep `Attack Mode` OFF unless uncontrollable.
+2. If bot-driven: ensure `Bot Protection` = **Challenge** and `AI Bots` = **Deny**. Keep `Attack Mode` OFF unless uncontrollable.
 3. If image/media endpoints dominate: reduce unnecessary transforms; verify media usage patterns.
 4. If CPU/Origin still high: reduce heavy route payloads; tighten crawl exposure; trim API response shape.
 5. Re-check at 15/60/180 minutes.
@@ -207,19 +208,19 @@ What to watch:
 
 ## 5) Project-Type Presets
 
-### Static / CSR-only apps (e.g. this project - FreeScribe)
+### Static / CSR-only apps (e.g. FreeScribe)
 
-- Bot Protection: ON
-- AI Bots: ON
+- Bot Protection: **Challenge**
+- AI Bots: **Deny**
 - Security headers in `next.config.ts` + `vercel.json`
 - `robots.ts`: allow `/`, disallow `/_next/` and `/api/`
 - No ISR needed (no server-rendered data fetching)
 - No dynamic route cardinality concerns (single-page app pattern)
 
-### SSR / API-heavy apps
+### SSR / API-heavy apps (e.g. BookWise / university-library)
 
-- Bot Protection: ON
-- AI Bots: ON
+- Bot Protection: **Challenge**
+- AI Bots: **Deny**
 - Strong ISR strategy (`revalidate`)
 - Tight controls on dynamic crawlable paths
 - Strict payload caps per request
@@ -227,8 +228,8 @@ What to watch:
 
 ### API-only backends
 
-- Bot Protection: ON
-- AI Bots: ON
+- Bot Protection: **Challenge**
+- AI Bots: **Deny**
 - Rate-limit high-cost endpoints
 - Cache frequent read endpoints
 - Keep expensive operations authenticated where possible
@@ -247,8 +248,9 @@ What to watch:
 
 ## 7) Quick Copy Checklist (PR/Launch)
 
-- [ ] Bot Protection ON (Vercel Dashboard)
-- [ ] AI Bots ON (Vercel Dashboard)
+- [ ] Bot Protection = **Challenge** (Vercel Dashboard; managed ruleset)
+- [ ] AI Bots = **Deny** (Vercel Dashboard; managed ruleset)
+- [ ] Attack Mode OFF unless under active attack
 - [ ] Security headers in `next.config.ts`
 - [ ] Security headers mirrored in `vercel.json`
 - [ ] `/_next/static/` cache header set to immutable
@@ -261,3 +263,9 @@ What to watch:
 - [ ] Safe image fallback pattern applied where needed (`docs/SAFE_IMAGE_REUSABLE_COMPONENT.md`)
 - [ ] API responses minimized (no unnecessary fields, no duplicate calls)
 - [ ] T+15m and T+1h observability checks completed after deploy
+
+---
+
+## This repo (BookWise / university-library)
+
+SSR/API-heavy library app. **Dashboard-only:** Bot Protection = Challenge, AI Bots = Deny, Attack Mode off (redeploy not required for firewall toggles). **Code owns:** `app/robots.ts` (catalog SEO + AI UA block; no `public/robots.txt`), security headers + `/_next/static` immutable in `next.config.ts` and mirrored in `vercel.json` (cron kept), CSP `img-src` includes `robohash.org`, root `<html data-scroll-behavior="smooth">`. Redis rate limits and `CRON_SECRET` remain app-level. Enterprise OWASP Core Ruleset / BotID SDK out of scope unless metrics demand them.

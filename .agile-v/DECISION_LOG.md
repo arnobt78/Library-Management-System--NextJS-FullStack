@@ -70,3 +70,4 @@
 | DEC-0066 | 2026-08-03 | C2 | Build Agent JS | api-status glass + showToast.status on Refresh/Reset; keep RQ refetch only | Match profile/docs chrome; no new mutation family | REQ-0033 |
 | DEC-0067 | 2026-08-03 | C2 | Build Agent JS | ui/Button default hover via .btn-primary color-mix | CSS-var primary makes hover:bg-primary/90 invisible | REQ-0033 |
 | DEC-0068 | 2026-08-03 | C2 | Build Agent JS | SafeImage for next/image string URLs; ImageKit relative paths stay on @imagekit/next | Avoid breaking ImageKit urlEndpoint resolution | REQ-0033 |
+| DEC-0069 | 2026-08-04 | C2 | Build Agent JS | Bot Challenge+AI Deny dashboard-only; code robots/headers/static cache/scroll attr | Managed WAF not expressible in vercel.json; FreeScribe overage playbook | REQ-0032 |

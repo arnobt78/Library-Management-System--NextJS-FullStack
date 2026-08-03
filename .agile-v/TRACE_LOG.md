@@ -70,3 +70,4 @@
 | SPAN-0064 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | api-status glass + status toasts; PerformanceDashboard Lucide | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0065 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | btn-primary color-mix hover for CSS-var primary | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0066 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | SafeImage + UserAvatar/account-request migrate; ImageKit untouched | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0067 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | robots.ts + next/vercel headers + scroll attr; Challenge/Deny doc | require_parent_requirement | REQ-0032 | PASS; type/lint/tests |

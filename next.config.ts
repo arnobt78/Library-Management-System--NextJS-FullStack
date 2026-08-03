@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
-// Parent: REQ-0026, REQ-0032
+// Parent: REQ-0026, REQ-0032 — security headers + static cache (VERCEL_PRODUCTION_GUARDRAILS)
 const isProduction = process.env.NODE_ENV === "production";
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://placehold.co https://m.media-amazon.com https://ik.imagekit.io",
+  "img-src 'self' data: blob: https://placehold.co https://m.media-amazon.com https://ik.imagekit.io https://robohash.org",
   "media-src 'self' blob: https://ik.imagekit.io",
   "font-src 'self' data:",
   "connect-src 'self' https://upload.imagekit.io https://ik.imagekit.io",
@@ -19,6 +19,8 @@ const contentSecurityPolicy = [
 const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-XSS-Protection", value: "1; mode=block" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
@@ -37,7 +39,18 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      {
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
   images: {
     remotePatterns: [

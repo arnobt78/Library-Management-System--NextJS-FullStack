@@ -144,6 +144,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${ibmPlexSans.variable} ${bebasNeue.variable}`}
     >
       <SessionProviderWrapper session={session}>
