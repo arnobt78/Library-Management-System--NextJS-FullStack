@@ -74,19 +74,16 @@ const ApiEndpointCard = ({
 
       <div className="mb-2 flex flex-wrap gap-2 sm:mb-3">
         {auth && (
-          <Badge
-            variant="outline"
-            className="border-yellow-200 bg-yellow-50 text-xs text-yellow-700 sm:text-sm"
-          >
-            🔐 Authentication Required
+          <Badge variant="glassPending" className="text-xs sm:text-sm">
+            Auth required
           </Badge>
         )}
         {adminOnly && (
           <Badge
-            variant="outline"
-            className="border-red-200 bg-red-50 text-xs text-red-700 sm:text-sm"
+            variant="glassMuted"
+            className="border-red-400/40 from-red-500/25 via-red-500/10 to-red-500/5 text-xs sm:text-sm"
           >
-            👑 Admin Only
+            Admin only
           </Badge>
         )}
       </div>

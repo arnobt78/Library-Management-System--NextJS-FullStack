@@ -179,6 +179,11 @@ html:has(body[data-scroll-locked]) {
     background-color: color-mix(in srgb, var(--primary) 90%, black) !important;
   }
 
+  /* Shared ui/Button default variant — same color-mix hover as .form-btn */
+  .btn-primary:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--primary) 85%, black);
+  }
+
   .form-input {
     @apply w-full min-h-14 border-none text-base font-semibold placeholder:font-normal text-white placeholder:text-light-100 focus-visible:ring-0 focus-visible:shadow-none bg-dark-300 !important;
   }

@@ -178,7 +178,7 @@ const ApiStatusPage = async () => {
     <main className="root-container">
       <div className="page-shell flex min-h-screen flex-col">
         <Header session={session} />
-        <div className="page-shell-main flex-1">
+        <div className="page-shell-main flex-1 space-y-4 sm:space-y-6">
           <ApiStatusClient
             initialServices={initialServices}
             initialMetrics={initialMetrics}

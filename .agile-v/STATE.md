@@ -4,10 +4,10 @@
 - Cycle: C2
 - Stage: 4 - Prove and independent Verify
 - SCOPE-V phase: Evaluate
-- Status: ACTIVE - Stage 3 UX polish under REQ-0033 (Sign-up Requests rename + All Users badge); C2 Gate 2 still blocked by nonlocal production evidence
+- Status: ACTIVE - Stage 3 UX polish under REQ-0033 (api-status glass + status toasts); C2 Gate 2 still blocked by nonlocal production evidence
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: `a238cdb` (make-admin workflow + Sign-up Requests rename/badge)
+- Latest known tip: pending api-status polish on `main`
 - Started: 2026-08-01
 - Last updated: 2026-08-03
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)

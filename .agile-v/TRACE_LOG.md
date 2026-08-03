@@ -66,3 +66,6 @@
 | SPAN-0060 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | make-admin under (root); glass status; useCreateAdminRequest + toast/spinner | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0061 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | cancelMyAdminRequest withdraw; role/request badges; locked pending + glass CTAs | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0062 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | Sign-up Requests rename; All Users sidebar pending-admin badge | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0063 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | api-docs hero + GlassSectionHeader; lib/apiDocs full route catalog | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0064 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | api-status glass + status toasts; PerformanceDashboard Lucide | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0065 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | btn-primary color-mix hover for CSS-var primary | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |

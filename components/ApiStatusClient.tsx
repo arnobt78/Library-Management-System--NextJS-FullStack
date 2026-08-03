@@ -1,17 +1,9 @@
 "use client";
 
 /**
- * ApiStatusClient Component
- *
- * Client Component for displaying API status and system metrics.
- * Uses React Query for data fetching and caching, with SSR initial data support.
- *
- * Features:
- * - Uses useServiceHealth and useSystemMetrics hooks with SSR initial data
- * - Displays skeleton loaders while fetching
- * - Shows error state if fetch fails
- * - Manual refresh functionality preserved
- * - All existing UI, styling, and functionality preserved
+ * ApiStatusClient — merged server health + embedded PerformanceDashboard.
+ * Hero matches All Books / My Profile; sections use GlassSectionHeader + glass cards.
+ * Refresh refetches RQ health/metrics and shows dynamic showToast.status.*.
  */
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -20,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import PerformanceDashboard from "@/components/PerformanceDashboard";
+import GlassSectionHeader from "@/components/GlassSectionHeader";
 import {
   Server,
   RefreshCw,
@@ -43,18 +36,55 @@ import type { ServiceStatus } from "@/lib/services/health-monitor";
 import type { MetricsData } from "@/lib/services/metrics-monitor";
 import type { SystemMetric } from "@/lib/services/metrics-monitor";
 import { Skeleton } from "@/components/ui/skeleton";
+import { showToast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+
+const GLASS_CARD =
+  "border-white/10 bg-dark-300/60 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm";
+const GLASS_TILE =
+  "rounded-xl border border-white/10 bg-dark-300/40 p-3 shadow-sm backdrop-blur-sm sm:p-4";
 
 interface ApiStatusClientProps {
-  /**
-   * Initial service health data from SSR (prevents duplicate fetch)
-   */
   initialServices?: ServiceStatus[];
-  /**
-   * Initial system metrics data from SSR (prevents duplicate fetch)
-   */
   initialMetrics?: MetricsData | null;
   /** Enables authenticated operator diagnostics; public mode uses liveness only. */
   operatorMode?: boolean;
+}
+
+function deriveOverallStatus(
+  list: ServiceStatus[],
+): "HEALTHY" | "DEGRADED" | "DOWN" {
+  if (!list.length) return "HEALTHY";
+  const healthy = list.filter((s) => s.status === "HEALTHY").length;
+  if (healthy === list.length) return "HEALTHY";
+  if (healthy > list.length / 2) return "DEGRADED";
+  return "DOWN";
+}
+
+function statusBadgeClass(status: string): string {
+  switch (status) {
+    case "HEALTHY":
+      return "";
+    case "DEGRADED":
+      return "";
+    case "DOWN":
+      return "border-red-400/40 from-red-500/25 via-red-500/10 to-red-500/5";
+    default:
+      return "";
+  }
+}
+
+function statusBadgeVariant(
+  status: string,
+): "glassReturned" | "glassPending" | "glassMuted" {
+  switch (status) {
+    case "HEALTHY":
+      return "glassReturned";
+    case "DEGRADED":
+      return "glassPending";
+    default:
+      return "glassMuted";
+  }
 }
 
 const ApiStatusClient = ({
@@ -62,7 +92,6 @@ const ApiStatusClient = ({
   initialMetrics,
   operatorMode = true,
 }: ApiStatusClientProps) => {
-  // React Query hooks with SSR initial data
   const {
     data: servicesData,
     isLoading: servicesLoading,
@@ -83,88 +112,86 @@ const ApiStatusClient = ({
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [uptime, setUptime] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
-  // Get service icon with colors (defined before useMemo to avoid hoisting issues)
   const getServiceIcon = (serviceName: string) => {
     switch (serviceName) {
       case "API Server":
-        return <Server className="size-5 text-blue-500" />;
+      case "Application":
+        return <Server className="size-5 text-blue-400" />;
       case "Database":
-        return <Database className="size-5 text-green-500" />;
+        return <Database className="size-5 text-emerald-400" />;
       case "Authentication":
-        return <Lock className="size-5 text-purple-500" />;
+        return <Lock className="size-5 text-violet-400" />;
       case "File Storage":
-        return <HardDrive className="size-5 text-orange-500" />;
+        return <HardDrive className="size-5 text-orange-400" />;
       case "Email Service":
-        return <FileText className="size-5 text-pink-500" />;
+        return <FileText className="size-5 text-pink-400" />;
       case "External APIs":
-        return <Globe className="size-5 text-cyan-500" />;
+        return <Globe className="size-5 text-cyan-400" />;
       default:
-        return <Server className="size-5 text-gray-500" />;
+        return <Server className="size-5 text-light-200" />;
     }
   };
 
-  // Convert metrics data to component format (defined before useMemo to avoid hoisting issues)
   const convertMetricsToSystemMetrics = (
-    metricsData: MetricsData,
+    data: MetricsData,
   ): SystemMetric[] => {
     return [
       {
         title: "Database Performance",
-        value: `Active: ${metricsData.databasePerformance.active}/${metricsData.databasePerformance.max}`,
-        status: metricsData.databasePerformance.status,
+        value: `Active: ${data.databasePerformance.active}/${data.databasePerformance.max}`,
+        status: data.databasePerformance.status,
         icon: <Database className="size-5" />,
-        description: metricsData.databasePerformance.description,
-        details: metricsData.databasePerformance,
+        description: data.databasePerformance.description,
+        details: data.databasePerformance,
       },
       {
         title: "API Performance",
         value:
-          metricsData.apiPerformance.status === "HEALTHY"
-            ? `${metricsData.apiPerformance.requestsPerMinute} req/min`
+          data.apiPerformance.status === "HEALTHY"
+            ? `${data.apiPerformance.requestsPerMinute} req/min`
             : "Unavailable",
         status:
-          metricsData.apiPerformance.status === "HEALTHY" ? "good" : "critical",
+          data.apiPerformance.status === "HEALTHY" ? "good" : "critical",
         icon: <TrendingUp className="size-5" />,
         description: "Requests per minute",
-        details: metricsData.apiPerformance,
+        details: data.apiPerformance,
       },
       {
         title: "Error Rate",
-        value: metricsData.errorRate.rate,
-        status: metricsData.errorRate.status,
+        value: data.errorRate.rate,
+        status: data.errorRate.status,
         icon: <AlertCircle className="size-5" />,
-        description: metricsData.errorRate.description,
-        details: metricsData.errorRate,
+        description: data.errorRate.description,
+        details: data.errorRate,
       },
       {
         title: "Storage Usage",
-        value: `${metricsData.storageUsage.used} / ${metricsData.storageUsage.total}`,
-        status: metricsData.storageUsage.status,
+        value: `${data.storageUsage.used} / ${data.storageUsage.total}`,
+        status: data.storageUsage.status,
         icon: <HardDrive className="size-5" />,
-        description: metricsData.storageUsage.description,
-        details: metricsData.storageUsage,
+        description: data.storageUsage.description,
+        details: data.storageUsage,
       },
       {
         title: "Active Users",
-        value: metricsData.activeUsers.count.toString(),
-        status: metricsData.activeUsers.status,
+        value: data.activeUsers.count.toString(),
+        status: data.activeUsers.status,
         icon: <Users className="size-5" />,
-        description: metricsData.activeUsers.description,
-        details: metricsData.activeUsers,
+        description: data.activeUsers.description,
+        details: data.activeUsers,
       },
       {
         title: "SSL Certificate",
-        value: metricsData.sslCertificate.status,
+        value: data.sslCertificate.status,
         status:
-          metricsData.sslCertificate.status === "Valid" ? "good" : "critical",
+          data.sslCertificate.status === "Valid" ? "good" : "critical",
         icon: <Shield className="size-5" />,
         description: "Security status",
-        details: metricsData.sslCertificate,
+        details: data.sslCertificate,
       },
     ];
   };
 
-  // Get services with icons
   const services: ServiceStatus[] = useMemo(() => {
     if (!servicesData || servicesData.length === 0) return [];
     return servicesData.map((service) => ({
@@ -173,107 +200,83 @@ const ApiStatusClient = ({
     }));
   }, [servicesData]);
 
-  // Convert metrics to system metrics format
   const systemMetrics: SystemMetric[] = useMemo(() => {
     if (!metricsData) return [];
     return convertMetricsToSystemMetrics(metricsData);
   }, [metricsData]);
 
-  // Calculate derived values from services
-  const overallStatus = useMemo(() => {
-    if (!services || services.length === 0) return "HEALTHY" as const;
-    const healthyServices = services.filter(
-      (s) => s.status === "HEALTHY",
-    ).length;
-    const totalServices = services.length;
-
-    if (healthyServices === totalServices) {
-      return "HEALTHY" as const;
-    } else if (healthyServices > totalServices / 2) {
-      return "DEGRADED" as const;
-    } else {
-      return "DOWN" as const;
-    }
-  }, [services]);
+  const overallStatus = useMemo(
+    () => deriveOverallStatus(services),
+    [services],
+  );
 
   const responseTime = useMemo(() => {
-    if (!services || services.length === 0) return 0;
-    const avgResponseTime =
-      services.reduce((sum, s) => sum + s.responseTime, 0) / services.length;
-    return Math.round(avgResponseTime);
+    if (!services.length) return 0;
+    return Math.round(
+      services.reduce((sum, s) => sum + s.responseTime, 0) / services.length,
+    );
   }, [services]);
 
   const healthScore = useMemo(() => {
-    if (!services || services.length === 0) return 100;
-    const avgPerformance =
+    if (!services.length) return 100;
+    return Math.round(
       services.reduce((sum, s) => sum + s.performanceValue, 0) /
-      services.length;
-    return Math.round(avgPerformance);
+        services.length,
+    );
   }, [services]);
 
-  // Utility functions
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "HEALTHY":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "DEGRADED":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "DOWN":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
+  const healthyCount = useMemo(
+    () => services.filter((s) => s.status === "HEALTHY").length,
+    [services],
+  );
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "HEALTHY":
-        return <CheckCircle className="size-6 text-green-600" />;
+        return <CheckCircle className="size-6 text-emerald-400" />;
       case "DEGRADED":
-        return <AlertCircle className="size-6 text-yellow-600" />;
+        return <AlertCircle className="size-6 text-amber-400" />;
       case "DOWN":
-        return <XCircle className="size-6 text-red-600" />;
+        return <XCircle className="size-6 text-red-400" />;
       default:
-        return <AlertCircle className="size-6 text-gray-600" />;
+        return <AlertCircle className="size-6 text-light-200" />;
     }
   };
 
   const getPerformanceColor = (performance: string) => {
     switch (performance) {
       case "Excellent":
-        return "text-green-600";
+        return "text-emerald-400";
       case "Good":
-        return "text-blue-600";
+        return "text-blue-400";
       case "Slow":
-        return "text-yellow-600";
+        return "text-amber-400";
       case "Poor":
-        return "text-red-600";
+        return "text-red-400";
       default:
-        return "text-gray-600";
+        return "text-light-200";
     }
   };
 
   const getMetricStatusColor = (status: string) => {
     switch (status) {
       case "good":
-        return "text-green-600";
+        return "text-emerald-400";
       case "warning":
-        return "text-yellow-600";
+        return "text-amber-400";
       case "critical":
-        return "text-red-600";
+        return "text-red-400";
       default:
-        return "text-gray-600";
+        return "text-light-200";
     }
   };
 
-  // Update uptime every second
   useEffect(() => {
     const uptimeInterval = setInterval(() => {
       setUptime((prev) => {
         let newSeconds = prev.seconds + 1;
         let newMinutes = prev.minutes;
         let newHours = prev.hours;
-
         if (newSeconds >= 60) {
           newSeconds = 0;
           newMinutes += 1;
@@ -282,127 +285,97 @@ const ApiStatusClient = ({
           newMinutes = 0;
           newHours += 1;
         }
-
         return { hours: newHours, minutes: newMinutes, seconds: newSeconds };
       });
     }, 1000);
-
-    return () => {
-      clearInterval(uptimeInterval);
-    };
+    return () => clearInterval(uptimeInterval);
   }, []);
 
-  // Handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    setLastChecked(new Date());
-
     try {
-      // Refetch both queries
-      await Promise.all([
+      const results = await Promise.all([
         refetchServices(),
         ...(operatorMode ? [refetchMetrics()] : []),
       ]);
-    } catch {}
-
-    setIsRefreshing(false);
+      const servicesResult = results[0];
+      if (servicesResult.isError) {
+        throw (
+          servicesResult.error ?? new Error("Failed to refetch service health")
+        );
+      }
+      const list = (servicesResult.data ?? []) as ServiceStatus[];
+      const healthy = list.filter((s) => s.status === "HEALTHY").length;
+      const overall = deriveOverallStatus(list);
+      const avgMs = list.length
+        ? Math.round(
+            list.reduce((sum, s) => sum + s.responseTime, 0) / list.length,
+          )
+        : 0;
+      setLastChecked(new Date());
+      showToast.status.refreshSuccess({
+        overallStatus: overall,
+        healthyCount: healthy,
+        totalCount: list.length,
+        responseTimeMs: avgMs,
+      });
+    } catch (error) {
+      showToast.status.refreshError(
+        error instanceof Error ? error.message : undefined,
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
-  // Show skeleton while loading (only if no initial data)
   const isLoading =
     (servicesLoading && !initialServices) ||
     (operatorMode && metricsLoading && !initialMetrics);
   const isError = servicesError || (operatorMode && metricsError);
 
-  // Show skeleton while loading
   if (isLoading) {
     return (
-      <div className="space-y-4 sm:space-y-8">
-        {/* Header Skeleton */}
-        <div className="mb-4 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Skeleton className="mb-2 h-10 w-48" />
             <Skeleton className="h-6 w-80" />
           </div>
           <Skeleton className="h-10 w-24" />
         </div>
-
-        {/* Overall System Status Skeleton */}
-        <Card className="mb-4 border-gray-700 bg-gray-800 sm:mb-8">
+        <Card className={cn(GLASS_CARD)}>
           <CardHeader>
             <Skeleton className="mb-2 h-6 w-48" />
             <Skeleton className="h-4 w-40" />
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
               {[...Array(4)].map((_, i) => (
-                <div key={`status-skeleton-${i}`} className="text-center">
-                  <Skeleton className="mx-auto mb-2 size-8" />
-                  <Skeleton className="mx-auto mb-1 h-4 w-24" />
-                  <Skeleton className="mx-auto h-6 w-20 rounded-full" />
-                </div>
+                <Skeleton key={`status-skeleton-${i}`} className="h-24 w-full" />
               ))}
             </div>
           </CardContent>
         </Card>
-
-        {/* Services Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Card
-              key={`service-skeleton-${i}`}
-              className="border-gray-600 bg-gray-700"
-            >
-              <CardHeader>
-                <Skeleton className="mb-2 h-6 w-32" />
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="mb-4 h-20 w-full" />
-                <Skeleton className="h-4 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* System Metrics Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Card
-              key={`metric-skeleton-${i}`}
-              className="border-gray-600 bg-gray-700"
-            >
-              <CardHeader>
-                <Skeleton className="mb-2 h-6 w-40" />
-                <Skeleton className="h-4 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-16 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       </div>
     );
   }
 
-  // Show error state
   if (isError) {
     return (
-      <div className="space-y-4 sm:space-y-8">
+      <div className="space-y-4 sm:space-y-6">
         <div className="py-6 text-center sm:py-8">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-semibold text-red-400 sm:text-lg">
             Failed to load API status
           </p>
-          <p className="text-xs text-gray-500 sm:text-sm">
+          <p className="text-xs text-light-200 sm:text-sm">
             {servicesErrorData instanceof Error
               ? servicesErrorData.message
               : metricsErrorData instanceof Error
                 ? metricsErrorData.message
                 : "An unknown error occurred"}
           </p>
-          <Button onClick={handleRefresh} className="mt-4">
-            <RefreshCw className="mr-2 size-4" />
+          <Button onClick={handleRefresh} className="mt-4 gap-2">
+            <RefreshCw className="size-4" />
             Try Again
           </Button>
         </div>
@@ -411,14 +384,14 @@ const ApiStatusClient = ({
   }
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Match All Books / My Profile hero */}
+      <div className="mb-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
             API Status
           </h1>
-          <p className="text-sm text-light-100 sm:text-lg">
+          <p className="text-sm text-light-200 sm:text-base">
             Real-time monitoring of BookWise API services
           </p>
         </div>
@@ -428,215 +401,228 @@ const ApiStatusClient = ({
           className="flex w-full items-center justify-center gap-2 sm:w-auto"
         >
           <RefreshCw
-            className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}
+            className={cn("size-4", isRefreshing && "animate-spin")}
           />
-          Refresh
+          {isRefreshing ? "Refreshing…" : "Refresh"}
         </Button>
       </div>
 
-      {/* Overall System Status */}
-      <Card className="mb-4 border-gray-700 bg-gray-800 sm:mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
-            <Server className="size-4 sm:size-5" />
-            Overall System Status
-          </CardTitle>
-          <p className="text-xs text-light-200 sm:text-sm">
-            Last checked:{" "}
-            {lastChecked ? lastChecked.toLocaleString() : "Loading..."}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
-            <div className="text-center">
-              <div className="mb-2 flex justify-center">
-                {getStatusIcon(overallStatus)}
-              </div>
-              <p className="text-xs text-light-200 sm:text-sm">System Status</p>
-              <Badge className={`mt-1 ${getStatusColor(overallStatus)}`}>
-                {overallStatus}
-              </Badge>
-            </div>
-            <div className="text-center">
-              <div className="mb-2 flex justify-center">
-                <Zap className="size-4 text-blue-600" />
-              </div>
-              <p className="text-xs text-light-200 sm:text-sm">Response Time</p>
-              <p className="text-xl font-semibold text-light-100 sm:text-xl">
-                {responseTime}ms
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="mb-2 flex justify-center">
-                <Clock className="size-4 text-green-600" />
-              </div>
-              <p className="text-xs text-light-200 sm:text-sm">Uptime</p>
-              <p className="text-xl font-semibold text-light-100 sm:text-xl">
-                {uptime.hours}h {uptime.minutes}m {uptime.seconds}s
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="mb-2 flex justify-center">
-                <TrendingUp className="size-4 text-purple-600" />
-              </div>
-              <p className="text-xs text-light-200 sm:text-sm">Health Score</p>
-              <p className="text-xl font-semibold text-light-100 sm:text-xl">
-                {healthScore.toFixed(1)}%
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 sm:mt-6">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-light-100 sm:text-sm">
-                Overall Health
-              </span>
-              <span className="text-xs text-light-200 sm:text-sm">
-                {healthScore.toFixed(1)}%
-              </span>
-            </div>
-            <Progress value={healthScore} className="h-2" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Service Status */}
-      <Card className="mb-4 border-gray-700 bg-gray-800 sm:mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
-            <Activity className="size-4 text-green-500 sm:size-5" />
-            Service Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {services.length === 0 ? (
-            <div className="py-6 text-center text-sm text-light-200 sm:py-8 sm:text-base">
-              No service data available. Please refresh.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {services.map((service, index) => (
-                <Card
-                  key={index}
-                  className="relative border-gray-600 bg-gray-700"
+      <section className="space-y-3 sm:space-y-4">
+        <GlassSectionHeader
+          icon={<Server className="size-5 text-primary" />}
+          title="Overall System Status"
+          subtitle={
+            lastChecked
+              ? `Last checked: ${lastChecked.toLocaleString()}`
+              : "Last checked: awaiting first refresh"
+          }
+        />
+        <Card className={GLASS_CARD}>
+          <CardContent className="p-4 sm:p-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-4">
+              <div className={cn(GLASS_TILE, "text-center")}>
+                <div className="mb-2 flex justify-center">
+                  {getStatusIcon(overallStatus)}
+                </div>
+                <p className="text-xs text-light-200 sm:text-sm">
+                  System Status
+                </p>
+                <Badge
+                  variant={statusBadgeVariant(overallStatus)}
+                  className={cn("mt-1", statusBadgeClass(overallStatus))}
                 >
-                  <CardHeader className="pb-2 sm:pb-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-2">
-                        {getServiceIcon(service.name)}
-                        <CardTitle className="text-base text-light-100 sm:text-lg">
-                          {service.name}
-                        </CardTitle>
-                      </div>
-                      <Badge
-                        className={`w-fit ${getStatusColor(service.status)}`}
-                      >
-                        {service.status}
-                      </Badge>
-                    </div>
-                    <p className="mt-2 text-xs text-light-200 sm:text-sm">
-                      {service.description}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-2 sm:space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-light-200 sm:text-sm">
-                          Response Time:
-                        </span>
-                        <span className="text-xs font-semibold text-light-100 sm:text-sm">
-                          {service.responseTime}ms
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-                        <span className="text-xs text-light-200 sm:text-sm">
-                          Endpoint:
-                        </span>
-                        <span className="break-all font-mono text-xs text-light-100 sm:text-sm">
-                          {service.endpoint}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="mb-1 flex justify-between">
-                          <span className="text-xs text-light-200 sm:text-sm">
-                            Performance:
-                          </span>
-                          <span
-                            className={`text-xs font-medium sm:text-sm ${getPerformanceColor(service.performance)}`}
-                          >
-                            {service.performance}
-                          </span>
-                        </div>
-                        <Progress
-                          value={service.performanceValue}
-                          className="h-2"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  {overallStatus}
+                </Badge>
+              </div>
+              <div className={cn(GLASS_TILE, "text-center")}>
+                <div className="mb-2 flex justify-center">
+                  <Zap className="size-5 text-blue-400" />
+                </div>
+                <p className="text-xs text-light-200 sm:text-sm">
+                  Response Time
+                </p>
+                <p className="text-xl font-semibold text-light-100">
+                  {responseTime}ms
+                </p>
+              </div>
+              <div className={cn(GLASS_TILE, "text-center")}>
+                <div className="mb-2 flex justify-center">
+                  <Clock className="size-5 text-emerald-400" />
+                </div>
+                <p className="text-xs text-light-200 sm:text-sm">Uptime</p>
+                <p className="text-xl font-semibold text-light-100">
+                  {uptime.hours}h {uptime.minutes}m {uptime.seconds}s
+                </p>
+              </div>
+              <div className={cn(GLASS_TILE, "text-center")}>
+                <div className="mb-2 flex justify-center">
+                  <TrendingUp className="size-5 text-violet-400" />
+                </div>
+                <p className="text-xs text-light-200 sm:text-sm">
+                  Health Score
+                </p>
+                <p className="text-xl font-semibold text-light-100">
+                  {healthScore.toFixed(1)}%
+                </p>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Detailed metrics remain private operator diagnostics. */}
-      {operatorMode && (
-        <Card className="border-gray-700 bg-gray-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-light-100 sm:text-lg">
-              <TrendingUp className="size-4 text-purple-500 sm:size-5" />
-              System Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {systemMetrics.length === 0 ? (
-              <div className="py-6 text-center text-sm text-light-200 sm:py-8 sm:text-base">
-                No system metrics available. Please refresh.
+            <div className="mt-4 sm:mt-5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-light-100 sm:text-sm">
+                  Overall Health
+                </span>
+                <span className="text-xs text-light-200 sm:text-sm">
+                  {healthyCount}/{services.length || 0} healthy ·{" "}
+                  {healthScore.toFixed(1)}%
+                </span>
+              </div>
+              <Progress value={healthScore} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3 sm:space-y-4">
+        <GlassSectionHeader
+          icon={<Activity className="size-5 text-primary" />}
+          title="Service Status"
+          subtitle="Live checks against /api/status endpoints"
+        />
+        <Card className={GLASS_CARD}>
+          <CardContent className="p-4 sm:p-5">
+            {services.length === 0 ? (
+              <div className="py-6 text-center text-sm text-light-200">
+                No service data available. Please refresh.
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {systemMetrics.map((metric, index) => {
-                  // Get colorful icon based on metric title
-                  const getMetricIcon = () => {
-                    if (metric.title.includes("Database")) {
-                      return (
-                        <Database className="size-4 text-green-500 sm:size-5" />
-                      );
-                    } else if (metric.title.includes("API Performance")) {
-                      return (
-                        <TrendingUp className="size-4 text-blue-500 sm:size-5" />
-                      );
-                    } else if (metric.title.includes("Error Rate")) {
-                      return (
-                        <AlertCircle className="size-4 text-red-500 sm:size-5" />
-                      );
-                    } else if (metric.title.includes("Storage")) {
-                      return (
-                        <HardDrive className="size-4 text-orange-500 sm:size-5" />
-                      );
-                    } else if (metric.title.includes("Active Users")) {
-                      return (
-                        <Users className="size-4 text-cyan-500 sm:size-5" />
-                      );
-                    } else if (metric.title.includes("SSL")) {
-                      return (
-                        <Shield className="size-4 text-yellow-500 sm:size-5" />
-                      );
-                    }
-                    return metric.icon;
-                  };
+                {services.map((service) => (
+                  <Card
+                    key={service.name}
+                    className="relative border-white/10 bg-dark-300/40 backdrop-blur-sm"
+                  >
+                    <CardHeader className="pb-2 sm:pb-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2">
+                          {getServiceIcon(service.name)}
+                          <CardTitle className="text-base text-light-100 sm:text-lg">
+                            {service.name}
+                          </CardTitle>
+                        </div>
+                        <Badge
+                          variant={statusBadgeVariant(service.status)}
+                          className={cn(
+                            "w-fit",
+                            statusBadgeClass(service.status),
+                          )}
+                        >
+                          {service.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 text-xs text-light-200 sm:text-sm">
+                        {service.description}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-xs text-light-200 sm:text-sm">
+                            Response Time:
+                          </span>
+                          <span className="text-xs font-semibold text-light-100 sm:text-sm">
+                            {service.responseTime}ms
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                          <span className="text-xs text-light-200 sm:text-sm">
+                            Endpoint:
+                          </span>
+                          <span className="break-all font-mono text-xs text-light-100 sm:text-sm">
+                            {service.endpoint}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="mb-1 flex justify-between">
+                            <span className="text-xs text-light-200 sm:text-sm">
+                              Performance:
+                            </span>
+                            <span
+                              className={`text-xs font-medium sm:text-sm ${getPerformanceColor(service.performance)}`}
+                            >
+                              {service.performance}
+                            </span>
+                          </div>
+                          <Progress
+                            value={service.performanceValue}
+                            className="h-2"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
-                  return (
-                    <Card
-                      key={index}
-                      className="relative border-gray-600 bg-gray-700"
-                    >
-                      <CardContent className="pt-4 sm:pt-6">
+      {operatorMode && (
+        <section className="space-y-3 sm:space-y-4">
+          <GlassSectionHeader
+            icon={<TrendingUp className="size-5 text-primary" />}
+            title="System Metrics"
+            subtitle="Operator diagnostics (admin session)"
+          />
+          <Card className={GLASS_CARD}>
+            <CardContent className="p-4 sm:p-5">
+              {systemMetrics.length === 0 ? (
+                <div className="py-6 text-center text-sm text-light-200">
+                  No system metrics available. Please refresh.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {systemMetrics.map((metric) => {
+                    const getMetricIcon = () => {
+                      if (metric.title.includes("Database")) {
+                        return (
+                          <Database className="size-4 text-emerald-400 sm:size-5" />
+                        );
+                      }
+                      if (metric.title.includes("API Performance")) {
+                        return (
+                          <TrendingUp className="size-4 text-blue-400 sm:size-5" />
+                        );
+                      }
+                      if (metric.title.includes("Error Rate")) {
+                        return (
+                          <AlertCircle className="size-4 text-red-400 sm:size-5" />
+                        );
+                      }
+                      if (metric.title.includes("Storage")) {
+                        return (
+                          <HardDrive className="size-4 text-orange-400 sm:size-5" />
+                        );
+                      }
+                      if (metric.title.includes("Active Users")) {
+                        return (
+                          <Users className="size-4 text-cyan-400 sm:size-5" />
+                        );
+                      }
+                      if (metric.title.includes("SSL")) {
+                        return (
+                          <Shield className="size-4 text-amber-400 sm:size-5" />
+                        );
+                      }
+                      return metric.icon;
+                    };
+
+                    return (
+                      <div key={metric.title} className={GLASS_TILE}>
                         <div className="flex items-center gap-2 sm:gap-3">
                           <div>{getMetricIcon()}</div>
-                          <div className="flex-1">
+                          <div className="min-w-0 flex-1">
                             <p className="text-xs font-medium text-light-100 sm:text-sm">
                               {metric.title}
                             </p>
@@ -650,32 +636,20 @@ const ApiStatusClient = ({
                             </p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
       )}
 
-      {/* Client/Zustand metrics formerly on /performance */}
-      <div className="mt-6 border-t border-gray-700/60 pt-6 sm:mt-8 sm:pt-8">
+      <div className="border-t border-white/10 pt-4 sm:pt-6">
         <PerformanceDashboard embedded />
       </div>
-
-      {/* Footer */}
-      <div className="my-4 text-center">
-        <p className="text-xs text-light-100 sm:text-sm">
-          BookWise University Library Management System - API Status Monitor
-        </p>
-        <p className="text-xs text-light-100">
-          Real-time monitoring • Last updated:{" "}
-          {lastChecked ? lastChecked.toLocaleTimeString() : "Loading..."}
-        </p>
-      </div>
-    </>
+    </div>
   );
 };
 

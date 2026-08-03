@@ -115,6 +115,12 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Client: glass submit/clear/cancel CTAs + `useCreateAdminRequest`/`useCancelMyAdminRequest` → `admin-request.write` + `showToast.admin.*`.
 - Admin copy: “Sign-up Requests” (route `/admin/account-requests`); Pending Admin Requests + sidebar count badge on All Users.
 
+## API docs (2026-08-03)
+
+- `/api-docs`: left title/subtitle (All Books/profile colors); glass section headers; shared `lib/apiDocs/endpoints.ts` covers current REST routes (Auth.js, books, borrows, status, cron, etc.).
+- `/api-status`: glass Overall/Service/Metrics + Client Performance; Lucide (no emoji titles); Refresh toasts status counts; Reset Metrics clears Zustand only.
+- Primary `Button` hover: `.btn-primary` + `color-mix` (not `hover:bg-primary/90`).
+
 ## Environment
 
 Copy `.env.example` to `.env`. It documents required/optional scope, safe formats and provider acquisition links. Never commit `.env`. Important server-only values include `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_DELETE_SECRET`, `IMAGEKIT_PRIVATE_KEY`, Redis/QStash tokens, `RESEND_TOKEN`, `RESEND_SENDER_EMAIL`, and `CRON_SECRET`.

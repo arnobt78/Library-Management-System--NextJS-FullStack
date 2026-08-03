@@ -64,3 +64,5 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - My Profile borrow title → `Link` `/books/[id]` (`hover:text-light-100/70`).
 - `/make-admin` under `(root)`; role+request badges; PENDING locks textarea + `cancelMyAdminRequest` (REJECTED/`Withdrawn by applicant`); glass submit/clear/cancel CTAs; `useCreateAdminRequest`/`useCancelMyAdminRequest` → `admin-request.write`.
 - Admin nav: “Sign-up Requests” = pending registrations (`/admin/account-requests`); make-admin queue on `/admin/users` + All Users sidebar badge via `usePendingAdminRequests`.
+- `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
+- `/api-status`: glass health + embedded PerformanceDashboard; Refresh/Reset → `showToast.status.*` (dynamic healthy count/ms).

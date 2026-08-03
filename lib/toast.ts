@@ -182,6 +182,42 @@ export const showToast = {
     },
   },
 
+  /** /api-status manual refresh + client metrics reset */
+  status: {
+    refreshSuccess: (opts: {
+      overallStatus: string;
+      healthyCount: number;
+      totalCount: number;
+      responseTimeMs?: number;
+    }) => {
+      const status = opts.overallStatus?.trim() || "UNKNOWN";
+      const ms =
+        typeof opts.responseTimeMs === "number"
+          ? ` · ${Math.round(opts.responseTimeMs)}ms avg`
+          : "";
+      toast({
+        title: "📡 Status refreshed",
+        description: `${status} — ${opts.healthyCount}/${opts.totalCount} services healthy${ms}`,
+      });
+    },
+    refreshError: (message?: string) => {
+      toast({
+        title: "❌ Status refresh failed",
+        description:
+          message?.trim() ||
+          "Could not reload service health. Check your connection and try again.",
+        variant: "destructive",
+      });
+    },
+    metricsReset: () => {
+      toast({
+        title: "🧹 Client metrics cleared",
+        description:
+          "Browser-collected page load, query, and cache counters were reset. Server health is unchanged.",
+      });
+    },
+  },
+
   file: {
     uploadSuccess: (type: "image" | "video", fileName: string) => {
       toast({
