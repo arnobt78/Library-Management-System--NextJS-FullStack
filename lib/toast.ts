@@ -158,6 +158,30 @@ export const showToast = {
     },
   },
 
+  admin: {
+    requestSubmitted: (userEmail?: string | null) => {
+      const who = userEmail?.trim() || "your account";
+      toast({
+        title: "🛡️ Admin request submitted",
+        description: `Request for ${who} is awaiting review by an administrator.`,
+      });
+    },
+    requestCancelled: () => {
+      toast({
+        title: "↩️ Admin request cancelled",
+        description:
+          "Your pending request was withdrawn. You can submit a new request anytime.",
+      });
+    },
+    requestError: (message: string) => {
+      toast({
+        title: "❌ Admin request failed",
+        description: message,
+        variant: "destructive",
+      });
+    },
+  },
+
   file: {
     uploadSuccess: (type: "image" | "video", fileName: string) => {
       toast({

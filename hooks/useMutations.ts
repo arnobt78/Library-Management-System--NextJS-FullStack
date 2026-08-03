@@ -31,6 +31,8 @@ import {
 } from "@/lib/admin/actions/borrow";
 import {
   approveAdminRequest,
+  cancelMyAdminRequest,
+  createAdminRequest,
   rejectAdminRequest,
   removeAdminPrivileges,
 } from "@/lib/admin/actions/admin-requests";
@@ -1139,6 +1141,64 @@ export const useDeleteReview = () => {
         "Deletion Failed",
         error.message ||
           `Unable to delete review for "${bookTitle}". ${error.message.includes("not found") || error.message.includes("permission") ? "Review not found or you don't have permission to delete it." : "Please try again."}`,
+      );
+    },
+  });
+};
+
+/**
+ * Hook for a signed-in user to submit an admin-access request.
+ * Invalidates admin-request.write and shows dynamic success/error toasts.
+ */
+export const useCreateAdminRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestReason,
+    }: {
+      requestReason: string;
+      userEmail?: string;
+    }) => {
+      const result = await createAdminRequest(requestReason);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to create admin request");
+      }
+      return result;
+    },
+    onSuccess: (_data, variables) => {
+      invalidateMutation(queryClient, "admin-request.write");
+      showToast.admin.requestSubmitted(variables.userEmail);
+    },
+    onError: (error: Error) => {
+      showToast.admin.requestError(
+        error.message || "Unable to submit your admin request. Please try again.",
+      );
+    },
+  });
+};
+
+/**
+ * Applicant withdraws their own PENDING admin request.
+ */
+export const useCancelMyAdminRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ requestId }: { requestId: string }) => {
+      const result = await cancelMyAdminRequest(requestId);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to cancel admin request");
+      }
+      return result;
+    },
+    onSuccess: () => {
+      invalidateMutation(queryClient, "admin-request.write");
+      showToast.admin.requestCancelled();
+    },
+    onError: (error: Error) => {
+      showToast.admin.requestError(
+        error.message || "Unable to cancel your admin request. Please try again.",
       );
     },
   });

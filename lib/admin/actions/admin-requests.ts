@@ -12,6 +12,7 @@ import {
   adminRequestReasonSchema,
   parseEntityId,
 } from "@/lib/actionInputs";
+import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 export interface AdminRequest {
@@ -352,6 +353,95 @@ export async function rejectAdminRequest(
     return {
       success: false,
       error: getActionErrorMessage(error, "Failed to reject admin request"),
+    };
+  }
+}
+
+/**
+ * Applicant cancels their own PENDING admin request.
+ * Marks REJECTED with Withdrawn-by-applicant for audit; create still only blocks PENDING.
+ */
+export async function cancelMyAdminRequest(
+  requestId: string,
+): Promise<UpdateAdminRequestResult> {
+  try {
+    const actor = await requireAuthenticatedActor();
+    const safeRequestId = parseEntityId(requestId);
+
+    const result = await db.transaction(async (tx) => {
+      const [request] = await tx
+        .select({
+          id: adminRequests.id,
+          userId: adminRequests.userId,
+          status: adminRequests.status,
+        })
+        .from(adminRequests)
+        .where(eq(adminRequests.id, safeRequestId))
+        .limit(1)
+        .for("update");
+
+      if (!request) {
+        return { success: false, error: "Admin request not found" };
+      }
+      if (request.userId !== actor.id) {
+        return {
+          success: false,
+          error: "You can only cancel your own admin request",
+        };
+      }
+      if (request.status !== "PENDING") {
+        return {
+          success: false,
+          error: "Only pending requests can be cancelled",
+        };
+      }
+
+      await tx
+        .update(adminRequests)
+        .set({
+          status: "REJECTED",
+          reviewedBy: actor.id,
+          reviewedAt: new Date(),
+          rejectionReason: ADMIN_REQUEST_WITHDRAWN_REASON,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(adminRequests.id, safeRequestId),
+            eq(adminRequests.status, "PENDING"),
+            eq(adminRequests.userId, actor.id),
+          ),
+        );
+
+      const [fullRequest] = await tx
+        .select({
+          id: adminRequests.id,
+          userId: adminRequests.userId,
+          userEmail: users.email,
+          userFullName: users.fullName,
+          requestReason: adminRequests.requestReason,
+          status: adminRequests.status,
+          reviewedBy: adminRequests.reviewedBy,
+          reviewedAt: adminRequests.reviewedAt,
+          rejectionReason: adminRequests.rejectionReason,
+          createdAt: adminRequests.createdAt,
+          updatedAt: adminRequests.updatedAt,
+        })
+        .from(adminRequests)
+        .innerJoin(users, eq(adminRequests.userId, users.id))
+        .where(eq(adminRequests.id, safeRequestId))
+        .limit(1);
+
+      return { success: true, data: fullRequest };
+    });
+
+    if (result.success) revalidateMutationPaths("admin-request.write");
+    return result;
+  } catch (error) {
+    console.error("Error cancelling admin request:", error);
+    return {
+      success: false,
+      error: getActionErrorMessage(error, "Failed to cancel admin request"),
     };
   }
 }

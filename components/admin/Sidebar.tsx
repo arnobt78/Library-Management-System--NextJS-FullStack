@@ -1,14 +1,34 @@
 "use client";
 
+/**
+ * Admin sidebar nav.
+ * All Users shows a live PENDING admin-request count (SSR seed + RQ invalidation).
+ */
+
 import { adminSideBarLinks } from "@/constants";
 import Link from "next/link";
 import { cn, getInitials } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Session } from "next-auth";
+import { usePendingAdminRequests } from "@/hooks/useQueries";
+import type { AdminRequest } from "@/lib/services/users";
 
-const Sidebar = ({ session }: { session: Session }) => {
+const Sidebar = ({
+  session,
+  initialPendingAdminRequests = [],
+}: {
+  session: Session;
+  /** SSR seed for pending make-admin requests (All Users badge) */
+  initialPendingAdminRequests?: AdminRequest[];
+}) => {
   const pathname = usePathname();
+  const { data: pendingAdminRequests } = usePendingAdminRequests(
+    initialPendingAdminRequests,
+  );
+  const pendingAdminCount = (
+    pendingAdminRequests ?? initialPendingAdminRequests
+  ).length;
 
   return (
     <div className="admin-sidebar">
@@ -31,13 +51,15 @@ const Sidebar = ({ session }: { session: Session }) => {
                 pathname.includes(link.route) &&
                 link.route.length > 1) ||
               pathname === link.route;
+            const showAdminBadge =
+              link.route === "/admin/users" && pendingAdminCount > 0;
 
             return (
               <Link href={link.route} key={link.route}>
                 <div
                   className={cn(
                     "link",
-                    isSelected && "bg-primary-admin shadow-sm"
+                    isSelected && "bg-primary-admin shadow-sm",
                   )}
                 >
                   <div className="relative size-4 sm:size-5">
@@ -45,13 +67,30 @@ const Sidebar = ({ session }: { session: Session }) => {
                       src={link.img}
                       alt="icon"
                       className={`${isSelected ? "brightness-0 invert" : ""}  object-contain`}
-                      style={{ width: "100%", height: "100%" }} // Assuming fill means it should take full size
+                      style={{ width: "100%", height: "100%" }}
                     />
                   </div>
 
-                  <p className={cn("hidden sm:block", isSelected ? "text-white" : "text-dark")}>
+                  <p
+                    className={cn(
+                      "hidden sm:block",
+                      isSelected ? "text-white" : "text-dark",
+                    )}
+                  >
                     {link.text}
                   </p>
+
+                  {showAdminBadge ? (
+                    <span
+                      className={cn(
+                        "admin-sidebar-badge",
+                        isSelected && "admin-sidebar-badge--selected",
+                      )}
+                      aria-label={`${pendingAdminCount} pending admin requests`}
+                    >
+                      {pendingAdminCount > 99 ? "99+" : pendingAdminCount}
+                    </span>
+                  ) : null}
                 </div>
               </Link>
             );

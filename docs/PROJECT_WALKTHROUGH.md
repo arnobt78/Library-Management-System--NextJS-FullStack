@@ -107,6 +107,14 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Reviews: shared `ReviewFormDialog` for create+edit; delete spins until settle; kebab Cancel; avatars via `universityCard`+Robohash; optimistic RQ + dynamic toasts.
 - My Profile: borrow book title links to `/books/[id]`; Return/Renew/Details/Review + tab triggers use shared ripple.
 
+## Make-admin (2026-08-03)
+
+- Route: `app/(root)/make-admin` — shared Header/Footer/page-shell (no Back, no custom max-w).
+- SSR: `getMyAdminRequestPageData` + role/request badges; admins see dashboard CTA.
+- PENDING: locked reason + owner `cancelMyAdminRequest` → REJECTED with `Withdrawn by applicant` (resubmit allowed).
+- Client: glass submit/clear/cancel CTAs + `useCreateAdminRequest`/`useCancelMyAdminRequest` → `admin-request.write` + `showToast.admin.*`.
+- Admin copy: “Sign-up Requests” (route `/admin/account-requests`); Pending Admin Requests + sidebar count badge on All Users.
+
 ## Environment
 
 Copy `.env.example` to `.env`. It documents required/optional scope, safe formats and provider acquisition links. Never commit `.env`. Important server-only values include `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_DELETE_SECRET`, `IMAGEKIT_PRIVATE_KEY`, Redis/QStash tokens, `RESEND_TOKEN`, `RESEND_SENDER_EMAIL`, and `CRON_SECRET`.

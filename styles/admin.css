@@ -183,11 +183,20 @@
   }
 
   .admin-sidebar .link {
-    @apply flex flex-row items-center justify-center w-full gap-2 rounded-lg px-2 py-3.5 sm:justify-start sm:px-5;
+    @apply relative flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-3.5 sm:justify-start sm:px-5;
   }
 
   .admin-sidebar .link p {
     @apply text-base font-medium max-md:hidden;
+  }
+
+  /* Pending make-admin count on All Users — hide at 0 in JSX */
+  .admin-sidebar-badge {
+    @apply ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white sm:text-xs;
+  }
+
+  .admin-sidebar-badge--selected {
+    @apply bg-white text-primary-admin;
   }
 
   .admin-sidebar .user {

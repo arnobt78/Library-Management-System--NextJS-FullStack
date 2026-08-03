@@ -56,7 +56,7 @@ const AdminDropdown = () => {
               href="/admin/account-requests"
               className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
             >
-              Account Requests
+              Sign-up Requests
             </Link>
             <Link
               href="/admin/business-insights"

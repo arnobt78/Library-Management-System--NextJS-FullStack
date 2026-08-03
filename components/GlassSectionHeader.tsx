@@ -11,7 +11,7 @@ interface GlassSectionHeaderProps {
   title: string;
   subtitle: string;
   className?: string;
-  as?: "h2" | "h3";
+  as?: "h1" | "h2" | "h3";
 }
 
 export default function GlassSectionHeader({

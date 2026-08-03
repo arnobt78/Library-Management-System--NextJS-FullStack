@@ -295,7 +295,7 @@ Apply SQL under `migrations/` (including `0010_reservations.sql` for circulation
 | `/admin/books` · `/new` · `/[id]/edit` | Book CRUD + featured checkbox |
 | `/admin/users` · `/admin/users/[id]` | Users list + 360 profile |
 | `/admin/book-requests` | Borrow approvals |
-| `/admin/account-requests` | Admin access requests |
+| `/admin/account-requests` | Pending user registration approvals (Sign-up Requests) |
 | `/admin/automation` | Fines & reminders |
 | `/admin/business-insights` | Analytics |
 

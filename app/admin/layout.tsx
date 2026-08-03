@@ -8,6 +8,8 @@ import Header from "@/components/admin/Header";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { eq } from "drizzle-orm";
+import { getPendingAdminRequests } from "@/lib/admin/actions/admin-requests";
+import type { AdminRequest } from "@/lib/services/users";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   const session = await auth();
@@ -25,9 +27,18 @@ const Layout = async ({ children }: { children: ReactNode }) => {
     redirect("/");
   }
 
+  // SSR seed for All Users sidebar badge (live updates via admin-request.write)
+  const pendingResult = await getPendingAdminRequests();
+  const initialPendingAdminRequests: AdminRequest[] = pendingResult.success
+    ? ((pendingResult.data || []) as AdminRequest[])
+    : [];
+
   return (
     <main className="flex min-h-screen w-full flex-row">
-      <Sidebar session={session} />
+      <Sidebar
+        session={session}
+        initialPendingAdminRequests={initialPendingAdminRequests}
+      />
 
       <div className="admin-container">
         <Header session={session} />

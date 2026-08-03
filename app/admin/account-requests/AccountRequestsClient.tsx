@@ -1,18 +1,10 @@
 "use client";
 
 /**
- * AccountRequestsClient Component
+ * AccountRequestsClient — Sign-up Requests UI (route: /admin/account-requests).
  *
- * Client component that displays pending user account requests for admin review.
- * Uses React Query for data fetching and caching, with SSR initial data support.
- *
- * Features:
- * - Uses usePendingUsers hook with initialData from SSR
- * - Displays skeleton loaders while fetching
- * - Shows error state if fetch fails
- * - Integrates mutations for approving and rejecting users
- * - Handles success/error messages from URL params
- * - All existing UI, styling, and functionality preserved
+ * Pending user registrations (users.status = PENDING), not make-admin requests.
+ * usePendingUsers + SSR initialData; approve/reject via user mutations.
  */
 
 import React, { useState } from "react";
@@ -189,7 +181,7 @@ const AccountRequestsClient = ({
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-gray-900 sm:text-3xl">
-                  Account Requests
+                  Sign-up Requests
                 </h1>
                 <p className="mt-1.5 text-sm text-gray-600 sm:mt-2 sm:text-base">
                   Review and approve pending user registrations
@@ -215,7 +207,7 @@ const AccountRequestsClient = ({
         <div className="w-full">
           <div className="py-6 text-center sm:py-8">
             <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
-              Failed to load account requests
+              Failed to load sign-up requests
             </p>
             <p className="text-xs text-gray-500 sm:text-sm">
               {usersErrorData instanceof Error
@@ -236,7 +228,7 @@ const AccountRequestsClient = ({
           <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="min-w-0 flex-1">
               <h1 className="break-words text-xl font-semibold text-gray-900 sm:text-3xl">
-                Account Requests
+                Sign-up Requests
               </h1>
               <p className="mt-1.5 break-words text-sm text-gray-600 sm:mt-2 sm:text-base">
                 Review and approve pending user registrations
@@ -316,7 +308,7 @@ const AccountRequestsClient = ({
               <p className="mb-3 text-sm text-gray-500 sm:mb-4 sm:text-base">
                 {hasActiveFilters
                   ? "Try adjusting your search terms."
-                  : "All account requests have been processed."}
+                  : "All sign-up requests have been processed."}
               </p>
               {hasActiveFilters && (
                 <Button

@@ -62,3 +62,5 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Scroll polish: `ScrollToTop` sets `history.scrollRestoration=manual` + `scrollTo(auto)`; `RootHeaderShell` defaults `scrolled=true`, measures in `useLayoutEffect`.
 - Reviews: shared `ReviewFormDialog` create+edit (no 1.5s delay); delete confirm spins until settle; kebab Cancel+separator; Created/Edited icons; `universityCard`+Robohash avatars; optimistic `setQueryData` + dynamic toasts.
 - My Profile borrow title → `Link` `/books/[id]` (`hover:text-light-100/70`).
+- `/make-admin` under `(root)`; role+request badges; PENDING locks textarea + `cancelMyAdminRequest` (REJECTED/`Withdrawn by applicant`); glass submit/clear/cancel CTAs; `useCreateAdminRequest`/`useCancelMyAdminRequest` → `admin-request.write`.
+- Admin nav: “Sign-up Requests” = pending registrations (`/admin/account-requests`); make-admin queue on `/admin/users` + All Users sidebar badge via `usePendingAdminRequests`.

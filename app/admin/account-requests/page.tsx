@@ -1,8 +1,8 @@
 /**
- * Admin Account Requests Page
+ * Admin Sign-up Requests Page (`/admin/account-requests` — route kept for stability).
  *
- * Server Component that fetches pending user account requests server-side for SSR.
- * Passes initial data to Client Component for React Query integration.
+ * SSR-fetches pending user registrations (users.status = PENDING).
+ * Not make-admin privilege requests (those live on /admin/users).
  */
 
 import React from "react";
@@ -27,7 +27,7 @@ const Page = async ({
         <div className="w-full">
           <div className="py-6 text-center sm:py-8">
             <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
-              Failed to load account requests
+              Failed to load sign-up requests
             </p>
             <p className="text-xs text-gray-500 sm:text-sm">
               {result.error || "An unknown error occurred"}

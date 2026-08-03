@@ -63,3 +63,6 @@
 | DEC-0059 | 2026-08-03 | C2 | Build Agent JS | Review menu via Radix portal; avatar card→Robohash(email)→initials; optimistic review RQ + local patch | overflow-hidden clips absolute menus; no Gmail photos; invalidate-first caused flash | REQ-0033 |
 | DEC-0060 | 2026-08-03 | C2 | Build Agent JS | One ReviewFormDialog for create+edit; close on success no delay; delete dialog stays open while pending | Idle spinner after isPending clear; inline edit inconsistent with create modal | REQ-0033 |
 | DEC-0061 | 2026-08-03 | C2 | Build Agent JS | Shared spawnRipple/withRippleClick; keep glass CTAs as raw buttons + clip CSS | Profile CTAs/tabs skipped ui/button; converting to Button fights glass styles | REQ-0033 |
+| DEC-0062 | 2026-08-03 | C2 | Build Agent JS | make-admin in (root); client mutation+toast replace query redirects; SSR latest request badge | Orphan shell lacked Header; URL banners not toast pattern | REQ-0033 |
+| DEC-0063 | 2026-08-03 | C2 | Build Agent JS | Self-cancel PENDING as REJECTED+Withdrawn reason; no STATUS_ENUM migration; glass submit/clear/cancel | Audit trail + create still blocks only concurrent PENDING | REQ-0033 |
+| DEC-0064 | 2026-08-03 | C2 | Build Agent JS | Label Sign-up Requests; keep /admin/account-requests URL; All Users badge via pendingRequests RQ | Naming confusion; no dedicated Admin Requests nav yet | REQ-0033 |

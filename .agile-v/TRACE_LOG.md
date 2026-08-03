@@ -63,3 +63,6 @@
 | SPAN-0057 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | Reviews DropdownMenu portal; date icons; universityCard+Robohash; optimistic setQueryData; dynamic review toasts | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0058 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | Shared ReviewFormDialog create+edit; delete spinner until settle; kebab Cancel; profile title Link | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0059 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | Extract lib/ui/ripple; Button+TabsTrigger+profile CTAs share btn-ripple | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0060 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | make-admin under (root); glass status; useCreateAdminRequest + toast/spinner | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0061 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | cancelMyAdminRequest withdraw; role/request badges; locked pending + glass CTAs | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0062 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | Sign-up Requests rename; All Users sidebar pending-admin badge | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
