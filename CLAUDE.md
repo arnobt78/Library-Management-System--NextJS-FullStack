@@ -66,3 +66,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin nav: “Sign-up Requests” = pending registrations (`/admin/account-requests`); make-admin queue on `/admin/users` + All Users sidebar badge via `usePendingAdminRequests`.
 - `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
 - `/api-status`: glass health + embedded PerformanceDashboard; Refresh/Reset → `showToast.status.*` (dynamic healthy count/ms).
+- Media: `SafeImage` (`components/ui/safe-image.tsx`) for local/remote/`next/image` URLs; ImageKit relative paths stay on `@imagekit/next`.

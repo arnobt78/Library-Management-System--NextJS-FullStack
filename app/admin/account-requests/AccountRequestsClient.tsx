@@ -11,10 +11,13 @@ import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import config from "@/lib/config";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SafeImage } from "@/components/ui/safe-image";
+import { Image as ImageKitImage } from "@imagekit/next";
+import config from "@/lib/config";
+import { resolveUniversityCard } from "@/lib/media/universityCard";
 import {
   Dialog,
   DialogContent,
@@ -365,11 +368,7 @@ const AccountRequestCard = ({
       .slice(0, 2);
   };
 
-  const getImageUrl = (universityCard: string) => {
-    return universityCard.startsWith("http")
-      ? universityCard
-      : `${config.env.imagekit.urlEndpoint}/${universityCard}`;
-  };
+  const cardMedia = resolveUniversityCard(user.universityCard);
 
   return (
     <Card className="group border-0 shadow-md transition-all duration-300 hover:shadow-lg">
@@ -435,15 +434,27 @@ const AccountRequestCard = ({
               University Card
             </span>
           </div>
-          {user.universityCard ? (
+          {cardMedia.kind !== "empty" ? (
             <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
               <DialogTrigger asChild>
-                <div className="group relative cursor-pointer">
-                  <img
-                    src={getImageUrl(user.universityCard)}
-                    alt="University Card"
-                    className="h-24 w-full rounded-lg border border-gray-200 object-cover transition-colors hover:border-blue-300 sm:h-32"
-                  />
+                <div className="group relative h-24 w-full cursor-pointer overflow-hidden rounded-lg border border-gray-200 transition-colors hover:border-blue-300 sm:h-32">
+                  {cardMedia.kind === "imagekit" ? (
+                    <ImageKitImage
+                      src={cardMedia.path}
+                      urlEndpoint={config.env.imagekit.urlEndpoint}
+                      alt="University Card"
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <SafeImage
+                      src={cardMedia.src}
+                      alt="University Card"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 400px"
+                    />
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-all duration-200 group-hover:bg-black/20">
                     <div className="rounded-full bg-white/90 p-1.5 opacity-0 transition-opacity group-hover:opacity-100 sm:p-2">
                       <Eye className="size-3 text-gray-700 sm:size-4" />
@@ -457,12 +468,24 @@ const AccountRequestCard = ({
                     University Card - {user.fullName}
                   </DialogTitle>
                 </DialogHeader>
-                <div className="mt-3 sm:mt-4">
-                  <img
-                    src={getImageUrl(user.universityCard)}
-                    alt="University Card"
-                    className="h-auto w-full rounded-lg"
-                  />
+                <div className="relative mt-3 aspect-[4/3] w-full overflow-hidden rounded-lg sm:mt-4">
+                  {cardMedia.kind === "imagekit" ? (
+                    <ImageKitImage
+                      src={cardMedia.path}
+                      urlEndpoint={config.env.imagekit.urlEndpoint}
+                      alt="University Card"
+                      fill
+                      className="object-contain"
+                    />
+                  ) : (
+                    <SafeImage
+                      src={cardMedia.src}
+                      alt="University Card"
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 768px) 100vw, 672px"
+                    />
+                  )}
                 </div>
               </DialogContent>
             </Dialog>

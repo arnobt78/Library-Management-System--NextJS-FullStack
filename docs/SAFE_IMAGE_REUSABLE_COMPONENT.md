@@ -33,7 +33,7 @@ Use this pattern in **any Next.js App Router project** where you show **remote i
 
 3. **Copy the component** — place as e.g. `src/components/ui/safe-image.tsx` (or `Components/ui/safe-image.tsx`). Fix import paths (`@/lib/utils` → your alias).
 
-4. **ESLint** — `@next/next/no-img-element` may warn on the fallback `<img>` lines; keep the **inline eslint-disable** comments (they document *why* `<img>` is intentional).
+4. **ESLint** — `@next/next/no-img-element` may warn on the fallback `<img>` lines; add inline eslint-disable only if the rule is enabled (this repo currently documents the fallback with a normal comment instead).
 
 5. **Usage** — import `SafeImage` anywhere you would use `<Image>` for **remote** URLs:
 
@@ -168,9 +168,11 @@ export function SafeImage({
 
 ---
 
-## This repo
+## This repo (BookWise / university-library)
 
-- Implementation: `src/Components/ui/safe-image.tsx`
-- Current usage: `src/Components/pages/home-page.tsx`, `src/Components/pages/gallery-page.tsx`
+- Implementation: [`components/ui/safe-image.tsx`](../components/ui/safe-image.tsx)
+- Current usage: [`UserAvatar`](../components/UserAvatar.tsx) (local/remote + Robohash), Sign-up Requests university cards in [`AccountRequestsClient`](../app/admin/account-requests/AccountRequestsClient.tsx)
+- **ImageKit relative paths** stay on `@imagekit/next` (`BookCover`, `UserAvatar` imagekit branch, `FileUpload`) — do not route them through SafeImage/`next/image` without resolving a full URL first
+- Content fallbacks (`useSafeMedia`, initials, “No Cover”) remain separate from optimizer→native fallback
 
 You can **copy this entire `.md` file** into another repository’s `docs/` folder and attach the same `safe-image.tsx` next to it.

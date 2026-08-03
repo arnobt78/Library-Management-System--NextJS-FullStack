@@ -120,6 +120,7 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - `/api-docs`: left title/subtitle (All Books/profile colors); glass section headers; shared `lib/apiDocs/endpoints.ts` covers current REST routes (Auth.js, books, borrows, status, cron, etc.).
 - `/api-status`: glass Overall/Service/Metrics + Client Performance; Lucide (no emoji titles); Refresh toasts status counts; Reset Metrics clears Zustand only.
 - Primary `Button` hover: `.btn-primary` + `color-mix` (not `hover:bg-primary/90`).
+- `SafeImage`: next/image with native `<img>` fallback on error; used in UserAvatar + Sign-up Requests cards; ImageKit paths stay on `@imagekit/next`.
 
 ## Environment
 

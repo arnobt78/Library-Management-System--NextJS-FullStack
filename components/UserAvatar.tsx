@@ -5,9 +5,9 @@
  * university_card (local / remote / ImageKit) → Robohash(email) → initials.
  */
 
-import Image from "next/image";
 import { Image as ImageKitImage } from "@imagekit/next";
 import config from "@/lib/config";
+import { SafeImage } from "@/components/ui/safe-image";
 import { robohashUrl } from "@/lib/media/avatarFallback";
 import { resolveUniversityCard } from "@/lib/media/universityCard";
 import { cn, getInitials } from "@/lib/utils";
@@ -70,7 +70,7 @@ const UserAvatar = ({
     >
       {showPrimary &&
       (resolved.kind === "local" || resolved.kind === "remote") ? (
-        <Image
+        <SafeImage
           src={resolved.src}
           alt={alt}
           fill
@@ -88,7 +88,7 @@ const UserAvatar = ({
           onError={onPrimaryError}
         />
       ) : showRobohash ? (
-        <Image
+        <SafeImage
           src={roboSrc}
           alt={alt}
           fill

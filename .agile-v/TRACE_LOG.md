@@ -69,3 +69,4 @@
 | SPAN-0063 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | api-docs hero + GlassSectionHeader; lib/apiDocs full route catalog | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0064 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | api-status glass + status toasts; PerformanceDashboard Lucide | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0065 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | btn-primary color-mix hover for CSS-var primary | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
+| SPAN-0066 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | SafeImage + UserAvatar/account-request migrate; ImageKit untouched | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
