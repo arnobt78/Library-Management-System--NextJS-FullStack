@@ -1,22 +1,24 @@
 "use client";
 
 /**
- * ReviewsSection Component
- *
- * Component for displaying and managing book reviews. Uses React Query mutations.
- * Integrates with useDeleteReview and useUpdateReview mutations for proper cache invalidation.
- *
- * Features:
- * - Uses useDeleteReview and useUpdateReview mutations
- * - Automatic cache invalidation on success
- * - Toast notifications via mutation callbacks
- * - No page reloads - uses cache invalidation instead
+ * Book reviews list — portaled menu, shared ReviewFormDialog for edit,
+ * university_card / Robohash avatars, optimistic RQ + review.write toasts.
  */
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Star } from "lucide-react";
-import { useDeleteReview, useUpdateReview } from "@/hooks/useMutations";
+import React, { useMemo, useState } from "react";
+import {
+  CalendarArrowUp,
+  CalendarCheck2,
+  Loader2,
+  MoreVertical,
+  Pencil,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useDeleteReview } from "@/hooks/useMutations";
+import UserAvatar from "@/components/UserAvatar";
+import ReviewFormDialog from "@/components/ReviewFormDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +28,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { resolveActionBookTitle } from "@/lib/toast";
 
 interface Review {
   id: string;
@@ -37,39 +46,39 @@ interface Review {
   updatedAt: Date | null;
   userFullName: string;
   userEmail: string;
+  universityCard?: string | null;
 }
 
 interface ReviewCardProps {
   review: Review;
+  bookId: string;
+  bookTitle: string;
   currentUserEmail?: string;
   onEdit: (review: Review) => void;
-  onDelete: (reviewId: string) => void;
+  onDeleteLocal: (reviewId: string) => void;
+  onDeleteRollback: (reviewId: string) => void;
 }
 
-function ReviewCard({
-  review,
-  currentUserEmail,
-  onEdit,
-  onDelete,
-}: ReviewCardProps) {
-  const [showMenu, setShowMenu] = useState(false);
+function truncateComment(comment: string, max = 120): string {
+  const trimmed = comment.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 1)}…`;
+}
 
-  // Use React Query mutation for deleting review
-  const deleteReviewMutation = useDeleteReview();
-
-  const isOwner = currentUserEmail === review.userEmail;
-  const isEdited =
-    review.createdAt &&
-    review.updatedAt &&
-    new Date(review.createdAt).getTime() !==
-      new Date(review.updatedAt).getTime();
-
-  const renderStarRating = (rating: number) => (
+function StarRow({
+  rating,
+  size = "sm",
+}: {
+  rating: number;
+  size?: "sm" | "md";
+}) {
+  const cls = size === "md" ? "size-4" : "size-3 sm:size-4";
+  return (
     <div className="flex items-center gap-0.5 sm:space-x-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={`size-3 sm:size-4 ${
+          className={`${cls} ${
             star <= rating
               ? "fill-yellow-400 text-yellow-400"
               : "fill-gray-300 text-gray-300"
@@ -78,46 +87,86 @@ function ReviewCard({
       ))}
     </div>
   );
+}
 
-  const handleDelete = () => {
-    // Use mutation to delete review
+function ReviewCard({
+  review,
+  bookId,
+  bookTitle,
+  currentUserEmail,
+  onEdit,
+  onDeleteLocal,
+  onDeleteRollback,
+}: ReviewCardProps) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteReviewMutation = useDeleteReview();
+  const isDeleting = deleteReviewMutation.isPending;
+
+  const isOwner = currentUserEmail === review.userEmail;
+  const isEdited =
+    review.createdAt &&
+    review.updatedAt &&
+    new Date(review.createdAt).getTime() !==
+      new Date(review.updatedAt).getTime();
+
+  const titleLabel = resolveActionBookTitle(bookTitle);
+
+  const handleDeleteConfirm = (e: React.MouseEvent) => {
+    // Prevent Radix AlertDialogAction from auto-closing before mutate settles
+    e.preventDefault();
+    onDeleteLocal(review.id);
     deleteReviewMutation.mutate(
       {
         reviewId: review.id,
+        bookId,
+        bookTitle,
       },
       {
         onSuccess: () => {
-          onDelete(review.id);
-          setShowMenu(false);
+          setDeleteOpen(false);
         },
-      }
+        onError: () => {
+          onDeleteRollback(review.id);
+        },
+      },
     );
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-800/50 p-3 shadow-sm sm:p-4">
+    <div className="rounded-lg border border-gray-600 bg-gray-800/50 p-3 shadow-sm sm:p-4">
       <div className="flex flex-row items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <h4 className="text-sm font-medium text-light-100 sm:text-base">
-              {review.userFullName}
-            </h4>
-            {renderStarRating(review.rating)}
+            <div className="flex min-w-0 items-center gap-2.5">
+              <UserAvatar
+                universityCard={review.universityCard}
+                fullName={review.userFullName}
+                email={review.userEmail}
+                size={36}
+                alt={`${review.userFullName} avatar`}
+              />
+              <h4 className="truncate text-sm font-medium text-light-100 sm:text-base">
+                {review.userFullName}
+              </h4>
+            </div>
+            <StarRow rating={review.rating} />
           </div>
 
           <p className="mt-2 text-sm text-light-200 sm:text-base">
             {review.comment}
           </p>
 
-          <div className="mt-2 flex flex-col gap-1 text-[10px] text-light-200/70 sm:mt-3 sm:flex-row sm:items-center sm:justify-between sm:text-xs">
-            <span>
+          <div className="mt-2 flex flex-col gap-1.5 text-[10px] sm:mt-3 sm:flex-row sm:items-center sm:justify-between sm:text-xs">
+            <span className="inline-flex items-center gap-1.5 text-light-100">
+              <CalendarCheck2 className="size-3.5 shrink-0 text-light-100 sm:size-4" />
               Created:{" "}
               {review.createdAt
                 ? new Date(review.createdAt).toLocaleString()
                 : "N/A"}
             </span>
             {isEdited && (
-              <span>
+              <span className="inline-flex items-center gap-1.5 text-light-100">
+                <CalendarArrowUp className="size-3.5 shrink-0 text-light-100 sm:size-4" />
                 Edited:{" "}
                 {review.updatedAt
                   ? new Date(review.updatedAt).toLocaleString()
@@ -128,65 +177,93 @@ function ReviewCard({
         </div>
 
         {isOwner && (
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="rounded-full p-1 text-light-200/60 hover:bg-gray-700/50 hover:text-light-100"
-            >
-              <svg className="size-4 sm:size-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-              </svg>
-            </button>
-
-            {showMenu && (
-              <div className="absolute right-0 top-8 z-10 w-28 rounded-md border border-gray-600 bg-gray-800 py-1 shadow-lg sm:w-32">
+          <>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
                 <button
-                  onClick={() => {
-                    onEdit(review);
-                    setShowMenu(false);
-                  }}
-                  className="block w-full px-2.5 py-1.5 text-left text-xs text-light-100 hover:bg-gray-700 sm:px-3 sm:py-2 sm:text-sm"
+                  type="button"
+                  aria-label="Review actions"
+                  className="focus:ring-primary/40 shrink-0 rounded-full p-1 text-light-200/60 hover:bg-gray-700/50 hover:text-light-100 focus:outline-none focus:ring-2"
                 >
+                  <MoreVertical className="size-4 sm:size-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="z-50 w-36 border-gray-600 bg-gray-800 text-light-100 sm:w-40"
+              >
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2 text-xs text-light-100 focus:bg-gray-700 focus:text-light-100 sm:text-sm"
+                  onSelect={() => onEdit(review)}
+                >
+                  <Pencil className="size-3.5 sm:size-4" />
                   Edit
-                </button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button className="block w-full px-2.5 py-1.5 text-left text-xs text-red-400 hover:bg-gray-700 sm:px-3 sm:py-2 sm:text-sm">
-                      Delete
-                    </button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="border-gray-600 bg-gray-800/95">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="text-base text-light-100 sm:text-lg">
-                        Delete Review
-                      </AlertDialogTitle>
-                      <AlertDialogDescription className="text-xs text-light-200 sm:text-sm">
-                        Are you sure you want to delete this review? This action
-                        cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
-                      <AlertDialogCancel className="w-full border-gray-500 bg-gray-600 text-xs text-white hover:bg-gray-500 hover:text-white sm:w-auto sm:text-sm">
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDelete}
-                        className="w-full bg-red-600 text-xs text-white hover:bg-red-700 sm:w-auto sm:text-sm"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <button
-                  onClick={() => setShowMenu(false)}
-                  className="block w-full px-2.5 py-1.5 text-left text-xs text-light-100 hover:bg-gray-700 sm:px-3 sm:py-2 sm:text-sm"
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2 text-xs text-red-400 focus:bg-gray-700 focus:text-red-400 sm:text-sm"
+                  onSelect={() => setDeleteOpen(true)}
                 >
+                  <Trash2 className="size-3.5 sm:size-4" />
+                  Delete
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-gray-600" />
+                <DropdownMenuItem className="cursor-pointer gap-2 text-xs text-light-100 focus:bg-gray-700 focus:text-light-100 sm:text-sm">
+                  <X className="size-3.5 sm:size-4" />
                   Cancel
-                </button>
-              </div>
-            )}
-          </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertDialog
+              open={deleteOpen}
+              onOpenChange={(open) => {
+                if (isDeleting) return;
+                setDeleteOpen(open);
+              }}
+            >
+              <AlertDialogContent className="border-gray-600 bg-gray-800/95">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-base text-light-100 sm:text-lg">
+                    Delete review for &ldquo;{titleLabel}&rdquo;?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2 text-xs text-light-200 sm:text-sm">
+                      <p>
+                        This permanently removes your review. This action cannot
+                        be undone.
+                      </p>
+                      <div className="rounded-md border border-gray-600 bg-gray-900/40 p-2.5">
+                        <StarRow rating={review.rating} size="md" />
+                        <p className="mt-1.5 text-light-100">
+                          {truncateComment(review.comment)}
+                        </p>
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+                  <AlertDialogCancel
+                    disabled={isDeleting}
+                    className="w-full border-gray-500 bg-gray-600 text-xs text-white hover:bg-gray-500 hover:text-white sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteConfirm}
+                    disabled={isDeleting}
+                    className="w-full gap-1.5 bg-red-600 text-xs text-white hover:bg-red-700 sm:w-auto sm:text-sm"
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                    ) : (
+                      <Trash2 className="size-3.5 sm:size-4" />
+                    )}
+                    {isDeleting ? "Deleting…" : "Delete review"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
       </div>
     </div>
@@ -195,53 +272,80 @@ function ReviewCard({
 
 interface ReviewsSectionProps {
   bookId: string;
+  bookTitle: string;
   reviews: Review[];
   currentUserEmail?: string | null;
 }
 
 export default function ReviewsSection({
-  bookId: _bookId,
+  bookId,
+  bookTitle,
   reviews,
   currentUserEmail,
 }: ReviewsSectionProps) {
   const [editingReview, setEditingReview] = useState<Review | null>(null);
+  // Optimistic patches merged over props — avoids stale-text flash without sync effect
+  const [patches, setPatches] = useState<
+    Record<string, { rating: number; comment: string; updatedAt: Date }>
+  >({});
+  const [removedIds, setRemovedIds] = useState<Record<string, true>>({});
+
+  const localReviews = useMemo(
+    () =>
+      reviews
+        .filter((r) => !removedIds[r.id])
+        .map((r) => {
+          const patch = patches[r.id];
+          if (!patch) return r;
+          return {
+            ...r,
+            rating: patch.rating,
+            comment: patch.comment,
+            updatedAt: patch.updatedAt,
+          };
+        }),
+    [reviews, patches, removedIds],
+  );
 
   const handleReviewEdit = (review: Review) => {
     setEditingReview(review);
   };
 
-  const handleReviewDelete = () => {
-    // CRITICAL: No manual invalidation needed here
-    // The useDeleteReview mutation already handles all cache invalidation
-    // via invalidateAfterReviewChange() which invalidates reviews, books, and analytics
-    // Manual invalidation here would cause redundant refetches
+  const handleReviewDeleteLocal = (reviewId: string) => {
+    setRemovedIds((prev) => ({ ...prev, [reviewId]: true }));
   };
 
-  const handleReviewUpdate = () => {
+  const handleReviewDeleteRollback = (reviewId: string) => {
+    setRemovedIds((prev) => {
+      const next = { ...prev };
+      delete next[reviewId];
+      return next;
+    });
+  };
+
+  const handleReviewSaved = (updated: {
+    reviewId: string;
+    rating: number;
+    comment: string;
+  }) => {
+    setPatches((prev) => ({
+      ...prev,
+      [updated.reviewId]: {
+        rating: updated.rating,
+        comment: updated.comment,
+        updatedAt: new Date(),
+      },
+    }));
     setEditingReview(null);
-    // CRITICAL: No manual invalidation needed here
-    // The useUpdateReview mutation already handles all cache invalidation
-    // via invalidateAfterReviewChange() which invalidates reviews, books, and analytics
-    // Manual invalidation here would cause redundant refetches
   };
-
-  if (editingReview) {
-    return (
-      <EditReviewForm
-        review={editingReview}
-        onCancel={() => setEditingReview(null)}
-        onUpdate={handleReviewUpdate}
-      />
-    );
-  }
 
   return (
     <div className="space-y-3 sm:space-y-4">
       <h3 className="text-base font-semibold text-light-100 sm:text-lg">
-        Reviews ({reviews.length})
+        Reviews ({localReviews.length})
       </h3>
 
-      {reviews.length === 0 ? (
+      {localReviews.length === 0 ? (
         <div className="rounded-lg border border-gray-600 bg-gray-800/30 p-4 text-center sm:p-8">
           <p className="text-sm text-light-200/70 sm:text-base">
             No reviews yet. Be the first to review this book!
@@ -249,131 +353,35 @@ export default function ReviewsSection({
         </div>
       ) : (
         <div className="space-y-3 sm:space-y-4">
-          {reviews.map((review) => (
+          {localReviews.map((review) => (
             <ReviewCard
               key={review.id}
               review={review}
+              bookId={bookId}
+              bookTitle={bookTitle}
               currentUserEmail={currentUserEmail || undefined}
               onEdit={handleReviewEdit}
-              onDelete={handleReviewDelete}
+              onDeleteLocal={handleReviewDeleteLocal}
+              onDeleteRollback={handleReviewDeleteRollback}
             />
           ))}
         </div>
       )}
-    </div>
-  );
-}
 
-// Edit Review Form Component
-interface EditReviewFormProps {
-  review: Review;
-  onCancel: () => void;
-  onUpdate: () => void;
-}
-
-function EditReviewForm({ review, onCancel, onUpdate }: EditReviewFormProps) {
-  const [rating, setRating] = useState(review.rating);
-  const [comment, setComment] = useState(review.comment);
-
-  // Use React Query mutation for updating review
-  const updateReviewMutation = useUpdateReview();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!comment.trim()) {
-      return; // Validation handled by mutation
-    }
-
-    // Use mutation to update review
-    updateReviewMutation.mutate(
-      {
-        reviewId: review.id,
-        rating,
-        comment: comment.trim(),
-      },
-      {
-        onSuccess: () => {
-          onUpdate();
-        },
-      }
-    );
-  };
-
-  const renderStarRating = () => (
-    <div className="flex items-center gap-0.5 sm:space-x-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => setRating(star)}
-          className="transition-colors hover:scale-110"
-        >
-          <Star
-            className={`size-5 sm:size-6 ${
-              star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "fill-gray-300 text-gray-300"
-            }`}
-          />
-        </button>
-      ))}
-      <span className="ml-1.5 text-xs text-light-200/70 sm:ml-2 sm:text-sm">
-        {rating} star{rating !== 1 ? "s" : ""}
-      </span>
-    </div>
-  );
-
-  return (
-    <div className="rounded-lg border border-gray-600 bg-gray-800/50 p-4 sm:p-6">
-      <h3 className="mb-3 text-base font-semibold text-light-100 sm:mb-4 sm:text-lg">
-        Edit Your Review
-      </h3>
-
-      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-light-200 sm:mb-2 sm:text-sm">
-            Rating
-          </label>
-          {renderStarRating()}
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-light-200 sm:mb-2 sm:text-sm">
-            Your Review
-          </label>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Share your thoughts about this book..."
-            className="w-full rounded-md border border-gray-600 bg-gray-700/50 px-2.5 py-1.5 text-xs text-light-100 placeholder:text-light-200/50 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 sm:px-3 sm:py-2 sm:text-sm"
-            rows={4}
-            required
-          />
-          <p className="mt-1 text-[10px] text-light-200/70 sm:text-xs">
-            {comment.length}/500 characters
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={updateReviewMutation.isPending}
-            className="w-full border-gray-600 bg-gray-700/50 text-xs text-light-100 hover:bg-gray-700 hover:text-white sm:w-auto sm:text-sm"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={updateReviewMutation.isPending || !comment.trim()}
-            className="w-full bg-green-600 text-xs text-white hover:bg-green-700 sm:w-auto sm:text-sm"
-          >
-            {updateReviewMutation.isPending ? "Updating..." : "Update Review"}
-          </Button>
-        </div>
-      </form>
+      {editingReview ? (
+        <ReviewFormDialog
+          key={editingReview.id}
+          mode="edit"
+          bookId={bookId}
+          bookTitle={bookTitle}
+          reviewId={editingReview.id}
+          initialRating={editingReview.rating}
+          initialComment={editingReview.comment}
+          isOpen
+          onClose={() => setEditingReview(null)}
+          onReviewSaved={handleReviewSaved}
+        />
+      ) : null}
     </div>
   );
 }

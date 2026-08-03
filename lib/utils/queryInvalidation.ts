@@ -44,7 +44,7 @@ export const MUTATION_RSC_PATH_REGISTRY = {
   "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "reservation.lifecycle": ["/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "renewal.write": ["/books/[id]", "/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
-  "review.write": ["/books/[id]", "/admin/users/[id]", "/admin/business-insights"],
+  "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights"],
   "admin-request.write": ["/make-admin", "/admin/account-requests", "/admin/users", "/admin/business-insights"],
   "fine.write": ["/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "recommendation.write": ["/", "/all-books", "/admin/automation", "/admin/business-insights"],

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import QueryProvider from "@/components/QueryProvider";
+import ScrollToTop from "@/components/ScrollToTop";
 
 import localFont from "next/font/local";
 import { ReactNode } from "react";
@@ -151,6 +152,7 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
           suppressHydrationWarning
         >
           <QueryProvider>
+            <ScrollToTop />
             {children}
             <Toaster />
           </QueryProvider>

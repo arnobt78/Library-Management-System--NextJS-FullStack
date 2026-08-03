@@ -1,27 +1,22 @@
 "use client";
 
 /**
- * BorrowBook Component
- *
- * Button component for borrowing books. Uses React Query mutation.
- * Integrates with useBorrowBook mutation for proper cache invalidation.
- *
- * Features:
- * - Uses useBorrowBook mutation
- * - Automatic cache invalidation on success
- * - Toast notifications via mutation callbacks
- * - Navigation to profile page on success
+ * BorrowBook — request a loan via useBorrowBook.
+ * Pending: spinner + “Borrowing…”; success navigates to pending-requests tab.
  */
 
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { BookMarked } from "lucide-react";
+import { BookMarked, Loader2 } from "lucide-react";
 import { useBorrowBook } from "@/hooks/useMutations";
+import { profileTabHref } from "@/lib/profile/profileTabs";
 
 interface Props {
   userId: string;
   bookId: string;
+  /** Used for dynamic success/error toasts */
+  bookTitle?: string;
   borrowingEligibility: {
     isEligible: boolean;
     message: string;
@@ -31,35 +26,29 @@ interface Props {
 const BorrowBook = ({
   userId,
   bookId,
+  bookTitle,
   borrowingEligibility: { isEligible },
 }: Props) => {
   const router = useRouter();
-
-  // Use React Query mutation for borrowing book
   const borrowBookMutation = useBorrowBook();
+  const isPending = borrowBookMutation.isPending;
 
   const handleBorrowBook = () => {
-    if (!isEligible) {
-      return; // Validation handled by mutation
-    }
+    if (!isEligible) return;
 
-    // Use mutation to borrow book
     borrowBookMutation.mutate(
       {
         userId,
         bookId,
+        bookTitle,
       },
       {
         onSuccess: () => {
-          // CRITICAL: Navigate after mutation completes
-          // The optimistic update is already in the cache, and now we have the real data
-          // React Query will use the cached data instead of refetching
-          router.push("/my-profile");
+          // Borrow creates PENDING — land on pending-requests tab
+          router.push(profileTabHref("pending-requests"));
         },
         onError: (error) => {
           console.error("[BorrowBook] Mutation error:", error);
-          // Show error to user
-          alert(`Failed to borrow book: ${error.message}`);
         },
       },
     );
@@ -70,11 +59,15 @@ const BorrowBook = ({
       <Button
         className="cta-shine-button hover:bg-primary/90 min-h-12 w-full bg-primary text-dark-100 sm:min-h-14"
         onClick={handleBorrowBook}
-        disabled={borrowBookMutation.isPending || !isEligible}
+        disabled={isPending || !isEligible}
       >
-        <BookMarked className="size-4 text-dark-100 sm:size-5" />
+        {isPending ? (
+          <Loader2 className="size-4 animate-spin text-dark-100 sm:size-5" />
+        ) : (
+          <BookMarked className="size-4 text-dark-100 sm:size-5" />
+        )}
         <span className="font-bebas-neue text-base text-dark-100 sm:text-xl">
-          {borrowBookMutation.isPending ? "Borrowing ..." : "Borrow Book"}
+          {isPending ? "Borrowing…" : "Borrow Book"}
         </span>
       </Button>
     </span>

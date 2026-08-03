@@ -110,6 +110,7 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
       updatedAt: bookReviews.updatedAt,
       userFullName: users.fullName,
       userEmail: users.email,
+      universityCard: users.universityCard,
     })
     .from(bookReviews)
     .innerJoin(users, eq(bookReviews.userId, users.id))

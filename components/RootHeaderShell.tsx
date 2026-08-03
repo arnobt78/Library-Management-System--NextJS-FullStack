@@ -2,10 +2,11 @@
 
 /**
  * Sticky header chrome for the public root layout.
- * Transparent at scroll top; light frosted blur once content scrolls underneath.
+ * Starts blurred (scrolled=true) until layout proves scrollY is at top —
+ * avoids transparent header flash over content after refresh/restore.
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useLayoutEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type RootHeaderShellProps = {
@@ -13,9 +14,10 @@ type RootHeaderShellProps = {
 };
 
 const RootHeaderShell = ({ children }: RootHeaderShellProps) => {
-  const [scrolled, setScrolled] = useState(false);
+  // Default blurred until measured — prevents transparent flash mid-page
+  const [scrolled, setScrolled] = useState(true);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 8);
     };

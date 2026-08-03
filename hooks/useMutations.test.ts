@@ -33,9 +33,22 @@ vi.mock("@/lib/services/admin", () => ({
   updateTrendingBooks: vi.fn(), refreshRecommendationCache: vi.fn(),
 }));
 vi.mock("@/lib/toast", () => ({
+  resolveActionBookTitle: (explicit?: string | null, cached?: string | null) =>
+    explicit?.trim() || cached?.trim() || "this book",
   showToast: {
     error: vi.fn(), success: vi.fn(),
-    book: { borrowError: state.borrowError, borrowSuccess: vi.fn(), createSuccess: vi.fn(), updateSuccess: vi.fn(), deleteSuccess: vi.fn() },
+    book: {
+      borrowError: state.borrowError,
+      borrowSuccess: vi.fn(),
+      createSuccess: vi.fn(),
+      returnSuccess: vi.fn(),
+      returnWithFine: vi.fn(),
+      returnError: vi.fn(),
+      renewSuccess: vi.fn(),
+      renewError: vi.fn(),
+      reviewSuccess: vi.fn(),
+      reviewError: vi.fn(),
+    },
     user: { roleUpdateSuccess: vi.fn(), statusUpdateSuccess: vi.fn() },
     review: { createSuccess: vi.fn(), updateSuccess: vi.fn(), deleteSuccess: vi.fn() },
   },

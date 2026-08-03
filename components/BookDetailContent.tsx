@@ -47,6 +47,7 @@ interface BookDetailContentProps {
     updatedAt: Date | null;
     userFullName: string;
     userEmail: string;
+    universityCard?: string | null;
   }>;
 }
 
@@ -139,6 +140,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
               initialReviews is only used as fallback during initial load */}
           <ReviewsSection
             bookId={bookId}
+            bookTitle={bookData.title}
             reviews={reviews ?? initialReviews ?? []}
             currentUserEmail={userEmail}
           />

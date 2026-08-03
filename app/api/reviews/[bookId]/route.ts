@@ -53,6 +53,7 @@ export async function GET(
         updatedAt: bookReviews.updatedAt,
         userFullName: users.fullName,
         userEmail: users.email,
+        universityCard: users.universityCard,
       })
       .from(bookReviews)
       .innerJoin(users, eq(bookReviews.userId, users.id))

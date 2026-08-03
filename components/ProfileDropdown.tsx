@@ -84,6 +84,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           <UserAvatar
             universityCard={universityCard}
             fullName={fullName}
+            email={email}
             size={40}
             className="size-full"
           />

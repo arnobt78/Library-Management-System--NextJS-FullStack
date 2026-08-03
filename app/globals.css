@@ -561,6 +561,99 @@ html:has(body[data-scroll-locked]) {
     }
   }
 
+  /*
+   * My Profile — glass headers, transparent tab track, soft KPI/row chrome.
+   * Overrides TabsList bg-muted / TabsTrigger active:bg-background (light track bug).
+   */
+  .glass-section-header {
+    @apply flex items-center gap-3 rounded-xl border border-white/10 bg-gradient-to-r from-white/10 via-white/5 to-transparent px-3 py-2.5 shadow-[0_12px_32px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:gap-3.5 sm:px-4 sm:py-3;
+  }
+
+  .glass-section-header__icon {
+    @apply flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-light-200 sm:size-10;
+  }
+
+  .profile-stats-panel {
+    @apply rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-3 shadow-[0_20px_50px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:p-4;
+  }
+
+  /* Transparent track — no outer white/muted pill */
+  .profile-tabs-list {
+    @apply !h-auto !w-full !grid !grid-cols-1 !gap-2 !border-0 !bg-transparent !p-0 !shadow-none sm:!grid-cols-3;
+  }
+
+  .profile-tab-trigger {
+    @apply !relative !inline-flex !h-auto !min-h-11 !w-full !items-center !justify-center !gap-2 !overflow-hidden !rounded-xl !border !border-white/15 !bg-dark-300/60 !px-3 !py-2.5 !text-xs !font-medium !text-light-100 !shadow-none !transition-colors hover:!bg-white/10 hover:!text-white sm:!text-sm;
+  }
+
+  .profile-tab-active-borrows[data-state="active"] {
+    @apply !border-blue-400/50 !bg-gradient-to-r !from-blue-500/40 !via-blue-500/20 !to-blue-500/10 !text-white !shadow-[0_10px_30px_rgba(59,130,246,0.3)];
+  }
+
+  .profile-tab-pending[data-state="active"] {
+    @apply !border-amber-400/50 !bg-gradient-to-r !from-amber-500/40 !via-amber-500/20 !to-amber-500/10 !text-white !shadow-[0_10px_30px_rgba(245,158,11,0.3)];
+  }
+
+  .profile-tab-history[data-state="active"] {
+    @apply !border-violet-400/50 !bg-gradient-to-r !from-violet-500/40 !via-violet-500/20 !to-violet-500/10 !text-white !shadow-[0_10px_30px_rgba(139,92,246,0.3)];
+  }
+
+  .profile-kpi-card {
+    @apply flex items-center gap-2.5 rounded-xl border bg-gradient-to-r p-2.5 backdrop-blur-sm sm:gap-3 sm:p-3;
+  }
+
+  /*
+   * Force dark glass — beats Card bg-card (#fff) when admin.css stays after soft nav.
+   */
+  .profile-borrow-row {
+    @apply mb-3 rounded-xl !border-white/10 !bg-dark-300/60 !text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-shadow duration-200 hover:shadow-[0_16px_36px_rgba(0,0,0,0.35)];
+  }
+
+  .profile-borrow-row--pending {
+    @apply border-l-[3px] border-l-amber-400/80;
+  }
+
+  .profile-borrow-row--borrowed {
+    @apply border-l-[3px] border-l-blue-400/80;
+  }
+
+  .profile-borrow-row--borrowed-soon {
+    @apply border-l-[3px] border-l-orange-400/80;
+  }
+
+  .profile-borrow-row--overdue {
+    @apply border-l-[3px] border-l-red-400/80;
+  }
+
+  .profile-borrow-row--returned {
+    @apply border-l-[3px] border-l-emerald-400/80;
+  }
+
+  /* Profile borrow-card CTAs — glass + hover glow; relative/overflow clip btn-ripple */
+  .profile-action-btn {
+    @apply relative inline-flex items-center gap-1 overflow-hidden rounded-lg border px-2.5 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-[box-shadow,background-color,transform] duration-200 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm;
+  }
+
+  .profile-action-btn--return {
+    @apply border-orange-400/40 bg-gradient-to-r from-orange-500/45 via-orange-500/25 to-orange-600/30 shadow-[0_10px_28px_rgba(249,115,22,0.28)] hover:shadow-[0_14px_36px_rgba(249,115,22,0.4)];
+  }
+
+  .profile-action-btn--return-overdue {
+    @apply border-red-400/40 bg-gradient-to-r from-red-500/45 via-red-500/25 to-red-600/30 shadow-[0_10px_28px_rgba(239,68,68,0.28)] hover:shadow-[0_14px_36px_rgba(239,68,68,0.4)];
+  }
+
+  .profile-action-btn--renew {
+    @apply border-violet-400/40 bg-gradient-to-r from-violet-500/45 via-violet-500/25 to-purple-600/30 shadow-[0_10px_28px_rgba(139,92,246,0.28)] hover:shadow-[0_14px_36px_rgba(139,92,246,0.4)];
+  }
+
+  .profile-action-btn--details {
+    @apply border-blue-400/40 bg-gradient-to-r from-blue-500/45 via-blue-500/25 to-blue-600/30 shadow-[0_10px_28px_rgba(59,130,246,0.28)] hover:shadow-[0_14px_36px_rgba(59,130,246,0.4)];
+  }
+
+  .profile-action-btn--review {
+    @apply border-emerald-400/40 bg-gradient-to-r from-emerald-500/45 via-emerald-500/25 to-green-600/30 shadow-[0_10px_28px_rgba(16,185,129,0.28)] hover:shadow-[0_14px_36px_rgba(16,185,129,0.4)];
+  }
+
   /* Central vertical rhythm for page content (not header/footer) */
   .page-shell-main {
     @apply w-full py-4;
@@ -582,7 +675,9 @@ html:has(body[data-scroll-locked]) {
     width: 1rem;
     height: 1rem;
     cursor: pointer;
-    background-color: rgb(238 209 172 / 0.85); /* #EED1AC light-200 — matches Reset All */
+    background-color: rgb(
+      238 209 172 / 0.85
+    ); /* #EED1AC light-200 — matches Reset All */
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
     mask-size: contain;
     mask-repeat: no-repeat;

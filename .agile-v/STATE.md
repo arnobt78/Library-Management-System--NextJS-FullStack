@@ -4,10 +4,10 @@
 - Cycle: C2
 - Stage: 4 - Prove and independent Verify
 - SCOPE-V phase: Evaluate
-- Status: ACTIVE - Stage 3 UX polish under REQ-0033 (overview + related + All Books toolbar/sticky header); C2 Gate 2 still blocked by nonlocal production evidence
+- Status: ACTIVE - Stage 3 UX polish under REQ-0033 (shared ripple on profile CTAs/tabs); C2 Gate 2 still blocked by nonlocal production evidence
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: `18c482f` (All Books toolbar/sticky/FilterSurface; related-recs included)
+- Latest known tip: committing profile/reviews UX polish on `main`
 - Started: 2026-08-01
 - Last updated: 2026-08-03
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)

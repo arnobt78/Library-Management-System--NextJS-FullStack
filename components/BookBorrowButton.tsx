@@ -135,6 +135,7 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
         <BorrowBook
           bookId={bookId}
           userId={userId}
+          bookTitle={bookTitle}
           borrowingEligibility={borrowingEligibility}
         />
       )}
@@ -144,6 +145,7 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
         <ReviewButton
           bookId={bookId}
           userId={userId}
+          bookTitle={bookTitle}
           initialReviewEligibility={initialReviewEligibility}
         />
       )}

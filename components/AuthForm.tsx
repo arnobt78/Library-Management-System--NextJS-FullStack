@@ -176,6 +176,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
                       <UserAvatar
                         universityCard={selectedAccount.image}
                         fullName={selectedAccount.fullName}
+                        email={selectedAccount.email}
                         size={36}
                         className="border border-gray-600"
                       />
@@ -206,6 +207,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
                         <UserAvatar
                           universityCard={account.image}
                           fullName={account.fullName}
+                          email={account.email}
                           size={36}
                           className="border border-gray-600"
                         />

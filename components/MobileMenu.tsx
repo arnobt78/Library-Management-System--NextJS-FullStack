@@ -142,6 +142,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <UserAvatar
                 universityCard={universityCard}
                 fullName={fullName}
+                email={email}
                 size={32}
                 className="size-full"
               />

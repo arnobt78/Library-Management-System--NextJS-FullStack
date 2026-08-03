@@ -23,6 +23,7 @@ import type { ReviewEligibility } from "@/lib/services/reviews";
 interface ReviewButtonProps {
   bookId: string;
   userId: string;
+  bookTitle?: string;
   /**
    * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
    */
@@ -32,6 +33,7 @@ interface ReviewButtonProps {
 export default function ReviewButton({
   bookId,
   userId: _userId,
+  bookTitle,
   initialReviewEligibility,
 }: ReviewButtonProps) {
   const [showDialog, setShowDialog] = useState(false);
@@ -110,7 +112,9 @@ export default function ReviewButton({
       </Button>
 
       <ReviewFormDialog
+        mode="create"
         bookId={bookId}
+        bookTitle={bookTitle}
         isOpen={showDialog}
         onClose={() => setShowDialog(false)}
         onReviewSubmitted={handleReviewSubmitted}

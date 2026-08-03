@@ -52,7 +52,7 @@ import {
   updateTrendingBooks,
   refreshRecommendationCache,
 } from "@/lib/services/admin";
-import { showToast } from "@/lib/toast";
+import { resolveActionBookTitle, showToast } from "@/lib/toast";
 import {
   invalidateMutation,
 } from "@/lib/utils/queryInvalidation";
@@ -688,9 +688,13 @@ export const useBorrowBook = () => {
     onSuccess: async (_data, _variables, _context) => {
       await invalidateMutation(queryClient, "borrow.lifecycle");
 
-      // Show success toast
-      const bookTitle = _variables.bookTitle || "Book";
-      showToast.book.borrowSuccess(bookTitle);
+      // Prefer mutate bookTitle, then book detail cache, else "this book"
+      const cached = queryClient.getQueryData<{ title?: string }>(
+        queryKeys.books.detail(_variables.bookId),
+      );
+      showToast.book.borrowSuccess(
+        resolveActionBookTitle(_variables.bookTitle, cached?.title),
+      );
     },
     // CRITICAL: Rollback optimistic update on error
     onError: (error: Error, variables, context) => {
@@ -701,10 +705,15 @@ export const useBorrowBook = () => {
         });
       }
 
-      // Show error toast
-      const bookTitle = variables.bookTitle || "book";
+      const cached = queryClient.getQueryData<{ title?: string }>(
+        queryKeys.books.detail(variables.bookId),
+      );
+      const bookTitle = resolveActionBookTitle(
+        variables.bookTitle,
+        cached?.title,
+      );
       showToast.book.borrowError(
-        error.message || `Unable to request "${bookTitle}". Please try again.`
+        error.message || `Unable to request "${bookTitle}". Please try again.`,
       );
     },
     // CRITICAL: No onSettled needed - we've already updated user-borrows cache optimistically
@@ -872,16 +881,16 @@ export const useReturnBook = () => {
     onSuccess: async (data, variables) => {
       await invalidateMutation(queryClient, "borrow.lifecycle");
 
-      // Show toast notification
-      const bookTitle = variables.bookTitle || "Book";
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
       if (
         data?.isOverdue &&
         data.daysOverdue !== undefined &&
         data.fineAmount !== undefined
       ) {
-        showToast.warning(
-          "Book Returned with Fine",
-          `"${bookTitle}" was returned ${data.daysOverdue} days overdue. Fine: $${data.fineAmount.toFixed(2)}`
+        showToast.book.returnWithFine(
+          bookTitle,
+          data.daysOverdue,
+          data.fineAmount,
         );
       } else {
         showToast.book.returnSuccess(bookTitle);
@@ -889,9 +898,9 @@ export const useReturnBook = () => {
     },
     // CRITICAL: Show error toast on failure
     onError: (error: Error, variables) => {
-      const bookTitle = variables.bookTitle || "book";
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
       showToast.book.returnError(
-        error.message || `Unable to return "${bookTitle}". Please try again.`
+        error.message || `Unable to return "${bookTitle}". Please try again.`,
       );
     },
     // CRITICAL: No onSettled needed - we've already updated user-borrows cache optimistically
@@ -934,24 +943,28 @@ export const useCreateReview = () => {
       const review = await createReview(bookId, reviewData);
       return review;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Invalidate all related queries (reviews, books, analytics)
       invalidateMutation(queryClient, "review.write");
 
-      // Show success toast
-      const bookTitle = variables.bookTitle || "Book";
-      showToast.success(
-        "Review Submitted",
-        `Your review for "${bookTitle}" has been submitted successfully.`
+      const cached = queryClient.getQueryData<{ title?: string }>(
+        queryKeys.books.detail(variables.bookId),
+      );
+      showToast.book.reviewSuccess(
+        resolveActionBookTitle(variables.bookTitle, cached?.title),
       );
     },
     onError: (error: Error, variables) => {
-      // Show error toast
-      const bookTitle = variables.bookTitle || "book";
-      showToast.error(
-        "Review Failed",
+      const cached = queryClient.getQueryData<{ title?: string }>(
+        queryKeys.books.detail(variables.bookId),
+      );
+      const bookTitle = resolveActionBookTitle(
+        variables.bookTitle,
+        cached?.title,
+      );
+      showToast.book.reviewError(
         error.message ||
-          `Unable to submit review for "${bookTitle}". ${error.message.includes("already reviewed") ? "You have already reviewed this book." : error.message.includes("borrowed") ? "You must have borrowed this book to review it." : "Please try again."}`
+          `Unable to submit review for "${bookTitle}". ${error.message.includes("already reviewed") ? "You have already reviewed this book." : error.message.includes("borrowed") ? "You must have borrowed this book to review it." : "Please try again."}`,
       );
     },
   });
@@ -983,33 +996,72 @@ export const useUpdateReview = () => {
   return useMutation({
     mutationFn: async ({
       reviewId,
-      ...reviewData
+      rating,
+      comment,
     }: {
       reviewId: string;
-    } & UpdateReviewInput & {
-        bookTitle?: string; // Optional, for toast message
-      }) => {
-      const review = await updateReview(reviewId, reviewData);
-      return review;
+      bookId?: string;
+      bookTitle?: string;
+    } & UpdateReviewInput) => {
+      return updateReview(reviewId, { rating, comment });
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (reviews, books, analytics)
+    onMutate: async (variables) => {
+      if (!variables.bookId) return {};
+      const key = queryKeys.reviews.book(variables.bookId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<
+        Array<{
+          id: string;
+          rating: number;
+          comment: string;
+          updatedAt: Date | null;
+        }>
+      >(key);
+      if (previous) {
+        queryClient.setQueryData(
+          key,
+          previous.map((r) =>
+            r.id === variables.reviewId
+              ? {
+                  ...r,
+                  rating: variables.rating,
+                  comment: variables.comment,
+                  updatedAt: new Date(),
+                }
+              : r,
+          ),
+        );
+      }
+      return { previous, key };
+    },
+    onSuccess: (_data, variables) => {
       invalidateMutation(queryClient, "review.write");
-
-      // Show success toast
-      const bookTitle = variables.bookTitle || "Book";
-      showToast.success(
-        "Review Updated",
-        `Your review for "${bookTitle}" has been updated successfully.`
+      const cached = variables.bookId
+        ? queryClient.getQueryData<{ title?: string }>(
+            queryKeys.books.detail(variables.bookId),
+          )
+        : undefined;
+      showToast.book.reviewUpdated(
+        resolveActionBookTitle(variables.bookTitle, cached?.title),
       );
     },
-    onError: (error: Error, variables) => {
-      // Show error toast
-      const bookTitle = variables.bookTitle || "book";
+    onError: (error: Error, variables, context) => {
+      if (context?.previous && context.key) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+      const cached = variables.bookId
+        ? queryClient.getQueryData<{ title?: string }>(
+            queryKeys.books.detail(variables.bookId),
+          )
+        : undefined;
+      const bookTitle = resolveActionBookTitle(
+        variables.bookTitle,
+        cached?.title,
+      );
       showToast.error(
         "Update Failed",
         error.message ||
-          `Unable to update review for "${bookTitle}". ${error.message.includes("not found") || error.message.includes("permission") ? "Review not found or you don't have permission to edit it." : "Please try again."}`
+          `Unable to update review for "${bookTitle}". ${error.message.includes("not found") || error.message.includes("permission") ? "Review not found or you don't have permission to edit it." : "Please try again."}`,
       );
     },
   });
@@ -1041,29 +1093,52 @@ export const useDeleteReview = () => {
       reviewId,
     }: {
       reviewId: string;
-      bookTitle?: string; // Optional, for toast message
+      bookId?: string;
+      bookTitle?: string;
     }) => {
-      const result = await deleteReview(reviewId);
-      return result;
+      return deleteReview(reviewId);
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (reviews, books, analytics)
+    onMutate: async (variables) => {
+      if (!variables.bookId) return {};
+      const key = queryKeys.reviews.book(variables.bookId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<Array<{ id: string }>>(key);
+      if (previous) {
+        queryClient.setQueryData(
+          key,
+          previous.filter((r) => r.id !== variables.reviewId),
+        );
+      }
+      return { previous, key };
+    },
+    onSuccess: (_data, variables) => {
       invalidateMutation(queryClient, "review.write");
-
-      // Show success toast
-      const bookTitle = variables.bookTitle || "Book";
-      showToast.success(
-        "Review Deleted",
-        `Your review for "${bookTitle}" has been deleted successfully.`
+      const cached = variables.bookId
+        ? queryClient.getQueryData<{ title?: string }>(
+            queryKeys.books.detail(variables.bookId),
+          )
+        : undefined;
+      showToast.book.reviewDeleted(
+        resolveActionBookTitle(variables.bookTitle, cached?.title),
       );
     },
-    onError: (error: Error, variables) => {
-      // Show error toast
-      const bookTitle = variables.bookTitle || "book";
+    onError: (error: Error, variables, context) => {
+      if (context?.previous && context.key) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+      const cached = variables.bookId
+        ? queryClient.getQueryData<{ title?: string }>(
+            queryKeys.books.detail(variables.bookId),
+          )
+        : undefined;
+      const bookTitle = resolveActionBookTitle(
+        variables.bookTitle,
+        cached?.title,
+      );
       showToast.error(
         "Deletion Failed",
         error.message ||
-          `Unable to delete review for "${bookTitle}". ${error.message.includes("not found") || error.message.includes("permission") ? "Review not found or you don't have permission to delete it." : "Please try again."}`
+          `Unable to delete review for "${bookTitle}". ${error.message.includes("not found") || error.message.includes("permission") ? "Review not found or you don't have permission to delete it." : "Please try again."}`,
       );
     },
   });

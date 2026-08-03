@@ -51,9 +51,14 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - UI shell: `.page-shell` + `max-w-9xl` (96rem); root Header/main/`Footer`; auth `Footer variant="auth"`; admin no footer.
 - Nav: API Docs + API Status only; `/performance` → `/api-status` (embedded `PerformanceDashboard`).
 - Select: FilterSelect icons (`lib/ui/filterOptionStyles.ts`); scroll-lock gutter fix (`body[data-scroll-locked]`).
-- Buttons: ripple baked into `ui/button` (`.btn-ripple`); CTA shine on Borrow/Details/Discover; CSS-var primary hover via `color-mix` (not `@apply …/90`).
+- Buttons: ripple via shared `lib/ui/ripple` → `ui/button`, `TabsTrigger`, profile glass CTAs (`.btn-ripple`); CTA shine on Borrow/Details/Discover; CSS-var primary hover via `color-mix` (not `@apply …/90`).
 - Book overview (home + `/books/[id]`): full-width title header; md+ details|hero; soft `.book-overview__hero-glow` (blur, no disk clip, reduced-motion off); Library DB + Borrow Stats share 2-col row classes; Available/Low/Unavailable colors; RQ paths unchanged (REQ-0033 polish).
 - Related recs on `/books/[id]`: `getRelatedBooks` + `/api/books/[id]/related` + `useRelatedBooks` (`book-related` keys). BookCard: centered cover, full-width meta, reserved 2-line title/author, stronger `.book-card__glow`, star+rating, hover tilt; `book-list`/`grid-cards` larger `gap-y`; `BookList` key=`id`.
 - Sticky root Header: `.root-header` + `RootHeaderShell` (transparent top, blur when scrolled); `overflow-x-clip` so sticky works.
 - `/all-books` toolbar: Search|Genre|Availability|Rating flex-1; Sort+chips meta row; instant search 300ms debounce; dropdowns `replace`; SSR search `ilike`; subtitle = unfiltered `libraryTotalBooks`; Showing = filtered; no Updating…; first-load pulse skeletons only.
 - FilterSelect `h-9` + `labelLayout` + dark hover keeps icons visible; `FilterSurface` dark/light option tones; `.catalog-search-input` clear (x) = light-200.
+- My Profile: `?tab=…`; KPIs/`GlassSectionHeader`/glass tabs+rows; `CountdownTimer` sync-init + `ClockAlert` (no false red); glass CTAs; `review.write`→`/my-profile`.
+- Admin→profile: borrow rows are `div.profile-borrow-row` with `!bg-dark-300/60` (no Card `bg-card`); status uses `formatBorrowDate(Time)` (`requested`/`approved`/`returned`); do not add `html.dark` (breaks light admin). Soft-nav risk: admin.css dual Tailwind base.
+- Scroll polish: `ScrollToTop` sets `history.scrollRestoration=manual` + `scrollTo(auto)`; `RootHeaderShell` defaults `scrolled=true`, measures in `useLayoutEffect`.
+- Reviews: shared `ReviewFormDialog` create+edit (no 1.5s delay); delete confirm spins until settle; kebab Cancel+separator; Created/Edited icons; `universityCard`+Robohash avatars; optimistic `setQueryData` + dynamic toasts.
+- My Profile borrow title → `Link` `/books/[id]` (`hover:text-light-100/70`).

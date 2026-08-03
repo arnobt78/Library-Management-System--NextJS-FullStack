@@ -27,6 +27,8 @@ export interface Review {
   updatedAt: Date | null;
   userFullName: string;
   userEmail: string;
+  /** Student ID / seed / ImageKit path for UserAvatar */
+  universityCard?: string | null;
   // Optional fields that may be included
   userId?: string;
   bookId?: string;

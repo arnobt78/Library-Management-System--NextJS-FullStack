@@ -5,6 +5,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import { withRippleClick } from "@/lib/ui/ripple";
 
 const buttonVariants = cva(
   // relative + overflow-hidden clips click ripple; flex centers icon + label on both axes
@@ -44,28 +45,6 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
-/** Spawn a client-only ripple at the pointer; removed after animation (docs/RIPPLE_BUTTON_EFFECT.md). */
-function spawnRipple(
-  event: React.MouseEvent<HTMLElement>,
-  host: HTMLElement,
-) {
-  const rect = host.getBoundingClientRect();
-  const size = Math.max(rect.width, rect.height);
-  const x = event.clientX - rect.left - size / 2;
-  const y = event.clientY - rect.top - size / 2;
-
-  const ripple = document.createElement("span");
-  ripple.className = "btn-ripple";
-  ripple.style.width = `${size}px`;
-  ripple.style.height = `${size}px`;
-  ripple.style.left = `${x}px`;
-  ripple.style.top = `${y}px`;
-  ripple.addEventListener("animationend", () => ripple.remove(), {
-    once: true,
-  });
-  host.appendChild(ripple);
-}
-
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -81,20 +60,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const Comp = asChild ? Slot : "button";
 
-    const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-      if (!disabled) {
-        spawnRipple(event, event.currentTarget);
-      }
-      onClick?.(event as React.MouseEvent<HTMLButtonElement>);
-    };
-
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled}
         {...props}
-        onClick={handleClick}
+        onClick={withRippleClick(onClick, disabled)}
       />
     );
   },

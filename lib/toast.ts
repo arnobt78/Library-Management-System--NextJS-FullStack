@@ -1,5 +1,14 @@
 import { toast } from "@/hooks/use-toast";
 
+/** Prefer an explicit title; never fall back to bare "Book". */
+export function resolveActionBookTitle(
+  explicit?: string | null,
+  cached?: string | null,
+): string {
+  const title = explicit?.trim() || cached?.trim();
+  return title && title.length > 0 ? title : "this book";
+}
+
 export const showToast = {
   success: (title: string, description: string) => {
     toast({
@@ -44,7 +53,8 @@ export const showToast = {
       const who = name?.trim() || "friend";
       toast({
         title: `🎉 Welcome, ${who}!`,
-        description: "Your account is ready — enjoy discovering books & happy learning!",
+        description:
+          "Your account is ready — enjoy discovering books & happy learning!",
       });
     },
     logoutSuccess: (name?: string) => {
@@ -58,33 +68,90 @@ export const showToast = {
 
   book: {
     borrowSuccess: (bookTitle: string) => {
+      const title = resolveActionBookTitle(bookTitle);
       toast({
-        title: "📚 Book Borrowed!",
-        description: `"${bookTitle}" has been added to your borrowed collection. Enjoy reading!`,
+        title: `📚 Borrow request sent`,
+        description: `"${title}" is awaiting admin approval. We'll notify you when it's ready.`,
       });
     },
     createSuccess: (bookTitle: string) => {
+      const title = resolveActionBookTitle(bookTitle);
       toast({
-        title: "📖 Book Created!",
-        description: `"${bookTitle}" has been added to the library collection.`,
+        title: `📖 "${title}" added`,
+        description: `Successfully added to the library collection.`,
       });
     },
     borrowError: (message: string) => {
       toast({
-        title: "❌ Cannot Borrow Book",
+        title: "❌ Cannot borrow",
         description: message,
         variant: "destructive",
       });
     },
     returnSuccess: (bookTitle: string) => {
+      const title = resolveActionBookTitle(bookTitle);
       toast({
-        title: "📚 Book Returned!",
-        description: `"${bookTitle}" has been successfully returned to the library. Thank you!`,
+        title: `📗 Returned: ${title}`,
+        description: `"${title}" is back on the shelf. Thanks for returning it!`,
+      });
+    },
+    returnWithFine: (
+      bookTitle: string,
+      daysOverdue: number,
+      fineAmount: number,
+    ) => {
+      const title = resolveActionBookTitle(bookTitle);
+      toast({
+        title: `⚠️ Returned with fine: ${title}`,
+        description: `"${title}" was ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue. Fine: $${fineAmount.toFixed(2)}.`,
+        variant: "destructive",
       });
     },
     returnError: (message: string) => {
       toast({
-        title: "❌ Cannot Return Book",
+        title: "❌ Cannot return",
+        description: message,
+        variant: "destructive",
+      });
+    },
+    renewSuccess: (bookTitle: string, dueDate: string) => {
+      const title = resolveActionBookTitle(bookTitle);
+      toast({
+        title: `✨ Renewed: ${title}`,
+        description: `"${title}" is extended. New due date: ${dueDate}.`,
+      });
+    },
+    renewError: (message: string) => {
+      toast({
+        title: "❌ Renewal failed",
+        description: message,
+        variant: "destructive",
+      });
+    },
+    reviewSuccess: (bookTitle: string) => {
+      const title = resolveActionBookTitle(bookTitle);
+      toast({
+        title: `⭐ Review submitted`,
+        description: `Thanks for reviewing "${title}". Your feedback helps other readers.`,
+      });
+    },
+    reviewUpdated: (bookTitle: string) => {
+      const title = resolveActionBookTitle(bookTitle);
+      toast({
+        title: `✏️ Review updated`,
+        description: `Your review for "${title}" was saved.`,
+      });
+    },
+    reviewDeleted: (bookTitle: string) => {
+      const title = resolveActionBookTitle(bookTitle);
+      toast({
+        title: `🗑️ Review deleted`,
+        description: `Your review for "${title}" was removed.`,
+      });
+    },
+    reviewError: (message: string) => {
+      toast({
+        title: "❌ Review failed",
         description: message,
         variant: "destructive",
       });

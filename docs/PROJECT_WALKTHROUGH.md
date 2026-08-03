@@ -65,6 +65,7 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - User permission/status writes and fine updates record the authenticated admin; migration `0009_users_audit_fields.sql` adds the user audit columns.
 - Sign-in demo dropdown: `TEST_ACCOUNTS` (Test User / Test Admin). Reset DB with `npm run seed:reset` (17 books + both accounts; avatars `/images/profile-img*.png` via `UserAvatar`/`resolveUniversityCard`).
 - Borrow History (`/my-profile`): RSC INNER JOIN seeds `initialBorrowHistory`; `useUserBorrows` takes `BorrowRecordFull` + `initialDataUpdatedAt`; UI prefers RQ only when `book.title` is valid (no Unknown Book flash).
+- Profile tabs URL-synced: `?tab=active-borrows|pending-requests|borrow-history` (`lib/profile/profileTabs.ts`); borrow success → pending-requests. KPIs above tabs from `computeBorrowStats`; glass tab/badge chrome; section titles+subtitles match All Books hero. Toasts resolve real book titles (`resolveActionBookTitle`); CTA pending uses `Loader2`.
 - Login hardening (2026-08-02): shared DB must have `users.updated_at`/`updated_by` (`0009`); password rehash failures must not abort credentials authorize. Do not write scrypt hashes into a DB while production still runs a pre-scrypt build.
 
 ## UI shell and controls (2026-08-02)
@@ -72,7 +73,7 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Root layout: Header + main + `Footer` inside `.page-shell` / `max-w-9xl` (96rem). Auth layout uses `Footer variant="auth"`. Admin has no site footer.
 - Meta nav: API Docs + API Status. `/performance` redirects to `/api-status`; dashboard mounts embedded.
 - Filters: `FilterSelect` + `lib/ui/filterOptionStyles.ts`. Select scroll-lock: unlayered `body[data-scroll-locked]` margin/overflow rules in `globals.css`.
-- Buttons: click ripple in `components/ui/button.tsx` (`.btn-ripple`). Optional `.cta-shine-wrap` on Borrow / Book Details / Discover. Do not `@apply hover:bg-primary/90` — CSS-var primary needs `:hover { color-mix(...) }`. Spec: `docs/RIPPLE_BUTTON_EFFECT.md`.
+- Buttons: click ripple via `lib/ui/ripple` (`ui/button`, `TabsTrigger`, profile glass CTAs). Optional `.cta-shine-wrap` on Borrow / Book Details / Discover. Do not `@apply hover:bg-primary/90` — CSS-var primary needs `:hover { color-mix(...) }`. Spec: `docs/RIPPLE_BUTTON_EFFECT.md`.
 
 ## Book overview hero (2026-08-03, REQ-0033)
 
@@ -95,6 +96,16 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Counts: subtitle uses unfiltered `initialLibraryTotalBooks` / catalog meta query; “Showing X of Y” uses filtered pagination total.
 - Chrome: dark FilterSelect `h-9`, `FilterSurface` tones, hover icons stay light; search field matches `border-gray-700` / `.catalog-search-input` clear control.
 - Loading: pulse toolbar + `BookCardSkeleton` only — no “Updating…” / “Loading books…” copy.
+
+## My Profile UX (2026-08-03, REQ-0033 polish)
+
+- Hero matches All Books. Shared `GlassSectionHeader` for stats + tab sections. KPI cards: icon | title/hint | value.
+- Tabs: transparent track + dark glass pills. Borrow rows: soft glass + left accent; status icons (`Timer` / `RotateCwFadingClock` / `AlarmClockCheck`); glass CTAs (`.profile-action-btn*`).
+- `CountdownTimer` lazy-inits from dueDate (fixes red flash). `review.write` includes `/my-profile`.
+- Admin→profile CSS leak: no Card/`bg-card` on borrow rows; `.profile-borrow-row` forces dark glass (`!`). Status: requested/approved datetime + return date-only (`lib/profile/formatBorrowDates.ts`).
+- Scroll: manual `scrollRestoration` + layout scroll-to-top; header starts blurred until top measured.
+- Reviews: shared `ReviewFormDialog` for create+edit; delete spins until settle; kebab Cancel; avatars via `universityCard`+Robohash; optimistic RQ + dynamic toasts.
+- My Profile: borrow book title links to `/books/[id]`; Return/Renew/Details/Review + tab triggers use shared ripple.
 
 ## Environment
 
