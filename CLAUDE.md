@@ -51,7 +51,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - UI shell: `.page-shell` + `max-w-9xl` (96rem); root Header/main/`Footer`; auth `Footer variant="auth"`; admin no footer.
 - Nav: API Docs + API Status only; `/performance` → `/api-status` (embedded `PerformanceDashboard`).
 - Select: FilterSelect icons (`lib/ui/filterOptionStyles.ts`); scroll-lock gutter fix (`body[data-scroll-locked]`).
-- Buttons: ripple via shared `lib/ui/ripple` → `ui/button`, `TabsTrigger`, profile glass CTAs (`.btn-ripple`); CTA shine on Borrow/Details/Discover; CSS-var primary hover via `color-mix` (not `@apply …/90`).
+- Buttons: ripple via shared `lib/ui/ripple` → `ui/button`, `TabsTrigger`, profile glass CTAs (`.btn-ripple`); CTA shine on Borrow/Details/Discover; default `.btn-primary` hover via `color-mix` (CSS-var `primary/90` is a no-op).
 - Book overview (home + `/books/[id]`): full-width title header; md+ details|hero; soft `.book-overview__hero-glow` (blur, no disk clip, reduced-motion off); Library DB + Borrow Stats share 2-col row classes; Available/Low/Unavailable colors; RQ paths unchanged (REQ-0033 polish).
 - Related recs on `/books/[id]`: `getRelatedBooks` + `/api/books/[id]/related` + `useRelatedBooks` (`book-related` keys). BookCard: centered cover, full-width meta, reserved 2-line title/author, stronger `.book-card__glow`, star+rating, hover tilt; `book-list`/`grid-cards` larger `gap-y`; `BookList` key=`id`.
 - Sticky root Header: `.root-header` + `RootHeaderShell` (transparent top, blur when scrolled); `overflow-x-clip` so sticky works.
