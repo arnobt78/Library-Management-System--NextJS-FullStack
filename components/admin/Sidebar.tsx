@@ -3,9 +3,10 @@
 /**
  * Admin sidebar nav.
  * All Users shows a live PENDING admin-request count (SSR seed + RQ invalidation).
+ * Nav icons are Lucide (constants icon keys) — brand logo stays a public SVG.
  */
 
-import { adminSideBarLinks } from "@/constants";
+import { adminSideBarLinks, type AdminSidebarIconKey } from "@/constants";
 import Link from "next/link";
 import { cn, getInitials } from "@/lib/utils";
 import { usePathname } from "next/navigation";
@@ -13,6 +14,26 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Session } from "next-auth";
 import { usePendingAdminRequests } from "@/hooks/useQueries";
 import type { AdminRequest } from "@/lib/services/users";
+import {
+  BarChart3,
+  BookOpen,
+  Bookmark,
+  Home,
+  type LucideIcon,
+  UserPlus,
+  Users,
+  Wand2,
+} from "lucide-react";
+
+const ADMIN_SIDEBAR_ICONS: Record<AdminSidebarIconKey, LucideIcon> = {
+  home: Home,
+  users: Users,
+  book: BookOpen,
+  bookmark: Bookmark,
+  userPlus: UserPlus,
+  chart: BarChart3,
+  wand: Wand2,
+};
 
 const Sidebar = ({
   session,
@@ -53,6 +74,7 @@ const Sidebar = ({
               pathname === link.route;
             const showAdminBadge =
               link.route === "/admin/users" && pendingAdminCount > 0;
+            const Icon = ADMIN_SIDEBAR_ICONS[link.icon];
 
             return (
               <Link href={link.route} key={link.route}>
@@ -62,14 +84,13 @@ const Sidebar = ({
                     isSelected && "bg-primary-admin shadow-sm",
                   )}
                 >
-                  <div className="relative size-4 sm:size-5">
-                    <img
-                      src={link.img}
-                      alt="icon"
-                      className={`${isSelected ? "brightness-0 invert" : ""}  object-contain`}
-                      style={{ width: "100%", height: "100%" }}
-                    />
-                  </div>
+                  <Icon
+                    className={cn(
+                      "size-4 shrink-0 sm:size-5",
+                      isSelected ? "text-white" : "text-dark",
+                    )}
+                    aria-hidden
+                  />
 
                   <p
                     className={cn(

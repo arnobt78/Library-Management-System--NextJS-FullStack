@@ -69,3 +69,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Media: `SafeImage` (`components/ui/safe-image.tsx`) for local/remote/`next/image` URLs; ImageKit relative paths stay on `@imagekit/next`.
 - Prod guardrails: dashboard Bot Challenge + AI Deny (not in repo); `app/robots.ts`; headers + `/_next/static` immutable in `next.config.ts`/`vercel.json`; CSP `robohash.org`; `html[data-scroll-behavior=smooth]`. See `docs/VERCEL_PRODUCTION_GUARDRAILS.md`.
 - Sentry (`@sentry/nextjs`): `instrumentation-client` + server/edge configs; `tunnelRoute: /api/monitoring`; `global-error` captures; env in `.env.example` (real keys only in `.env`/Vercel). No PostHog; Redis stays rate-limit only.
+- Auth: tight title/`text-light-200` sub (sign-in = Test Accounts demo hint; signup = browse/approval + test@admin); `.auth-box` glass `bg-dark-300/35`+`backdrop-blur-md`; `isProtectedDemoAccount` locks seed role/status. Lucide UI icons; brand logos kept.

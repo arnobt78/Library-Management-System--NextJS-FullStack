@@ -13,6 +13,7 @@ import config from "@/lib/config";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { validateMediaSignature } from "@/lib/media/validation";
+import { Upload } from "lucide-react";
 
 const {
   env: {
@@ -185,12 +186,9 @@ const FileUpload = ({
       >
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center gap-1.5">
-            <img
-              src="/icons/upload.svg"
-              alt=""
-              width={20}
-              height={20}
-              className="size-4 shrink-0 object-contain sm:size-5"
+            <Upload
+              className="size-4 shrink-0 sm:size-5"
+              aria-hidden
             />
             <p className={cn("text-sm sm:text-base", styles.placeholder)}>
               {isUploading ? "Uploading…" : placeholder}

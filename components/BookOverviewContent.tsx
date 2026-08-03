@@ -23,7 +23,7 @@ import BookCover from "@/components/BookCover";
 import BookBorrowStats from "@/components/BookBorrowStats";
 import BookBorrowButton from "@/components/BookBorrowButton";
 import { Button } from "@/components/ui/button";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Star } from "lucide-react";
 import Link from "next/link";
 import { useBook } from "@/hooks/useQueries";
 import BookSkeleton from "@/components/skeletons/BookSkeleton";
@@ -159,12 +159,9 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             </p>
 
             <div className="flex shrink-0 flex-row items-center gap-1">
-              <img
-                src="/icons/star.svg"
-                alt="star"
-                width={22}
-                height={22}
-                className="size-4 sm:size-[22px]"
+              <Star
+                className="size-4 shrink-0 fill-light-100 text-light-100 sm:size-[22px]"
+                aria-hidden
               />
               <p>{rating}</p>
             </div>

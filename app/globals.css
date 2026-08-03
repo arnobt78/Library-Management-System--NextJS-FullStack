@@ -526,8 +526,12 @@ html:has(body[data-scroll-locked]) {
     @apply flex min-h-screen flex-col bg-pattern bg-cover bg-top bg-dark-100 px-4 py-3 sm:w-1/2 sm:px-5 sm:py-10;
   }
 
+  /*
+   * Auth card — stronger frost than api-docs /60 on this pane (dark-on-dark hid the glass).
+   * Easy revert: restore bg-dark-300/60 backdrop-blur-sm border-white/10.
+   */
   .auth-box {
-    @apply gradient-vertical mx-auto my-auto flex w-full max-w-xl flex-col gap-3 rounded-lg p-4 sm:gap-6 sm:p-10;
+    @apply mx-auto my-auto flex w-full max-w-xl flex-col gap-3 rounded-xl border border-white/15 bg-dark-300/35 p-4 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-md sm:gap-6 sm:p-10;
   }
 
   .auth-illustration {

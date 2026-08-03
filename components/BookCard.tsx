@@ -3,6 +3,7 @@ import Link from "next/link";
 import BookCover from "@/components/BookCover";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Calendar, Star } from "lucide-react";
 
 interface BookCardProps extends Book {
   isLoanedBook?: boolean;
@@ -52,12 +53,9 @@ const BookCard = ({
         <p className="book-title">{title}</p>
         <p className="book-author">{author}</p>
         <div className="book-genre-row">
-          <img
-            src="/icons/star.svg"
-            alt=""
-            width={16}
-            height={16}
-            className="size-3.5 shrink-0 sm:size-4"
+          <Star
+            className="size-3.5 shrink-0 fill-light-100 text-light-100 sm:size-4"
+            aria-hidden
           />
           <span className="book-genre-rating">{rating}</span>
           <p className="book-genre">{genre}</p>
@@ -67,12 +65,9 @@ const BookCard = ({
       {isLoanedBook && (
         <div className="mt-2.5 w-full sm:mt-3">
           <div className="book-loaned">
-            <img
-              src="/icons/calendar.svg"
-              alt="calendar"
-              width={18}
-              height={18}
-              className="size-4 object-contain sm:size-[18px]"
+            <Calendar
+              className="size-4 shrink-0 text-light-100 sm:size-[18px]"
+              aria-hidden
             />
             <p className="text-xs text-light-100 sm:text-sm">
               11 days left to return

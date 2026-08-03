@@ -48,7 +48,9 @@ import {
   ShieldOff,
   CheckCircle,
   XCircle,
+  Lock,
 } from "lucide-react";
+import { isProtectedDemoAccount } from "@/constants";
 
 interface AdminUsersListProps {
   /**
@@ -648,62 +650,74 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                     </td>
                     <td className="border border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
                       <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                        {/* Show Remove Admin for existing admins (except current user) */}
-                        {user.role === "ADMIN" &&
-                          user.id !== (currentUserId || session?.user?.id) && (
-                            <Button
-                              size="sm"
-                              className="bg-red-600 text-white hover:bg-red-700"
-                              onClick={() =>
-                                handleRemoveAdminPrivileges(user.id)
-                              }
-                              disabled={removeAdminPrivilegesMutation.isPending}
-                            >
-                              <ShieldOff className="size-4" />
-                              Remove Admin
-                            </Button>
-                          )}
-
-                        {/* Show Make Admin for regular users */}
-                        {user.role === "USER" && (
-                          <Button
-                            size="sm"
-                            className="bg-purple-600 text-white hover:bg-purple-700"
-                            onClick={() =>
-                              handleUpdateUserRole(user.id, "ADMIN")
-                            }
-                            disabled={updateUserRoleMutation.isPending}
-                          >
-                            <Shield className="size-4" />
-                            Make Admin
-                          </Button>
-                        )}
-
-                        {/* Show Approve/Reject for pending users */}
-                        {user.status === "PENDING" && (
+                        {isProtectedDemoAccount(user) ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
+                            <Lock className="size-3.5 shrink-0" aria-hidden />
+                            Demo account
+                          </span>
+                        ) : (
                           <>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                              onClick={() =>
-                                handleUpdateUserStatus(user.id, "APPROVED")
-                              }
-                              disabled={updateUserStatusMutation.isPending}
-                            >
-                              <CheckCircle className="size-4" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-red-600 hover:bg-red-700"
-                              onClick={() =>
-                                handleUpdateUserStatus(user.id, "REJECTED")
-                              }
-                              disabled={updateUserStatusMutation.isPending}
-                            >
-                              <XCircle className="size-4" />
-                              Reject
-                            </Button>
+                            {/* Show Remove Admin for existing admins (except current user) */}
+                            {user.role === "ADMIN" &&
+                              user.id !==
+                                (currentUserId || session?.user?.id) && (
+                                <Button
+                                  size="sm"
+                                  className="bg-red-600 text-white hover:bg-red-700"
+                                  onClick={() =>
+                                    handleRemoveAdminPrivileges(user.id)
+                                  }
+                                  disabled={
+                                    removeAdminPrivilegesMutation.isPending
+                                  }
+                                >
+                                  <ShieldOff className="size-4" />
+                                  Remove Admin
+                                </Button>
+                              )}
+
+                            {/* Show Make Admin for regular users */}
+                            {user.role === "USER" && (
+                              <Button
+                                size="sm"
+                                className="bg-purple-600 text-white hover:bg-purple-700"
+                                onClick={() =>
+                                  handleUpdateUserRole(user.id, "ADMIN")
+                                }
+                                disabled={updateUserRoleMutation.isPending}
+                              >
+                                <Shield className="size-4" />
+                                Make Admin
+                              </Button>
+                            )}
+
+                            {/* Show Approve/Reject for pending users */}
+                            {user.status === "PENDING" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() =>
+                                    handleUpdateUserStatus(user.id, "APPROVED")
+                                  }
+                                  disabled={updateUserStatusMutation.isPending}
+                                >
+                                  <CheckCircle className="size-4" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() =>
+                                    handleUpdateUserStatus(user.id, "REJECTED")
+                                  }
+                                  disabled={updateUserStatusMutation.isPending}
+                                >
+                                  <XCircle className="size-4" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>

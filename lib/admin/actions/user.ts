@@ -9,6 +9,10 @@ import {
 } from "@/lib/auth/authorization";
 import { parseEntityId } from "@/lib/actionInputs";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { isProtectedDemoAccount } from "@/constants";
+
+const DEMO_ACCOUNT_LOCKED =
+  "Demo showcase accounts cannot change role or status";
 
 export const updateUserRole = async (
   userId: string,
@@ -17,6 +21,25 @@ export const updateUserRole = async (
   try {
     const actor = await requireAdminActor();
     const safeUserId = parseEntityId(userId);
+
+    const existing = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        universityId: users.universityId,
+      })
+      .from(users)
+      .where(eq(users.id, safeUserId))
+      .limit(1);
+
+    if (existing.length !== 1) {
+      return { success: false, error: "User not found" };
+    }
+
+    if (isProtectedDemoAccount(existing[0])) {
+      return { success: false, error: DEMO_ACCOUNT_LOCKED };
+    }
+
     const updated = await db
       .update(users)
       .set({ role, updatedAt: new Date(), updatedBy: actor.email })
@@ -45,6 +68,25 @@ export const updateUserStatus = async (
   try {
     const actor = await requireAdminActor();
     const safeUserId = parseEntityId(userId);
+
+    const existing = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        universityId: users.universityId,
+      })
+      .from(users)
+      .where(eq(users.id, safeUserId))
+      .limit(1);
+
+    if (existing.length !== 1) {
+      return { success: false, error: "User not found" };
+    }
+
+    if (isProtectedDemoAccount(existing[0])) {
+      return { success: false, error: DEMO_ACCOUNT_LOCKED };
+    }
+
     const updated = await db
       .update(users)
       .set({ status, updatedAt: new Date(), updatedBy: actor.email })

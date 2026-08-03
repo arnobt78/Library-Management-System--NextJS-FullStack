@@ -5,46 +5,59 @@ export const navigationLinks = [
   },
 
   {
-    img: "/icons/user.svg",
-    selectedImg: "/icons/user-fill.svg",
+    icon: "user" as const,
     href: "/my-profile",
     label: "Borrow History",
   },
 ];
 
-export const adminSideBarLinks = [
+/** Lucide icon keys for admin sidebar (rendered in Sidebar — not public SVGs). */
+export type AdminSidebarIconKey =
+  | "home"
+  | "users"
+  | "book"
+  | "bookmark"
+  | "userPlus"
+  | "chart"
+  | "wand";
+
+export const adminSideBarLinks: {
+  icon: AdminSidebarIconKey;
+  route: string;
+  text: string;
+}[] = [
   {
-    img: "/icons/admin/home.svg",
+    icon: "home",
     route: "/admin",
     text: "Home",
   },
   {
-    img: "/icons/admin/users.svg",
+    icon: "users",
     route: "/admin/users",
     text: "All Users",
   },
   {
-    img: "/icons/admin/book.svg",
+    icon: "book",
     route: "/admin/books",
     text: "All Books",
   },
   {
-    img: "/icons/admin/bookmark.svg",
+    icon: "bookmark",
     route: "/admin/book-requests",
     text: "Borrow Requests",
   },
   {
-    img: "/icons/admin/user.svg",
+    icon: "userPlus",
     route: "/admin/account-requests",
     text: "Sign-up Requests",
   },
   {
-    img: "/icons/admin/bookmark.svg",
+    icon: "chart",
     route: "/admin/business-insights",
     text: "Analytics",
   },
   {
-    img: "/icons/admin/edit.svg",
+    icon: "wand",
     route: "/admin/automation",
     text: "Automation",
   },
@@ -77,6 +90,23 @@ export const TEST_ACCOUNTS = [
 ] as const;
 
 export type TestAccountId = (typeof TEST_ACCOUNTS)[number]["id"];
+
+/**
+ * Seed showcase accounts — role/status must not change via admin UI/actions.
+ * Match by email or reserved university ID from TEST_ACCOUNTS.
+ */
+export function isProtectedDemoAccount(user: {
+  email?: string | null;
+  universityId?: number | null;
+}): boolean {
+  const email = user.email?.trim().toLowerCase();
+  const universityId = user.universityId ?? null;
+  return TEST_ACCOUNTS.some(
+    (account) =>
+      (email != null && email.length > 0 && account.email.toLowerCase() === email) ||
+      (universityId != null && account.universityId === universityId),
+  );
+}
 
 export const FIELD_NAMES = {
   fullName: "Full name",

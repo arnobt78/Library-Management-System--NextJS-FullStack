@@ -14,6 +14,7 @@ import {
 } from "@/lib/actionInputs";
 import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { isProtectedDemoAccount } from "@/constants";
 
 export interface AdminRequest {
   id: string;
@@ -471,6 +472,14 @@ export async function removeAdminPrivileges(
       return {
         success: false,
         error: "User is not an admin",
+      };
+    }
+
+    // Seed showcase admin must stay ADMIN for demos.
+    if (isProtectedDemoAccount(user[0])) {
+      return {
+        success: false,
+        error: "Demo showcase accounts cannot change role or status",
       };
     }
 

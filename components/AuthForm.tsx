@@ -146,14 +146,20 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <h1 className="text-xl font-semibold text-white sm:text-xl">
-        {isSignIn ? "Welcome back to BookWise" : "Create your library account"}
-      </h1>
-      <p className="text-sm text-light-100 sm:text-base">
-        {isSignIn
-          ? "Access the vast collection of resources, and stay updated"
-          : "Please complete all fields and upload a valid university ID to gain access to the library"}
-      </p>
+      {/* Tight title/sub stack (GlassSectionHeader pattern); gap only before form */}
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold leading-tight text-light-100 sm:text-xl">
+          {isSignIn
+            ? "Welcome back to BookWise"
+            : "Create your library account"}
+        </h1>
+        <p className="text-sm leading-snug text-light-200 sm:text-base">
+          {isSignIn
+            ? "Use the Test Accounts dropdown for demo access. Browse & borrow as test@user.com; approve sign-ups and manage roles as test@admin.com (Admin → Sign-up Requests / All Users)."
+            : "After you create an account you can browse the library. Borrowing and reservations require admin approval under Sign-up Requests (demo: sign in as test@admin.com). Include a valid university ID below."}
+        </p>
+      </div>
+
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleSubmit)}
