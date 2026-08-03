@@ -5,16 +5,22 @@
     "type": "existing-nextjs-web-application",
     "repository_branch": "main",
     "baseline_commit": "c94e7db",
+    "c1_accepted_commit": "d9b9fd9",
+    "session_resume_tip": "33d00df",
     "cycle": "C2",
-    "risk_default": "R2"
+    "risk_default": "R2",
+    "last_session": "2026-08-03"
   },
   "pipeline": {
     "current_stage": 4,
+    "current_wave": 5,
     "human_gate_0_required": true,
     "human_gate_1_required": true,
     "human_gate_2_required": true,
     "independent_verification_required": true,
-    "max_rework_attempts": 3
+    "max_rework_attempts": 3,
+    "c2_gate_2_status": "not_started",
+    "eval_gate_status": "FAIL"
   },
   "authority_matrix": {
     "gate_0": ["Product Owner", "Project Owner"],

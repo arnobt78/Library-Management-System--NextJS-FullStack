@@ -238,10 +238,58 @@ html:has(body[data-scroll-locked]) {
     @apply mt-10 grid grid-cols-2 gap-4 sm:gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 max-xs:justify-between xs:gap-10;
   }
 
-  /* Book Overview */
+  /* Book Overview — full-width title header above details/hero columns (REQ-0033) */
   .book-overview {
-    @apply flex flex-col-reverse items-center gap-6 sm:gap-12 xl:flex-row xl:gap-8;
-    @apply w-full max-w-full overflow-hidden;
+    /* overflow-x only — y visible so hero glow is not clipped */
+    @apply flex w-full max-w-full flex-col gap-6 overflow-x-hidden overflow-y-visible sm:gap-8;
+  }
+
+  .book-overview__header {
+    @apply w-full min-w-0 max-w-full;
+  }
+
+  /* Below md: hero above details; md+: details left, hero right */
+  .book-overview__body {
+    @apply flex w-full min-w-0 max-w-full flex-col items-center gap-6 overflow-visible sm:gap-12 md:flex-row md:items-start md:gap-8;
+  }
+
+  .book-overview__details {
+    @apply order-2 flex w-full min-w-0 max-w-full flex-1 flex-col gap-3 sm:gap-5 md:order-1;
+  }
+
+  .book-overview__hero {
+    @apply relative order-1 flex flex-1 justify-center overflow-visible md:order-2;
+  }
+
+  /*
+   * Soft spotlight splash behind the 3D cover (no border-radius disk clip).
+   * Blur + early transparent stops dissolve edges into the navy background.
+   */
+  .book-overview__hero-glow {
+    position: absolute;
+    left: 50%;
+    top: 48%;
+    z-index: 0;
+    width: min(160%, 38rem);
+    height: min(160%, 38rem);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 255, 255, 0.14) 0%,
+      color-mix(in srgb, var(--cover-glow, #e7c9a5) 40%, transparent) 28%,
+      color-mix(in srgb, var(--cover-glow, #e7c9a5) 16%, transparent) 45%,
+      transparent 62%
+    );
+    filter: blur(28px);
+    opacity: 0.65;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .book-overview__hero-glow {
+      opacity: 0;
+      filter: none;
+    }
   }
 
   .book-overview h1 {

@@ -52,3 +52,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Nav: API Docs + API Status only; `/performance` → `/api-status` (embedded `PerformanceDashboard`).
 - Select: FilterSelect icons (`lib/ui/filterOptionStyles.ts`); scroll-lock gutter fix (`body[data-scroll-locked]`).
 - Buttons: ripple baked into `ui/button` (`.btn-ripple`); CTA shine on Borrow/Details/Discover; CSS-var primary hover via `color-mix` (not `@apply …/90`).
+- Book overview (home + `/books/[id]`): full-width title header; md+ details|hero; soft `.book-overview__hero-glow` (blur, no disk clip, reduced-motion off); Library DB + Borrow Stats share 2-col row classes; Available/Low/Unavailable colors; RQ paths unchanged (REQ-0033 polish).

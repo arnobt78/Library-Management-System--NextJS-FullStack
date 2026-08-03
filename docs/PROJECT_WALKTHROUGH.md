@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002 | Updated: 2026-08-02 | Status: C2 Stage 4; corrective local Prove passed; Gate 2 blocked
+> Parent: REQ-0018, REQ-0024, CR-0002 | Updated: 2026-08-03 | Status: C2 Stage 4; corrective local Prove passed; Gate 2 blocked
 
 ## Purpose
 
@@ -73,6 +73,14 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Meta nav: API Docs + API Status. `/performance` redirects to `/api-status`; dashboard mounts embedded.
 - Filters: `FilterSelect` + `lib/ui/filterOptionStyles.ts`. Select scroll-lock: unlayered `body[data-scroll-locked]` margin/overflow rules in `globals.css`.
 - Buttons: click ripple in `components/ui/button.tsx` (`.btn-ripple`). Optional `.cta-shine-wrap` on Borrow / Book Details / Discover. Do not `@apply hover:bg-primary/90` — CSS-var primary needs `:hover { color-mix(...) }`. Spec: `docs/RIPPLE_BUTTON_EFFECT.md`.
+
+## Book overview hero (2026-08-03, REQ-0033)
+
+- Shared by homepage featured hero and `/books/[id]` via `BookOverviewContent` + `BookBorrowStats` + `BookSkeleton`.
+- Layout: full-width title/meta header; body details left / hero right at `md+`; below `md` order title → hero → details.
+- Soft spotlight: `.book-overview__hero-glow` uses cover-tint CSS var, `filter: blur`, no `border-radius` disk clip; disabled under `prefers-reduced-motion`.
+- Library Database dates and Borrow Statistics use the same 2-col `text-sm sm:text-base` / `sm:gap-12 lg:gap-24` row pattern; availability uses emerald/amber/red.
+- Mutation/invalidation unchanged — still `useBook` / `useBookBorrowStats` + existing domain registry.
 
 ## Environment
 

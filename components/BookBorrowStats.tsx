@@ -8,9 +8,9 @@
  *
  * Features:
  * - Uses useBookBorrowStats and useBook hooks with initialData from SSR
- * - Displays statistics: total borrows, active borrows, returned borrows
+ * - Two-column label/value grid (matches Book Details rows at sm+)
+ * - Availability cue: Available (emerald) / Low (amber) / Unavailable (red)
  * - Updates immediately when borrows change (via cache invalidation)
- * - Shows availability status based on availableCopies from React Query book data
  */
 
 import React from "react";
@@ -41,6 +41,26 @@ interface BookBorrowStatsProps {
   };
 }
 
+/** Status label + Tailwind class from available/total copy counts */
+function getAvailabilityStatus(
+  availableCopies: number,
+  totalCopies: number
+): { label: "Available" | "Low" | "Unavailable"; className: string } {
+  if (availableCopies <= 0) {
+    return { label: "Unavailable", className: "text-red-400" };
+  }
+
+  const lowByCount = availableCopies <= 2;
+  const lowByShare =
+    totalCopies > 0 && availableCopies <= Math.max(1, Math.floor(totalCopies * 0.1));
+
+  if (lowByCount || lowByShare) {
+    return { label: "Low", className: "text-amber-300/90" };
+  }
+
+  return { label: "Available", className: "text-emerald-300" };
+}
+
 const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   bookId,
   availableCopies: propAvailableCopies,
@@ -64,13 +84,17 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   // React Query data is fresh and updates immediately after mutations
   // initial/prop data is only used as fallback during initial load
   const statsData = stats ?? initialStats;
-  
+
   // Get availableCopies from React Query book data (updates immediately)
   // Fallback to prop or initialBook if React Query data not yet loaded
-  const availableCopies = book?.availableCopies ?? 
-    initialBook?.availableCopies ?? 
-    propAvailableCopies ?? 
+  const availableCopies =
+    book?.availableCopies ??
+    initialBook?.availableCopies ??
+    propAvailableCopies ??
     0;
+
+  const totalCopies =
+    book?.totalCopies ?? initialBook?.totalCopies ?? 0;
 
   const isLoading = bookLoading || statsLoading;
 
@@ -81,14 +105,14 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
           Borrow Statistics
         </div>
-        <div className="space-y-2 sm:space-y-3">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-12 lg:gap-24">
-            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
-            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
+        <div className="w-full space-y-2 sm:space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+            <Skeleton className="h-5 w-full max-w-xs sm:h-6" />
+            <Skeleton className="h-5 w-full max-w-xs sm:h-6" />
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-12 lg:gap-24">
-            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
-            <Skeleton className="h-5 w-full sm:h-6 sm:w-48" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+            <Skeleton className="h-5 w-full max-w-sm sm:h-6" />
+            <Skeleton className="h-5 w-full max-w-xs sm:h-6" />
           </div>
         </div>
       </div>
@@ -115,13 +139,15 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
     return null;
   }
 
+  const availability = getAvailabilityStatus(availableCopies, totalCopies);
+
   return (
     <div className="book-info">
       <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
         Borrow Statistics
       </div>
-      <div className="space-y-2 sm:space-y-3">
-        {/* Borrow counts */}
+      {/* Two-column rows — same grid pattern as Book Details above */}
+      <div className="w-full space-y-2 sm:space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
           <p className="text-sm sm:text-base">
             Total Times Borrowed{" "}
@@ -136,17 +162,11 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
             </span>
           </p>
         </div>
-
-        {/* Availability status */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
           <p className="text-sm sm:text-base">
             Availability Status{" "}
-            <span
-              className={`font-semibold ${
-                availableCopies > 0 ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {availableCopies > 0 ? "Available" : "Unavailable"}
+            <span className={`font-semibold ${availability.className}`}>
+              {availability.label}
             </span>
           </p>
           <p className="text-sm sm:text-base">
@@ -162,4 +182,3 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
 };
 
 export default BookBorrowStats;
-

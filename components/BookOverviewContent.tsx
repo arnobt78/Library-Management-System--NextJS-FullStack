@@ -6,6 +6,11 @@
  * Client component that displays book overview information.
  * Uses React Query to fetch book data dynamically, ensuring immediate updates.
  *
+ * Layout (REQ-0033 polish):
+ * - Full-width header: title + author/category/rating span above columns
+ * - Body: details left / hero right at md+; below md order is title → hero → details
+ * - Soft cover-tinted hero glow sits behind BookCover (disabled under reduced-motion)
+ *
  * Features:
  * - Uses useBook hook to fetch book data with SSR initial data support
  * - Displays all book information including availableCopies, totalCopies, isActive
@@ -138,10 +143,11 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
   return (
     <section className="book-overview">
-      <div className="flex w-full min-w-0 max-w-full flex-1 flex-col gap-3 sm:gap-5">
+      {/* Full-bleed title row — not constrained to the details column */}
+      <header className="book-overview__header">
         <h1 className="break-words">{title}</h1>
 
-        <div className="book-info">
+        <div className="book-info mt-3 sm:mt-5">
           <p>
             By <span className="font-semibold text-light-200">{author}</span>
           </p>
@@ -164,149 +170,137 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             </div>
           </div>
         </div>
+      </header>
 
-        {/* Enhanced Book Information */}
-        <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
-          Book Details
-        </div>
-        <div className="book-info">
-          <div className="space-y-2 sm:space-y-3">
-            {/* First row: ISBN and Published */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
-              <p>
-                ISBN{" "}
-                <span className="font-semibold text-light-200">
-                  {isbn || "N/A"}
-                </span>
-              </p>
-              <p>
-                Published{" "}
-                <span className="font-semibold text-light-200">
-                  {publicationYear || "N/A"}
-                </span>
-              </p>
-            </div>
-
-            {/* Second row: Publisher and Language */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
-              <p>
-                Publisher{" "}
-                <span className="font-semibold text-light-200">
-                  {publisher || "N/A"}
-                </span>
-              </p>
-              <p>
-                Language{" "}
-                <span className="font-semibold text-light-200">
-                  {language || "N/A"}
-                </span>
-              </p>
-            </div>
-
-            {/* Third row: Pages and Edition */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
-              <p>
-                Pages{" "}
-                <span className="font-semibold text-light-200">
-                  {pageCount || "N/A"}
-                </span>
-              </p>
-              <p>
-                Edition{" "}
-                <span className="font-semibold text-light-200">
-                  {edition || "N/A"}
-                </span>
-              </p>
-            </div>
-
-            {/* Fourth row: Total Copies and Available Copies */}
-            <div className="">
+      <div className="book-overview__body">
+        <div className="book-overview__details">
+          {/* Enhanced Book Information */}
+          <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
+            Book Details
+          </div>
+          <div className="book-info">
+            <div className="space-y-2 sm:space-y-3">
+              {/* First row: ISBN and Published */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
                 <p>
-                  Total Books{" "}
+                  ISBN{" "}
                   <span className="font-semibold text-light-200">
-                    {totalCopies || "N/A"}
+                    {isbn || "N/A"}
                   </span>
                 </p>
                 <p>
-                  Available Books{" "}
+                  Published{" "}
                   <span className="font-semibold text-light-200">
-                    {availableCopies || "N/A"}
+                    {publicationYear || "N/A"}
                   </span>
                 </p>
               </div>
 
-              {!isActive && (
-                <p className="mt-2 text-sm font-semibold text-red-400 sm:text-base">
-                  ⚠️ This book is currently unavailable
+              {/* Second row: Publisher and Language */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
+                <p>
+                  Publisher{" "}
+                  <span className="font-semibold text-light-200">
+                    {publisher || "N/A"}
+                  </span>
                 </p>
-              )}
+                <p>
+                  Language{" "}
+                  <span className="font-semibold text-light-200">
+                    {language || "N/A"}
+                  </span>
+                </p>
+              </div>
+
+              {/* Third row: Pages and Edition */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
+                <p>
+                  Pages{" "}
+                  <span className="font-semibold text-light-200">
+                    {pageCount || "N/A"}
+                  </span>
+                </p>
+                <p>
+                  Edition{" "}
+                  <span className="font-semibold text-light-200">
+                    {edition || "N/A"}
+                  </span>
+                </p>
+              </div>
+
+              {/* Fourth row: Total Copies and Available Copies */}
+              <div className="">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
+                  <p>
+                    Total Books{" "}
+                    <span className="font-semibold text-light-200">
+                      {totalCopies || "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Available Books{" "}
+                    <span className="font-semibold text-light-200">
+                      {availableCopies || "N/A"}
+                    </span>
+                  </p>
+                </div>
+
+                {!isActive && (
+                  <p className="mt-2 text-sm font-semibold text-red-400 sm:text-base">
+                    ⚠️ This book is currently unavailable
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Database Metadata Section */}
-        <div className="book-info">
-          <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
-            Library Database Information
-          </div>
-          <div className="space-y-2 sm:space-y-3">
-            {/* Database dates */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12">
-              <p>
-                Added to Library{" "}
-                <span className="font-semibold text-light-200">
-                  {createdAt
-                    ? new Date(createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "N/A"}
-                </span>
-              </p>
-              <p>
-                Last Updated{" "}
-                <span className="font-semibold text-light-200">
-                  {updatedAt
-                    ? new Date(updatedAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "N/A"}
-                </span>
-              </p>
+          {/* Database Metadata — same row/grid classes as Borrow Statistics */}
+          <div className="book-info">
+            <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
+              Library Database Information
+            </div>
+            <div className="w-full space-y-2 sm:space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+                <p className="text-sm sm:text-base">
+                  Added to Library{" "}
+                  <span className="font-semibold text-light-200">
+                    {createdAt
+                      ? new Date(createdAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : "N/A"}
+                  </span>
+                </p>
+                <p className="text-sm sm:text-base">
+                  Last Updated{" "}
+                  <span className="font-semibold text-light-200">
+                    {updatedAt
+                      ? new Date(updatedAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : "N/A"}
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Borrow Statistics Section - Uses React Query for immediate updates */}
-        <BookBorrowStats
-          bookId={id}
-          initialBook={bookData} // Pass book data so BookBorrowStats can get availableCopies from React Query
-          initialStats={initialStats} // Pass SSR stats for immediate display (React Query will update if needed)
-        />
+          {/* Borrow Statistics — RQ invalidation keeps counts live without refresh */}
+          <BookBorrowStats
+            bookId={id}
+            initialBook={bookData}
+            initialStats={initialStats}
+          />
 
-        <p className="book-description">{description}</p>
+          <p className="book-description">{description}</p>
 
-        {userId && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-            {/* Use Client Component for borrow button logic - updates immediately */}
-            {isDetailPage ? (
-              <BookBorrowButton
-                bookId={id}
-                userId={userId}
-                bookTitle={title}
-                availableCopies={availableCopies}
-                isActive={isActive}
-                userStatus={userStatus}
-                isDetailPage={true}
-                initialUserBorrows={initialUserBorrows}
-                initialReviewEligibility={initialReviewEligibility}
-              />
-            ) : (
-              <>
+          {userId && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+              {isDetailPage ? (
                 <BookBorrowButton
                   bookId={id}
                   userId={userId}
@@ -314,47 +308,72 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                   availableCopies={availableCopies}
                   isActive={isActive}
                   userStatus={userStatus}
-                  isDetailPage={false}
+                  isDetailPage={true}
                   initialUserBorrows={initialUserBorrows}
                   initialReviewEligibility={initialReviewEligibility}
                 />
-                <span className="cta-shine-wrap mt-0 w-full sm:mt-4 sm:w-fit">
-                  <Button
-                    asChild
-                    className="cta-shine-button hover:bg-primary/90 min-h-14 w-full bg-primary text-dark-100"
-                  >
-                    <Link
-                      href={`/books/${id}`}
-                      className="inline-flex items-center justify-center gap-2"
+              ) : (
+                <>
+                  <BookBorrowButton
+                    bookId={id}
+                    userId={userId}
+                    bookTitle={title}
+                    availableCopies={availableCopies}
+                    isActive={isActive}
+                    userStatus={userStatus}
+                    isDetailPage={false}
+                    initialUserBorrows={initialUserBorrows}
+                    initialReviewEligibility={initialReviewEligibility}
+                  />
+                  <span className="cta-shine-wrap mt-0 w-full sm:mt-4 sm:w-fit">
+                    <Button
+                      asChild
+                      className="cta-shine-button hover:bg-primary/90 min-h-14 w-full bg-primary text-dark-100"
                     >
-                      <BookOpen className="size-4 text-dark-100 sm:size-5" />
-                      <span className="font-bebas-neue text-base text-dark-100 sm:text-xl">
-                        Book Details
-                      </span>
-                    </Link>
-                  </Button>
-                </span>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+                      <Link
+                        href={`/books/${id}`}
+                        className="inline-flex items-center justify-center gap-2"
+                      >
+                        <BookOpen className="size-4 text-dark-100 sm:size-5" />
+                        <span className="font-bebas-neue text-base text-dark-100 sm:text-xl">
+                          Book Details
+                        </span>
+                      </Link>
+                    </Button>
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
-      <div className="relative flex flex-1 justify-center">
-        <div className="relative">
-          <BookCover
-            variant="wide"
-            className="z-10"
-            coverColor={coverColor}
-            coverImage={coverUrl}
+        <div className="book-overview__hero">
+          {/* Cover-tinted radial glow (CSS); --cover-glow set from book coverColor */}
+          <div
+            className="book-overview__hero-glow"
+            style={
+              {
+                ["--cover-glow" as string]: coverColor || "#e7c9a5",
+              } as React.CSSProperties
+            }
+            aria-hidden
           />
 
-          <div className="absolute left-16 top-10 rotate-12 opacity-40 max-sm:hidden">
+          <div className="relative z-10">
             <BookCover
               variant="wide"
+              className="z-10"
               coverColor={coverColor}
               coverImage={coverUrl}
             />
+
+            <div className="absolute left-16 top-10 rotate-12 opacity-40 max-sm:hidden">
+              <BookCover
+                variant="wide"
+                coverColor={coverColor}
+                coverImage={coverUrl}
+              />
+            </div>
           </div>
         </div>
       </div>

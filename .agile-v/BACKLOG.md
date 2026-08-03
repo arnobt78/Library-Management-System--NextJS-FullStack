@@ -32,10 +32,14 @@ No C2 story is synthesis-ready before Gate 1. The sequence intentionally proves 
 
 ## C2 Gate 1 Wave Plan
 
-1. **Wave 1 - Security foundation:** REQ-0026 plus the diagnostic/header portion of REQ-0032.
-2. **Wave 2 - Freshness and navigation:** REQ-0027, REQ-0028 and REQ-0033.
-3. **Wave 3 - User intelligence:** REQ-0029 and deterministic REQ-0031.
-4. **Wave 4 - Circulation:** REQ-0030 reservations/waitlist and renewals with migrations and transactional tests.
-5. **Wave 5 - Production proof:** remaining REQ-0032 observability, recovery, load and deployment evidence plus full C1 regression.
+1. **Wave 1 - Security foundation:** REQ-0026 plus the diagnostic/header portion of REQ-0032. — local Prove/code Verify PASS
+2. **Wave 2 - Freshness and navigation:** REQ-0027, REQ-0028 and REQ-0033. — local Prove/code Verify PASS; browser evidence pending
+3. **Wave 3 - User intelligence:** REQ-0029 and deterministic REQ-0031. — local Prove/code Verify PASS
+4. **Wave 4 - Circulation:** REQ-0030 reservations/waitlist and renewals with migrations and transactional tests. — local Prove/code Verify PASS; deployed provider receipt pending
+5. **Wave 5 - Production proof:** remaining REQ-0032 observability, recovery, load and deployment evidence plus full C1 regression. — **INCOMPLETE; resume here for Gate 2 path**
 
 After Gate 1, Build Agent JS and Test Designer operate independently from `REQUIREMENTS.md`; each wave must pass Prove before the next dependency wave, and Red Team verification remains independent. Quality-gate minimum allocation is 290 minutes for the combined complex scope (concurrency, external services, state, security and test infrastructure); execution is split by vertical slice rather than rushed into one unchecked change.
+
+## Session resume note (2026-08-03)
+
+No PENDING durable interrupt. New owner instructions map as follows: feature/extension → Stage 1 CR; bug with unchanged REQ → Stage 3; Wave 5 evidence collection → Stage 4 Prove/Verify without new product synthesis unless a gap requires Stage 3 code.

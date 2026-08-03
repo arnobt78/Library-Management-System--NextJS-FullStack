@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
  *
  * Features:
  * - Exact size matching to prevent layout shift
- * - Matches BookOverview layout (book-overview class)
+ * - Matches BookOverview layout (header + body columns + hero glow slot)
  * - Matches BookCover wide variant dimensions
  * - Includes all sections: overview, video, summary, reviews
- * - Responsive layout matching
+ * - Responsive layout matching (title → hero → details below md)
  *
  * Usage:
  * ```tsx
@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
  *
  * Dimensions matched:
  * - BookCover wide: xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]
- * - book-overview: flex-col-reverse sm:flex-row
+ * - book-overview: header + body (details/hero with order)
  * - book-details: py-16 flex flex-col gap-16 lg:flex-row
  */
 interface BookSkeletonProps {
@@ -45,15 +45,12 @@ const BookSkeleton: React.FC<BookSkeletonProps> = ({
 }) => {
   return (
     <div className={className}>
-      {/* Book Overview Section */}
+      {/* Book Overview Section — mirrors BookOverviewContent structure */}
       <section className="book-overview">
-        {/* Left Side - Book Information */}
-        <div className="flex flex-1 flex-col gap-5">
-          {/* Title */}
-          <Skeleton className="h-12 w-3/4 sm:h-16" />
-
-          {/* Book Info Section (Author, Category, Rating) */}
-          <div className="book-info">
+        {/* Full-width title + meta header */}
+        <header className="book-overview__header">
+          <Skeleton className="h-12 w-3/4 sm:h-16 sm:w-4/5" />
+          <div className="book-info mt-3 sm:mt-5">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="mt-1 h-6 w-56" />
             <div className="mt-1 flex flex-row gap-1">
@@ -61,93 +58,88 @@ const BookSkeleton: React.FC<BookSkeletonProps> = ({
               <Skeleton className="h-6 w-8" />
             </div>
           </div>
+        </header>
 
-          {/* Book Details Section */}
-          <div className="pt-4">
-            <Skeleton className="mb-3 h-6 w-32" />
+        <div className="book-overview__body">
+          {/* Details column (order-2 below md) */}
+          <div className="book-overview__details">
+            {/* Book Details Section */}
+            <div className="pt-4">
+              <Skeleton className="mb-3 h-6 w-32" />
+              <div className="book-info">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-36">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-36">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-36">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-36">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Library Database Information — same gaps as Borrow Statistics */}
             <div className="book-info">
-              <div className="space-y-3">
-                {/* First row: ISBN and Published */}
-                <div className="grid grid-cols-2 gap-36">
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="h-5 w-40" />
-                </div>
-
-                {/* Second row: Publisher and Language */}
-                <div className="grid grid-cols-2 gap-36">
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="h-5 w-40" />
-                </div>
-
-                {/* Third row: Pages and Edition */}
-                <div className="grid grid-cols-2 gap-36">
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="h-5 w-40" />
-                </div>
-
-                {/* Fourth row: Total Copies and Available Copies */}
-                <div className="grid grid-cols-2 gap-36">
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="h-5 w-40" />
+              <Skeleton className="mb-3 h-6 w-64" />
+              <div className="w-full space-y-2 sm:space-y-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-5 w-48" />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Library Database Information Section */}
-          <div className="book-info">
-            <Skeleton className="mb-3 h-6 w-64" />
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-12">
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-5 w-48" />
+            {/* Borrow Statistics — two-column grid (matches BookBorrowStats) */}
+            <div className="book-info">
+              <Skeleton className="mb-3 h-6 w-48" />
+              <div className="w-full space-y-2 sm:space-y-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-24">
+                  <Skeleton className="h-5 w-52" />
+                  <Skeleton className="h-5 w-48" />
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-24">
+                  <Skeleton className="h-5 w-56" />
+                  <Skeleton className="h-5 w-52" />
+                </div>
               </div>
+            </div>
+
+            {/* Description */}
+            <Skeleton className="book-description h-24 w-full" />
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Skeleton className="min-h-14 w-40 rounded-md" />
+              <Skeleton className="min-h-14 w-32 rounded-md" />
             </div>
           </div>
 
-          {/* Borrow Statistics Section */}
-          <div className="book-info">
-            <Skeleton className="mb-3 h-6 w-48" />
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-24">
-                <Skeleton className="h-5 w-52" />
-                <Skeleton className="h-5 w-48" />
-              </div>
-              <div className="grid grid-cols-2 gap-24">
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-5 w-56" />
-              </div>
+          {/* Hero column (order-1 below md) */}
+          <div className="book-overview__hero">
+            <div className="relative z-10">
+              <Skeleton
+                className={cn(
+                  "xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]",
+                  "z-10 shrink-0"
+                )}
+              />
+              <Skeleton
+                className={cn(
+                  "absolute left-16 top-10 rotate-12 opacity-40 max-sm:hidden",
+                  "xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]"
+                )}
+              />
             </div>
-          </div>
-
-          {/* Description */}
-          <Skeleton className="book-description h-24 w-full" />
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <Skeleton className="min-h-14 w-40 rounded-md" />
-            <Skeleton className="min-h-14 w-32 rounded-md" />
-          </div>
-        </div>
-
-        {/* Right Side - Book Cover */}
-        <div className="relative flex flex-1 justify-center">
-          <div className="relative">
-            {/* Main Book Cover - wide variant */}
-            <Skeleton
-              className={cn(
-                "xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]",
-                "z-10 shrink-0"
-              )}
-            />
-
-            {/* Decorative Rotated Cover (hidden on mobile) */}
-            <Skeleton
-              className={cn(
-                "absolute left-16 top-10 rotate-12 opacity-40 max-sm:hidden",
-                "xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]"
-              )}
-            />
           </div>
         </div>
       </section>

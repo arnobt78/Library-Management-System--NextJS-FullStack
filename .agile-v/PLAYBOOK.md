@@ -40,6 +40,17 @@ For every requested task: identify parent REQ IDs; classify risk; inspect curren
 
 `Decision Points: ... | Log: timestamp | agent | decision | rationale | linked REQ`
 
-## Current C1 Halt
+## Current C2 Halt (living)
 
-EvalGate is PASS for TC-0019 through TC-0045, `GATE-0004` is approved, and the final pre-commit audit is clean. Commit/push are authorized; closeout must record the evidence commit and freeze the C1 archive.
+- C1 is frozen/accepted (`GATE-0004`, commit `d9b9fd9`, archive `.agile-v/cycles/C1/`).
+- C2 Gates 0–1 are approved (`GATE-0005`, `GATE-0006`); Waves 1–4 local Prove + independent code Verify PASS.
+- EvalGate remains FAIL (`ER-C2-FINAL-CORRECTIVE-5`): nonlocal provider/browser/load/alert/SLO/restore evidence incomplete.
+- C2 Gate 2 is NOT STARTED. Do not open Gate 2 without EvalGate PASS or named WAIVER.
+- Session rule: every prompt identifies parent REQ IDs, risk class, and re-entry (Stage 1 CR vs Stage 3 bugfix vs Wave 5 evidence). No synthesis without required gate.
+
+## Per-session activation checklist
+
+1. Load agile-v-core → pipeline → lifecycle → compliance → quality-gates → product-owner.
+2. Read STATE.md + CHECKPOINTS.md; confirm no PENDING interrupt before advancing.
+3. Route role skills from `.agile-v/SKILLS.md` by stage (build-agent-js / test-designer / red-team / observability / release only when authorized).
+4. Write-through TRACE_LOG / DECISION_LOG; never edit frozen C1 archive.
