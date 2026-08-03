@@ -71,3 +71,4 @@
 | SPAN-0065 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | btn-primary color-mix hover for CSS-var primary | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0066 | 2026-08-03 | C2 | 3 UX polish | Build Agent JS | SafeImage + UserAvatar/account-request migrate; ImageKit untouched | require_parent_requirement | REQ-0033 | PASS; type/lint/93 tests |
 | SPAN-0067 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | robots.ts + next/vercel headers + scroll attr; Challenge/Deny doc | require_parent_requirement | REQ-0032 | PASS; tip `2d7472d` |
+| SPAN-0068 | 2026-08-04 | C2 | 3 observability | Build Agent JS | Sentry SDK + /api/monitoring tunnel + global-error + env docs | require_parent_requirement | REQ-0032 | PASS; type/lint/test/build |

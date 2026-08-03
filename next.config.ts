@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
-// Parent: REQ-0026, REQ-0032 — security headers + static cache (VERCEL_PRODUCTION_GUARDRAILS)
+// Parent: REQ-0026, REQ-0032 — security headers + static cache + Sentry tunnel
 const isProduction = process.env.NODE_ENV === "production";
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -9,6 +10,7 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https://placehold.co https://m.media-amazon.com https://ik.imagekit.io https://robohash.org",
   "media-src 'self' blob: https://ik.imagekit.io",
   "font-src 'self' data:",
+  // Browser Sentry traffic uses same-origin /api/monitoring (tunnelRoute); no ingest host needed in connect-src.
   "connect-src 'self' https://upload.imagekit.io https://ik.imagekit.io",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -75,4 +77,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  // Same-origin tunnel so ad blockers / “Sentry blocks” extensions do not drop events.
+  tunnelRoute: "/api/monitoring",
+});

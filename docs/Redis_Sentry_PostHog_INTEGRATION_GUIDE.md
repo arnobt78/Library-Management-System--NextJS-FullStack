@@ -1308,5 +1308,9 @@ export function FeatureComponent() {
 
 ---
 
-**Last Updated**: 2025-01-20
-**Version**: 1.0.0
+## This repo (BookWise / university-library)
+
+Sentry is wired with current Next 16 App Router files (`instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, `instrumentation.ts`, `app/global-error.tsx`) and `withSentryConfig({ tunnelRoute: "/api/monitoring" })` — not the older `sentry.client.config.ts` / layout `useEffect` examples above. Redis stays rate-limit only (no business-data cache). PostHog is not installed. Env placeholders: `.env.example`.
+
+**Last Updated**: 2026-08-04
+**Version**: 1.1.0

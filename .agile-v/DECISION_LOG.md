@@ -71,3 +71,4 @@
 | DEC-0067 | 2026-08-03 | C2 | Build Agent JS | ui/Button default hover via .btn-primary color-mix | CSS-var primary makes hover:bg-primary/90 invisible | REQ-0033 |
 | DEC-0068 | 2026-08-03 | C2 | Build Agent JS | SafeImage for next/image string URLs; ImageKit relative paths stay on @imagekit/next | Avoid breaking ImageKit urlEndpoint resolution | REQ-0033 |
 | DEC-0069 | 2026-08-04 | C2 | Build Agent JS | Bot Challenge+AI Deny dashboard-only; code robots/headers/static cache/scroll attr | Managed WAF not expressible in vercel.json; FreeScribe overage playbook | REQ-0032 |
+| DEC-0070 | 2026-08-04 | C2 | Build Agent JS | Manual @sentry/nextjs + tunnelRoute /api/monitoring; no PostHog/Redis cache | Ad-blocker bypass; CSP stays connect-src self; guide §2 outdated for Next 16 | REQ-0032 |

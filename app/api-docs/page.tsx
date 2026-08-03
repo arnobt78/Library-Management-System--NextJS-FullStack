@@ -23,6 +23,7 @@ import {
   Clock,
   Activity,
   Library,
+  Bug,
 } from "lucide-react";
 import ApiEndpointCard from "@/components/ApiEndpointCard";
 import { CopyButton } from "@/components/CopyButton";
@@ -47,6 +48,7 @@ const CATEGORY_ICONS: Record<ApiEndpointCategoryId, React.ReactNode> = {
   status: <Activity className="size-4 sm:size-5" />,
   workflows: <Workflow className="size-4 sm:size-5" />,
   cron: <Clock className="size-4 sm:size-5" />,
+  observability: <Bug className="size-4 sm:size-5" />,
 };
 
 const ApiDocsPage = async () => {

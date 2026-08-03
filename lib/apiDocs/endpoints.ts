@@ -34,7 +34,8 @@ export type ApiEndpointCategoryId =
   | "export"
   | "status"
   | "workflows"
-  | "cron";
+  | "cron"
+  | "observability";
 
 export type ApiEndpointCategory = {
   id: ApiEndpointCategoryId;
@@ -578,6 +579,22 @@ export const API_ENDPOINT_CATEGORIES: ApiEndpointCategory[] = [
         response: {
           success: true,
           processed: "number",
+        },
+      },
+    ],
+  },
+  {
+    id: "observability",
+    category: "Observability",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/api/monitoring",
+        description:
+          "Internal Sentry tunnel (withSentryConfig tunnelRoute). Not a business REST API — browser SDK forwards envelopes same-origin to bypass ad blockers. Do not call from app features.",
+        auth: false,
+        response: {
+          note: "Sentry ingest proxy; opaque to clients",
         },
       },
     ],
