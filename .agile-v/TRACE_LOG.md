@@ -73,4 +73,4 @@
 | SPAN-0067 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | robots.ts + next/vercel headers + scroll attr; Challenge/Deny doc | require_parent_requirement | REQ-0032 | PASS; tip `2d7472d` |
 | SPAN-0068 | 2026-08-04 | C2 | 3 observability | Build Agent JS | Sentry SDK + /api/monitoring tunnel + global-error + env docs | require_parent_requirement | REQ-0032 | PASS; tip `cda88af` |
 | SPAN-0069 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Auth header/note; demo locks; Lucide icons; drop unused public SVGs | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |
-| SPAN-0070 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Auth glass/demo locks/Lucide + sign-in demo subtitle | require_parent_requirement | REQ-0033 | PASS; type/lint/96 tests |
+| SPAN-0070 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Auth glass/demo locks/Lucide + sign-in demo subtitle | require_parent_requirement | REQ-0033 | PASS; tip `a21b6ca` |
