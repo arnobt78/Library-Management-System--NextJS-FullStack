@@ -16,9 +16,10 @@
     scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
   }
 
+  /* clip (not hidden) so position:sticky on .root-header still works */
   html,
   body {
-    @apply overflow-x-hidden;
+    @apply overflow-x-clip;
   }
 
   /* Thin near-transparent document scrollbar (WebKit) — right edge only */
@@ -182,17 +183,79 @@ html:has(body[data-scroll-locked]) {
     @apply w-full min-h-14 border-none text-base font-semibold placeholder:font-normal text-white placeholder:text-light-100 focus-visible:ring-0 focus-visible:shadow-none bg-dark-300 !important;
   }
 
-  /* Book Card */
+  /* Book Card — centered cover, full-width meta, visible soft glow, hover tilt */
+  .book-card__cover-wrap {
+    @apply relative inline-flex overflow-visible;
+  }
+
+  /*
+   * Soft cover-tinted splash (stronger than prior pass so it reads on navy).
+   * No border-radius disk clip; blur dissolves edges.
+   */
+  .book-card__glow {
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    z-index: 0;
+    width: min(160%, 16rem);
+    height: min(160%, 18rem);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 255, 255, 0.18) 0%,
+      color-mix(in srgb, var(--cover-glow, #e7c9a5) 48%, transparent) 30%,
+      color-mix(in srgb, var(--cover-glow, #e7c9a5) 20%, transparent) 50%,
+      transparent 70%
+    );
+    filter: blur(22px);
+    opacity: 0.8;
+  }
+
+  .book-card__cover-motion {
+    @apply transition-transform duration-200 ease-out;
+  }
+
+  .book-card:hover .book-card__cover-motion {
+    transform: scale(1.03) rotate(1.5deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .book-card__glow {
+      opacity: 0;
+      filter: none;
+    }
+
+    .book-card__cover-motion,
+    .book-card:hover .book-card__cover-motion {
+      transform: none;
+      transition: none;
+    }
+  }
+
+  .book-card__meta {
+    @apply text-center;
+  }
+
+  /* Reserve 2-line slots so short titles do not misalign genre rows across the grid */
   .book-title {
-    @apply mt-2 line-clamp-1 text-base font-semibold text-white xs:text-xl;
+    @apply mt-2 line-clamp-2 min-h-[2.5rem] text-base font-semibold text-white xs:min-h-[3.25rem] xs:text-lg;
   }
 
   .book-author {
-    @apply mt-1 line-clamp-1 text-sm text-light-200 xs:text-base;
+    @apply mt-1 line-clamp-2 min-h-[2.25rem] text-sm text-light-200 xs:min-h-[2.75rem] xs:text-base;
+  }
+
+  .book-genre-row {
+    @apply mt-1 flex min-w-0 flex-row items-center justify-center gap-1;
+  }
+
+  .book-genre-rating {
+    @apply shrink-0 text-sm text-light-100 xs:text-base;
   }
 
   .book-genre {
-    @apply mt-1 line-clamp-1 text-sm italic text-light-100 xs:text-base;
+    @apply line-clamp-1 min-w-0 text-sm italic text-light-100 xs:text-base;
   }
 
   .book-loaned {
@@ -233,9 +296,9 @@ html:has(body[data-scroll-locked]) {
     @apply xs:w-[296px] w-[256px] xs:h-[404px] h-[354px];
   }
 
-  /* Book List */
+  /* Book List — larger row gap so meta clears the next row’s covers */
   .book-list {
-    @apply mt-10 grid grid-cols-2 gap-4 sm:gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 max-xs:justify-between xs:gap-10;
+    @apply mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-10 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 max-xs:justify-between xs:gap-x-10 xs:gap-y-12;
   }
 
   /* Book Overview — full-width title header above details/hero columns (REQ-0033) */
@@ -471,12 +534,31 @@ html:has(body[data-scroll-locked]) {
    * Horizontal gutters live on .page-shell so Header / main / Footer share one edge.
    */
   .root-container {
-    @apply flex min-h-screen w-full max-w-full flex-1 flex-col overflow-x-hidden bg-pattern bg-cover bg-top bg-dark-100;
+    /* overflow-x-clip: contain horizontal bleed without breaking sticky Header */
+    @apply flex min-h-screen w-full max-w-full flex-1 flex-col overflow-x-clip bg-pattern bg-cover bg-top bg-dark-100;
   }
 
   /* Shared max-width + responsive gutters for navbar, pages, and footer */
   .page-shell {
     @apply mx-auto w-full max-w-9xl px-2 sm:px-4 xl:px-8;
+  }
+
+  /*
+   * Root public Header — sticky; transparent at top.
+   * .root-header--scrolled (client): light frosted blur so content under the bar stays readable.
+   */
+  .root-header {
+    @apply sticky top-0 z-30 flex justify-between bg-transparent py-3 transition-[background-color,backdrop-filter,box-shadow] duration-200 sm:py-4;
+  }
+
+  .root-header--scrolled {
+    @apply bg-dark-100/55 shadow-sm backdrop-blur-sm;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .root-header {
+      @apply transition-none;
+    }
   }
 
   /* Central vertical rhythm for page content (not header/footer) */
@@ -489,8 +571,31 @@ html:has(body[data-scroll-locked]) {
     @apply space-y-3 sm:space-y-4;
   }
 
+  /*
+   * All Books search — native WebKit clear (x) matches Reset All (light-200).
+   * Default cancel glyph is near-black and invisible on dark-300 fields.
+   */
+  .catalog-search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    background-color: rgb(238 209 172 / 0.85); /* #EED1AC light-200 — matches Reset All */
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+  }
+
+  /* All Books collection — roomy vertical gap between card rows */
   .grid-cards {
-    @apply grid gap-3 sm:gap-4;
+    @apply grid gap-x-3 gap-y-8 sm:gap-x-4 sm:gap-y-10;
   }
 
   .empty-panel {
@@ -498,8 +603,9 @@ html:has(body[data-scroll-locked]) {
   }
 
   /* Book Details */
+  /* pt-only: bottom gap owned by Related Recommendations (avoids stacked py + mt) */
   .book-details {
-    @apply py-8 flex flex-col gap-8 sm:py-12 sm:gap-12 lg:flex-row lg:py-16 lg:gap-16;
+    @apply flex flex-col gap-8 pt-8 sm:gap-12 sm:pt-12 lg:flex-row lg:gap-16 lg:pt-16;
     @apply w-full max-w-full overflow-hidden;
   }
 

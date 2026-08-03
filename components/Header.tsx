@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import AdminDropdown from "@/components/AdminDropdown";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import MobileMenu from "@/components/MobileMenu";
+import RootHeaderShell from "@/components/RootHeaderShell";
 
 interface HeaderProps {
   session: Session;
@@ -30,8 +31,9 @@ const Header = async ({ session }: HeaderProps) => {
 
   const isAdmin = userData?.role === "ADMIN";
 
+  // RSC data + client RootHeaderShell (transparent at top, blur-sm when scrolled).
   return (
-    <header className="my-4 flex justify-between">
+    <RootHeaderShell>
       <Link href="/" className="flex items-center gap-2 sm:gap-3">
         <img
           src="/icons/logo.svg"
@@ -89,7 +91,7 @@ const Header = async ({ session }: HeaderProps) => {
           />
         </div>
       )}
-    </header>
+    </RootHeaderShell>
   );
 };
 

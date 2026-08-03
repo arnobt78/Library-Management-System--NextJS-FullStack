@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line tailwindcss/classnames-order
 const badgeVariants = cva(
-  "inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring",
+  "inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-normal transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring",
   {
     variants: {
       variant: {
@@ -26,7 +26,7 @@ const badgeVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 export interface BadgeProps

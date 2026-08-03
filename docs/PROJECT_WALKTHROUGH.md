@@ -82,6 +82,20 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Library Database dates and Borrow Statistics use the same 2-col `text-sm sm:text-base` / `sm:gap-12 lg:gap-24` row pattern; availability uses emerald/amber/red.
 - Mutation/invalidation unchanged — still `useBook` / `useBookBorrowStats` + existing domain registry.
 
+## Related recommendations + BookCard (2026-08-03)
+
+- Detail page mounts `RelatedBookRecommendations` (genre-first via `lib/books/getRelatedBooks`, SSR + `useRelatedBooks` / `["book-related", bookId, limit]`).
+- Invalidation: `relatedRoot` is under books + recommendations domains (no new mutation family).
+- `BookCard`: subtle cover glow, cover-width meta, `line-clamp-2` title/author, star + rating beside genre, hover scale/tilt with reduced-motion off. List keys use `book.id`.
+
+## All Books catalog UX (2026-08-03, REQ-0033 polish)
+
+- Layout: full-width filter toolbar (no sidebar); Sort by + dismissible chips + Reset All on the meta row; sticky transparent Header with scroll blur (`RootHeaderShell`).
+- Instant filters: 300ms debounced search, immediate selects via `router.replace`; live URL → `useAllBooks`; `keepPreviousData` avoids empty flash; SSR title/author search uses `ilike` (API parity).
+- Counts: subtitle uses unfiltered `initialLibraryTotalBooks` / catalog meta query; “Showing X of Y” uses filtered pagination total.
+- Chrome: dark FilterSelect `h-9`, `FilterSurface` tones, hover icons stay light; search field matches `border-gray-700` / `.catalog-search-input` clear control.
+- Loading: pulse toolbar + `BookCardSkeleton` only — no “Updating…” / “Loading books…” copy.
+
 ## Environment
 
 Copy `.env.example` to `.env`. It documents required/optional scope, safe formats and provider acquisition links. Never commit `.env`. Important server-only values include `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_DELETE_SECRET`, `IMAGEKIT_PRIVATE_KEY`, Redis/QStash tokens, `RESEND_TOKEN`, `RESEND_SENDER_EMAIL`, and `CRON_SECRET`.

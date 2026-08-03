@@ -13,6 +13,10 @@ export const queryKeys = {
     recommendationsRoot: ["book-recommendations"] as const,
     recommendations: (userId: string | undefined, limit: number) =>
       ["book-recommendations", userId, limit] as const,
+    /** Genre-related strips on book detail (invalidated with books/recommendations) */
+    relatedRoot: ["book-related"] as const,
+    related: (bookId: string, limit: number) =>
+      ["book-related", bookId, limit] as const,
     featuredRoot: ["featured-books"] as const,
     featured: (limit: number) => ["featured-books", limit] as const,
   },

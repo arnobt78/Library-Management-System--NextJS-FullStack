@@ -2,7 +2,7 @@ import React from "react";
 import { auth } from "@/auth";
 import { db } from "@/database/drizzle";
 import { books, borrowRecords } from "@/database/schema";
-import { desc, asc, eq, like, and, or, sql } from "drizzle-orm";
+import { desc, asc, eq, ilike, and, or, sql } from "drizzle-orm";
 import BookCollection from "@/components/BookCollection";
 import type { BorrowRecord } from "@/lib/services/borrows";
 
@@ -111,7 +111,8 @@ const Page = async ({
 
   // Parse search parameters
   const params = await searchParams;
-  const search = params.search || "";
+  // Trim so SSR matches client debounce; ilike = case-insensitive substring (API parity)
+  const search = (params.search || "").trim();
   const genre = params.genre || "";
   const availability = params.availability || "";
   const rating = params.rating || "";
@@ -122,10 +123,14 @@ const Page = async ({
   // Build where conditions
   const whereConditions = [];
 
-  // Search condition
+  // Search: title OR author, case-insensitive (matches /api/books ILIKE)
   if (search) {
+    const searchPattern = `%${search}%`;
     whereConditions.push(
-      or(like(books.title, `%${search}%`), like(books.author, `%${search}%`))
+      or(
+        ilike(books.title, searchPattern),
+        ilike(books.author, searchPattern)
+      )
     );
   }
 
@@ -175,14 +180,20 @@ const Page = async ({
     .limit(booksPerPage)
     .offset(offset);
 
-  // Get total count for pagination
+  // Filtered total for "Showing X of Y" pagination
   const totalBooksResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(books)
     .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
 
-  const totalBooks = totalBooksResult[0]?.count || 0;
+  const totalBooks = Number(totalBooksResult[0]?.count || 0);
   const totalPages = Math.ceil(totalBooks / booksPerPage);
+
+  // Unfiltered DB total for the page subtitle (not affected by search/filters)
+  const libraryTotalResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(books);
+  const libraryTotalBooks = Number(libraryTotalResult[0]?.count || 0);
 
   // Get unique genres for filter dropdown
   const genresResult = await db
@@ -210,6 +221,7 @@ const Page = async ({
         totalBooks,
         booksPerPage,
       }}
+      initialLibraryTotalBooks={libraryTotalBooks}
       initialUserBorrows={initialUserBorrows}
     />
   );

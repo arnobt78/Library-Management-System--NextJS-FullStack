@@ -1,12 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
   getBooksList,
   getBook,
   getBookRecommendations,
+  getRelatedBooks,
   getBookBorrowStats,
   getFeaturedBooks,
   type BookFilters,
@@ -123,6 +124,8 @@ export const useBooks = (
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+    // Keep prior page visible while the new filter/search query key loads
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -182,6 +185,8 @@ export const useAllBooks = (
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+    // Instant filter UX: show previous results until the new key resolves (no empty flash)
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -311,6 +316,30 @@ export const useBookRecommendations = (
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
     enabled: true, // Always enabled (userId is optional)
+  });
+};
+
+/**
+ * Hook to fetch genre-related books for a book detail page strip.
+ * Key `["book-related", bookId, limit]` invalidates with books/recommendations domains.
+ */
+export const useRelatedBooks = (
+  bookId: string,
+  limit: number = 6,
+  initialData?: Book[]
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery({
+    queryKey: queryKeys.books.related(bookId, limit),
+    queryFn: () =>
+      trackQuery(`book-related-${bookId}`, async () => {
+        return getRelatedBooks(bookId, limit);
+      }),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
+    enabled: Boolean(bookId),
   });
 };
 

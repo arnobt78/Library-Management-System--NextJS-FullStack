@@ -60,6 +60,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.books.detailRoot,
     queryKeys.books.borrowStatsRoot,
     queryKeys.books.featuredRoot,
+    queryKeys.books.relatedRoot,
   ],
   users: [
     queryKeys.users.root,
@@ -95,6 +96,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
   recommendations: [
     queryKeys.books.recommendationsRoot,
     queryKeys.books.featuredRoot,
+    queryKeys.books.relatedRoot,
   ],
   operations: [
     queryKeys.admin.reminderStats,

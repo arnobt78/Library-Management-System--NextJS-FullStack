@@ -3,28 +3,29 @@
 /**
  * BookCollection Component
  *
- * Client component that displays a collection of books with filters, search, sorting, and pagination.
- * Uses React Query for data fetching and caching, with SSR initial data support.
+ * Client catalog for /all-books: full-width filter toolbar + meta row (chips / sort),
+ * URL-driven filters, React Query + SSR initialData.
  *
- * Features:
- * - Uses useAllBooks hook with initialData from SSR
- * - Displays skeleton loaders while fetching
- * - Shows error state if fetch fails
- * - Handles URL-based search params for filters
- * - Supports pagination
+ * Behavior:
+ * - Instant search: controlled input + 300ms debounce → router.replace (no Search button)
+ * - Instant dropdowns/sort: onValueChange → router.replace({ scroll: false })
+ * - Live useSearchParams drive useAllBooks so filter changes refetch without remount
+ * - initialData only when URL still matches SSR params (avoids stale grid after filter)
+ * - Toolbar: Search | Genre | Availability | Rating (equal flex); Sort + chips on meta row
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookCard from "@/components/BookCard";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { FilterSelect } from "@/components/ui/filter-select";
 import {
   genreFilterOptions,
+  genreFilterIcon,
   availabilityFilterOptions,
   ratingFilterOptions,
   sortFilterOptions,
@@ -39,8 +40,20 @@ import {
   FilterX,
   ChevronLeft,
   ChevronRight,
-  Filter,
+  X,
+  CircleCheck,
+  CircleX,
+  Star,
 } from "lucide-react";
+
+type CollectionSearchParams = {
+  search: string;
+  genre: string;
+  availability: string;
+  rating: string;
+  sort: string;
+  page: number;
+};
 
 interface BookCollectionProps {
   /**
@@ -63,14 +76,12 @@ interface BookCollectionProps {
   /**
    * Initial search params from SSR
    */
-  initialSearchParams?: {
-    search: string;
-    genre: string;
-    availability: string;
-    rating: string;
-    sort: string;
-    page: number;
-  };
+  initialSearchParams?: CollectionSearchParams;
+  /**
+   * Unfiltered catalog size from SSR — subtitle “complete library of N books”
+   * (independent of active search/filters; “Showing X of Y” uses filtered total)
+   */
+  initialLibraryTotalBooks?: number;
   /**
    * Initial user borrows from SSR (populates React Query cache for faster navigation to book detail pages)
    */
@@ -80,14 +91,7 @@ interface BookCollectionProps {
    */
   books?: Book[];
   genres?: string[];
-  searchParams?: {
-    search: string;
-    genre: string;
-    availability: string;
-    rating: string;
-    sort: string;
-    page: number;
-  };
+  searchParams?: CollectionSearchParams;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -101,6 +105,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   initialGenres,
   initialPagination,
   initialSearchParams,
+  initialLibraryTotalBooks,
   initialUserBorrows,
   // Legacy props for backward compatibility
   books: legacyBooks,
@@ -127,9 +132,46 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     }
   }, [initialUserBorrows, queryClient]);
 
-  // Prepare initial data for React Query
+  // Live URL is source of truth so instant filter/search updates the grid without remount
+  const searchParamsKey = searchParamsHook.toString();
+  const currentSearchParams: CollectionSearchParams = useMemo(() => {
+    const params = new URLSearchParams(searchParamsKey);
+    return {
+      search: params.get("search") || "",
+      genre: params.get("genre") || "",
+      availability: params.get("availability") || "",
+      rating: params.get("rating") || "",
+      sort: params.get("sort") || "title",
+      page: parseInt(params.get("page") || "1", 10) || 1,
+    };
+  }, [searchParamsKey]);
+
+  const ssrSearchParams: CollectionSearchParams = useMemo(
+    () =>
+      initialSearchParams ||
+      legacySearchParams || {
+        search: "",
+        genre: "",
+        availability: "",
+        rating: "",
+        sort: "title",
+        page: 1,
+      },
+    [initialSearchParams, legacySearchParams],
+  );
+
+  // Only hydrate RQ with SSR list when URL still matches the SSR filter snapshot
+  const filtersMatchSsr =
+    currentSearchParams.search === (ssrSearchParams.search || "") &&
+    currentSearchParams.genre === (ssrSearchParams.genre || "") &&
+    currentSearchParams.availability === (ssrSearchParams.availability || "") &&
+    currentSearchParams.rating === (ssrSearchParams.rating || "") &&
+    (currentSearchParams.sort || "title") ===
+      (ssrSearchParams.sort || "title") &&
+    currentSearchParams.page === (ssrSearchParams.page || 1);
+
   const initialData: BooksListResponse | undefined =
-    initialBooks || legacyBooks
+    filtersMatchSsr && (initialBooks || legacyBooks)
       ? {
           books: initialBooks || legacyBooks || [],
           total:
@@ -149,84 +191,112 @@ const BookCollection: React.FC<BookCollectionProps> = ({
         }
       : undefined;
 
-  // Get search params from initial, legacy, or URL
-  const searchParamsToUse = initialSearchParams ||
-    legacySearchParams || {
-      search: searchParamsHook.get("search") || "",
-      genre: searchParamsHook.get("genre") || "",
-      availability: searchParamsHook.get("availability") || "",
-      rating: searchParamsHook.get("rating") || "",
-      sort: searchParamsHook.get("sort") || "title",
-      page: parseInt(searchParamsHook.get("page") || "1", 10),
-    };
+  const booksPerPage =
+    initialPagination?.booksPerPage || legacyPagination?.booksPerPage || 12;
 
-  // Use React Query hook with initialData
   const {
     data: booksData,
     isLoading,
     isError,
     error,
   } = useAllBooks(
-    searchParamsToUse
-      ? {
-          search: searchParamsToUse.search || undefined,
-          genre: searchParamsToUse.genre || undefined,
-          availability:
-            (searchParamsToUse.availability as
-              "available" | "unavailable" | "all") || undefined,
-          rating: searchParamsToUse.rating
-            ? Number(searchParamsToUse.rating)
-            : undefined,
-          sort:
-            (searchParamsToUse.sort as
-              "title" | "author" | "rating" | "date") || undefined,
-          page: searchParamsToUse.page,
-          limit:
-            initialPagination?.booksPerPage ||
-            legacyPagination?.booksPerPage ||
-            12,
-        }
-      : undefined,
+    {
+      search: currentSearchParams.search || undefined,
+      genre: currentSearchParams.genre || undefined,
+      availability:
+        (currentSearchParams.availability as
+          "available" | "unavailable" | "all") || undefined,
+      rating: currentSearchParams.rating
+        ? Number(currentSearchParams.rating)
+        : undefined,
+      sort:
+        (currentSearchParams.sort as "title" | "author" | "rating" | "date") ||
+        undefined,
+      page: currentSearchParams.page,
+      limit: booksPerPage,
+    },
     initialData,
   );
 
-  // Use React Query data if available, otherwise fall back to legacy props or initial data
-  // CRITICAL: Always prefer React Query data over initial/legacy data
-  // React Query data is fresh and updates immediately after mutations
-  // initial/legacy data is only used as fallback during initial load
-  const books = (booksData?.books ?? legacyBooks ?? initialBooks) || [];
-  const genres = (legacyGenres ?? initialGenres) || [];
-  // CRITICAL: Always prefer React Query data over initial/legacy data
-  // React Query data is fresh and updates immediately after mutations
-  // initial/legacy data is only used as fallback during initial load
-  const pagination = (legacyPagination ??
-    initialPagination ??
-    (booksData
+  // Unfiltered catalog size for subtitle; invalidates with books domain mutations
+  const libraryTotalInitial: BooksListResponse | undefined =
+    typeof initialLibraryTotalBooks === "number"
       ? {
-          currentPage: booksData.page ?? 1,
-          totalPages: booksData.totalPages ?? 1,
-          totalBooks: booksData.total ?? 0,
-          booksPerPage: booksData.limit ?? 12,
+          books: [],
+          total: initialLibraryTotalBooks,
+          page: 1,
+          totalPages: 1,
+          limit: 1,
         }
-      : undefined)) || {
-    currentPage: 1,
-    totalPages: 1,
-    totalBooks: books.length,
-    booksPerPage: 12,
-  };
+      : undefined;
+  const { data: libraryMeta } = useAllBooks(
+    { page: 1, limit: 1 },
+    libraryTotalInitial,
+  );
+  const libraryTotalBooks = libraryMeta?.total ?? initialLibraryTotalBooks ?? 0;
 
-  // Get current search params from URL or use initial/legacy
-  const currentSearchParams = legacySearchParams ||
-    initialSearchParams || {
-      search: searchParamsHook.get("search") || "",
-      genre: searchParamsHook.get("genre") || "",
-      availability: searchParamsHook.get("availability") || "",
-      rating: searchParamsHook.get("rating") || "",
-      sort: searchParamsHook.get("sort") || "title",
-      page: parseInt(searchParamsHook.get("page") || "1", 10),
-    };
+  // CRITICAL: Always prefer React Query data over initial/legacy data
+  // React Query data is fresh and updates immediately after mutations / filter changes
+  const books =
+    (booksData?.books ??
+      (filtersMatchSsr ? (legacyBooks ?? initialBooks) : undefined)) ||
+    [];
+  const genres = (legacyGenres ?? initialGenres) || [];
+
+  const pagination = booksData
+    ? {
+        currentPage: booksData.page ?? currentSearchParams.page,
+        totalPages: booksData.totalPages ?? 1,
+        totalBooks: booksData.total ?? 0,
+        booksPerPage: booksData.limit ?? booksPerPage,
+      }
+    : (legacyPagination ??
+      initialPagination ?? {
+        currentPage: currentSearchParams.page,
+        totalPages: 1,
+        totalBooks: books.length,
+        booksPerPage,
+      });
 
   const [localSearch, setLocalSearch] = useState(currentSearchParams.search);
+  const lastSyncedSearchRef = useRef(currentSearchParams.search);
+
+  // Sync localSearch with URL when it changes externally (back/forward), not mid-typing
+  useEffect(() => {
+    if (
+      currentSearchParams.search !== lastSyncedSearchRef.current &&
+      localSearch === lastSyncedSearchRef.current
+    ) {
+      setLocalSearch(currentSearchParams.search);
+      lastSyncedSearchRef.current = currentSearchParams.search;
+    }
+  }, [currentSearchParams.search, localSearch]);
+
+  // Debounced instant search → URL (mirrors AdminBooksList 300ms pattern)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmedSearch = localSearch.trim();
+      if (trimmedSearch !== currentSearchParams.search) {
+        const params = new URLSearchParams(searchParamsHook.toString());
+
+        if (trimmedSearch) {
+          params.set("search", trimmedSearch);
+        } else {
+          params.delete("search");
+        }
+        // Reset page when search text changes
+        params.delete("page");
+
+        lastSyncedSearchRef.current = trimmedSearch;
+        const qs = params.toString();
+        router.replace(qs ? `/all-books?${qs}` : "/all-books", {
+          scroll: false,
+        });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [localSearch, currentSearchParams.search, searchParamsHook, router]);
 
   const updateSearchParams = (newParams: Record<string, string>) => {
     const params = new URLSearchParams(searchParamsHook.toString());
@@ -239,17 +309,13 @@ const BookCollection: React.FC<BookCollectionProps> = ({
       }
     });
 
-    // Reset to page 1 when filters change
+    // Reset to page 1 when filters/sort change (not when only page changes)
     if (Object.keys(newParams).some((key) => key !== "page")) {
       params.delete("page");
     }
 
-    router.push(`/all-books?${params.toString()}`);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateSearchParams({ search: localSearch });
+    const qs = params.toString();
+    router.replace(qs ? `/all-books?${qs}` : "/all-books", { scroll: false });
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -264,18 +330,40 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     updateSearchParams({ page: page.toString() });
   };
 
+  /** Clear search/genre/availability/rating; keep sort (and drop page). */
   const clearFilters = () => {
-    router.push("/all-books");
+    setLocalSearch("");
+    lastSyncedSearchRef.current = "";
+    const params = new URLSearchParams(searchParamsHook.toString());
+    params.delete("search");
+    params.delete("genre");
+    params.delete("availability");
+    params.delete("rating");
+    params.delete("page");
+    const qs = params.toString();
+    router.replace(qs ? `/all-books?${qs}` : "/all-books", { scroll: false });
   };
 
-  const hasActiveFilters =
+  /** Remove a single active filter chip (URL param) without wiping sort. */
+  const removeFilter = (
+    key: "search" | "genre" | "availability" | "rating",
+  ) => {
+    if (key === "search") {
+      setLocalSearch("");
+      lastSyncedSearchRef.current = "";
+    }
+    updateSearchParams({ [key]: "" });
+  };
+
+  const hasActiveFilters = Boolean(
     currentSearchParams.search ||
     currentSearchParams.genre ||
     currentSearchParams.availability ||
-    currentSearchParams.rating;
+    currentSearchParams.rating,
+  );
 
-  // Show skeleton while loading (only if no initial data)
-  if (isLoading && (!initialBooks || initialBooks.length === 0)) {
+  // First paint with no cached rows — pulse toolbar + card skeletons (no “Loading…” copy)
+  if (isLoading && books.length === 0) {
     return (
       <div className="w-full">
         <div className="mb-4 sm:mb-6">
@@ -283,9 +371,19 @@ const BookCollection: React.FC<BookCollectionProps> = ({
             Book Collection
           </h1>
           <p className="text-sm text-light-200 sm:text-base">
-            Loading books...
+            Discover and explore our complete library of {libraryTotalBooks}{" "}
+            books
           </p>
         </div>
+        {/* Inline pulse placeholders — same rhythm as loaded toolbar + grid */}
+        <div
+          className="mb-4 h-28 animate-pulse rounded-lg border border-gray-600 bg-gray-800/30 sm:mb-6 sm:h-24"
+          aria-hidden
+        />
+        <div
+          className="mb-4 h-9 animate-pulse rounded-md bg-gray-800/40 sm:mb-6 sm:max-w-xs"
+          aria-hidden
+        />
         <div className="grid-cards grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(12)].map((_, index) => (
             <BookCardSkeleton key={`skeleton-${index}`} />
@@ -322,217 +420,290 @@ const BookCollection: React.FC<BookCollectionProps> = ({
 
   return (
     <div className="w-full">
-      {/* Header */}
+      {/* Page title */}
       <div className="mb-4 sm:mb-6">
         <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
           Book Collection
         </h1>
         <p className="text-sm text-light-200 sm:text-base">
-          Discover and explore our complete library of {pagination.totalBooks}{" "}
-          books
+          Discover and explore our complete library of {libraryTotalBooks} books
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-        {/* Filters Sidebar */}
-        <div className="w-full shrink-0 sm:w-64">
-          <Card className="rounded-lg border border-gray-600 bg-gray-800/30">
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="flex items-center text-base text-light-100 sm:text-lg">
-                <Filter className="mr-2 inline size-4" />
-                <span>Sort & Filter</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="stack-section">
-              {/* Search */}
-              <form onSubmit={handleSearch} className="space-y-2">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-light-200/60" />
-                  <Input
-                    placeholder="Search books..."
-                    value={localSearch}
-                    onChange={(e) => setLocalSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 text-light-100"
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  <Search className="size-4" />
-                  Search
-                </Button>
-              </form>
+      {/* Filter toolbar — Search + Genre + Availability + Rating (equal flex, h-9 aligned) */}
+      <Card className="mb-4 rounded-lg border border-gray-600 bg-gray-800/30 sm:mb-6">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-3">
+            {/* Instant search — no submit; debounced URL update; space-y matches FilterSelect */}
+            <div className="w-full min-w-0 flex-1 space-y-1.5">
+              <label
+                htmlFor="all-books-search"
+                className="block text-sm font-medium text-light-100"
+              >
+                Search
+              </label>
+              <div className="relative">
+                {/* Icon/placeholder match dark FilterSelect muted chrome */}
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-light-200/70" />
+                <Input
+                  id="all-books-search"
+                  type="search"
+                  placeholder="Type to search books"
+                  value={localSearch}
+                  onChange={(e) => setLocalSearch(e.target.value)}
+                  className="catalog-search-input h-9 w-full border-gray-700 bg-dark-300 pl-9 pr-3 text-light-100 placeholder:text-light-100 focus-visible:ring-primary"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
 
-              {/* Genre Filter — Radix Select (empty URL param maps to "all") */}
-              <FilterSelect
-                label="Genre"
-                variant="dark"
-                value={currentSearchParams.genre || "all"}
-                onValueChange={(v) =>
-                  handleFilterChange("genre", v === "all" ? "" : v)
-                }
-                options={genreFilterOptions(genres)}
-              />
+            <FilterSelect
+              label="Genre"
+              variant="dark"
+              className="w-full min-w-0 flex-1"
+              value={currentSearchParams.genre || "all"}
+              onValueChange={(v) =>
+                handleFilterChange("genre", v === "all" ? "" : v)
+              }
+              options={genreFilterOptions(genres, "All Genres", "dark")}
+            />
 
-              <FilterSelect
-                label="Availability"
-                variant="dark"
-                value={currentSearchParams.availability || "all"}
-                onValueChange={(v) =>
-                  handleFilterChange("availability", v === "all" ? "" : v)
-                }
-                options={availabilityFilterOptions()}
-              />
+            <FilterSelect
+              label="Availability"
+              variant="dark"
+              className="w-full min-w-0 flex-1"
+              value={currentSearchParams.availability || "all"}
+              onValueChange={(v) =>
+                handleFilterChange("availability", v === "all" ? "" : v)
+              }
+              options={availabilityFilterOptions("All Books", "dark")}
+            />
 
-              <FilterSelect
-                label="Minimum Rating"
-                variant="dark"
-                value={currentSearchParams.rating || "all"}
-                onValueChange={(v) =>
-                  handleFilterChange("rating", v === "all" ? "" : v)
-                }
-                options={ratingFilterOptions()}
-              />
+            <FilterSelect
+              label="Rating"
+              variant="dark"
+              className="w-full min-w-0 flex-1"
+              value={currentSearchParams.rating || "all"}
+              onValueChange={(v) =>
+                handleFilterChange("rating", v === "all" ? "" : v)
+              }
+              options={ratingFilterOptions("dark")}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="w-full"
-                >
-                  <FilterX className="size-4" />
-                  Clear All Filters
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {/* Meta: Showing + chips + Reset All | Sort by (inline from sm); same mb as toolbar */}
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="shrink-0 text-xs text-gray-100 sm:text-sm">
+            Showing {books.length} of {pagination.totalBooks} books
+          </span>
 
-        {/* Main Content */}
-        <div className="flex-1">
-          {/* Sort and Results Header */}
-          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <span className="text-xs text-gray-100 sm:text-sm">
-                Showing {books.length} of {pagination.totalBooks} books
-              </span>
-              {hasActiveFilters && (
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {currentSearchParams.search && (
-                    <Badge variant="secondary" className="text-xs sm:text-sm">
-                      Search: &quot;{currentSearchParams.search}&quot;
-                    </Badge>
-                  )}
-                  {currentSearchParams.genre && (
-                    <Badge variant="secondary" className="text-xs sm:text-sm">
-                      Genre: {currentSearchParams.genre}
-                    </Badge>
-                  )}
-                  {currentSearchParams.availability && (
-                    <Badge variant="secondary" className="text-xs sm:text-sm">
+          {hasActiveFilters && (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {currentSearchParams.search ? (
+                  <Badge
+                    variant="secondary"
+                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
+                  >
+                    <Search className="size-3.5 shrink-0" aria-hidden />
+                    <span className="leading-none">
+                      &quot;{currentSearchParams.search}&quot;
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFilter("search")}
+                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
+                      aria-label="Remove search filter"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </Badge>
+                ) : null}
+
+                {currentSearchParams.genre ? (
+                  <Badge
+                    variant="secondary"
+                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
+                  >
+                    {React.createElement(
+                      genreFilterIcon(currentSearchParams.genre),
+                      {
+                        className: "size-3.5 shrink-0 text-emerald-600",
+                        "aria-hidden": true,
+                      },
+                    )}
+                    <span className="leading-none">
+                      {currentSearchParams.genre}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFilter("genre")}
+                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
+                      aria-label={`Remove genre filter ${currentSearchParams.genre}`}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </Badge>
+                ) : null}
+
+                {currentSearchParams.availability ? (
+                  <Badge
+                    variant="secondary"
+                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
+                  >
+                    {currentSearchParams.availability === "available" ? (
+                      <CircleCheck
+                        className="size-3.5 shrink-0 text-emerald-600"
+                        aria-hidden
+                      />
+                    ) : (
+                      <CircleX
+                        className="size-3.5 shrink-0 text-rose-600"
+                        aria-hidden
+                      />
+                    )}
+                    <span className="leading-none">
                       {currentSearchParams.availability === "available"
                         ? "Available"
                         : "Unavailable"}
-                    </Badge>
-                  )}
-                  {currentSearchParams.rating && (
-                    <Badge variant="secondary" className="text-xs sm:text-sm">
-                      {currentSearchParams.rating}+ Stars
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </div>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFilter("availability")}
+                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
+                      aria-label="Remove availability filter"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </Badge>
+                ) : null}
 
-            <div className="flex min-w-44 items-center gap-2">
-              <FilterSelect
-                label="Sort by"
-                variant="dark"
-                className="flex-1"
-                value={currentSearchParams.sort || "title"}
-                onValueChange={handleSortChange}
-                options={sortFilterOptions()}
-              />
-            </div>
-          </div>
-
-          {/* Books Grid */}
-          {books.length === 0 ? (
-            <Card className="border-2 border-gray-600 bg-gray-800/30">
-              <CardContent className="empty-panel">
-                <p className="text-sm text-light-200/70 sm:text-base">
-                  No books found matching your criteria.
-                </p>
-                {hasActiveFilters && (
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="mt-3 sm:mt-4"
+                {currentSearchParams.rating ? (
+                  <Badge
+                    variant="secondary"
+                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
                   >
-                    <FilterX className="size-4" />
-                    Clear Filters
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid-cards grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {books.map((book: Book) => (
-                <BookCard key={book.id} {...book} />
-              ))}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-1.5 sm:mt-8 sm:gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1}
-                className="text-xs sm:text-sm"
-              >
-                <ChevronLeft className="size-4" />
-                Previous
-              </Button>
-
-              <div className="flex gap-1">
-                {Array.from(
-                  { length: Math.min(5, pagination.totalPages) },
-                  (_, i) => {
-                    const pageNum = Math.max(1, pagination.currentPage - 2) + i;
-                    if (pageNum > pagination.totalPages) return null;
-
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={
-                          pageNum === pagination.currentPage
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() => handlePageChange(pageNum)}
-                        className="size-8 text-xs sm:size-10 sm:text-sm"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  },
-                )}
+                    {/* Outline amber star (not filled) — matches rating list accent style */}
+                    <Star
+                      className="size-3.5 shrink-0 text-amber-500"
+                      aria-hidden
+                    />
+                    <span className="leading-none">
+                      {currentSearchParams.rating}+ Stars
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFilter("rating")}
+                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
+                      aria-label="Remove rating filter"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </Badge>
+                ) : null}
               </div>
 
-              <Button
-                variant="outline"
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.totalPages}
-                className="text-xs sm:text-sm"
+              {/* Text + icon — not a badge/button chrome */}
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 text-xs text-light-200 underline-offset-2 hover:text-light-100 hover:underline sm:text-sm"
               >
-                Next
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
+                <FilterX className="size-3.5 shrink-0" aria-hidden />
+                Reset All
+              </button>
+            </>
           )}
         </div>
+
+        <FilterSelect
+          label="Sort by"
+          variant="dark"
+          labelLayout="inline"
+          className="w-full shrink-0 sm:w-auto sm:min-w-56"
+          value={currentSearchParams.sort || "title"}
+          onValueChange={handleSortChange}
+          options={sortFilterOptions("dark")}
+        />
       </div>
+
+      {/* Books Grid — full page-shell width */}
+      {books.length === 0 ? (
+        <Card className="border-2 border-gray-600 bg-gray-800/30">
+          <CardContent className="empty-panel">
+            <p className="text-sm text-light-200/70 sm:text-base">
+              No books found matching your criteria.
+            </p>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="mt-3 sm:mt-4"
+              >
+                <FilterX className="size-4" />
+                Clear Filters
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid-cards grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {books.map((book: Book) => (
+            <BookCard key={book.id} {...book} />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-1.5 sm:mt-8 sm:gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+            className="text-xs hover:bg-light-100 sm:text-sm"
+          >
+            <ChevronLeft className="size-4" />
+            Previous
+          </Button>
+
+          <div className="flex gap-1">
+            {Array.from(
+              { length: Math.min(5, pagination.totalPages) },
+              (_, i) => {
+                const pageNum = Math.max(1, pagination.currentPage - 2) + i;
+                if (pageNum > pagination.totalPages) return null;
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={
+                      pageNum === pagination.currentPage ? "default" : "outline"
+                    }
+                    onClick={() => handlePageChange(pageNum)}
+                    className="size-8 text-xs hover:bg-light-100 sm:size-10 sm:text-sm"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              },
+            )}
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.totalPages}
+            className="text-xs hover:bg-light-100 sm:text-sm"
+          >
+            Next
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

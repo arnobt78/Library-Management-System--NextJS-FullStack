@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import BookOverview from "@/components/BookOverview";
 import BookDetailContent from "@/components/BookDetailContent";
+import RelatedBookRecommendations from "@/components/RelatedBookRecommendations";
+import { getRelatedBooks } from "@/lib/books/getRelatedBooks";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import type { ReviewEligibility } from "@/lib/services/reviews";
 
@@ -175,6 +177,12 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
     };
   }
 
+  // Genre-related strip (SSR seed; RQ refreshes after book mutations)
+  const relatedBooksRaw = await getRelatedBooks(id, 6);
+  const initialRelated = JSON.parse(
+    JSON.stringify(relatedBooksRaw)
+  ) as Book[];
+
   return (
     <>
       {/* BookOverview is a Server Component, so we render it directly */}
@@ -193,6 +201,12 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
         userEmail={session?.user?.email || undefined}
         initialBook={bookDetails}
         initialReviews={reviews}
+      />
+
+      <RelatedBookRecommendations
+        bookId={id}
+        initialRelated={initialRelated}
+        limit={6}
       />
     </>
   );

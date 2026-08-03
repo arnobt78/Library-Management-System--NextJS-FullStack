@@ -3,38 +3,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /**
- * BookCardSkeleton Component
- *
- * A skeleton loader that matches the exact dimensions and layout of the BookCard component.
- * Used to show loading states while book data is being fetched.
- *
- * Features:
- * - Exact size matching to prevent layout shift
- * - Matches BookCover dimensions (regular variant)
- * - Matches text spacing and heights
- * - Supports isLoanedBook variant
- *
- * Usage:
- * ```tsx
- * <BookCardSkeleton />
- * <BookCardSkeleton isLoanedBook />
- * ```
- *
- * Dimensions matched:
- * - BookCover: xs:w-[174px] w-[114px] xs:h-[239px] h-[169px]
- * - Title: text-base/xl with mt-2
- * - Author: text-sm/base with mt-1
- * - Genre: text-sm/base with mt-1
+ * BookCardSkeleton — centered cover + full-width reserved title/author + genre row.
  */
 interface BookCardSkeletonProps {
-  /**
-   * If true, renders the skeleton for a loaned book variant
-   * (includes calendar icon and button placeholders)
-   */
   isLoanedBook?: boolean;
-  /**
-   * Additional CSS classes to apply
-   */
   className?: string;
 }
 
@@ -43,11 +15,13 @@ const BookCardSkeleton: React.FC<BookCardSkeletonProps> = ({
   className,
 }) => {
   return (
-    <li className={cn(isLoanedBook && "xs:w-52 w-full", className)}>
+    <li className={cn("w-full", className)}>
       <div
-        className={cn("flex flex-col", isLoanedBook && "w-full items-center")}
+        className={cn(
+          "flex w-full flex-col items-center",
+          isLoanedBook && "xs:w-52"
+        )}
       >
-        {/* Book Cover Skeleton - matches BookCover regular variant */}
         <Skeleton
           className={cn(
             "xs:w-[174px] w-[114px] xs:h-[239px] h-[169px]",
@@ -55,33 +29,23 @@ const BookCardSkeleton: React.FC<BookCardSkeletonProps> = ({
           )}
         />
 
-        {/* Text Content Skeleton */}
-        <div
-          className={cn(
-            "mt-4 flex flex-col",
-            !isLoanedBook && "xs:max-w-40 max-w-28"
-          )}
-        >
-          {/* Title Skeleton - matches book-title class */}
-          <Skeleton className="mt-2 h-5 w-full xs:h-6" />
-
-          {/* Author Skeleton - matches book-author class */}
-          <Skeleton className="mt-1 h-4 w-3/4 xs:h-5" />
-
-          {/* Genre Skeleton - matches book-genre class */}
-          <Skeleton className="mt-1 h-4 w-2/3 xs:h-5" />
+        <div className="mt-3 flex w-full flex-col items-center sm:mt-4">
+          {/* Reserved 2-line title / author slots (matches .book-title / .book-author) */}
+          <Skeleton className="mt-2 h-10 w-full max-w-full xs:h-[3.25rem]" />
+          <Skeleton className="mt-1 h-9 w-4/5 xs:h-11" />
+          <div className="mt-1 flex flex-row items-center justify-center gap-1">
+            <Skeleton className="size-3.5 shrink-0 sm:size-4" />
+            <Skeleton className="size-4 xs:size-5" />
+            <Skeleton className="h-4 w-20 xs:h-5" />
+          </div>
         </div>
 
-        {/* Loaned Book Additional Elements */}
         {isLoanedBook && (
           <div className="mt-3 flex w-full flex-col gap-3">
-            {/* Calendar Icon + Text Skeleton */}
             <div className="flex flex-row items-center gap-1 max-xs:justify-center">
               <Skeleton className="size-[18px] shrink-0" />
               <Skeleton className="h-4 w-32" />
             </div>
-
-            {/* Button Skeleton - matches book-btn */}
             <Skeleton className="min-h-14 w-full rounded-md" />
           </div>
         )}

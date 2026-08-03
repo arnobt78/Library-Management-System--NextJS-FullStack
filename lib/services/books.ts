@@ -210,6 +210,54 @@ export async function getBook(bookId: string): Promise<Book> {
  * const recommendations = await getBookRecommendations(userId, 5);
  * ```
  */
+/**
+ * Get genre-related books for a detail page strip.
+ *
+ * @param bookId - Source book UUID
+ * @param limit - Max related books (default 6)
+ */
+export async function getRelatedBooks(
+  bookId: string,
+  limit: number = 6
+): Promise<Book[]> {
+  const params = new URLSearchParams();
+  params.append("limit", limit.toString());
+
+  const response = await fetch(
+    `/api/books/${bookId}/related?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      errorMessage =
+        errorData.message || errorData.error || response.statusText;
+    } catch {
+      errorMessage = response.statusText;
+    }
+    throw new ApiError(errorMessage, response.status);
+  }
+
+  const data = await response.json();
+
+  if (data.books && Array.isArray(data.books)) {
+    return data.books;
+  }
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  throw new ApiError("Invalid response format from related books API", 500);
+}
+
 export async function getBookRecommendations(
   userId?: string,
   limit: number = 10

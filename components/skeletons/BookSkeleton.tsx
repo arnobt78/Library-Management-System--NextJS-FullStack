@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
  * Dimensions matched:
  * - BookCover wide: xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]
  * - book-overview: header + body (details/hero with order)
- * - book-details: py-16 flex flex-col gap-16 lg:flex-row
+ * - book-details: pt-8/12/16 (no bottom pad; related strip owns gap below)
  */
 interface BookSkeletonProps {
   /**

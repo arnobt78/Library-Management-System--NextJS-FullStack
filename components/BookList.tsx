@@ -26,7 +26,7 @@ const BookList = ({
       {books.length > 0 ? (
         <ul className="book-list">
           {books.map((book) => (
-            <BookCard key={book.title} {...book} isLoanedBook={false} />
+            <BookCard key={book.id} {...book} isLoanedBook={false} />
           ))}
         </ul>
       ) : (
