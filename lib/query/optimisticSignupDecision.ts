@@ -2,9 +2,12 @@
  * Optimistic Sign-up Requests cache updates:
  * remove from pending queue + prepend Recent decisions so UI paints before refetch.
  * Server ledger + await invalidateMutation("user.write") remains source of truth.
+ *
+ * decisionActor MUST come from the logged-in admin session — null would flash “an admin”.
  */
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import { queryKeys } from "@/lib/query/keys";
 import type { User } from "@/lib/services/users";
@@ -39,6 +42,8 @@ export async function applyOptimisticSignupDecision(
     userId: string;
     status: "APPROVED" | "REJECTED";
     userName?: string;
+    /** Logged-in admin — avoids “an admin” flash before ledger refetch. */
+    decisionActor?: AdminRequestReviewer | null;
   },
 ): Promise<SignupDecisionOptimisticContext> {
   await Promise.all([
@@ -67,7 +72,7 @@ export async function applyOptimisticSignupDecision(
     status: args.status,
     createdAt: cached?.createdAt ? new Date(cached.createdAt) : decidedAt,
     decidedAt,
-    decisionActor: null,
+    decisionActor: args.decisionActor ?? null,
   };
 
   queryClient.setQueriesData<User[]>(

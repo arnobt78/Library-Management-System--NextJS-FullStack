@@ -64,6 +64,7 @@ export async function getMyAdminRequestPageData(): Promise<MyAdminRequestPageDat
       status: users.status,
       createdAt: users.createdAt,
       statusReviewedAt: users.statusReviewedAt,
+      actorId: signupDecisionUsers.id,
       actorFullName: signupDecisionUsers.fullName,
       actorEmail: signupDecisionUsers.email,
       actorUniversityCard: signupDecisionUsers.universityCard,
@@ -92,6 +93,7 @@ export async function getMyAdminRequestPageData(): Promise<MyAdminRequestPageDat
     user.actorEmail &&
     user.actorFullName
       ? {
+          id: user.actorId ?? null,
           fullName: user.actorFullName,
           email: user.actorEmail,
           universityCard: user.actorUniversityCard ?? null,
@@ -124,6 +126,7 @@ export async function getMyAdminRequestPageData(): Promise<MyAdminRequestPageDat
         rejectionReason: adminRequests.rejectionReason,
         createdAt: adminRequests.createdAt,
         reviewedAt: adminRequests.reviewedAt,
+        reviewedBy: adminRequests.reviewedBy,
         reviewerFullName: reviewerUsers.fullName,
         reviewerEmail: reviewerUsers.email,
         reviewerUniversityCard: reviewerUsers.universityCard,
@@ -145,6 +148,7 @@ export async function getMyAdminRequestPageData(): Promise<MyAdminRequestPageDat
         reviewer:
           latest.reviewerEmail && latest.reviewerFullName
             ? {
+                id: latest.reviewedBy ?? null,
                 fullName: latest.reviewerFullName,
                 email: latest.reviewerEmail,
                 universityCard: latest.reviewerUniversityCard ?? null,

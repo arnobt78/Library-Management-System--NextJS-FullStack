@@ -50,6 +50,12 @@ describe("applyOptimisticSignupDecision", () => {
       userId: "u-1",
       status: "REJECTED",
       userName: "Ada Lovelace",
+      decisionActor: {
+        id: "admin-1",
+        fullName: "Test Admin",
+        email: "test@admin.com",
+        universityCard: null,
+      },
     });
 
     expect(client.getQueryData<User[]>(pendingKey)).toEqual([]);
@@ -57,6 +63,8 @@ describe("applyOptimisticSignupDecision", () => {
     expect(decisions?.[0]?.userId).toBe("u-1");
     expect(decisions?.[0]?.status).toBe("REJECTED");
     expect(decisions?.[0]?.id).toMatch(/^optimistic-u-1-/);
+    expect(decisions?.[0]?.decisionActor?.fullName).toBe("Test Admin");
+    expect(decisions?.[0]?.decisionActor?.email).toBe("test@admin.com");
     expect(decisions?.[1]?.id).toBe("old-1");
 
     rollbackOptimisticSignupDecision(client, ctx);

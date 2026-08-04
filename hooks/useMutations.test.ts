@@ -16,6 +16,9 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useQueryClient: () => state.client,
   useMutation: (options: unknown) => options,
 }));
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ data: null, status: "unauthenticated" }),
+}));
 vi.mock("@/lib/admin/actions/book", () => ({ createBook: vi.fn(), updateBook: vi.fn() }));
 vi.mock("@/lib/admin/actions/bulk-operations", () => ({ bulkDeleteBooks: vi.fn() }));
 vi.mock("@/lib/admin/actions/borrow", () => ({

@@ -27,6 +27,7 @@
     "seed:reset": "tsx scripts/reset-and-seed.ts",
     "user:delete": "tsx scripts/delete-user-by-email.ts",
     "admin-requests:purge": "tsx scripts/purge-admin-request-history.ts",
+    "signup-decisions:purge": "tsx scripts/purge-signup-status-decisions.ts",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"

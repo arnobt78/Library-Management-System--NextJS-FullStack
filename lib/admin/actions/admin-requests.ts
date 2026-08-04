@@ -135,6 +135,7 @@ const adminRequestSelect = {
 function mapReviewer(row: AdminRequestSelectRow): AdminRequestReviewer | null {
   if (!row.reviewerEmail || !row.reviewerFullName) return null;
   return {
+    id: row.reviewedBy ?? null,
     fullName: row.reviewerFullName,
     email: row.reviewerEmail,
     universityCard: row.reviewerUniversityCard ?? null,

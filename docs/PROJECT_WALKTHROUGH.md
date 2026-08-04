@@ -113,9 +113,10 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Signup who/when: `status_reviewed_by`/`status_reviewed_at` (`0011`); make-admin who/when: `admin_requests.reviewed_*`. Shown on make-admin, my-profile, Sign-up recent decisions, user 360.
 - Sign-up recent: applicant avatar + registered; null `decidedAt` filtered; RQ under `user.write`; seed stamps demo reviewers.
 - Signup ledger `user_status_decisions` (`0012`): history survives re-apply; Recent decisions from ledger.
-- Approve/reject: optimistic pending remove + Recent decisions prepend (`lib/query/optimisticSignupDecision.ts`) then `await invalidateMutation("user.write")`.
+- Approve/reject: optimistic pending remove + Recent decisions prepend with session actor (no “an admin” flash) then `await invalidateMutation("user.write")`.
 - REJECTED students re-apply → PENDING (`requestRegistrationReview`); welcome email on signup; mutations `await invalidateMutation` so spinners hold until lists/shells update; `PersonAttribution` for applicants.
-- Ops: `npm run admin-requests:purge -- <email>` clears settled make-admin history (keeps user + PENDING).
+- Admin PersonAttribution links (explicit `href`) → `/admin/users/[id]`; student make-admin/profile stay non-linked.
+- Ops: `npm run admin-requests:purge -- <email>`; `npm run signup-decisions:purge` clears Sign-up Recent ledger.
 - Decision emails: unique subject + text actor (no images); pending-approval toast; Sign-up/Borrow admin badges.
 - Borrow RQ APPROVED-only (`accountStatus` prop/SSR → session); book detail + my-profile pass status. PENDING my-profile: zero KPIs + notice tabs (no borrow fetch / red 403).
 - Dev: `logging.serverFunctions: false`; `proxy.ts` static matcher; `npm run user:delete -- <email>` for re-signup tests.

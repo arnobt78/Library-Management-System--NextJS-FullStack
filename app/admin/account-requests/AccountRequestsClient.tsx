@@ -426,10 +426,12 @@ const AccountRequestsClient = ({
                       </span>
                       <PersonAttribution
                         person={{
+                          id: decision.userId,
                           fullName: decision.fullName,
                           email: decision.email,
                           universityCard: decision.universityCard,
                         }}
+                        href={`/admin/users/${decision.userId}`}
                         size={28}
                         className={`text-sm ${mutedClass}`}
                         textClassName={textClass}
@@ -446,6 +448,11 @@ const AccountRequestsClient = ({
                       size={28}
                       className={`mt-2 text-xs sm:text-sm ${mutedClass}`}
                       textClassName={textClass}
+                      href={
+                        decision.decisionActor?.id
+                          ? `/admin/users/${decision.decisionActor.id}`
+                          : null
+                      }
                     />
                     <p className={`mt-1 text-xs ${mutedClass}`}>
                       {decision.decidedAt

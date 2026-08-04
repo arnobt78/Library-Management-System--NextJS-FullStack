@@ -2,7 +2,7 @@
 
 /**
  * Compact reviewer line for admin-request / signup decisions.
- * Thin wrapper around PersonAttribution (avatar + Name · email).
+ * Thin wrapper around PersonAttribution (avatar + Name · email + optional profile link).
  */
 
 import PersonAttribution from "@/components/PersonAttribution";
@@ -15,6 +15,9 @@ type AdminRequestReviewerAttributionProps = {
   size?: number;
   className?: string;
   textClassName?: string;
+  /** Explicit /admin/users/[id] — admin surfaces only. */
+  href?: string | null;
+  linkClassName?: string;
 };
 
 export default function AdminRequestReviewerAttribution({
@@ -23,6 +26,8 @@ export default function AdminRequestReviewerAttribution({
   size = 28,
   className,
   textClassName,
+  href = null,
+  linkClassName,
 }: AdminRequestReviewerAttributionProps) {
   return (
     <PersonAttribution
@@ -32,6 +37,8 @@ export default function AdminRequestReviewerAttribution({
       className={className}
       textClassName={textClassName}
       emptyLabel="an admin"
+      href={href}
+      linkClassName={linkClassName}
     />
   );
 }

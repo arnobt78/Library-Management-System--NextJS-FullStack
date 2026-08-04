@@ -582,10 +582,12 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                     <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                       <PersonAttribution
                         person={{
+                          id: request.userId,
                           fullName: request.userFullName,
                           email: request.userEmail,
                           universityCard: request.userUniversityCard ?? null,
                         }}
+                        href={`/admin/users/${request.userId}`}
                         size={28}
                         className="text-sm text-yellow-800"
                         textClassName="text-yellow-900"
@@ -704,10 +706,12 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                     </span>
                     <PersonAttribution
                       person={{
+                        id: decision.userId,
                         fullName: decision.userFullName,
                         email: decision.userEmail,
                         universityCard: decision.userUniversityCard ?? null,
                       }}
+                      href={`/admin/users/${decision.userId}`}
                       size={28}
                       className={`text-sm ${mutedClass}`}
                       textClassName={textClass}
@@ -737,6 +741,11 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                     size={28}
                     className={`mt-2 text-xs sm:text-sm ${mutedClass}`}
                     textClassName={textClass}
+                    href={
+                      decision.reviewer?.id
+                        ? `/admin/users/${decision.reviewer.id}`
+                        : null
+                    }
                   />
                   <p className={`mt-1 text-xs ${mutedClass}`}>
                     {decision.reviewedAt

@@ -4,6 +4,8 @@
  */
 
 export type AdminRequestReviewer = {
+  /** User id for /admin/users/[id] links when known. */
+  id?: string | null;
   fullName: string;
   email: string;
   universityCard: string | null;

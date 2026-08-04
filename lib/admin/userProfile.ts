@@ -49,6 +49,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         updatedAt: users.updatedAt,
         updatedBy: users.updatedBy,
         statusReviewedAt: users.statusReviewedAt,
+        actorId: signupDecisionUsers.id,
         actorFullName: signupDecisionUsers.fullName,
         actorEmail: signupDecisionUsers.email,
         actorUniversityCard: signupDecisionUsers.universityCard,
@@ -102,6 +103,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         rejectionReason: adminRequests.rejectionReason,
         createdAt: adminRequests.createdAt,
         reviewedAt: adminRequests.reviewedAt,
+        reviewedBy: adminRequests.reviewedBy,
         reviewerFullName: adminRequestReviewerUsers.fullName,
         reviewerEmail: adminRequestReviewerUsers.email,
         reviewerUniversityCard: adminRequestReviewerUsers.universityCard,
@@ -150,6 +152,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
   const signupDecisionActor: AdminRequestReviewer | null =
     userRow?.actorEmail && userRow?.actorFullName
       ? {
+          id: userRow.actorId ?? null,
           fullName: userRow.actorFullName,
           email: userRow.actorEmail,
           universityCard: userRow.actorUniversityCard ?? null,
@@ -185,6 +188,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     reviewer:
       row.reviewerEmail && row.reviewerFullName
         ? ({
+            id: row.reviewedBy ?? null,
             fullName: row.reviewerFullName,
             email: row.reviewerEmail,
             universityCard: row.reviewerUniversityCard ?? null,

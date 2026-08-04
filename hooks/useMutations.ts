@@ -21,6 +21,7 @@ import {
   useQueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { queryKeys } from "@/lib/query/keys";
 import { createBook, updateBook } from "@/lib/admin/actions/book";
 import { bulkDeleteBooks } from "@/lib/admin/actions/bulk-operations";
@@ -395,6 +396,7 @@ export const useUpdateUserStatus = () => {
  */
 export const useApproveUser = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -409,12 +411,24 @@ export const useApproveUser = () => {
       }
       return { userId, status: "APPROVED" as const };
     },
-    onMutate: async ({ userId, userName }) =>
-      applyOptimisticSignupDecision(queryClient, {
+    onMutate: async ({ userId, userName }) => {
+      const su = session?.user as SessionUser | undefined;
+      const decisionActor =
+        su?.email && (su.name || su.email)
+          ? {
+              id: su.id ?? null,
+              fullName: su.name?.trim() || "Admin",
+              email: su.email,
+              universityCard: null as string | null,
+            }
+          : null;
+      return applyOptimisticSignupDecision(queryClient, {
         userId,
         status: "APPROVED",
         userName,
-      }),
+        decisionActor,
+      });
+    },
     onError: (error: Error, variables, context) => {
       rollbackOptimisticSignupDecision(queryClient, context);
       const userName = variables.userName || "User";
@@ -455,6 +469,7 @@ export const useApproveUser = () => {
  */
 export const useRejectUser = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -469,12 +484,24 @@ export const useRejectUser = () => {
       }
       return { userId, status: "REJECTED" as const };
     },
-    onMutate: async ({ userId, userName }) =>
-      applyOptimisticSignupDecision(queryClient, {
+    onMutate: async ({ userId, userName }) => {
+      const su = session?.user as SessionUser | undefined;
+      const decisionActor =
+        su?.email && (su.name || su.email)
+          ? {
+              id: su.id ?? null,
+              fullName: su.name?.trim() || "Admin",
+              email: su.email,
+              universityCard: null as string | null,
+            }
+          : null;
+      return applyOptimisticSignupDecision(queryClient, {
         userId,
         status: "REJECTED",
         userName,
-      }),
+        decisionActor,
+      });
+    },
     onError: (error: Error, variables, context) => {
       rollbackOptimisticSignupDecision(queryClient, context);
       const userName = variables.userName || "User";

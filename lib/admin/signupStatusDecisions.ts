@@ -56,6 +56,7 @@ export async function getRecentSignupStatusDecisions(
         universityId: applicantUsers.universityId,
         universityCard: applicantUsers.universityCard,
         createdAt: applicantUsers.createdAt,
+        actorId: decisionActorUsers.id,
         actorFullName: decisionActorUsers.fullName,
         actorEmail: decisionActorUsers.email,
         actorUniversityCard: decisionActorUsers.universityCard,
@@ -95,6 +96,7 @@ export async function getRecentSignupStatusDecisions(
           decisionActor:
             row.actorEmail && row.actorFullName
               ? {
+                  id: row.actorId ?? null,
                   fullName: row.actorFullName,
                   email: row.actorEmail,
                   universityCard: row.actorUniversityCard ?? null,

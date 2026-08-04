@@ -70,9 +70,10 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Signup decision attribution: `users.status_reviewed_by`/`status_reviewed_at` (migration `0011`); make-admin keeps `admin_requests.reviewed_by`/`reviewed_at`. Shared `AdminRequestReviewerAttribution` on make-admin, my-profile notice, Sign-up recent decisions, user 360.
 - Sign-up recent: applicant avatar+registered; filter null `decidedAt`; RQ `useSignupStatusDecisions`; seed stamps demo `status_reviewed_*`.
 - Signup decision ledger `user_status_decisions` (migration `0012`): approve/reject append; re-apply keeps history; Recent decisions read ledger.
-- Approve/reject: optimistic pending remove + signup-decisions prepend (rollback on error) then `await invalidateMutation("user.write")`.
+- Approve/reject: optimistic pending remove + signup-decisions prepend with **session decisionActor** (no “an admin” flash) then `await invalidateMutation("user.write")`.
 - REJECTED→PENDING via `requestRegistrationReview` + notice CTA; welcome email on signup (`lib/email/welcomeSignup.ts`); Approve/Reject/Return spinners await `invalidateMutation` (no stale flash).
-- Shared `PersonAttribution` (avatar · Name · email) for applicants + reviewers; `npm run admin-requests:purge -- <email>` clears settled make-admin history (demo-safe).
+- Shared `PersonAttribution` (avatar · Name · email); admin Recent cards link via explicit `href` to `/admin/users/[id]` (`text-blue-700 hover:underline`).
+- Ops: `npm run admin-requests:purge -- <email>`; `npm run signup-decisions:purge` [email?] clears Sign-up Recent ledger.
 - Decision emails: unique subject (`ISO` + nonce) + text actor; no `<img>`. Bulk approve/reject stamps review fields + emails.
 - Admin nav badges: All Users (make-admin pending), Sign-up Requests, Borrow Requests (SSR counts + RQ).
 - `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
@@ -83,4 +84,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Auth: tight title/`text-light-200` sub; `.auth-box` glass; `isProtectedDemoAccount` locks role/status + Approve. Lucide UI icons; brand logos kept.
 - Dev logging: `logging.serverFunctions: false` (no Server Action password dumps). `proxy.ts` matcher skips static assets.
 - Ops: `npm run user:delete -- <email>` FK-safe single-user wipe for re-signup tests (blocks demo accounts).
-- Agile V: C2 active; Gate 1 `GATE-0006`; tip `7091dd0`; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006`; tip uncommitted flicker/links/purge (prior `7091dd0`); Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
