@@ -19,6 +19,7 @@ import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
+import PersonAttribution from "@/components/PersonAttribution";
 import AdminRequestDeclineDialog from "@/components/admin/AdminRequestDeclineDialog";
 import {
   AlertDialog,
@@ -579,12 +580,16 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1">
                     <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                      <h4 className="text-sm font-medium text-yellow-900 sm:text-base">
-                        {request.userFullName}
-                      </h4>
-                      <span className="text-xs text-yellow-700 sm:text-sm">
-                        ({request.userEmail})
-                      </span>
+                      <PersonAttribution
+                        person={{
+                          fullName: request.userFullName,
+                          email: request.userEmail,
+                          universityCard: request.userUniversityCard ?? null,
+                        }}
+                        size={28}
+                        className="text-sm text-yellow-800"
+                        textClassName="text-yellow-900"
+                      />
                     </div>
                     <p className="mb-2 text-xs text-yellow-800 sm:text-sm">
                       <strong>Reason:</strong> {request.requestReason}
@@ -697,12 +702,16 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                       )}
                       {statusLabel}
                     </span>
-                    <h4 className={`text-sm font-medium sm:text-base ${textClass}`}>
-                      {decision.userFullName}
-                    </h4>
-                    <span className={`text-xs sm:text-sm ${mutedClass}`}>
-                      ({decision.userEmail})
-                    </span>
+                    <PersonAttribution
+                      person={{
+                        fullName: decision.userFullName,
+                        email: decision.userEmail,
+                        universityCard: decision.userUniversityCard ?? null,
+                      }}
+                      size={28}
+                      className={`text-sm ${mutedClass}`}
+                      textClassName={textClass}
+                    />
                   </div>
                   <p
                     className={`mb-1 text-xs sm:text-sm ${mutedClass}`}

@@ -65,6 +65,8 @@ export interface AdminRequest {
   userId: string;
   userEmail: string;
   userFullName: string;
+  /** Applicant university card for PersonAttribution avatar. */
+  userUniversityCard: string | null;
   requestReason: string;
   status: AdminRequestStatus;
   reviewedBy: string | null | undefined;
@@ -99,6 +101,7 @@ type AdminRequestSelectRow = {
   userId: string;
   userEmail: string;
   userFullName: string;
+  userUniversityCard: string | null;
   requestReason: string;
   status: AdminRequestStatus;
   reviewedBy: string | null;
@@ -116,6 +119,7 @@ const adminRequestSelect = {
   userId: adminRequests.userId,
   userEmail: applicantUsers.email,
   userFullName: applicantUsers.fullName,
+  userUniversityCard: applicantUsers.universityCard,
   requestReason: adminRequests.requestReason,
   status: adminRequests.status,
   reviewedBy: adminRequests.reviewedBy,
@@ -143,6 +147,7 @@ function mapAdminRequest(row: AdminRequestSelectRow): AdminRequest {
     userId: row.userId,
     userEmail: row.userEmail,
     userFullName: row.userFullName,
+    userUniversityCard: row.userUniversityCard ?? null,
     requestReason: row.requestReason,
     status: row.status as AdminRequestStatus,
     reviewedBy: row.reviewedBy,

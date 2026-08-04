@@ -94,6 +94,28 @@ export const users = pgTable("users", {
 });
 
 /**
+ * User Status Decisions (signup approve/reject ledger)
+ *
+ * Append-only history for library registration decisions.
+ * Survives REJECTED → PENDING re-apply (unlike users.status_reviewed_* alone).
+ * Migration: 0012_user_status_decisions.sql
+ */
+export const userStatusDecisions = pgTable("user_status_decisions", {
+  id: uuid("id").notNull().primaryKey().defaultRandom().unique(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  // Reuses status enum; application only writes APPROVED | REJECTED
+  decision: STATUS_ENUM("decision").notNull(),
+  decidedBy: uuid("decided_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  decidedAt: timestamp("decided_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/**
  * Books Table
  * 
  * Stores the library catalog with all book information

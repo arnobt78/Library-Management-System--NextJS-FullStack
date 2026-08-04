@@ -26,6 +26,7 @@
     "test:watch": "vitest",
     "seed:reset": "tsx scripts/reset-and-seed.ts",
     "user:delete": "tsx scripts/delete-user-by-email.ts",
+    "admin-requests:purge": "tsx scripts/purge-admin-request-history.ts",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"

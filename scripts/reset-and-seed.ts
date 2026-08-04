@@ -73,6 +73,10 @@ async function main() {
   await db.execute(sql`DELETE FROM admin_requests`);
   console.log("  ✓ admin_requests cleared");
 
+  // signup decision ledger references users
+  await db.execute(sql`DELETE FROM user_status_decisions`);
+  console.log("  ✓ user_status_decisions cleared");
+
   // books (all FK children already deleted)
   await db.execute(sql`DELETE FROM books`);
   console.log("  ✓ books cleared");
@@ -166,6 +170,20 @@ async function main() {
       AND u.status = 'APPROVED'
   `);
   console.log("  ✓ status_reviewed_* stamped to test@admin.com");
+
+  // Seed signup decision ledger (Recent decisions UI reads this, not users alone)
+  await db.execute(sql`
+    INSERT INTO user_status_decisions (user_id, decision, decided_by, decided_at)
+    SELECT
+      u.id,
+      'APPROVED',
+      u.status_reviewed_by,
+      COALESCE(u.status_reviewed_at, u.created_at, NOW())
+    FROM users AS u
+    WHERE u.email IN ('test@user.com', 'test@admin.com')
+      AND u.status = 'APPROVED'
+  `);
+  console.log("  ✓ user_status_decisions seeded for demo accounts");
 
   console.log("\nreset-and-seed complete.");
   await pool.end();

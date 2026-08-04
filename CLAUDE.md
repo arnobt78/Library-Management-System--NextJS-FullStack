@@ -39,6 +39,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - REQ-0025 uses DB-backed actors, owner/admin policy, row locks, atomic lifecycle writes, and environment-only CLI secrets.
 - Migration `0010_reservations.sql` was applied and schema-verified on the configured database on 2026-08-02; apply it separately to any other environment before matching code. `0010_reservations.down.sql` is the C2 rollback.
 - Migration `0011_user_status_review.sql` on shared DB (2026-08-04): `status_reviewed_by`/`status_reviewed_at`. Down: `0011_user_status_review.down.sql`.
+- Migration `0012_user_status_decisions.sql` on shared DB (2026-08-04): append-only signup decision ledger. Down: `0012_user_status_decisions.down.sql`.
 - Full Verify is 27/27 PASS; Gate 2 is approved (`GATE-0004`); accepted implementation is `d9b9fd9`; C1 is archived.
 - C2 REQ-0026–0033 Gate 1 is approved (`GATE-0006`); final local Prove passes: types, lint, 84 tests, 10 PostgreSQL tests repeated across 10 stress runs, audit 0, Next 16.2.12 build.
 - C2 adds scrypt rehash-on-login, safe status/media boundaries, typed mutation registry, server-first/Suspense routes, user 360, FIFO reservations/renewals with command ledger/outbox, deterministic insights, and PostgreSQL telemetry/SLO calculation.
@@ -68,7 +69,10 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Borrow RQ (`useUserBorrows`/`useBorrowRecords`): `enabled` only when effective status is `APPROVED` (prop/SSR preferred over session). Book detail passes SSR `userStatus`. My-profile loads DB status; PENDING/REJECTED get KPI zeros + notice tabs (no 403/red error).
 - Signup decision attribution: `users.status_reviewed_by`/`status_reviewed_at` (migration `0011`); make-admin keeps `admin_requests.reviewed_by`/`reviewed_at`. Shared `AdminRequestReviewerAttribution` on make-admin, my-profile notice, Sign-up recent decisions, user 360.
 - Sign-up recent: applicant avatar+registered; filter null `decidedAt`; RQ `useSignupStatusDecisions`; seed stamps demo `status_reviewed_*`.
-- REJECTED→PENDING via `requestRegistrationReview` + notice CTA; welcome email on signup (`lib/email/welcomeSignup.ts`); Approve/Reject/Return spinners + optimistic pending remove.
+- Signup decision ledger `user_status_decisions` (migration `0012`): approve/reject append; re-apply keeps history; Recent decisions read ledger.
+- Approve/reject: optimistic pending remove + signup-decisions prepend (rollback on error) then `await invalidateMutation("user.write")`.
+- REJECTED→PENDING via `requestRegistrationReview` + notice CTA; welcome email on signup (`lib/email/welcomeSignup.ts`); Approve/Reject/Return spinners await `invalidateMutation` (no stale flash).
+- Shared `PersonAttribution` (avatar · Name · email) for applicants + reviewers; `npm run admin-requests:purge -- <email>` clears settled make-admin history (demo-safe).
 - Decision emails: unique subject (`ISO` + nonce) + text actor; no `<img>`. Bulk approve/reject stamps review fields + emails.
 - Admin nav badges: All Users (make-admin pending), Sign-up Requests, Borrow Requests (SSR counts + RQ).
 - `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
@@ -79,4 +83,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Auth: tight title/`text-light-200` sub; `.auth-box` glass; `isProtectedDemoAccount` locks role/status + Approve. Lucide UI icons; brand logos kept.
 - Dev logging: `logging.serverFunctions: false` (no Server Action password dumps). `proxy.ts` matcher skips static assets.
 - Ops: `npm run user:delete -- <email>` FK-safe single-user wipe for re-signup tests (blocks demo accounts).
-- Agile V: C2 active; Gate 1 `GATE-0006`; tip `683655d`; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006`; tip uncommitted spinner/ledger UX (prior `683655d`); Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.

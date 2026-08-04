@@ -353,6 +353,8 @@ export interface AdminRequest {
   userId: string;
   userEmail: string;
   userFullName: string;
+  /** Applicant card path for PersonAttribution avatar. */
+  userUniversityCard?: string | null;
   requestReason: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   reviewedBy: string | null | undefined;

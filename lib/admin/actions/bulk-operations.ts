@@ -6,7 +6,15 @@
  */
 
 import { db } from "@/database/drizzle";
-import { books, users, borrowRecords, bookReviews, reservations, reservationEvents } from "@/database/schema";
+import {
+  books,
+  users,
+  userStatusDecisions,
+  borrowRecords,
+  bookReviews,
+  reservations,
+  reservationEvents,
+} from "@/database/schema";
 import { eq, sql, inArray, and } from "drizzle-orm";
 import { after } from "next/server";
 import { verifyAdminDeleteSecret } from "../verifyAdminDeleteSecret";
@@ -211,6 +219,17 @@ export async function bulkUpdateUsers(
       })
       .where(inArray(users.id, safeUserIds));
 
+    if (updates.status === "APPROVED" || updates.status === "REJECTED") {
+      await db.insert(userStatusDecisions).values(
+        safeUserIds.map((id) => ({
+          userId: id,
+          decision: updates.status as "APPROVED" | "REJECTED",
+          decidedBy: actor.id,
+          decidedAt,
+        })),
+      );
+    }
+
     revalidateMutationPaths("user.write");
     return {
       success: true,
@@ -263,6 +282,18 @@ export async function bulkApproveUsers(userIds: string[]) {
         statusReviewedAt: decidedAt,
       })
       .where(inArray(users.id, eligibleIds));
+
+    // Append-only ledger rows (one per approved user this batch)
+    if (eligibleIds.length > 0) {
+      await db.insert(userStatusDecisions).values(
+        eligibleIds.map((id) => ({
+          userId: id,
+          decision: "APPROVED" as const,
+          decidedBy: actor.id,
+          decidedAt,
+        })),
+      );
+    }
 
     revalidateMutationPaths("user.write");
 
@@ -335,6 +366,17 @@ export async function bulkRejectUsers(userIds: string[]) {
         statusReviewedAt: decidedAt,
       })
       .where(inArray(users.id, eligibleIds));
+
+    if (eligibleIds.length > 0) {
+      await db.insert(userStatusDecisions).values(
+        eligibleIds.map((id) => ({
+          userId: id,
+          decision: "REJECTED" as const,
+          decidedBy: actor.id,
+          decidedAt,
+        })),
+      );
+    }
 
     revalidateMutationPaths("user.write");
 

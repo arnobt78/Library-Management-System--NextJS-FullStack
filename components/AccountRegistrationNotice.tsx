@@ -1,6 +1,7 @@
 /**
  * Glass registration-pending / rejected notice — make-admin locked UX + my-profile shell.
  * REJECTED includes prior decision actor + “Request approval again” CTA (→ PENDING).
+ * Spinner stays until mutation + invalidate + router.refresh finish (no stale REJECTED flash).
  */
 
 "use client";
@@ -11,6 +12,7 @@ import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { formatBorrowDateTime } from "@/lib/profile/formatBorrowDates";
 import { useRequestRegistrationReview } from "@/hooks/useMutations";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Clock, Loader2, RotateCcw, User, XCircle } from "lucide-react";
 
 export type RegistrationNoticeStatus = "PENDING" | "REJECTED";
@@ -69,12 +71,21 @@ export default function AccountRegistrationNotice({
   const isPending = accountStatus === "PENDING";
   const router = useRouter();
   const reapplyMutation = useRequestRegistrationReview();
+  // Stay busy until parent RSC re-renders with PENDING (avoids REJECTED flash)
+  const [awaitingPendingShell, setAwaitingPendingShell] = useState(false);
+  const busy =
+    reapplyMutation.isPending ||
+    (awaitingPendingShell && accountStatus === "REJECTED");
 
   const handleReapply = () => {
+    setAwaitingPendingShell(true);
     reapplyMutation.mutate(undefined, {
       onSuccess: () => {
-        // Refresh RSC shells (make-admin / my-profile) after REJECTED → PENDING
+        // Hook already awaited user.write; refresh SSR shells next
         router.refresh();
+      },
+      onError: () => {
+        setAwaitingPendingShell(false);
       },
     });
   };
@@ -150,17 +161,15 @@ export default function AccountRegistrationNotice({
               <button
                 type="button"
                 onClick={handleReapply}
-                disabled={reapplyMutation.isPending}
+                disabled={busy}
                 className="profile-action-btn profile-action-btn--submit inline-flex items-center gap-1.5 disabled:opacity-50"
               >
-                {reapplyMutation.isPending ? (
+                {busy ? (
                   <Loader2 className="size-3.5 animate-spin sm:size-4" />
                 ) : (
                   <RotateCcw className="size-3.5 sm:size-4" />
                 )}
-                {reapplyMutation.isPending
-                  ? "Requesting…"
-                  : "Request approval again"}
+                {busy ? "Requesting…" : "Request approval again"}
               </button>
             </div>
           </>

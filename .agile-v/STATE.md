@@ -7,7 +7,7 @@
 - Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed; await owner next instruction; C2 Gate 2 blocked by nonlocal EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: `683655d` (welcome email + REJECTED re-apply + applicant recent cards + action spinners)
+- Latest known tip: uncommitted spinner/ledger UX (`0012` + await invalidate + PersonAttribution); prior `683655d`
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
@@ -50,5 +50,6 @@ Owner-directed: await new instruction (no synthesis until directed). Default inc
 - `/make-admin`: `requireSignedInActor`; PENDING/REJECTED `AccountRegistrationNotice` + locked form; signup/make-admin reviewer strips; APPROVED form create/cancel.
 - Signup attribution: migration `0011` `status_reviewed_*`; emails unique subject + text actor; Sign-up recent decisions + user 360.
 - Signup polish: applicant recent cards + RQ; welcome Brevo email; REJECTED→PENDING re-apply CTA; Approve/Reject/Return spinners; seed stamps `status_reviewed_*`.
+- Signup ledger `0012` + await-invalidate spinners; `PersonAttribution`; `admin-requests:purge` for demo history clutter.
 - Borrow RQ APPROVED-only (SSR/prop status); PENDING my-profile friendly shell (no 403 console / red error).
 - `user.write` RSC includes `/make-admin` + `/admin/account-requests`; `admin-request.write` → `/make-admin` + `/admin/users` + `/admin/users/[id]`; `npm run user:delete`; `logging.serverFunctions: false`.

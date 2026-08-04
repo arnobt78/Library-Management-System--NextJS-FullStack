@@ -38,7 +38,6 @@ import {
 } from "@/lib/admin/actions/admin-requests";
 import { updateUserRole, updateUserStatus } from "@/lib/admin/actions/user";
 import { requestRegistrationReview } from "@/lib/actions/registration";
-import type { User } from "@/lib/services/users";
 import { borrowBook } from "@/lib/actions/book";
 import {
   createReview,
@@ -60,6 +59,10 @@ import { resolveActionBookTitle, showToast } from "@/lib/toast";
 import {
   invalidateMutation,
 } from "@/lib/utils/queryInvalidation";
+import {
+  applyOptimisticSignupDecision,
+  rollbackOptimisticSignupDecision,
+} from "@/lib/query/optimisticSignupDecision";
 // BookParams is a global type from types.d.ts, no import needed
 
 /**
@@ -278,9 +281,9 @@ export const useUpdateUserRole = () => {
       }
       return { userId, role };
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateMutation(queryClient, "user.write");
+      await invalidateMutation(queryClient, "user.write");
 
       // Show success toast
       const roleText = data.role === "ADMIN" ? "admin" : "regular user";
@@ -344,9 +347,9 @@ export const useUpdateUserStatus = () => {
       }
       return { userId, status };
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateMutation(queryClient, "user.write");
+      await invalidateMutation(queryClient, "user.write");
 
       // Show success toast
       const statusText =
@@ -406,22 +409,14 @@ export const useApproveUser = () => {
       }
       return { userId, status: "APPROVED" as const };
     },
-    onMutate: async ({ userId }) => {
-      // Optimistic remove from pending signup queue
-      await queryClient.cancelQueries({ queryKey: queryKeys.users.pendingRoot });
-      const previous = queryClient.getQueriesData<User[]>({
-        queryKey: queryKeys.users.pendingRoot,
-      });
-      queryClient.setQueriesData<User[]>(
-        { queryKey: queryKeys.users.pendingRoot },
-        (old) => (old ? old.filter((u) => u.id !== userId) : old),
-      );
-      return { previous };
-    },
+    onMutate: async ({ userId, userName }) =>
+      applyOptimisticSignupDecision(queryClient, {
+        userId,
+        status: "APPROVED",
+        userName,
+      }),
     onError: (error: Error, variables, context) => {
-      context?.previous?.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data);
-      });
+      rollbackOptimisticSignupDecision(queryClient, context);
       const userName = variables.userName || "User";
       showToast.error(
         "Approval Failed",
@@ -429,8 +424,9 @@ export const useApproveUser = () => {
           `Unable to approve ${userName}'s account. Please try again.`,
       );
     },
-    onSuccess: (_data, variables) => {
-      invalidateMutation(queryClient, "user.write");
+    onSuccess: async (_data, variables) => {
+      // Server ledger replaces optimistic row; await so spinners hold until sync
+      await invalidateMutation(queryClient, "user.write");
       const userName = variables.userName || "User";
       showToast.success(
         "User Approved",
@@ -473,21 +469,14 @@ export const useRejectUser = () => {
       }
       return { userId, status: "REJECTED" as const };
     },
-    onMutate: async ({ userId }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.users.pendingRoot });
-      const previous = queryClient.getQueriesData<User[]>({
-        queryKey: queryKeys.users.pendingRoot,
-      });
-      queryClient.setQueriesData<User[]>(
-        { queryKey: queryKeys.users.pendingRoot },
-        (old) => (old ? old.filter((u) => u.id !== userId) : old),
-      );
-      return { previous };
-    },
+    onMutate: async ({ userId, userName }) =>
+      applyOptimisticSignupDecision(queryClient, {
+        userId,
+        status: "REJECTED",
+        userName,
+      }),
     onError: (error: Error, variables, context) => {
-      context?.previous?.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data);
-      });
+      rollbackOptimisticSignupDecision(queryClient, context);
       const userName = variables.userName || "User";
       showToast.error(
         "Rejection Failed",
@@ -495,8 +484,8 @@ export const useRejectUser = () => {
           `Unable to reject ${userName}'s account. Please try again.`,
       );
     },
-    onSuccess: (_data, variables) => {
-      invalidateMutation(queryClient, "user.write");
+    onSuccess: async (_data, variables) => {
+      await invalidateMutation(queryClient, "user.write");
       const userName = variables.userName || "User";
       showToast.success(
         "User Rejected",
@@ -520,8 +509,8 @@ export const useRequestRegistrationReview = () => {
       }
       return result;
     },
-    onSuccess: () => {
-      invalidateMutation(queryClient, "user.write");
+    onSuccess: async () => {
+      await invalidateMutation(queryClient, "user.write");
       showToast.success(
         "Approval requested",
         "Your registration is waiting for librarian review again.",
@@ -813,9 +802,9 @@ export const useApproveBorrow = () => {
       }
       return { recordId };
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (borrows, books, reviews, analytics, admin)
-      invalidateMutation(queryClient, "borrow.lifecycle");
+    onSuccess: async (data, variables) => {
+      // Await so row spinners stay until lists refetch
+      await invalidateMutation(queryClient, "borrow.lifecycle");
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -873,9 +862,8 @@ export const useRejectBorrow = () => {
       }
       return { recordId };
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (borrows, books, reviews, analytics, admin)
-      invalidateMutation(queryClient, "borrow.lifecycle");
+    onSuccess: async (data, variables) => {
+      await invalidateMutation(queryClient, "borrow.lifecycle");
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -1219,8 +1207,8 @@ export const useCreateAdminRequest = () => {
       }
       return result;
     },
-    onSuccess: (_data, variables) => {
-      invalidateMutation(queryClient, "admin-request.write");
+    onSuccess: async (_data, variables) => {
+      await invalidateMutation(queryClient, "admin-request.write");
       showToast.admin.requestSubmitted(variables.userEmail);
     },
     onError: (error: Error) => {
@@ -1245,8 +1233,8 @@ export const useCancelMyAdminRequest = () => {
       }
       return result;
     },
-    onSuccess: () => {
-      invalidateMutation(queryClient, "admin-request.write");
+    onSuccess: async () => {
+      await invalidateMutation(queryClient, "admin-request.write");
       showToast.admin.requestCancelled();
     },
     onError: (error: Error) => {
@@ -1289,9 +1277,9 @@ export const useApproveAdminRequest = () => {
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (users, admin requests, admin stats)
-      invalidateMutation(queryClient, "admin-request.write");
+    onSuccess: async (data, variables) => {
+      // Await so dialogs stay open until pending + recent lists refetch
+      await invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -1349,9 +1337,8 @@ export const useRejectAdminRequest = () => {
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (users, admin requests, admin stats)
-      invalidateMutation(queryClient, "admin-request.write");
+    onSuccess: async (data, variables) => {
+      await invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -1404,9 +1391,8 @@ export const useRemoveAdminPrivileges = () => {
       }
       return { userId };
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (users, admin requests, admin stats)
-      invalidateMutation(queryClient, "admin-request.write");
+    onSuccess: async (data, variables) => {
+      await invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
       const userName = variables.userName || "User";

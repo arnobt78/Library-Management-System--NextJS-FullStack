@@ -16,7 +16,8 @@ import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 
 /**
  * Rejected applicants can request librarian review again.
- * Clears durable statusReviewed* so a new decision can be recorded.
+ * Clears durable statusReviewed* for the current cycle notice UX.
+ * Append-only user_status_decisions ledger rows are kept (admin Recent decisions).
  */
 export async function requestRegistrationReview(): Promise<{
   success: boolean;

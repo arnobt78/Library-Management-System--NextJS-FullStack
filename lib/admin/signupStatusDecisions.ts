@@ -2,23 +2,25 @@
 
 /**
  * Recent library signup APPROVED/REJECTED decisions for admin Sign-up Requests UI.
- * Parallel to getRecentAdminRequestDecisions (make-admin history on All Users).
- * Only rows with status_reviewed_at are returned (hides seed noise without attribution).
+ * Reads append-only user_status_decisions ledger (survives REJECTED → PENDING re-apply).
  */
 
 import { db } from "@/database/drizzle";
-import { users } from "@/database/schema";
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { users, userStatusDecisions } from "@/database/schema";
+import { desc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { requireAdminActor } from "@/lib/auth/authorization";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
 const RECENT_SIGNUP_DECISIONS_LIMIT = 25;
 
+const applicantUsers = alias(users, "signup_status_decision_applicant");
 const decisionActorUsers = alias(users, "signup_status_decision_actor");
 
 export type SignupStatusDecision = {
+  /** Ledger row id (stable across re-apply). */
   id: string;
+  userId: string;
   fullName: string;
   email: string;
   universityId: number;
@@ -45,46 +47,49 @@ export async function getRecentSignupStatusDecisions(
 
     const rows = await db
       .select({
-        id: users.id,
-        fullName: users.fullName,
-        email: users.email,
-        universityId: users.universityId,
-        universityCard: users.universityCard,
-        status: users.status,
-        createdAt: users.createdAt,
-        decidedAt: users.statusReviewedAt,
+        id: userStatusDecisions.id,
+        userId: userStatusDecisions.userId,
+        decision: userStatusDecisions.decision,
+        decidedAt: userStatusDecisions.decidedAt,
+        fullName: applicantUsers.fullName,
+        email: applicantUsers.email,
+        universityId: applicantUsers.universityId,
+        universityCard: applicantUsers.universityCard,
+        createdAt: applicantUsers.createdAt,
         actorFullName: decisionActorUsers.fullName,
         actorEmail: decisionActorUsers.email,
         actorUniversityCard: decisionActorUsers.universityCard,
       })
-      .from(users)
+      .from(userStatusDecisions)
+      .innerJoin(
+        applicantUsers,
+        eq(userStatusDecisions.userId, applicantUsers.id),
+      )
       .leftJoin(
         decisionActorUsers,
-        eq(users.statusReviewedBy, decisionActorUsers.id),
+        eq(userStatusDecisions.decidedBy, decisionActorUsers.id),
       )
-      .where(
-        and(
-          inArray(users.status, ["APPROVED", "REJECTED"]),
-          isNotNull(users.statusReviewedAt),
-        ),
-      )
-      .orderBy(desc(users.statusReviewedAt))
+      .where(inArray(userStatusDecisions.decision, ["APPROVED", "REJECTED"]))
+      .orderBy(desc(userStatusDecisions.decidedAt))
       .limit(safeLimit);
 
     return {
       success: true,
       data: rows
         .filter(
-          (row): row is typeof row & { status: "APPROVED" | "REJECTED" } =>
-            row.status === "APPROVED" || row.status === "REJECTED",
+          (
+            row,
+          ): row is typeof row & { decision: "APPROVED" | "REJECTED" } =>
+            row.decision === "APPROVED" || row.decision === "REJECTED",
         )
         .map((row) => ({
           id: row.id,
+          userId: row.userId,
           fullName: row.fullName,
           email: row.email,
           universityId: row.universityId,
           universityCard: row.universityCard ?? null,
-          status: row.status,
+          status: row.decision,
           createdAt: row.createdAt,
           decidedAt: row.decidedAt ?? null,
           decisionActor:

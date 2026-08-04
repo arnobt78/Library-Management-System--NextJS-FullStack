@@ -92,6 +92,15 @@ async function main() {
       `UPDATE admin_requests SET reviewed_by = NULL WHERE reviewed_by = $1`,
       [userId],
     );
+    await client.query(
+      `UPDATE users SET status_reviewed_by = NULL WHERE status_reviewed_by = $1`,
+      [userId],
+    );
+    // Ledger decided_by is ON DELETE SET NULL; still clear explicitly for clarity.
+    await client.query(
+      `UPDATE user_status_decisions SET decided_by = NULL WHERE decided_by = $1`,
+      [userId],
+    );
 
     // Outbox rows for this user's reservations
     const reservationEvents = await client.query(
@@ -151,6 +160,12 @@ async function main() {
       [userId],
     );
     console.log(`  ✓ admin_requests (${adminRequests.rowCount ?? 0})`);
+
+    const statusDecisions = await client.query(
+      `DELETE FROM user_status_decisions WHERE user_id = $1`,
+      [userId],
+    );
+    console.log(`  ✓ user_status_decisions (${statusDecisions.rowCount ?? 0})`);
 
     const deleted = await client.query(`DELETE FROM users WHERE id = $1`, [
       userId,

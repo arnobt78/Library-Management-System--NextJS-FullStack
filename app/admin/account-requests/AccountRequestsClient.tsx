@@ -42,7 +42,7 @@ import { usePendingUsers, useSignupStatusDecisions } from "@/hooks/useQueries";
 import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
-import UserAvatar from "@/components/UserAvatar";
+import PersonAttribution from "@/components/PersonAttribution";
 import type { User as UserType } from "@/lib/services/users";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 
@@ -424,21 +424,16 @@ const AccountRequestsClient = ({
                         )}
                         {approved ? "Approved" : "Rejected"}
                       </span>
-                      <UserAvatar
-                        universityCard={decision.universityCard}
-                        fullName={decision.fullName}
-                        email={decision.email}
+                      <PersonAttribution
+                        person={{
+                          fullName: decision.fullName,
+                          email: decision.email,
+                          universityCard: decision.universityCard,
+                        }}
                         size={28}
-                        className="shrink-0 border border-gray-200"
+                        className={`text-sm ${mutedClass}`}
+                        textClassName={textClass}
                       />
-                      <h4
-                        className={`text-sm font-medium sm:text-base ${textClass}`}
-                      >
-                        {decision.fullName}
-                      </h4>
-                      <span className={`text-xs sm:text-sm ${mutedClass}`}>
-                        ({decision.email})
-                      </span>
                     </div>
                     {registered ? (
                       <p className={`mb-1 text-xs sm:text-sm ${mutedClass}`}>

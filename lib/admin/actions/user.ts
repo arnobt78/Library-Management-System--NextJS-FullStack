@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/database/drizzle";
-import { users } from "@/database/schema";
+import { users, userStatusDecisions } from "@/database/schema";
 import { eq, desc } from "drizzle-orm";
 import { after } from "next/server";
 import {
@@ -21,7 +21,7 @@ const DEMO_ACCOUNT_LOCKED =
 
 export const updateUserRole = async (
   userId: string,
-  role: "USER" | "ADMIN"
+  role: "USER" | "ADMIN",
 ) => {
   try {
     const actor = await requireAdminActor();
@@ -68,7 +68,7 @@ export const updateUserRole = async (
 
 export const updateUserStatus = async (
   userId: string,
-  status: "PENDING" | "APPROVED" | "REJECTED"
+  status: "PENDING" | "APPROVED" | "REJECTED",
 ) => {
   try {
     const actor = await requireAdminActor();
@@ -109,20 +109,35 @@ export const updateUserStatus = async (
             statusReviewedAt: null,
           };
 
-    const updated = await db
-      .update(users)
-      .set({
-        status,
-        updatedAt: decidedAt,
-        updatedBy: actor.email,
-        ...statusReviewPatch,
-      })
-      .where(eq(users.id, safeUserId))
-      .returning({ id: users.id });
+    // Atomic user stamp + ledger insert so Recent decisions survive re-apply.
+    await db.transaction(async (tx) => {
+      const updated = await tx
+        .update(users)
+        .set({
+          status,
+          updatedAt: decidedAt,
+          updatedBy: actor.email,
+          ...statusReviewPatch,
+        })
+        .where(eq(users.id, safeUserId))
+        .returning({ id: users.id });
 
-    if (updated.length !== 1) {
-      return { success: false, error: "User not found" };
-    }
+      if (updated.length !== 1) {
+        throw new Error("User not found");
+      }
+
+      if (
+        previousStatus !== status &&
+        (status === "APPROVED" || status === "REJECTED")
+      ) {
+        await tx.insert(userStatusDecisions).values({
+          userId: safeUserId,
+          decision: status,
+          decidedBy: actor.id,
+          decidedAt,
+        });
+      }
+    });
 
     revalidateMutationPaths("user.write");
 
