@@ -7,7 +7,7 @@
 - Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed; await owner next instruction; C2 Gate 2 blocked by nonlocal EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: (pending) decision attribution `0011` + PENDING borrow/profile shell
+- Latest known tip: `f663c61` (decision attribution `0011` + PENDING borrow/profile shell)
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
