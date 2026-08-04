@@ -86,6 +86,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.admin.stats,
     queryKeys.admin.requestsRoot,
     queryKeys.admin.pendingRequests,
+    queryKeys.admin.recentRequestDecisions,
     queryKeys.admin.fineConfig,
   ],
   analytics: [

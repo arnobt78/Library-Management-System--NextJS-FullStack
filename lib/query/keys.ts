@@ -60,6 +60,8 @@ export const queryKeys = {
     stats: ["admin-stats"] as const,
     requestsRoot: ["admin-requests"] as const,
     pendingRequests: ["pending-admin-requests"] as const,
+    /** Recent APPROVED/REJECTED make-admin decisions (reviewer attribution). */
+    recentRequestDecisions: ["admin-request-decisions"] as const,
     analytics: ["admin-analytics"] as const,
     businessInsightsRoot: ["business-insights"] as const,
     businessInsights: <TOptions>(options: TOptions) =>

@@ -74,3 +74,7 @@
 | DEC-0070 | 2026-08-04 | C2 | Build Agent JS | Manual @sentry/nextjs + tunnelRoute /api/monitoring; no PostHog/Redis cache | Ad-blocker bypass; CSP stays connect-src self; guide §2 outdated for Next 16 | REQ-0032 |
 | DEC-0071 | 2026-08-04 | C2 | Build Agent JS | Freeze demo seed role+status; Lucide for UI icons; keep brand SVG logos | Showcase accounts must stay USER/ADMIN APPROVED | REQ-0033 |
 | DEC-0072 | 2026-08-04 | C2 | Build Agent JS | Signup subtitle = browse/approval+demo; auth-box frost glass /35 blur-md; sign-in Test Accounts copy | Dark-on-dark needed stronger frost; leave after visual OK | REQ-0033 |
+| DEC-0073 | 2026-08-04 | C2 | Build Agent JS | Block approveAdminRequest for demo emails; UI disable Approve; keep Decline+Create/Cancel | Approve bypassed role lock and could strand USER as ADMIN | REQ-0033 |
+| DEC-0074 | 2026-08-04 | C2 | Build Agent JS | make-admin inline badges; glass benefit chips; reject banner + reviewedBy join | Clearer demo UX; attribution needs SSR reviewer join | REQ-0033 |
+| DEC-0075 | 2026-08-04 | C2 | Build Agent JS | /admin/users Recent decisions + reviewer join; API scope=decisions; RQ key under admin domain | Sticky attribution baseline; pending cards stay action-only | REQ-0033 |
+| DEC-0076 | 2026-08-04 | C2 | Build Agent JS | Decline dialog + default reason Zod; Approve confirm; after() Brevo→Resend decision email | Applicant needs meaningful Reason + receipt without blocking mutation | REQ-0033 |

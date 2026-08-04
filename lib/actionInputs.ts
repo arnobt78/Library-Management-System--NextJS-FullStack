@@ -14,7 +14,11 @@ const profilePaginationSchema = z.object({
   size: z.coerce.number().int().min(1).max(50),
 });
 
+/** Applicant request reason and admin decline note (same bounds). */
 export const adminRequestReasonSchema = z.string().trim().min(10).max(1000);
+
+/** Alias for rejectAdminRequest note validation. */
+export const adminRejectionReasonSchema = adminRequestReasonSchema;
 
 export function parseEntityId(value: unknown): string {
   return entityIdSchema.parse(value);

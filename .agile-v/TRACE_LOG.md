@@ -74,3 +74,7 @@
 | SPAN-0068 | 2026-08-04 | C2 | 3 observability | Build Agent JS | Sentry SDK + /api/monitoring tunnel + global-error + env docs | require_parent_requirement | REQ-0032 | PASS; tip `cda88af` |
 | SPAN-0069 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Auth header/note; demo locks; Lucide icons; drop unused public SVGs | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |
 | SPAN-0070 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Auth glass/demo locks/Lucide + sign-in demo subtitle | require_parent_requirement | REQ-0033 | PASS; tip `a21b6ca` |
+| SPAN-0071 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Demo Approve lock server+UI; make-admin showcase note | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |
+| SPAN-0072 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | make-admin badges/chips; reject banner + reviewer SSR join | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |
+| SPAN-0073 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Admin Recent decisions + reviewer join/API/hook/invalidation | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |
+| SPAN-0074 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Decline dialog/Approve confirm + decision emails after() | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |

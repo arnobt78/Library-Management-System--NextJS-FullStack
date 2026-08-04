@@ -4,10 +4,10 @@
 - Cycle: C2
 - Stage: 4 - Prove and independent Verify
 - SCOPE-V phase: Evaluate
-- Status: ACTIVE - Stage 3 UX polish under REQ-0033 (auth glass/demo locks/Lucide); C2 Gate 2 still blocked by nonlocal production evidence
+- Status: ACTIVE - Stage 3 UX polish under REQ-0033 (make-admin attribution + decline/email); C2 Gate 2 still blocked by nonlocal production evidence
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: `a21b6ca` (auth glass, demo locks, Lucide)
+- Latest known tip: pending commit (make-admin UX + admin-request decisions/email)
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)

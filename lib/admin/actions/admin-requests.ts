@@ -1,20 +1,61 @@
 "use server";
 
+/**
+ * Admin-request server actions: create / list / approve / reject / cancel.
+ * List payloads left-join reviewer (reviewedBy) for attribution on admin UI + /make-admin.
+ */
+
 import { db } from "@/database/drizzle";
 import { adminRequests, users } from "@/database/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   getActionErrorMessage,
   requireAdminActor,
   requireAuthenticatedActor,
 } from "@/lib/auth/authorization";
+import { after } from "next/server";
 import {
+  adminRejectionReasonSchema,
   adminRequestReasonSchema,
   parseEntityId,
 } from "@/lib/actionInputs";
-import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
+import {
+  ADMIN_REQUEST_WITHDRAWN_REASON,
+  RECENT_ADMIN_REQUEST_DECISIONS_LIMIT,
+} from "@/lib/admin/adminRequestConstants";
+import { notifyAdminRequestDecision } from "@/lib/admin/adminRequestEmails";
+import type {
+  AdminRequestReviewer,
+  AdminRequestStatus,
+} from "@/lib/admin/adminRequestTypes";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { isProtectedDemoAccount } from "@/constants";
+
+/** Non-blocking applicant email after approve/reject (failures never fail the action). */
+function scheduleAdminRequestDecisionEmail(
+  data: AdminRequest | undefined,
+): void {
+  if (!data?.userEmail) return;
+  if (data.status !== "APPROVED" && data.status !== "REJECTED") return;
+
+  const decision: "APPROVED" | "REJECTED" = data.status;
+
+  after(async () => {
+    await notifyAdminRequestDecision({
+      to: data.userEmail,
+      fullName: data.userFullName,
+      status: decision,
+      requestId: data.id,
+      reviewedAt: data.reviewedAt,
+      rejectionReason:
+        decision === "REJECTED" ? data.rejectionReason : null,
+    });
+  });
+}
+
+const applicantUsers = users;
+const reviewerUsers = alias(users, "admin_request_reviewer");
 
 export interface AdminRequest {
   id: string;
@@ -22,12 +63,14 @@ export interface AdminRequest {
   userEmail: string;
   userFullName: string;
   requestReason: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: AdminRequestStatus;
   reviewedBy: string | null | undefined;
   reviewedAt: Date | null | undefined;
   rejectionReason: string | null | undefined;
   createdAt: Date | null;
   updatedAt: Date | null;
+  /** Null while PENDING or when reviewer row is missing (legacy). */
+  reviewer: AdminRequestReviewer | null;
 }
 
 export interface CreateAdminRequestResult {
@@ -46,6 +89,82 @@ export interface UpdateAdminRequestResult {
   success: boolean;
   error?: string;
   data?: AdminRequest;
+}
+
+type AdminRequestSelectRow = {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userFullName: string;
+  requestReason: string;
+  status: AdminRequestStatus;
+  reviewedBy: string | null;
+  reviewedAt: Date | null;
+  rejectionReason: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  reviewerFullName: string | null;
+  reviewerEmail: string | null;
+  reviewerUniversityCard: string | null;
+};
+
+const adminRequestSelect = {
+  id: adminRequests.id,
+  userId: adminRequests.userId,
+  userEmail: applicantUsers.email,
+  userFullName: applicantUsers.fullName,
+  requestReason: adminRequests.requestReason,
+  status: adminRequests.status,
+  reviewedBy: adminRequests.reviewedBy,
+  reviewedAt: adminRequests.reviewedAt,
+  rejectionReason: adminRequests.rejectionReason,
+  createdAt: adminRequests.createdAt,
+  updatedAt: adminRequests.updatedAt,
+  reviewerFullName: reviewerUsers.fullName,
+  reviewerEmail: reviewerUsers.email,
+  reviewerUniversityCard: reviewerUsers.universityCard,
+};
+
+function mapReviewer(row: AdminRequestSelectRow): AdminRequestReviewer | null {
+  if (!row.reviewerEmail || !row.reviewerFullName) return null;
+  return {
+    fullName: row.reviewerFullName,
+    email: row.reviewerEmail,
+    universityCard: row.reviewerUniversityCard ?? null,
+  };
+}
+
+function mapAdminRequest(row: AdminRequestSelectRow): AdminRequest {
+  return {
+    id: row.id,
+    userId: row.userId,
+    userEmail: row.userEmail,
+    userFullName: row.userFullName,
+    requestReason: row.requestReason,
+    status: row.status as AdminRequestStatus,
+    reviewedBy: row.reviewedBy,
+    reviewedAt: row.reviewedAt,
+    rejectionReason: row.rejectionReason,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    reviewer: mapReviewer(row),
+  };
+}
+
+/** Accepts db or transaction (both expose compatible `.select`). */
+async function selectAdminRequestById(
+  executor: Pick<typeof db, "select">,
+  requestId: string,
+): Promise<AdminRequest | undefined> {
+  const [row] = await executor
+    .select(adminRequestSelect)
+    .from(adminRequests)
+    .innerJoin(applicantUsers, eq(adminRequests.userId, applicantUsers.id))
+    .leftJoin(reviewerUsers, eq(adminRequests.reviewedBy, reviewerUsers.id))
+    .where(eq(adminRequests.id, requestId))
+    .limit(1);
+
+  return row ? mapAdminRequest(row as AdminRequestSelectRow) : undefined;
 }
 
 // Create a new admin request
@@ -98,26 +217,8 @@ export async function createAdminRequest(
         })
         .returning({ id: adminRequests.id });
 
-      const [fullRequest] = await tx
-        .select({
-          id: adminRequests.id,
-          userId: adminRequests.userId,
-          userEmail: users.email,
-          userFullName: users.fullName,
-          requestReason: adminRequests.requestReason,
-          status: adminRequests.status,
-          reviewedBy: adminRequests.reviewedBy,
-          reviewedAt: adminRequests.reviewedAt,
-          rejectionReason: adminRequests.rejectionReason,
-          createdAt: adminRequests.createdAt,
-          updatedAt: adminRequests.updatedAt,
-        })
-        .from(adminRequests)
-        .innerJoin(users, eq(adminRequests.userId, users.id))
-        .where(eq(adminRequests.id, newRequest.id))
-        .limit(1);
-
-      return { success: true, data: fullRequest };
+      const fullRequest = await selectAdminRequestById(tx, newRequest.id);
+      return { success: true as const, data: fullRequest };
     });
     if (result.success) revalidateMutationPaths("admin-request.write");
     return result;
@@ -134,27 +235,16 @@ export async function createAdminRequest(
 export async function getAllAdminRequests(): Promise<GetAdminRequestsResult> {
   try {
     await requireAdminActor();
-    const requests = await db
-      .select({
-        id: adminRequests.id,
-        userId: adminRequests.userId,
-        userEmail: users.email,
-        userFullName: users.fullName,
-        requestReason: adminRequests.requestReason,
-        status: adminRequests.status,
-        reviewedBy: adminRequests.reviewedBy,
-        reviewedAt: adminRequests.reviewedAt,
-        rejectionReason: adminRequests.rejectionReason,
-        createdAt: adminRequests.createdAt,
-        updatedAt: adminRequests.updatedAt,
-      })
+    const rows = await db
+      .select(adminRequestSelect)
       .from(adminRequests)
-      .innerJoin(users, eq(adminRequests.userId, users.id))
+      .innerJoin(applicantUsers, eq(adminRequests.userId, applicantUsers.id))
+      .leftJoin(reviewerUsers, eq(adminRequests.reviewedBy, reviewerUsers.id))
       .orderBy(desc(adminRequests.createdAt));
 
     return {
       success: true,
-      data: requests,
+      data: rows.map((row) => mapAdminRequest(row as AdminRequestSelectRow)),
     };
   } catch (error) {
     console.error("Error fetching admin requests:", error);
@@ -169,34 +259,58 @@ export async function getAllAdminRequests(): Promise<GetAdminRequestsResult> {
 export async function getPendingAdminRequests(): Promise<GetAdminRequestsResult> {
   try {
     await requireAdminActor();
-    const requests = await db
-      .select({
-        id: adminRequests.id,
-        userId: adminRequests.userId,
-        userEmail: users.email,
-        userFullName: users.fullName,
-        requestReason: adminRequests.requestReason,
-        status: adminRequests.status,
-        reviewedBy: adminRequests.reviewedBy,
-        reviewedAt: adminRequests.reviewedAt,
-        rejectionReason: adminRequests.rejectionReason,
-        createdAt: adminRequests.createdAt,
-        updatedAt: adminRequests.updatedAt,
-      })
+    const rows = await db
+      .select(adminRequestSelect)
       .from(adminRequests)
-      .innerJoin(users, eq(adminRequests.userId, users.id))
+      .innerJoin(applicantUsers, eq(adminRequests.userId, applicantUsers.id))
+      .leftJoin(reviewerUsers, eq(adminRequests.reviewedBy, reviewerUsers.id))
       .where(eq(adminRequests.status, "PENDING"))
       .orderBy(desc(adminRequests.createdAt));
 
     return {
       success: true,
-      data: requests,
+      data: rows.map((row) => mapAdminRequest(row as AdminRequestSelectRow)),
     };
   } catch (error) {
     console.error("Error fetching pending admin requests:", error);
     return {
       success: false,
       error: "Failed to fetch pending admin requests",
+    };
+  }
+}
+
+/**
+ * Recent APPROVED/REJECTED decisions for admin history UI (reviewer attribution).
+ */
+export async function getRecentAdminRequestDecisions(
+  limit: number = RECENT_ADMIN_REQUEST_DECISIONS_LIMIT,
+): Promise<GetAdminRequestsResult> {
+  try {
+    await requireAdminActor();
+    const safeLimit = Math.min(
+      Math.max(1, Math.floor(limit)),
+      RECENT_ADMIN_REQUEST_DECISIONS_LIMIT,
+    );
+
+    const rows = await db
+      .select(adminRequestSelect)
+      .from(adminRequests)
+      .innerJoin(applicantUsers, eq(adminRequests.userId, applicantUsers.id))
+      .leftJoin(reviewerUsers, eq(adminRequests.reviewedBy, reviewerUsers.id))
+      .where(inArray(adminRequests.status, ["APPROVED", "REJECTED"]))
+      .orderBy(desc(adminRequests.reviewedAt))
+      .limit(safeLimit);
+
+    return {
+      success: true,
+      data: rows.map((row) => mapAdminRequest(row as AdminRequestSelectRow)),
+    };
+  } catch (error) {
+    console.error("Error fetching admin request decisions:", error);
+    return {
+      success: false,
+      error: "Failed to fetch admin request decisions",
     };
   }
 }
@@ -227,6 +341,27 @@ export async function approveAdminRequest(
         };
       }
 
+      // Seed showcase accounts may request for demo, but must not be promoted.
+      const [applicant] = await tx
+        .select({
+          email: users.email,
+          universityId: users.universityId,
+        })
+        .from(users)
+        .where(eq(users.id, request.userId))
+        .limit(1);
+
+      if (!applicant) {
+        return { success: false, error: "User not found" };
+      }
+
+      if (isProtectedDemoAccount(applicant)) {
+        return {
+          success: false,
+          error: "Demo showcase accounts cannot be promoted to admin",
+        };
+      }
+
       await tx
         .update(users)
         .set({
@@ -251,28 +386,13 @@ export async function approveAdminRequest(
           )
         );
 
-      const [fullRequest] = await tx
-        .select({
-          id: adminRequests.id,
-          userId: adminRequests.userId,
-          userEmail: users.email,
-          userFullName: users.fullName,
-          requestReason: adminRequests.requestReason,
-          status: adminRequests.status,
-          reviewedBy: adminRequests.reviewedBy,
-          reviewedAt: adminRequests.reviewedAt,
-          rejectionReason: adminRequests.rejectionReason,
-          createdAt: adminRequests.createdAt,
-          updatedAt: adminRequests.updatedAt,
-        })
-        .from(adminRequests)
-        .innerJoin(users, eq(adminRequests.userId, users.id))
-        .where(eq(adminRequests.id, safeRequestId))
-        .limit(1);
-
-      return { success: true, data: fullRequest };
+      const fullRequest = await selectAdminRequestById(tx, safeRequestId);
+      return { success: true as const, data: fullRequest };
     });
-    if (result.success) revalidateMutationPaths("admin-request.write");
+    if (result.success) {
+      revalidateMutationPaths("admin-request.write");
+      scheduleAdminRequestDecisionEmail(result.data);
+    }
     return result;
   } catch (error) {
     console.error("Error approving admin request:", error);
@@ -291,6 +411,9 @@ export async function rejectAdminRequest(
   try {
     const actor = await requireAdminActor();
     const safeRequestId = parseEntityId(requestId);
+    const safeRejectionReason = adminRejectionReasonSchema.parse(
+      rejectionReason,
+    );
 
     const result = await db.transaction(async (tx) => {
       const [request] = await tx
@@ -316,7 +439,7 @@ export async function rejectAdminRequest(
           status: "REJECTED",
           reviewedBy: actor.id,
           reviewedAt: new Date(),
-          rejectionReason,
+          rejectionReason: safeRejectionReason,
           updatedAt: new Date(),
         })
         .where(
@@ -326,28 +449,13 @@ export async function rejectAdminRequest(
           )
         );
 
-      const [fullRequest] = await tx
-        .select({
-          id: adminRequests.id,
-          userId: adminRequests.userId,
-          userEmail: users.email,
-          userFullName: users.fullName,
-          requestReason: adminRequests.requestReason,
-          status: adminRequests.status,
-          reviewedBy: adminRequests.reviewedBy,
-          reviewedAt: adminRequests.reviewedAt,
-          rejectionReason: adminRequests.rejectionReason,
-          createdAt: adminRequests.createdAt,
-          updatedAt: adminRequests.updatedAt,
-        })
-        .from(adminRequests)
-        .innerJoin(users, eq(adminRequests.userId, users.id))
-        .where(eq(adminRequests.id, safeRequestId))
-        .limit(1);
-
-      return { success: true, data: fullRequest };
+      const fullRequest = await selectAdminRequestById(tx, safeRequestId);
+      return { success: true as const, data: fullRequest };
     });
-    if (result.success) revalidateMutationPaths("admin-request.write");
+    if (result.success) {
+      revalidateMutationPaths("admin-request.write");
+      scheduleAdminRequestDecisionEmail(result.data);
+    }
     return result;
   } catch (error) {
     console.error("Error rejecting admin request:", error);
@@ -414,26 +522,8 @@ export async function cancelMyAdminRequest(
           ),
         );
 
-      const [fullRequest] = await tx
-        .select({
-          id: adminRequests.id,
-          userId: adminRequests.userId,
-          userEmail: users.email,
-          userFullName: users.fullName,
-          requestReason: adminRequests.requestReason,
-          status: adminRequests.status,
-          reviewedBy: adminRequests.reviewedBy,
-          reviewedAt: adminRequests.reviewedAt,
-          rejectionReason: adminRequests.rejectionReason,
-          createdAt: adminRequests.createdAt,
-          updatedAt: adminRequests.updatedAt,
-        })
-        .from(adminRequests)
-        .innerJoin(users, eq(adminRequests.userId, users.id))
-        .where(eq(adminRequests.id, safeRequestId))
-        .limit(1);
-
-      return { success: true, data: fullRequest };
+      const fullRequest = await selectAdminRequestById(tx, safeRequestId);
+      return { success: true as const, data: fullRequest };
     });
 
     if (result.success) revalidateMutationPaths("admin-request.write");

@@ -62,11 +62,11 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Scroll polish: `ScrollToTop` sets `history.scrollRestoration=manual` + `scrollTo(auto)`; `RootHeaderShell` defaults `scrolled=true`, measures in `useLayoutEffect`.
 - Reviews: shared `ReviewFormDialog` create+edit (no 1.5s delay); delete confirm spins until settle; kebab Cancel+separator; Created/Edited icons; `universityCard`+Robohash avatars; optimistic `setQueryData` + dynamic toasts.
 - My Profile borrow title → `Link` `/books/[id]` (`hover:text-light-100/70`).
-- `/make-admin` under `(root)`; role+request badges; PENDING locks textarea + `cancelMyAdminRequest` (REJECTED/`Withdrawn by applicant`); glass submit/clear/cancel CTAs; `useCreateAdminRequest`/`useCancelMyAdminRequest` → `admin-request.write`.
-- Admin nav: “Sign-up Requests” = pending registrations (`/admin/account-requests`); make-admin queue on `/admin/users` + All Users sidebar badge via `usePendingAdminRequests`.
+- `/make-admin` + admin-requests: justify user/status; glass chips; reject quote+reviewer+timestamps; Decline dialog (`DEFAULT_ADMIN_REJECTION_REASON`); Approve confirm; Recent decisions (`?scope=decisions`); decision emails `after()` Brevo→Resend; `admin-request.write`. Demo Approve blocked.
+- Admin nav: “Sign-up Requests” = pending registrations; make-admin queue on `/admin/users` + sidebar badge.
 - `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
 - `/api-status`: glass health + embedded PerformanceDashboard; Refresh/Reset → `showToast.status.*` (dynamic healthy count/ms).
 - Media: `SafeImage` (`components/ui/safe-image.tsx`) for local/remote/`next/image` URLs; ImageKit relative paths stay on `@imagekit/next`.
 - Prod guardrails: dashboard Bot Challenge + AI Deny (not in repo); `app/robots.ts`; headers + `/_next/static` immutable in `next.config.ts`/`vercel.json`; CSP `robohash.org`; `html[data-scroll-behavior=smooth]`. See `docs/VERCEL_PRODUCTION_GUARDRAILS.md`.
 - Sentry (`@sentry/nextjs`): `instrumentation-client` + server/edge configs; `tunnelRoute: /api/monitoring`; `global-error` captures; env in `.env.example` (real keys only in `.env`/Vercel). No PostHog; Redis stays rate-limit only.
-- Auth: tight title/`text-light-200` sub (sign-in = Test Accounts demo hint; signup = browse/approval + test@admin); `.auth-box` glass `bg-dark-300/35`+`backdrop-blur-md`; `isProtectedDemoAccount` locks seed role/status. Lucide UI icons; brand logos kept.
+- Auth: tight title/`text-light-200` sub; `.auth-box` glass; `isProtectedDemoAccount` locks role/status + Approve. Lucide UI icons; brand logos kept.

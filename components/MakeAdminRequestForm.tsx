@@ -19,23 +19,70 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import {
   useCancelMyAdminRequest,
   useCreateAdminRequest,
 } from "@/hooks/useMutations";
 import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type { MyAdminRequestStatus } from "@/lib/admin/myAdminRequest";
+import { formatBorrowDateTime } from "@/lib/profile/formatBorrowDates";
 import { withRippleClick } from "@/lib/ui/ripple";
+import { isProtectedDemoAccount } from "@/constants";
 import {
+  BookOpen,
+  Bookmark,
   CheckCircle2,
   Eraser,
   Hourglass,
+  Info,
+  LayoutDashboard,
   Loader2,
+  type LucideIcon,
   Shield,
   ShieldOff,
   User,
+  UserPlus,
+  Users,
   XCircle,
 } from "lucide-react";
+
+const ACCESS_BENEFITS: { label: string; icon: LucideIcon; glow: string }[] = [
+  {
+    label: "Admin Dashboard",
+    icon: LayoutDashboard,
+    glow: "shadow-[0_8px_24px_rgba(59,130,246,0.28)]",
+  },
+  {
+    label: "User Management",
+    icon: Users,
+    glow: "shadow-[0_8px_24px_rgba(139,92,246,0.28)]",
+  },
+  {
+    label: "Book Management",
+    icon: BookOpen,
+    glow: "shadow-[0_8px_24px_rgba(245,158,11,0.28)]",
+  },
+  {
+    label: "Borrow Requests",
+    icon: Bookmark,
+    glow: "shadow-[0_8px_24px_rgba(34,197,94,0.25)]",
+  },
+  {
+    label: "Sign-up Requests",
+    icon: UserPlus,
+    glow: "shadow-[0_8px_24px_rgba(236,72,153,0.25)]",
+  },
+];
+
+const QUOTE_MAX = 160;
+
+function truncateQuote(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= QUOTE_MAX) return trimmed;
+  return `${trimmed.slice(0, QUOTE_MAX - 1)}…`;
+}
 
 type MakeAdminRequestFormProps = {
   userEmail: string;
@@ -44,7 +91,17 @@ type MakeAdminRequestFormProps = {
   initialRequestId?: string | null;
   initialRequestReason?: string | null;
   initialRejectionReason?: string | null;
+  initialReviewer?: AdminRequestReviewer | null;
+  /** Request submitted at (createdAt) */
+  initialCreatedAt?: Date | string | null;
+  /** Approved / rejected / withdrawn at (reviewedAt) */
+  initialReviewedAt?: Date | string | null;
 };
+
+function formatRequestWhen(value: Date | string | null | undefined): string | null {
+  if (value == null) return null;
+  return formatBorrowDateTime(value) ?? null;
+}
 
 function RoleBadge({ role }: { role: "USER" | "ADMIN" }) {
   if (role === "ADMIN") {
@@ -124,6 +181,9 @@ export default function MakeAdminRequestForm({
   initialRequestId = null,
   initialRequestReason = null,
   initialRejectionReason = null,
+  initialReviewer = null,
+  initialCreatedAt = null,
+  initialReviewedAt = null,
 }: MakeAdminRequestFormProps) {
   const [reason, setReason] = useState(
     initialStatus === "PENDING" ? (initialRequestReason ?? "") : "",
@@ -136,6 +196,17 @@ export default function MakeAdminRequestForm({
   );
   const [rejectionReason, setRejectionReason] = useState<string | null>(
     initialRejectionReason,
+  );
+  /** Last submitted reason for admin-reject quote (form field may be cleared). */
+  const [lastRequestReason, setLastRequestReason] = useState<string | null>(
+    initialRequestReason,
+  );
+  const [reviewer] = useState<AdminRequestReviewer | null>(initialReviewer);
+  const [createdAt, setCreatedAt] = useState<Date | string | null>(
+    initialCreatedAt,
+  );
+  const [reviewedAt, setReviewedAt] = useState<Date | string | null>(
+    initialReviewedAt,
   );
   const [cancelOpen, setCancelOpen] = useState(false);
 
@@ -152,18 +223,24 @@ export default function MakeAdminRequestForm({
   const withdrawn =
     status === "REJECTED" &&
     rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
+  const isShowcaseDemo =
+    userRole === "USER" && isProtectedDemoAccount({ email: userEmail });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEdit || !reasonOk || isBusy) return;
 
+    const submitted = reason.trim();
     createMutation.mutate(
-      { requestReason: reason.trim(), userEmail },
+      { requestReason: submitted, userEmail },
       {
         onSuccess: (result) => {
           setStatus("PENDING");
           setRequestId(result.data?.id ?? null);
           setRejectionReason(null);
+          setLastRequestReason(submitted);
+          setCreatedAt(result.data?.createdAt ?? new Date());
+          setReviewedAt(null);
         },
       },
     );
@@ -181,51 +258,127 @@ export default function MakeAdminRequestForm({
     cancelMutation.mutate(
       { requestId },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           setCancelOpen(false);
           setStatus("REJECTED");
           setRejectionReason(ADMIN_REQUEST_WITHDRAWN_REASON);
           setReason("");
           setRequestId(null);
+          setReviewedAt(result.data?.reviewedAt ?? new Date());
+          if (result.data?.createdAt) setCreatedAt(result.data.createdAt);
         },
       },
     );
   };
 
+  const rejectedQuote = lastRequestReason?.trim() || "";
+  const submittedLabel = formatRequestWhen(createdAt);
+  const reviewedLabel = formatRequestWhen(reviewedAt);
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <p className="text-xs text-light-200 sm:text-sm">
-          <span className="text-light-100/70">Current user: </span>
-          <span className="text-light-100">{userEmail}</span>
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Left: email + role · Right: request status (justify-between) */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="text-xs text-light-200 sm:text-sm">
+            <span className="text-light-100/70">Current user: </span>
+            <span className="break-all text-light-100">{userEmail}</span>
+          </p>
           <RoleBadge role={userRole} />
-          <RequestStatusBadge
-            status={status}
-            rejectionReason={rejectionReason}
-          />
         </div>
+        <RequestStatusBadge
+          status={status}
+          rejectionReason={rejectionReason}
+        />
       </div>
 
+      {isShowcaseDemo ? (
+        <p className="flex items-start gap-2 text-xs leading-snug text-light-200 sm:text-sm">
+          <Info className="mt-0.5 size-3.5 shrink-0 sm:size-4" aria-hidden />
+          <span>
+            Showcase account: you can submit or cancel requests for demo, but
+            admins cannot approve a role change for this account.
+          </span>
+        </p>
+      ) : null}
+
       {isPendingStatus && (
-        <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 sm:text-sm">
-          Your request is awaiting admin review. You can withdraw it below while
-          it is still pending.
+        <div className="space-y-1 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 sm:text-sm">
+          <p>
+            Your request is awaiting admin review. You can withdraw it below
+            while it is still pending.
+          </p>
+          {submittedLabel ? (
+            <p className="text-amber-200/80">
+              Submitted on {submittedLabel}
+            </p>
+          ) : null}
         </div>
       )}
 
       {status === "REJECTED" && !withdrawn && (
-        <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200 sm:text-sm">
-          Your previous request was rejected
-          {rejectionReason ? `: ${rejectionReason}` : "."} You may submit a new
-          request below.
+        <div className="space-y-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200 sm:text-sm">
+          {rejectedQuote ? (
+            <p>
+              Based on your request{" "}
+              <span
+                className="font-medium text-red-100"
+                title={rejectedQuote}
+              >
+                &ldquo;{truncateQuote(rejectedQuote)}&rdquo;
+              </span>
+            </p>
+          ) : (
+            <p>Your previous request was rejected.</p>
+          )}
+          <AdminRequestReviewerAttribution
+            reviewer={reviewer}
+            prefix="is Rejected by"
+            size={28}
+            textClassName="text-red-100"
+            className="text-red-200/90"
+          />
+          {rejectionReason ? (
+            <p className="text-red-200/90">
+              Reason: {rejectionReason}
+            </p>
+          ) : null}
+          {(submittedLabel || reviewedLabel) && (
+            <p className="text-red-200/80">
+              {submittedLabel ? `Submitted on ${submittedLabel}` : null}
+              {submittedLabel && reviewedLabel ? " · " : null}
+              {reviewedLabel ? `Rejected on ${reviewedLabel}` : null}
+            </p>
+          )}
+          <p className="text-red-200/80">
+            You may submit a new request below.
+          </p>
         </div>
       )}
 
       {withdrawn && (
-        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-light-200 sm:text-sm">
-          You withdrew your last request. You can submit a new one below.
+        <div className="space-y-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-light-200 sm:text-sm">
+          <p>You withdrew your last request. You can submit a new one below.</p>
+          {(submittedLabel || reviewedLabel) && (
+            <p className="text-light-200/80">
+              {submittedLabel ? `Submitted on ${submittedLabel}` : null}
+              {submittedLabel && reviewedLabel ? " · " : null}
+              {reviewedLabel ? `Withdrawn on ${reviewedLabel}` : null}
+            </p>
+          )}
+        </div>
+      )}
+
+      {status === "APPROVED" && (
+        <div className="space-y-1 rounded-xl border border-green-400/30 bg-green-500/10 px-3 py-2.5 text-xs text-green-200 sm:text-sm">
+          <p>Your admin request was approved.</p>
+          {(submittedLabel || reviewedLabel) && (
+            <p className="text-green-200/80">
+              {submittedLabel ? `Submitted on ${submittedLabel}` : null}
+              {submittedLabel && reviewedLabel ? " · " : null}
+              {reviewedLabel ? `Approved on ${reviewedLabel}` : null}
+            </p>
+          )}
         </div>
       )}
 
@@ -352,13 +505,17 @@ export default function MakeAdminRequestForm({
         <p className="text-xs text-light-200/70 sm:text-sm">
           After approval, you&apos;ll be able to access:
         </p>
-        <ul className="mt-1.5 space-y-0.5 text-xs text-light-200/70 sm:mt-2 sm:space-y-1 sm:text-sm">
-          <li>• Admin Dashboard</li>
-          <li>• User Management</li>
-          <li>• Book Management</li>
-          <li>• Borrow Requests</li>
-          <li>• Sign-up Requests</li>
-        </ul>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {ACCESS_BENEFITS.map(({ label, icon: Icon, glow }) => (
+            <span
+              key={label}
+              className={`inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-dark-300/60 px-2.5 py-1.5 text-[11px] font-medium text-light-100 backdrop-blur-sm sm:text-xs ${glow}`}
+            >
+              <Icon className="size-3.5 shrink-0 text-primary sm:size-4" aria-hidden />
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

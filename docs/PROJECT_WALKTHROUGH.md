@@ -123,7 +123,8 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - `SafeImage`: next/image with native `<img>` fallback on error; used in UserAvatar + Sign-up Requests cards; ImageKit paths stay on `@imagekit/next`.
 - Vercel guardrails: dashboard Bot Challenge + AI Deny; code `app/robots.ts`, security/static headers in `next.config.ts` + `vercel.json`, CSP Robohash, `data-scroll-behavior` on root html (`docs/VERCEL_PRODUCTION_GUARDRAILS.md`).
 - Sentry: `@sentry/nextjs` + `/api/monitoring` tunnel (ad-blocker bypass); `global-error` reports; DSN/org/project/token via env (see `.env.example`).
-- Auth UX: sign-in/signup demo subtitles; `.auth-box` frost glass; demo accounts role+status frozen (`isProtectedDemoAccount`); Lucide UI icons (brand logos remain SVG).
+- Auth UX: demo subtitles; `.auth-box` frost; demo role/status frozen + Approve blocked; Lucide UI icons.
+- Make-admin / All Users: badges+chips+reject attribution/timestamps; Recent decisions (`scope=decisions`); Decline dialog + Approve confirm; decision emails `after()` Brevo→Resend; `admin-request.write`.
 
 ## Environment
 

@@ -11,12 +11,25 @@
  * - Displays skeleton loaders while fetching
  * - Shows error state if fetch fails
  * - Integrates mutations for user role/status updates and admin request approvals
- * - Displays users in a table and admin requests in cards
+ * - Displays users in a table, pending admin requests, and recent decisions
+ *   (who approved/rejected — reviewer join via admin-request.write invalidation)
  */
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
+import AdminRequestDeclineDialog from "@/components/admin/AdminRequestDeclineDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FilterSelect } from "@/components/ui/filter-select";
@@ -27,7 +40,11 @@ import {
 import { useSession } from "next-auth/react";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAllUsers, usePendingAdminRequests } from "@/hooks/useQueries";
+import {
+  useAllUsers,
+  usePendingAdminRequests,
+  useRecentAdminRequestDecisions,
+} from "@/hooks/useQueries";
 import {
   useUpdateUserRole,
   useUpdateUserStatus,
@@ -41,6 +58,7 @@ import type {
   UserFilters,
 } from "@/lib/services/users";
 import type { AdminRequest } from "@/lib/services/users";
+import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import {
   Search,
   FilterX,
@@ -49,8 +67,17 @@ import {
   CheckCircle,
   XCircle,
   Lock,
+  Loader2,
 } from "lucide-react";
 import { isProtectedDemoAccount } from "@/constants";
+
+const DECISION_REASON_MAX = 120;
+
+function truncateDecisionText(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= DECISION_REASON_MAX) return trimmed;
+  return `${trimmed.slice(0, DECISION_REASON_MAX - 1)}…`;
+}
 
 interface AdminUsersListProps {
   /**
@@ -61,6 +88,10 @@ interface AdminUsersListProps {
    * Initial admin requests data from SSR (prevents duplicate fetch)
    */
   initialAdminRequests?: AdminRequest[];
+  /**
+   * Recent APPROVED/REJECTED decisions from SSR (reviewer attribution)
+   */
+  initialRecentDecisions?: AdminRequest[];
   /**
    * Success message from URL params
    */
@@ -78,6 +109,7 @@ interface AdminUsersListProps {
 const AdminUsersList: React.FC<AdminUsersListProps> = ({
   initialUsers,
   initialAdminRequests,
+  initialRecentDecisions,
   successMessage,
   errorMessage,
   currentUserId,
@@ -94,6 +126,12 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   const [localSearch, setLocalSearch] = useState(currentSearch);
   const lastSyncedSearchRef = React.useRef(currentSearch);
+  /** Pending request selected for Approve confirm / Decline dialog */
+  const [decisionTarget, setDecisionTarget] = useState<AdminRequest | null>(
+    null,
+  );
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [declineOpen, setDeclineOpen] = useState(false);
 
   // Debounce search input for instant filtering
   React.useEffect(() => {
@@ -169,6 +207,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     isError: adminRequestsError,
     error: adminRequestsErrorData,
   } = usePendingAdminRequests(initialAdminRequests);
+
+  const { data: recentDecisionsData } = useRecentAdminRequestDecisions(
+    initialRecentDecisions,
+  );
 
   // React Query mutations
   const updateUserRoleMutation = useUpdateUserRole();
@@ -249,6 +291,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const adminRequests: AdminRequest[] = ((adminRequestsData ??
     initialAdminRequests) ||
     []) as AdminRequest[];
+  const recentDecisions: AdminRequest[] = ((recentDecisionsData ??
+    initialRecentDecisions) ||
+    []) as AdminRequest[];
 
   // Handler functions for mutations
   const handleUpdateUserRole = async (
@@ -275,21 +320,47 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     });
   };
 
-  const handleApproveAdminRequest = async (requestId: string) => {
-    const request = adminRequests.find((r) => r.id === requestId);
-    approveAdminRequestMutation.mutate({
-      requestId,
-      userName: request?.userFullName,
-    });
+  const openApproveConfirm = (request: AdminRequest) => {
+    setDecisionTarget(request);
+    setApproveOpen(true);
   };
 
-  const handleRejectAdminRequest = async (requestId: string) => {
-    const request = adminRequests.find((r) => r.id === requestId);
-    rejectAdminRequestMutation.mutate({
-      requestId,
-      rejectionReason: "Rejected by admin",
-      userName: request?.userFullName,
-    });
+  const openDeclineDialog = (request: AdminRequest) => {
+    setDecisionTarget(request);
+    setDeclineOpen(true);
+  };
+
+  const handleConfirmApprove = () => {
+    if (!decisionTarget) return;
+    approveAdminRequestMutation.mutate(
+      {
+        requestId: decisionTarget.id,
+        userName: decisionTarget.userFullName,
+      },
+      {
+        onSuccess: () => {
+          setApproveOpen(false);
+          setDecisionTarget(null);
+        },
+      },
+    );
+  };
+
+  const handleConfirmDecline = (rejectionReason: string) => {
+    if (!decisionTarget) return;
+    rejectAdminRequestMutation.mutate(
+      {
+        requestId: decisionTarget.id,
+        rejectionReason,
+        userName: decisionTarget.userFullName,
+      },
+      {
+        onSuccess: () => {
+          setDeclineOpen(false);
+          setDecisionTarget(null);
+        },
+      },
+    );
   };
 
   const handleRemoveAdminPrivileges = async (userId: string) => {
@@ -381,6 +452,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   }
 
   return (
+    <>
     <section className="admin-panel">
       {/* Success/Error Messages */}
       {successMessage && (
@@ -491,7 +563,15 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             Pending Admin Requests ({adminRequests.length})
           </h3>
           <div className="space-y-3 sm:space-y-4">
-            {adminRequests.map((request) => (
+            {adminRequests.map((request) => {
+              const demoLocked = isProtectedDemoAccount({
+                email: request.userEmail,
+              });
+              const actionsBusy =
+                approveAdminRequestMutation.isPending ||
+                rejectAdminRequestMutation.isPending;
+
+              return (
               <div
                 key={request.id}
                 className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 sm:p-4"
@@ -516,35 +596,147 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                         : "N/A"}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2 sm:ml-4 sm:flex-row">
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => handleApproveAdminRequest(request.id)}
-                      disabled={
-                        approveAdminRequestMutation.isPending ||
-                        rejectAdminRequestMutation.isPending
-                      }
-                    >
-                      <CheckCircle className="size-4" />
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={() => handleRejectAdminRequest(request.id)}
-                      disabled={
-                        approveAdminRequestMutation.isPending ||
-                        rejectAdminRequestMutation.isPending
-                      }
-                    >
-                      <XCircle className="size-4" />
-                      Decline
-                    </Button>
+                  <div className="flex flex-col gap-2 sm:ml-4 sm:flex-row sm:items-start">
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          size="sm"
+                          className={
+                            demoLocked
+                              ? "bg-green-600/40 text-white/70 hover:bg-green-600/40"
+                              : "bg-green-600 hover:bg-green-700"
+                          }
+                          onClick={() => openApproveConfirm(request)}
+                          disabled={actionsBusy || demoLocked}
+                          title={
+                            demoLocked
+                              ? "Demo account — role locked"
+                              : undefined
+                          }
+                        >
+                          <CheckCircle className="size-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-red-600 hover:bg-red-700"
+                          onClick={() => openDeclineDialog(request)}
+                          disabled={actionsBusy}
+                        >
+                          <XCircle className="size-4" />
+                          Decline
+                        </Button>
+                      </div>
+                      {demoLocked ? (
+                        <p className="inline-flex items-center gap-1 text-xs text-yellow-800">
+                          <Lock className="size-3.5 shrink-0" aria-hidden />
+                          Demo account — role locked (Decline still allowed).
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent decisions — who approved / rejected / withdrew (baseline; polish later) */}
+      {recentDecisions.length > 0 && (
+        <div className="mt-4 sm:mt-6">
+          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+            Recent decisions ({recentDecisions.length})
+          </h3>
+          <div className="space-y-3 sm:space-y-4">
+            {recentDecisions.map((decision) => {
+              const withdrawn =
+                decision.status === "REJECTED" &&
+                decision.rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
+              const statusLabel = withdrawn
+                ? "Withdrawn"
+                : decision.status === "APPROVED"
+                  ? "Approved"
+                  : "Rejected";
+              const borderClass = withdrawn
+                ? "border-gray-200 bg-gray-50"
+                : decision.status === "APPROVED"
+                  ? "border-green-200 bg-green-50"
+                  : "border-red-200 bg-red-50";
+              const textClass = withdrawn
+                ? "text-gray-800"
+                : decision.status === "APPROVED"
+                  ? "text-green-900"
+                  : "text-red-900";
+              const mutedClass = withdrawn
+                ? "text-gray-600"
+                : decision.status === "APPROVED"
+                  ? "text-green-700"
+                  : "text-red-700";
+
+              return (
+                <div
+                  key={decision.id}
+                  className={`rounded-lg border p-3 sm:p-4 ${borderClass}`}
+                >
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
+                        withdrawn
+                          ? "bg-gray-200 text-gray-800"
+                          : decision.status === "APPROVED"
+                            ? "bg-green-200 text-green-900"
+                            : "bg-red-200 text-red-900"
+                      }`}
+                    >
+                      {decision.status === "APPROVED" ? (
+                        <CheckCircle className="size-3" aria-hidden />
+                      ) : (
+                        <XCircle className="size-3" aria-hidden />
+                      )}
+                      {statusLabel}
+                    </span>
+                    <h4 className={`text-sm font-medium sm:text-base ${textClass}`}>
+                      {decision.userFullName}
+                    </h4>
+                    <span className={`text-xs sm:text-sm ${mutedClass}`}>
+                      ({decision.userEmail})
+                    </span>
+                  </div>
+                  <p
+                    className={`mb-1 text-xs sm:text-sm ${mutedClass}`}
+                    title={decision.requestReason}
+                  >
+                    <strong>Request:</strong>{" "}
+                    {truncateDecisionText(decision.requestReason)}
+                  </p>
+                  {decision.rejectionReason && !withdrawn ? (
+                    <p className={`mb-1 text-xs sm:text-sm ${mutedClass}`}>
+                      <strong>Reason:</strong> {decision.rejectionReason}
+                    </p>
+                  ) : null}
+                  <AdminRequestReviewerAttribution
+                    reviewer={decision.reviewer}
+                    prefix={
+                      withdrawn
+                        ? "Withdrawn by"
+                        : decision.status === "APPROVED"
+                          ? "Approved by"
+                          : "Rejected by"
+                    }
+                    size={28}
+                    className={`mt-2 text-xs sm:text-sm ${mutedClass}`}
+                    textClassName={textClass}
+                  />
+                  <p className={`mt-1 text-xs ${mutedClass}`}>
+                    {decision.reviewedAt
+                      ? new Date(decision.reviewedAt).toLocaleString()
+                      : "N/A"}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -730,6 +922,72 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         </div>
       </div>
     </section>
+
+      <AlertDialog
+        open={approveOpen}
+        onOpenChange={(open) => {
+          if (approveAdminRequestMutation.isPending) return;
+          setApproveOpen(open);
+          if (!open) setDecisionTarget(null);
+        }}
+      >
+        <AlertDialogContent className="border-gray-600 bg-gray-800/95">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-light-100">
+              Promote to admin?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-light-200">
+              Grant administrator privileges to{" "}
+              <span className="font-medium text-light-100">
+                {decisionTarget?.userFullName ?? "this user"}
+              </span>
+              {decisionTarget?.userEmail
+                ? ` (${decisionTarget.userEmail})`
+                : ""}
+              ? They will be able to manage users, books, and borrow requests.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={approveAdminRequestMutation.isPending}
+              className="border-gray-500 bg-gray-600 text-white hover:bg-gray-500 hover:text-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmApprove();
+              }}
+              disabled={approveAdminRequestMutation.isPending}
+              className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
+            >
+              {approveAdminRequestMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle className="size-4" />
+              )}
+              {approveAdminRequestMutation.isPending
+                ? "Promoting…"
+                : "Promote to admin"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AdminRequestDeclineDialog
+        key={decisionTarget?.id ?? "admin-decline"}
+        open={declineOpen}
+        applicantName={decisionTarget?.userFullName ?? "Applicant"}
+        applicantEmail={decisionTarget?.userEmail ?? ""}
+        isPending={rejectAdminRequestMutation.isPending}
+        onOpenChange={(open) => {
+          setDeclineOpen(open);
+          if (!open) setDecisionTarget(null);
+        }}
+        onConfirm={handleConfirmDecline}
+      />
+    </>
   );
 };
 

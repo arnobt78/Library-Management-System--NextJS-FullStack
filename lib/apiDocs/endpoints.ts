@@ -277,7 +277,8 @@ export const API_ENDPOINT_CATEGORIES: ApiEndpointCategory[] = [
       {
         method: "GET",
         path: "/api/admin/admin-requests",
-        description: "Pending make-admin privilege requests",
+        description:
+          "Make-admin requests: ?scope=pending (default) or ?scope=decisions (recent APPROVED/REJECTED + reviewer)",
         auth: true,
         adminOnly: true,
         response: {

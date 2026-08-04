@@ -14,6 +14,7 @@
  * These service functions are ready to use once API routes are available.
  */
 
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { ApiError } from "./apiError";
 
 /**
@@ -344,9 +345,6 @@ export async function getPendingUsers(search?: string): Promise<User[]> {
 }
 
 /**
- * Admin request interface
- */
-/**
  * Admin request interface matching the database schema
  * Note: Database fields can be null, but we convert them to undefined for consistency
  */
@@ -362,28 +360,22 @@ export interface AdminRequest {
   rejectionReason: string | null | undefined;
   createdAt: Date | null;
   updatedAt: Date | null;
+  /** Present when reviewedBy joins a user; null for PENDING / legacy. */
+  reviewer?: AdminRequestReviewer | null;
 }
 
-/**
- * Get pending admin requests
- *
- * Fetches all pending admin requests for admin review.
- *
- * @returns Promise with array of pending admin requests
- * @throws {ApiError} Error with message and status code
- *
- * @example
- * ```typescript
- * const requests = await getPendingAdminRequests();
- * ```
- */
-export async function getPendingAdminRequests(): Promise<AdminRequest[]> {
-  const response = await fetch("/api/admin/admin-requests", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
+async function fetchAdminRequests(
+  scope: "pending" | "decisions",
+): Promise<AdminRequest[]> {
+  const response = await fetch(
+    `/api/admin/admin-requests?scope=${scope}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     let errorMessage = response.statusText;
@@ -399,7 +391,6 @@ export async function getPendingAdminRequests(): Promise<AdminRequest[]> {
 
   const data = await response.json();
 
-  // Handle different response formats
   if (data.requests && Array.isArray(data.requests)) {
     return data.requests;
   }
@@ -413,4 +404,18 @@ export async function getPendingAdminRequests(): Promise<AdminRequest[]> {
   }
 
   throw new ApiError("Invalid response format from admin-requests API", 500);
+}
+
+/**
+ * Get pending admin requests for admin review.
+ */
+export async function getPendingAdminRequests(): Promise<AdminRequest[]> {
+  return fetchAdminRequests("pending");
+}
+
+/**
+ * Recent APPROVED/REJECTED admin requests (reviewer attribution for history UI).
+ */
+export async function getRecentAdminRequestDecisions(): Promise<AdminRequest[]> {
+  return fetchAdminRequests("decisions");
 }

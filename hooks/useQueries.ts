@@ -19,6 +19,7 @@ import {
   getUsersList,
   getPendingUsers,
   getPendingAdminRequests,
+  getRecentAdminRequestDecisions,
   type User,
   type UserFilters,
   type UsersListResponse,
@@ -750,6 +751,27 @@ export const usePendingAdminRequests = (initialData?: AdminRequest[]) => {
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+  });
+};
+
+/**
+ * Recent APPROVED/REJECTED admin requests with reviewer attribution.
+ * Invalidated via admin-request.write (admin domain keys).
+ */
+export const useRecentAdminRequestDecisions = (
+  initialData?: AdminRequest[],
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery({
+    queryKey: queryKeys.admin.recentRequestDecisions,
+    queryFn: () =>
+      trackQuery("admin-request-decisions", async () => {
+        return getRecentAdminRequestDecisions();
+      }),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
   });
 };
 
