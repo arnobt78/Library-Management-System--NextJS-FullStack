@@ -1,6 +1,6 @@
 /**
  * Glass registration-pending / rejected notice — make-admin locked UX + my-profile shell.
- * When REJECTED (or APPROVED via SignupHistoryStrip elsewhere), shows decision actor + when.
+ * REJECTED includes prior decision actor + “Request approval again” CTA (→ PENDING).
  */
 
 "use client";
@@ -9,7 +9,9 @@ import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAt
 import { Badge } from "@/components/ui/badge";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { formatBorrowDateTime } from "@/lib/profile/formatBorrowDates";
-import { Clock, User, XCircle } from "lucide-react";
+import { useRequestRegistrationReview } from "@/hooks/useMutations";
+import { useRouter } from "next/navigation";
+import { Clock, Loader2, RotateCcw, User, XCircle } from "lucide-react";
 
 export type RegistrationNoticeStatus = "PENDING" | "REJECTED";
 export type RegistrationNoticeContext = "make-admin" | "profile";
@@ -25,7 +27,7 @@ const COPY: Record<
     },
     REJECTED: {
       title: "Admin requests are unavailable",
-      body: "Your registration was not approved, so admin access requests stay locked.",
+      body: "Your registration was not approved. You can request student approval again below; make-admin stays locked until you are approved as a library user.",
     },
   },
   profile: {
@@ -35,7 +37,7 @@ const COPY: Record<
     },
     REJECTED: {
       title: "Borrowing is unavailable",
-      body: "Your registration was not approved, so borrow history and loans stay locked. Contact a librarian if this is unexpected.",
+      body: "Your registration was not approved. You may request approval again so a librarian can review your account.",
     },
   },
 };
@@ -65,6 +67,17 @@ export default function AccountRegistrationNotice({
   const created = formatBorrowDateTime(createdAt);
   const decided = formatBorrowDateTime(decidedAt);
   const isPending = accountStatus === "PENDING";
+  const router = useRouter();
+  const reapplyMutation = useRequestRegistrationReview();
+
+  const handleReapply = () => {
+    reapplyMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Refresh RSC shells (make-admin / my-profile) after REJECTED → PENDING
+        router.refresh();
+      },
+    });
+  };
 
   return (
     <div className={className ? `space-y-4 ${className}` : "space-y-4"}>
@@ -122,8 +135,8 @@ export default function AccountRegistrationNotice({
         ) : (
           <>
             <p>
-              Status: registration was not approved. Contact a librarian if this
-              is unexpected.
+              Status: registration was not approved. You can request review
+              again.
             </p>
             {decided ? <p>Rejected on {decided}</p> : null}
             <AdminRequestReviewerAttribution
@@ -133,6 +146,23 @@ export default function AccountRegistrationNotice({
               className="text-light-200"
               textClassName="text-light-100"
             />
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleReapply}
+                disabled={reapplyMutation.isPending}
+                className="profile-action-btn profile-action-btn--submit inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {reapplyMutation.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                ) : (
+                  <RotateCcw className="size-3.5 sm:size-4" />
+                )}
+                {reapplyMutation.isPending
+                  ? "Requesting…"
+                  : "Request approval again"}
+              </button>
+            </div>
           </>
         )}
       </div>

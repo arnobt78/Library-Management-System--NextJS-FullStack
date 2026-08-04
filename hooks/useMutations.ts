@@ -37,6 +37,8 @@ import {
   removeAdminPrivileges,
 } from "@/lib/admin/actions/admin-requests";
 import { updateUserRole, updateUserStatus } from "@/lib/admin/actions/user";
+import { requestRegistrationReview } from "@/lib/actions/registration";
+import type { User } from "@/lib/services/users";
 import { borrowBook } from "@/lib/actions/book";
 import {
   createReview,
@@ -404,24 +406,35 @@ export const useApproveUser = () => {
       }
       return { userId, status: "APPROVED" as const };
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateMutation(queryClient, "user.write");
-
-      // Show success toast
-      const userName = variables.userName || "User";
-      showToast.success(
-        "User Approved",
-        `${userName}'s account has been approved successfully.`
+    onMutate: async ({ userId }) => {
+      // Optimistic remove from pending signup queue
+      await queryClient.cancelQueries({ queryKey: queryKeys.users.pendingRoot });
+      const previous = queryClient.getQueriesData<User[]>({
+        queryKey: queryKeys.users.pendingRoot,
+      });
+      queryClient.setQueriesData<User[]>(
+        { queryKey: queryKeys.users.pendingRoot },
+        (old) => (old ? old.filter((u) => u.id !== userId) : old),
       );
+      return { previous };
     },
-    onError: (error: Error, variables) => {
-      // Show error toast
+    onError: (error: Error, variables, context) => {
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
       const userName = variables.userName || "User";
       showToast.error(
         "Approval Failed",
         error.message ||
-          `Unable to approve ${userName}'s account. Please try again.`
+          `Unable to approve ${userName}'s account. Please try again.`,
+      );
+    },
+    onSuccess: (_data, variables) => {
+      invalidateMutation(queryClient, "user.write");
+      const userName = variables.userName || "User";
+      showToast.success(
+        "User Approved",
+        `${userName}'s account has been approved successfully.`,
       );
     },
   });
@@ -460,24 +473,64 @@ export const useRejectUser = () => {
       }
       return { userId, status: "REJECTED" as const };
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      invalidateMutation(queryClient, "user.write");
-
-      // Show success toast
-      const userName = variables.userName || "User";
-      showToast.success(
-        "User Rejected",
-        `${userName}'s account has been rejected.`
+    onMutate: async ({ userId }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.users.pendingRoot });
+      const previous = queryClient.getQueriesData<User[]>({
+        queryKey: queryKeys.users.pendingRoot,
+      });
+      queryClient.setQueriesData<User[]>(
+        { queryKey: queryKeys.users.pendingRoot },
+        (old) => (old ? old.filter((u) => u.id !== userId) : old),
       );
+      return { previous };
     },
-    onError: (error: Error, variables) => {
-      // Show error toast
+    onError: (error: Error, variables, context) => {
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
       const userName = variables.userName || "User";
       showToast.error(
         "Rejection Failed",
         error.message ||
-          `Unable to reject ${userName}'s account. Please try again.`
+          `Unable to reject ${userName}'s account. Please try again.`,
+      );
+    },
+    onSuccess: (_data, variables) => {
+      invalidateMutation(queryClient, "user.write");
+      const userName = variables.userName || "User";
+      showToast.success(
+        "User Rejected",
+        `${userName}'s account has been rejected.`,
+      );
+    },
+  });
+};
+
+/**
+ * Rejected student requests librarian review again (REJECTED → PENDING).
+ */
+export const useRequestRegistrationReview = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const result = await requestRegistrationReview();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to request approval again");
+      }
+      return result;
+    },
+    onSuccess: () => {
+      invalidateMutation(queryClient, "user.write");
+      showToast.success(
+        "Approval requested",
+        "Your registration is waiting for librarian review again.",
+      );
+    },
+    onError: (error: Error) => {
+      showToast.error(
+        "Request failed",
+        error.message || "Unable to request approval again. Please try again.",
       );
     },
   });

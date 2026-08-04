@@ -130,7 +130,7 @@ async function main() {
 
   console.log("\nSeeding users...");
 
-  // ── 3. Seed test accounts ────────────────────────────────────────────────────
+  // ── 3. Seed test accounts (APPROVED + durable status_reviewed_* to demo admin)
   for (const account of TEST_ACCOUNTS) {
     const hashedPassword = await hashPassword(account.password);
 
@@ -153,6 +153,19 @@ async function main() {
     `);
     console.log(`  ✓ ${account.email} (${account.role})`);
   }
+
+  // Stamp signup attribution: both demo accounts reviewed by Test Admin (self for admin)
+  await db.execute(sql`
+    UPDATE users AS u
+    SET
+      status_reviewed_by = admin.id,
+      status_reviewed_at = COALESCE(u.status_reviewed_at, u.created_at, NOW())
+    FROM users AS admin
+    WHERE admin.email = 'test@admin.com'
+      AND u.email IN ('test@user.com', 'test@admin.com')
+      AND u.status = 'APPROVED'
+  `);
+  console.log("  ✓ status_reviewed_* stamped to test@admin.com");
 
   console.log("\nreset-and-seed complete.");
   await pool.end();

@@ -36,6 +36,7 @@ import {
   CheckCircle,
   XCircle,
   Undo2,
+  Loader2,
 } from "lucide-react";
 import type { BorrowStatus } from "@/lib/services/borrows";
 
@@ -138,6 +139,11 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   const rejectBorrowMutation = useRejectBorrow();
   const returnBookMutation = useReturnBook();
 
+  const [actionRecordId, setActionRecordId] = useState<string | null>(null);
+  const [actionKind, setActionKind] = useState<
+    "approve" | "reject" | "return" | null
+  >(null);
+
   // CRITICAL: Always prefer React Query data over initial data
   // React Query data is fresh and updates immediately after mutations
   // initial data is only used as fallback during initial load
@@ -173,31 +179,51 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     router.push("/admin/book-requests");
   };
 
+  const clearAction = () => {
+    setActionRecordId(null);
+    setActionKind(null);
+  };
+
   // Handler functions for mutations
   const handleApproveBorrow = async (recordId: string) => {
     const request = requests.find((r) => r.id === recordId);
-    approveBorrowMutation.mutate({
-      recordId,
-      bookTitle: request?.bookTitle || undefined,
-      userName: request?.userName || undefined,
-    });
+    setActionRecordId(recordId);
+    setActionKind("approve");
+    approveBorrowMutation.mutate(
+      {
+        recordId,
+        bookTitle: request?.bookTitle || undefined,
+        userName: request?.userName || undefined,
+      },
+      { onSettled: clearAction },
+    );
   };
 
   const handleRejectBorrow = async (recordId: string) => {
     const request = requests.find((r) => r.id === recordId);
-    rejectBorrowMutation.mutate({
-      recordId,
-      bookTitle: request?.bookTitle || undefined,
-      userName: request?.userName || undefined,
-    });
+    setActionRecordId(recordId);
+    setActionKind("reject");
+    rejectBorrowMutation.mutate(
+      {
+        recordId,
+        bookTitle: request?.bookTitle || undefined,
+        userName: request?.userName || undefined,
+      },
+      { onSettled: clearAction },
+    );
   };
 
   const handleReturnBook = async (recordId: string) => {
     const request = requests.find((r) => r.id === recordId);
-    returnBookMutation.mutate({
-      recordId,
-      bookTitle: request?.bookTitle || undefined,
-    });
+    setActionRecordId(recordId);
+    setActionKind("return");
+    returnBookMutation.mutate(
+      {
+        recordId,
+        bookTitle: request?.bookTitle || undefined,
+      },
+      { onSettled: clearAction },
+    );
   };
 
   // Show skeleton while loading (only if no initial data)
@@ -432,7 +458,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* Actions — per-row spinner while this record's mutation runs */}
                   <div className="w-full shrink-0 sm:w-auto">
                     {request.status === "PENDING" && (
                       <div className="flex flex-col gap-2 sm:flex-row">
@@ -440,23 +466,43 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                           className="bg-green-600 hover:bg-green-700"
                           onClick={() => handleApproveBorrow(request.id)}
                           disabled={
-                            approveBorrowMutation.isPending ||
-                            rejectBorrowMutation.isPending
+                            actionRecordId != null &&
+                            actionRecordId !== request.id
+                              ? true
+                              : actionRecordId === request.id
                           }
                         >
-                          <CheckCircle className="size-4" />
-                          Approve
+                          {actionRecordId === request.id &&
+                          actionKind === "approve" ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="size-4" />
+                          )}
+                          {actionRecordId === request.id &&
+                          actionKind === "approve"
+                            ? "Approving…"
+                            : "Approve"}
                         </Button>
                         <Button
                           variant="destructive"
                           onClick={() => handleRejectBorrow(request.id)}
                           disabled={
-                            approveBorrowMutation.isPending ||
-                            rejectBorrowMutation.isPending
+                            actionRecordId != null &&
+                            actionRecordId !== request.id
+                              ? true
+                              : actionRecordId === request.id
                           }
                         >
-                          <XCircle className="size-4" />
-                          Reject
+                          {actionRecordId === request.id &&
+                          actionKind === "reject" ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <XCircle className="size-4" />
+                          )}
+                          {actionRecordId === request.id &&
+                          actionKind === "reject"
+                            ? "Rejecting…"
+                            : "Reject"}
                         </Button>
                       </div>
                     )}
@@ -464,10 +510,23 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                       <Button
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => handleReturnBook(request.id)}
-                        disabled={returnBookMutation.isPending}
+                        disabled={
+                          actionRecordId != null &&
+                          actionRecordId !== request.id
+                            ? true
+                            : actionRecordId === request.id
+                        }
                       >
-                        <Undo2 className="size-4" />
-                        Mark as Returned
+                        {actionRecordId === request.id &&
+                        actionKind === "return" ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Undo2 className="size-4" />
+                        )}
+                        {actionRecordId === request.id &&
+                        actionKind === "return"
+                          ? "Returning…"
+                          : "Mark as Returned"}
                       </Button>
                     )}
                     {request.status === "RETURNED" && (

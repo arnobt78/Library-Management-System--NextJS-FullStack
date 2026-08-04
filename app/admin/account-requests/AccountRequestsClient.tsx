@@ -36,11 +36,13 @@ import {
   Shield,
   Clock,
   FilterX,
+  Loader2,
 } from "lucide-react";
-import { usePendingUsers } from "@/hooks/useQueries";
+import { usePendingUsers, useSignupStatusDecisions } from "@/hooks/useQueries";
 import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
+import UserAvatar from "@/components/UserAvatar";
 import type { User as UserType } from "@/lib/services/users";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 
@@ -136,6 +138,18 @@ const AccountRequestsClient = ({
   const approveUserMutation = useApproveUser();
   const rejectUserMutation = useRejectUser();
 
+  // Recent decisions — refreshes on user.write invalidation
+  const { data: recentDecisionsData } = useSignupStatusDecisions(
+    initialRecentDecisions,
+  );
+  const recentDecisions = recentDecisionsData ?? initialRecentDecisions;
+
+  // Track which card action is in flight (per-user spinner)
+  const [actionUserId, setActionUserId] = useState<string | null>(null);
+  const [actionKind, setActionKind] = useState<"approve" | "reject" | null>(
+    null,
+  );
+
   // CRITICAL: Always prefer React Query data over initial data
   // React Query data is fresh and updates immediately after mutations
   // initial data is only used as fallback during initial load
@@ -168,18 +182,38 @@ const AccountRequestsClient = ({
   // Handler functions for mutations
   const handleApproveUser = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
-    approveUserMutation.mutate({
-      userId,
-      userName: user?.fullName,
-    });
+    setActionUserId(userId);
+    setActionKind("approve");
+    approveUserMutation.mutate(
+      {
+        userId,
+        userName: user?.fullName,
+      },
+      {
+        onSettled: () => {
+          setActionUserId(null);
+          setActionKind(null);
+        },
+      },
+    );
   };
 
   const handleRejectUser = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
-    rejectUserMutation.mutate({
-      userId,
-      userName: user?.fullName,
-    });
+    setActionUserId(userId);
+    setActionKind("reject");
+    rejectUserMutation.mutate(
+      {
+        userId,
+        userName: user?.fullName,
+      },
+      {
+        onSettled: () => {
+          setActionUserId(null);
+          setActionKind(null);
+        },
+      },
+    );
   };
 
   // Show skeleton while loading (only if no initial data)
@@ -340,28 +374,35 @@ const AccountRequestsClient = ({
                 user={user}
                 onApprove={handleApproveUser}
                 onReject={handleRejectUser}
-                isPending={
-                  approveUserMutation.isPending || rejectUserMutation.isPending
+                isPending={actionUserId === user.id}
+                pendingKind={
+                  actionUserId === user.id ? actionKind : null
+                }
+                actionsDisabled={
+                  actionUserId != null && actionUserId !== user.id
                 }
               />
             ))}
           </div>
         )}
 
-        {/* Recent signup decisions — durable statusReviewedBy/At attribution */}
-        {initialRecentDecisions.length > 0 ? (
+        {/* Recent signup decisions — applicant + reviewer attribution */}
+        {recentDecisions.length > 0 ? (
           <div className="mt-6 sm:mt-8">
             <h3 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">
-              Recent decisions ({initialRecentDecisions.length})
+              Recent decisions ({recentDecisions.length})
             </h3>
             <div className="space-y-3 sm:space-y-4">
-              {initialRecentDecisions.map((decision) => {
+              {recentDecisions.map((decision) => {
                 const approved = decision.status === "APPROVED";
                 const borderClass = approved
                   ? "border-green-200 bg-green-50"
                   : "border-red-200 bg-red-50";
                 const textClass = approved ? "text-green-900" : "text-red-900";
                 const mutedClass = approved ? "text-green-700" : "text-red-700";
+                const registered = decision.createdAt
+                  ? new Date(decision.createdAt).toLocaleString()
+                  : null;
 
                 return (
                   <div
@@ -383,6 +424,13 @@ const AccountRequestsClient = ({
                         )}
                         {approved ? "Approved" : "Rejected"}
                       </span>
+                      <UserAvatar
+                        universityCard={decision.universityCard}
+                        fullName={decision.fullName}
+                        email={decision.email}
+                        size={28}
+                        className="shrink-0 border border-gray-200"
+                      />
                       <h4
                         className={`text-sm font-medium sm:text-base ${textClass}`}
                       >
@@ -392,6 +440,11 @@ const AccountRequestsClient = ({
                         ({decision.email})
                       </span>
                     </div>
+                    {registered ? (
+                      <p className={`mb-1 text-xs sm:text-sm ${mutedClass}`}>
+                        Registered on {registered}
+                      </p>
+                    ) : null}
                     <AdminRequestReviewerAttribution
                       reviewer={decision.decisionActor}
                       prefix={approved ? "Approved by" : "Rejected by"}
@@ -421,11 +474,15 @@ const AccountRequestCard = ({
   onApprove,
   onReject,
   isPending,
+  pendingKind,
+  actionsDisabled,
 }: {
   user: UserType;
   onApprove: (userId: string) => void;
   onReject: (userId: string) => void;
   isPending: boolean;
+  pendingKind: "approve" | "reject" | null;
+  actionsDisabled: boolean;
 }) => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
@@ -574,25 +631,33 @@ const AccountRequestCard = ({
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons — once-click spinner while this card's mutation runs */}
         <div className="flex flex-col gap-1.5 pt-1.5 sm:flex-row sm:space-x-2 sm:pt-2">
           <Button
             className="w-full rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 sm:flex-1 sm:px-4 sm:py-2 sm:text-sm"
             onClick={() => onApprove(user.id)}
-            disabled={isPending}
+            disabled={isPending || actionsDisabled}
           >
-            <CheckCircle className="mr-1 size-3 sm:mr-2 sm:size-4" />
-            Approve
+            {isPending && pendingKind === "approve" ? (
+              <Loader2 className="mr-1 size-3 animate-spin sm:mr-2 sm:size-4" />
+            ) : (
+              <CheckCircle className="mr-1 size-3 sm:mr-2 sm:size-4" />
+            )}
+            {isPending && pendingKind === "approve" ? "Approving…" : "Approve"}
           </Button>
 
           <Button
             variant="destructive"
             className="w-full rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors sm:flex-1 sm:px-4 sm:py-2 sm:text-sm"
             onClick={() => onReject(user.id)}
-            disabled={isPending}
+            disabled={isPending || actionsDisabled}
           >
-            <XCircle className="mr-1 size-3 sm:mr-2 sm:size-4" />
-            Reject
+            {isPending && pendingKind === "reject" ? (
+              <Loader2 className="mr-1 size-3 animate-spin sm:mr-2 sm:size-4" />
+            ) : (
+              <XCircle className="mr-1 size-3 sm:mr-2 sm:size-4" />
+            )}
+            {isPending && pendingKind === "reject" ? "Rejecting…" : "Reject"}
           </Button>
         </div>
       </CardContent>

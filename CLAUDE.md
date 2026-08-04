@@ -67,6 +67,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Auth JWT/session carries `status`; PENDING→APPROVED refreshes on jwt; auth toasts welcome/signup + companion pending-approval.
 - Borrow RQ (`useUserBorrows`/`useBorrowRecords`): `enabled` only when effective status is `APPROVED` (prop/SSR preferred over session). Book detail passes SSR `userStatus`. My-profile loads DB status; PENDING/REJECTED get KPI zeros + notice tabs (no 403/red error).
 - Signup decision attribution: `users.status_reviewed_by`/`status_reviewed_at` (migration `0011`); make-admin keeps `admin_requests.reviewed_by`/`reviewed_at`. Shared `AdminRequestReviewerAttribution` on make-admin, my-profile notice, Sign-up recent decisions, user 360.
+- Sign-up recent: applicant avatar+registered; filter null `decidedAt`; RQ `useSignupStatusDecisions`; seed stamps demo `status_reviewed_*`.
+- REJECTED→PENDING via `requestRegistrationReview` + notice CTA; welcome email on signup (`lib/email/welcomeSignup.ts`); Approve/Reject/Return spinners + optimistic pending remove.
 - Decision emails: unique subject (`ISO` + nonce) + text actor; no `<img>`. Bulk approve/reject stamps review fields + emails.
 - Admin nav badges: All Users (make-admin pending), Sign-up Requests, Borrow Requests (SSR counts + RQ).
 - `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
@@ -77,4 +79,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Auth: tight title/`text-light-200` sub; `.auth-box` glass; `isProtectedDemoAccount` locks role/status + Approve. Lucide UI icons; brand logos kept.
 - Dev logging: `logging.serverFunctions: false` (no Server Action password dumps). `proxy.ts` matcher skips static assets.
 - Ops: `npm run user:delete -- <email>` FK-safe single-user wipe for re-signup tests (blocks demo accounts).
-- Agile V: C2 active; Gate 1 `GATE-0006`; tip `7852b83`; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006`; tip uncommitted signup re-apply polish (prior `f663c61`); Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.

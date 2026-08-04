@@ -25,6 +25,7 @@ vi.mock("@/lib/admin/actions/admin-requests", () => ({
   approveAdminRequest: vi.fn(), rejectAdminRequest: vi.fn(), removeAdminPrivileges: vi.fn(),
 }));
 vi.mock("@/lib/admin/actions/user", () => ({ updateUserRole: vi.fn(), updateUserStatus: vi.fn() }));
+vi.mock("@/lib/actions/registration", () => ({ requestRegistrationReview: vi.fn() }));
 vi.mock("@/lib/actions/book", () => ({ borrowBook: state.borrowBook }));
 vi.mock("@/lib/services/reviews", () => ({ createReview: vi.fn(), updateReview: vi.fn(), deleteReview: vi.fn() }));
 vi.mock("@/lib/services/admin", () => ({

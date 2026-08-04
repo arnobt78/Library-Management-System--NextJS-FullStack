@@ -28,6 +28,10 @@ export const queryKeys = {
     detail: (userId: string) => ["user", userId] as const,
     pendingRoot: ["pending-users"] as const,
     pending: (search?: string) => ["pending-users", search] as const,
+    /** Recent signup APPROVED/REJECTED with statusReviewed* (Sign-up Requests). */
+    signupDecisionsRoot: ["signup-status-decisions"] as const,
+    signupDecisions: (limit?: number) =>
+      ["signup-status-decisions", limit ?? 25] as const,
     currentRoot: ["current-user"] as const,
   },
   borrows: {

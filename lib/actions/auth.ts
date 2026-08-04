@@ -13,6 +13,8 @@ import { getClientRateLimitKey } from "@/lib/request/clientKey";
 import { assertPersistedMediaUrl } from "@/lib/media/serverValidation";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { signInSchema, signUpSchema } from "@/lib/validations";
+import { after } from "next/server";
+import { notifyWelcomeSignup } from "@/lib/email/welcomeSignup";
 
 export const signInWithCredentials = async (
   params: Pick<AuthCredentials, "email" | "password">,
@@ -121,6 +123,11 @@ export const signUp = async (params: AuthCredentials) => {
       universityId,
       password: hashedPassword,
       universityCard,
+    });
+
+    // Reliable welcome (Brevo→Resend); independent of optional QStash onboarding
+    after(async () => {
+      await notifyWelcomeSignup({ to: email, fullName });
     });
 
     // Only trigger workflow in production or if explicitly enabled

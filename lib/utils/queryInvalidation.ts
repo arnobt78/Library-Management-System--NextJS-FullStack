@@ -80,6 +80,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.users.adminRoot,
     queryKeys.users.detailRoot,
     queryKeys.users.pendingRoot,
+    queryKeys.users.signupDecisionsRoot,
     queryKeys.users.currentRoot,
   ],
   borrows: [

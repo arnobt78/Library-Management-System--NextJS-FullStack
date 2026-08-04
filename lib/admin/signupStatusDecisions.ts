@@ -1,11 +1,14 @@
+"use server";
+
 /**
  * Recent library signup APPROVED/REJECTED decisions for admin Sign-up Requests UI.
  * Parallel to getRecentAdminRequestDecisions (make-admin history on All Users).
+ * Only rows with status_reviewed_at are returned (hides seed noise without attribution).
  */
 
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { requireAdminActor } from "@/lib/auth/authorization";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
@@ -19,6 +22,7 @@ export type SignupStatusDecision = {
   fullName: string;
   email: string;
   universityId: number;
+  universityCard: string | null;
   status: "APPROVED" | "REJECTED";
   createdAt: Date | null;
   decidedAt: Date | null;
@@ -45,6 +49,7 @@ export async function getRecentSignupStatusDecisions(
         fullName: users.fullName,
         email: users.email,
         universityId: users.universityId,
+        universityCard: users.universityCard,
         status: users.status,
         createdAt: users.createdAt,
         decidedAt: users.statusReviewedAt,
@@ -57,7 +62,12 @@ export async function getRecentSignupStatusDecisions(
         decisionActorUsers,
         eq(users.statusReviewedBy, decisionActorUsers.id),
       )
-      .where(inArray(users.status, ["APPROVED", "REJECTED"]))
+      .where(
+        and(
+          inArray(users.status, ["APPROVED", "REJECTED"]),
+          isNotNull(users.statusReviewedAt),
+        ),
+      )
       .orderBy(desc(users.statusReviewedAt))
       .limit(safeLimit);
 
@@ -73,6 +83,7 @@ export async function getRecentSignupStatusDecisions(
           fullName: row.fullName,
           email: row.email,
           universityId: row.universityId,
+          universityCard: row.universityCard ?? null,
           status: row.status,
           createdAt: row.createdAt,
           decidedAt: row.decidedAt ?? null,

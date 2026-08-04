@@ -26,6 +26,8 @@ import {
   type UsersListResponse,
   type AdminRequest,
 } from "@/lib/services/users";
+import { getRecentSignupStatusDecisions } from "@/lib/admin/signupStatusDecisions";
+import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import {
   getBorrowsList,
   getBorrowRequests,
@@ -500,6 +502,33 @@ export const usePendingUsers = (
     staleTime: 0, // Always refetch when query key changes (search changes)
     refetchOnMount: true, // Refetch on mount
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+  });
+};
+
+/**
+ * Recent signup status decisions (APPROVED/REJECTED with statusReviewed*).
+ * Invalidated via user.write → users.signupDecisionsRoot.
+ */
+export const useSignupStatusDecisions = (
+  initialData?: SignupStatusDecision[],
+  limit = 25,
+) => {
+  const { trackQuery } = useQueryPerformance();
+  const queryKey = queryKeys.users.signupDecisions(limit);
+
+  return useQuery({
+    queryKey,
+    queryFn: () =>
+      trackQuery("signup-status-decisions", async () => {
+        const result = await getRecentSignupStatusDecisions(limit);
+        if (!result.success) {
+          throw new Error(result.error || "Failed to load signup decisions");
+        }
+        return result.data ?? [];
+      }),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
   });
 };
 
