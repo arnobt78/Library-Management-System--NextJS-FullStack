@@ -4,7 +4,7 @@ All 24 installed Agile V suite skills are registered. “Active now” means loa
 
 | # | Skill | State | Routing |
 |---:|---|---|---|
-| 1 | agile-v-core | Active now (2026-08-03 resume) | All Agile V work |
+| 1 | agile-v-core | Active now (2026-08-04 resume) | All Agile V work |
 | 2 | agile-v-pipeline | Active now | Pipeline and handoffs |
 | 3 | agile-v-lifecycle | Active now | Cycles, CRs, archival |
 | 4 | agile-v-compliance | Active now | Risks, gates, CAPA, revalidation |

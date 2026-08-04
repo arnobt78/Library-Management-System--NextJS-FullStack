@@ -1,31 +1,46 @@
 /**
  * Deferred auth toasts — survive full-page navigations (signOut redirect)
  * and show on the destination page instead of the auth form mid-transition.
- * Payload includes optional display name for personalized copy.
+ * Payload includes optional display name + accountStatus for pending companion.
  */
 
 export const AUTH_TOAST_STORAGE_KEY = "bookwise-auth-toast";
 
 export type AuthToastKind = "welcome" | "signup" | "logout";
 
+export type AccountStatusClaim = "PENDING" | "APPROVED" | "REJECTED";
+
 export type PendingAuthToast = {
   kind: AuthToastKind;
   name?: string;
+  /** When PENDING, bridge shows a second pending-approval toast. */
+  accountStatus?: AccountStatusClaim;
 };
 
 export function setPendingAuthToast(
   kind: AuthToastKind,
-  name?: string
+  name?: string,
+  accountStatus?: AccountStatusClaim,
 ): void {
   try {
     const payload: PendingAuthToast = {
       kind,
       name: name?.trim() || undefined,
+      accountStatus,
     };
     sessionStorage.setItem(AUTH_TOAST_STORAGE_KEY, JSON.stringify(payload));
   } catch {
     // sessionStorage may be unavailable (private mode / SSR) — toast is best-effort
   }
+}
+
+function parseAccountStatus(
+  value: unknown,
+): AccountStatusClaim | undefined {
+  if (value === "PENDING" || value === "APPROVED" || value === "REJECTED") {
+    return value;
+  }
+  return undefined;
 }
 
 export function peekPendingAuthToast(): PendingAuthToast | null {
@@ -44,7 +59,11 @@ export function peekPendingAuthToast(): PendingAuthToast | null {
       parsed?.kind === "signup" ||
       parsed?.kind === "logout"
     ) {
-      return parsed;
+      return {
+        kind: parsed.kind,
+        name: typeof parsed.name === "string" ? parsed.name : undefined,
+        accountStatus: parseAccountStatus(parsed.accountStatus),
+      };
     }
     return null;
   } catch {
@@ -54,7 +73,7 @@ export function peekPendingAuthToast(): PendingAuthToast | null {
 
 /** Reads and clears only when the pending kind is one of `allowed`. */
 export function consumePendingAuthToast(
-  allowed: AuthToastKind[]
+  allowed: AuthToastKind[],
 ): PendingAuthToast | null {
   const pending = peekPendingAuthToast();
   if (!pending || !allowed.includes(pending.kind)) return null;

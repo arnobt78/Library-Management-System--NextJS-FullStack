@@ -25,6 +25,7 @@
     "test:integration": "vitest run lib/admin/security-transactions.integration.test.ts",
     "test:watch": "vitest",
     "seed:reset": "tsx scripts/reset-and-seed.ts",
+    "user:delete": "tsx scripts/delete-user-by-email.ts",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"

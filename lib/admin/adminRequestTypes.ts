@@ -10,3 +10,10 @@ export type AdminRequestReviewer = {
 };
 
 export type AdminRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+/** Library signup approval strip for /make-admin (approver via users.updatedBy). */
+export type SignupApprovalInfo = {
+  accountCreatedAt: Date | string | null;
+  accountApprovedAt: Date | string | null;
+  approver: AdminRequestReviewer | null;
+};

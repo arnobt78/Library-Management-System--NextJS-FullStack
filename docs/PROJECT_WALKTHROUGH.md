@@ -107,13 +107,11 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Reviews: shared `ReviewFormDialog` for create+edit; delete spins until settle; kebab Cancel; avatars via `universityCard`+Robohash; optimistic RQ + dynamic toasts.
 - My Profile: borrow book title links to `/books/[id]`; Return/Renew/Details/Review + tab triggers use shared ripple.
 
-## Make-admin (2026-08-03)
+## Make-admin / signup (2026-08-04)
 
-- Route: `app/(root)/make-admin` — shared Header/Footer/page-shell (no Back, no custom max-w).
-- SSR: `getMyAdminRequestPageData` + role/request badges; admins see dashboard CTA.
-- PENDING: locked reason + owner `cancelMyAdminRequest` → REJECTED with `Withdrawn by applicant` (resubmit allowed).
-- Client: glass submit/clear/cancel CTAs + `useCreateAdminRequest`/`useCancelMyAdminRequest` → `admin-request.write` + `showToast.admin.*`.
-- Admin copy: “Sign-up Requests” (route `/admin/account-requests`); Pending Admin Requests + sidebar count badge on All Users.
+- `/make-admin`: `requireSignedInActor`; PENDING/REJECTED locked panel; APPROVED form + signup approver strip; create/cancel APPROVED-only.
+- Sign-up approve/reject emails (`accountStatusEmails` + `after()`); pending-approval toast; Sign-up/Borrow admin badges; borrow RQ skips PENDING/REJECTED.
+- Dev: `logging.serverFunctions: false`; `proxy.ts` static matcher; `npm run user:delete -- <email>` for re-signup tests.
 
 ## API docs (2026-08-03)
 
@@ -124,7 +122,7 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Vercel guardrails: dashboard Bot Challenge + AI Deny; code `app/robots.ts`, security/static headers in `next.config.ts` + `vercel.json`, CSP Robohash, `data-scroll-behavior` on root html (`docs/VERCEL_PRODUCTION_GUARDRAILS.md`).
 - Sentry: `@sentry/nextjs` + `/api/monitoring` tunnel (ad-blocker bypass); `global-error` reports; DSN/org/project/token via env (see `.env.example`).
 - Auth UX: demo subtitles; `.auth-box` frost; demo role/status frozen + Approve blocked; Lucide UI icons.
-- Make-admin / All Users: badges+chips+reject attribution/timestamps; Recent decisions (`scope=decisions`); Decline dialog + Approve confirm; decision emails `after()` Brevo→Resend; `admin-request.write`.
+- Make-admin / All Users: badges+chips+reject attribution/timestamps; Recent decisions (`scope=decisions`); Decline dialog + Approve confirm; admin-request + signup-status emails `after()` Brevo→Resend; `admin-request.write` / `user.write`.
 
 ## Environment
 

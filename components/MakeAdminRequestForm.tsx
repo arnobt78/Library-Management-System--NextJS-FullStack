@@ -25,7 +25,10 @@ import {
   useCreateAdminRequest,
 } from "@/hooks/useMutations";
 import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
-import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import type {
+  AdminRequestReviewer,
+  SignupApprovalInfo,
+} from "@/lib/admin/adminRequestTypes";
 import type { MyAdminRequestStatus } from "@/lib/admin/myAdminRequest";
 import { formatBorrowDateTime } from "@/lib/profile/formatBorrowDates";
 import { withRippleClick } from "@/lib/ui/ripple";
@@ -96,6 +99,8 @@ type MakeAdminRequestFormProps = {
   initialCreatedAt?: Date | string | null;
   /** Approved / rejected / withdrawn at (reviewedAt) */
   initialReviewedAt?: Date | string | null;
+  /** Library registration approval strip (who/when) */
+  signupApproval?: SignupApprovalInfo | null;
 };
 
 function formatRequestWhen(value: Date | string | null | undefined): string | null {
@@ -184,6 +189,7 @@ export default function MakeAdminRequestForm({
   initialReviewer = null,
   initialCreatedAt = null,
   initialReviewedAt = null,
+  signupApproval = null,
 }: MakeAdminRequestFormProps) {
   const [reason, setReason] = useState(
     initialStatus === "PENDING" ? (initialRequestReason ?? "") : "",
@@ -291,6 +297,31 @@ export default function MakeAdminRequestForm({
           rejectionReason={rejectionReason}
         />
       </div>
+
+      {signupApproval ? (
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-light-200 sm:text-sm">
+          <p className="font-medium text-light-100">Account registration</p>
+          {signupApproval.accountCreatedAt ? (
+            <p>
+              Created on{" "}
+              {formatRequestWhen(signupApproval.accountCreatedAt) ?? "N/A"}
+            </p>
+          ) : null}
+          {signupApproval.accountApprovedAt ? (
+            <p>
+              Approved as library user on{" "}
+              {formatRequestWhen(signupApproval.accountApprovedAt) ?? "N/A"}
+            </p>
+          ) : null}
+          <AdminRequestReviewerAttribution
+            reviewer={signupApproval.approver}
+            prefix="Approved by"
+            size={28}
+            className="text-light-200"
+            textClassName="text-light-100"
+          />
+        </div>
+      ) : null}
 
       {isShowcaseDemo ? (
         <p className="flex items-start gap-2 text-xs leading-snug text-light-200 sm:text-sm">

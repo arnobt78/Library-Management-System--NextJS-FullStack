@@ -4,6 +4,8 @@ interface SessionUser {
   name?: string | null;
   email?: string | null;
   role?: string; // User role (USER or ADMIN) for authorization checks
+  /** Account approval status from JWT (server-derived) */
+  status?: "PENDING" | "APPROVED" | "REJECTED" | string;
 }
 
 interface Session {

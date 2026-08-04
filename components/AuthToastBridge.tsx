@@ -34,6 +34,13 @@ export default function AuthToastBridge({ kinds }: AuthToastBridgeProps) {
       } else if (pending.kind === "logout") {
         showToast.auth.logoutSuccess(pending.name);
       }
+
+      if (
+        pending.accountStatus === "PENDING" &&
+        (pending.kind === "welcome" || pending.kind === "signup")
+      ) {
+        showToast.auth.pendingApproval(pending.name);
+      }
     }, 50);
 
     return () => window.clearTimeout(timer);

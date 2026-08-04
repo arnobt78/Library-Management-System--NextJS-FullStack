@@ -86,4 +86,20 @@ describe("server actor policy", () => {
       authorization.assertOwnerOrAdmin(approvedAdmin, owner.id)
     ).not.toThrow();
   });
+
+  it("accepts PENDING accounts for signed-in view surfaces", () => {
+    expect(
+      authorization.validateSignedInActor(approvedAdmin.id, {
+        ...approvedAdmin,
+        role: "USER",
+        status: "PENDING",
+      }),
+    ).toMatchObject({ status: "PENDING", role: "USER" });
+  });
+
+  it("rejects missing session for signed-in view surfaces", () => {
+    expect(() =>
+      authorization.validateSignedInActor(null, approvedAdmin),
+    ).toThrow("Authentication required");
+  });
 });

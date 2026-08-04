@@ -40,18 +40,21 @@ import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import UserAvatar from "@/components/UserAvatar";
 import { Users, XIcon, Sparkles, Zap, Loader2 } from "lucide-react";
-import { setPendingAuthToast } from "@/lib/auth/authToast";
+import {
+  setPendingAuthToast,
+  type AccountStatusClaim,
+} from "@/lib/auth/authToast";
 
 type AuthFields = FieldValues & { email: string; password: string };
+
+type AuthSubmitResult =
+  | { success: true; accountStatus?: AccountStatusClaim }
+  | { success: false; error?: string; fieldError?: string };
 
 interface Props<TInput extends AuthFields, TOutput extends AuthFields> {
   schema: ZodType<TOutput, TInput>;
   defaultValues: DefaultValues<TInput>;
-  onSubmit: (
-    data: TOutput,
-  ) => Promise<
-    { success: true } | { success: false; error?: string; fieldError?: string }
-  >;
+  onSubmit: (data: TOutput) => Promise<AuthSubmitResult>;
   type: "SIGN_IN" | "SIGN_UP";
 }
 
@@ -113,8 +116,14 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
         TEST_ACCOUNTS.find((a) => a.email === data.email)?.fullName ||
         data.email.split("@")[0];
 
-      // Defer welcome toast until homepage mounts (avoids toast on auth page)
-      setPendingAuthToast(isSignIn ? "welcome" : "signup", displayName);
+      // Defer welcome/signup (+ pending companion) until homepage mounts
+      const accountStatus: AccountStatusClaim | undefined =
+        result.accountStatus ?? (isSignIn ? undefined : "PENDING");
+      setPendingAuthToast(
+        isSignIn ? "welcome" : "signup",
+        displayName,
+        accountStatus,
+      );
       setIsNavigating(true);
       router.push("/");
     } else {

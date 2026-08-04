@@ -40,6 +40,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Next 16.2+ logs Server Function args in dev by default (leaks passwords on sign-in).
+  // Keep disabled unless actively debugging a specific server action.
+  logging: {
+    serverFunctions: false,
+  },
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

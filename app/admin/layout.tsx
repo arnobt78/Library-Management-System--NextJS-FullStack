@@ -6,8 +6,8 @@ import "@/styles/admin.css";
 import Sidebar from "@/components/admin/Sidebar";
 import Header from "@/components/admin/Header";
 import { db } from "@/database/drizzle";
-import { users } from "@/database/schema";
-import { eq } from "drizzle-orm";
+import { borrowRecords, users } from "@/database/schema";
+import { count, eq } from "drizzle-orm";
 import { getPendingAdminRequests } from "@/lib/admin/actions/admin-requests";
 import type { AdminRequest } from "@/lib/services/users";
 
@@ -27,17 +27,32 @@ const Layout = async ({ children }: { children: ReactNode }) => {
     redirect("/");
   }
 
-  // SSR seed for All Users sidebar badge (live updates via admin-request.write)
-  const pendingResult = await getPendingAdminRequests();
+  // SSR seeds for sidebar badges (live updates via user.write / borrow.lifecycle / admin-request.write)
+  const [pendingResult, pendingSignUpRow, pendingBorrowRow] = await Promise.all([
+    getPendingAdminRequests(),
+    db
+      .select({ value: count() })
+      .from(users)
+      .where(eq(users.status, "PENDING")),
+    db
+      .select({ value: count() })
+      .from(borrowRecords)
+      .where(eq(borrowRecords.status, "PENDING")),
+  ]);
+
   const initialPendingAdminRequests: AdminRequest[] = pendingResult.success
     ? ((pendingResult.data || []) as AdminRequest[])
     : [];
+  const initialPendingSignUpCount = Number(pendingSignUpRow[0]?.value ?? 0);
+  const initialPendingBorrowCount = Number(pendingBorrowRow[0]?.value ?? 0);
 
   return (
     <main className="flex min-h-screen w-full flex-row">
       <Sidebar
         session={session}
         initialPendingAdminRequests={initialPendingAdminRequests}
+        initialPendingSignUpCount={initialPendingSignUpCount}
+        initialPendingBorrowCount={initialPendingBorrowCount}
       />
 
       <div className="admin-container">

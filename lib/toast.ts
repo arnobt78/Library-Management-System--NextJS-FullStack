@@ -57,6 +57,16 @@ export const showToast = {
           "Your account is ready — enjoy discovering books & happy learning!",
       });
     },
+    pendingApproval: (name?: string) => {
+      const who = name?.trim();
+      toast({
+        title: who
+          ? `Registration pending, ${who}`
+          : "Registration pending",
+        description:
+          "An admin must approve your account before borrowing or requesting admin access.",
+      });
+    },
     logoutSuccess: (name?: string) => {
       const who = name?.trim() || "friend";
       toast({

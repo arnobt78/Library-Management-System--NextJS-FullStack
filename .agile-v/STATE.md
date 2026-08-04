@@ -4,10 +4,10 @@
 - Cycle: C2
 - Stage: 4 - Prove and independent Verify
 - SCOPE-V phase: Evaluate
-- Status: ACTIVE - Stage 3 UX polish under REQ-0033 (make-admin attribution + decline/email); C2 Gate 2 still blocked by nonlocal production evidence
+- Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed; await owner next instruction; C2 Gate 2 blocked by nonlocal EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: `5ca0215` (make-admin attribution + decline dialog + decision emails)
+- Latest known tip: pending bind after PENDING-UX feat commit (was `e616709` / `5ca0215`)
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
@@ -41,13 +41,12 @@
 
 ## Next Action
 
-Owner-directed: await new instruction. Default incomplete wave is **Wave 5 — Production proof** (REQ-0032 remainder + nonlocal evidence for REQ-0026–0033). Do not request or record C2 Gate 2 until EvalGate PASS or an explicit WAIVER with named approver. New product behavior requires Stage 1 CR + Gate 1; bugfixes with unchanged REQs re-enter Stage 3.
+Owner-directed: await new instruction (no synthesis until directed). Default incomplete wave is **Wave 5 — Production proof** (REQ-0032 remainder + nonlocal evidence for REQ-0026–0033). Do not request or record C2 Gate 2 until EvalGate PASS or an explicit WAIVER with named approver. New product behavior → Stage 1 CR + Gate 1; bugfix unchanged REQs → Stage 3; REQ-0033 polish continues under approved CR-0002 until owner closes it.
 
-## Demo / UX notes (through 2026-08-03)
+## Demo / UX notes (through 2026-08-04)
 
-- `npm run seed:reset`: FK-safe wipe + 17 books + `test@user.com` / `test@admin.com` (APPROVED, local avatars). Owner ran successfully on configured DB.
-- Borrow History nav; profile Unknown Book flash fixed (`initialDataUpdatedAt` + `BorrowRecordFull` + book-title guard).
-- Sign-in Select / ProfileDropdown / MobileMenu use `UserAvatar`. Login: `0009` applied; rehash non-fatal. GitGuardian scrypt dummy string = FP.
-- Educational README + SECURITY refreshed (seed:reset docs; private reports contact@arnobmahmud.com).
-- Page shell `max-w-9xl` + Footer; Performance embedded in API Status; FilterSelect + scroll-lock gutter; Button ripple + book CTA shine; form primary hover via `color-mix`.
-- Book overview: full-width title; soft blurred hero glow; Library DB + Borrow Stats aligned 2-col; availability emerald/amber/red; owner accepted glow strength.
+- `npm run seed:reset`: FK-safe wipe + 17 books + `test@user.com` / `test@admin.com` (APPROVED, local avatars).
+- Auth glass + demo locks; make-admin Approve blocked for showcase; Decline/Create/Cancel OK.
+- `/make-admin`: `requireSignedInActor`; PENDING locked panel; signup approver strip; APPROVED form create/cancel.
+- Sign-up emails `accountStatusEmails`; pending-approval toast; Sign-up/Borrow sidebar badges; borrow RQ gated for PENDING/REJECTED.
+- `user.write` RSC includes `/make-admin` + `/admin/account-requests`; `npm run user:delete`; `logging.serverFunctions: false`.

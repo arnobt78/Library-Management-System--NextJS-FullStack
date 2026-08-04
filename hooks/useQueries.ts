@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { queryKeys } from "@/lib/query/keys";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
@@ -537,6 +538,11 @@ export const useBorrowRecords = (
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const accountStatus = (session?.user as SessionUser | undefined)?.status;
+  // Skip expected 403 noise for PENDING/REJECTED; allow APPROVED and legacy JWTs without status
+  const canFetchBorrows =
+    accountStatus !== "PENDING" && accountStatus !== "REJECTED";
 
   // Get filters from URL params if not provided
   const urlFilters: BorrowFilters = {
@@ -568,7 +574,7 @@ export const useBorrowRecords = (
       trackQuery(`borrow-records-${userId}`, async () => {
         return getBorrowsList(urlFilters);
       }),
-    enabled: !!userId,
+    enabled: !!userId && canFetchBorrows,
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
@@ -610,6 +616,11 @@ export const useUserBorrows = (
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const accountStatus = (session?.user as SessionUser | undefined)?.status;
+  // Skip expected 403 noise for PENDING/REJECTED; allow APPROVED and legacy JWTs without status
+  const canFetchBorrows =
+    accountStatus !== "PENDING" && accountStatus !== "REJECTED";
 
   // Get status from URL params if not provided
   const finalStatus: BorrowStatus | undefined =
@@ -624,7 +635,7 @@ export const useUserBorrows = (
       trackQuery(`user-borrows-${userId}`, async () => {
         return getUserBorrows(userId, finalStatus);
       }),
-    enabled: !!userId,
+    enabled: !!userId && canFetchBorrows,
     staleTime: 30 * 1000,
     refetchOnMount: true,
     refetchOnWindowFocus: true,

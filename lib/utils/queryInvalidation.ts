@@ -40,7 +40,14 @@ export const MUTATION_DOMAIN_REGISTRY = {
 
 export const MUTATION_RSC_PATH_REGISTRY = {
   "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights"],
-  "user.write": ["/my-profile", "/admin/users", "/admin/users/[id]", "/admin/business-insights"],
+  "user.write": [
+    "/my-profile",
+    "/make-admin",
+    "/admin/account-requests",
+    "/admin/users",
+    "/admin/users/[id]",
+    "/admin/business-insights",
+  ],
   "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "reservation.lifecycle": ["/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "renewal.write": ["/books/[id]", "/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],

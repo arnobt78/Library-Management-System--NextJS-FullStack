@@ -125,13 +125,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         // Return user object for NextAuth (will be stored in JWT token)
-        // CRITICAL: Include role for admin authorization checks
+        // CRITICAL: Include role + status for client gates / pending toasts
         return {
           id: user[0].id.toString(),
           email: user[0].email,
           name: user[0].fullName,
-          role: user[0].role, // Include role for authorization
-        } as User & { role: string };
+          role: user[0].role,
+          status: user[0].status,
+        } as User & { role: string; status: string };
       },
     }),
   ],
@@ -142,7 +143,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     authorized({ auth: currentSession, request }) {
       return authorizeProxyPath(
         request.nextUrl.pathname,
-        Boolean(currentSession?.user)
+        Boolean(currentSession?.user),
       );
     },
     /**
@@ -157,28 +158,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
      * 4. Return token (will be sent to client as cookie)
      */
     async jwt({ token, user }) {
-      // Only runs on initial sign-in (when 'user' is provided)
+      // Initial sign-in: seed JWT from authorize payload
       if (user) {
-        // Store user data in JWT token
         token.id = user.id;
         token.name = user.name;
-        // CRITICAL: Store role in JWT token for authorization checks
-        token.role = (user as User & { role?: string }).role;
+        const u = user as User & { role?: string; status?: string };
+        token.role = u.role;
+        token.status = u.status;
 
-        /**
-         * Update last_login timestamp when user signs in
-         * This helps track user activity for analytics and security
-         */
         try {
-          /**
-           * Lazy load database only when jwt callback is called (Node.js runtime)
-           * Safe because this callback only runs in API routes, not middleware
-           */
           const db = await getDb();
           const users = await getUsersSchema();
           const eq = await getEq();
 
-          // Type guard: user.id is guaranteed to exist here (from authorize callback)
           if (user.id) {
             await db
               .update(users)
@@ -187,6 +179,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         } catch {
           // Don't fail authentication if last_login update fails
+        }
+      } else if (
+        token.id &&
+        (token.status === "PENDING" ||
+          token.status === "REJECTED" ||
+          !token.status)
+      ) {
+        // Refresh PENDING/REJECTED (or missing) status so client gates update after admin approval
+        try {
+          const db = await getDb();
+          const users = await getUsersSchema();
+          const eq = await getEq();
+          const row = await db
+            .select({ status: users.status, role: users.role })
+            .from(users)
+            .where(eq(users.id, token.id as string))
+            .limit(1);
+          if (row[0]) {
+            token.status = row[0].status;
+            token.role = row[0].role;
+          }
+        } catch {
+          // Keep existing token claims if refresh fails
         }
       }
 
@@ -208,9 +223,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Add user ID and name from JWT token to session
         session.user.id = token.id as string;
         session.user.name = token.name as string;
-        // CRITICAL: Add role to session for authorization checks
-        // Type assertion needed because NextAuth types don't include role by default
-        (session.user as { role?: string }).role = token.role as string;
+        // CRITICAL: Add role + status for authorization / PENDING client gates
+        const sessionUser = session.user as {
+          role?: string;
+          status?: string;
+        };
+        sessionUser.role = token.role as string;
+        sessionUser.status = token.status as string;
       }
 
       return session;

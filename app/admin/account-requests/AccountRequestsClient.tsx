@@ -415,15 +415,18 @@ const AccountRequestCard = ({
           </span>
         </div>
 
-        {/* Join Date */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs sm:space-x-2 sm:text-sm">
-          <Calendar className="size-3 shrink-0 text-green-500 sm:size-4" />
-          <span className="text-gray-600">Joined:</span>
-          <span className="break-words font-medium text-gray-900">
-            {user.createdAt
-              ? new Date(user.createdAt).toLocaleDateString()
-              : "N/A"}
-          </span>
+        {/* Registration date + awaiting review */}
+        <div className="space-y-1 text-xs sm:text-sm">
+          <div className="flex flex-wrap items-center gap-1.5 sm:space-x-2">
+            <Calendar className="size-3 shrink-0 text-green-500 sm:size-4" />
+            <span className="text-gray-600">Registered:</span>
+            <span className="break-words font-medium text-gray-900">
+              {user.createdAt
+                ? new Date(user.createdAt).toLocaleDateString()
+                : "N/A"}
+            </span>
+          </div>
+          <p className="pl-4 text-amber-700 sm:pl-5">Awaiting review</p>
         </div>
 
         {/* University Card */}

@@ -41,7 +41,22 @@ export const signInWithCredentials = async (
       return { success: false, error: result.error };
     }
 
-    return { success: true };
+    const row = await db
+      .select({ status: users.status })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    const accountStatus = row[0]?.status;
+    return {
+      success: true as const,
+      accountStatus:
+        accountStatus === "PENDING" ||
+        accountStatus === "APPROVED" ||
+        accountStatus === "REJECTED"
+          ? accountStatus
+          : undefined,
+    };
   } catch {
     return { success: false, error: "Signin error" };
   }
@@ -126,10 +141,14 @@ export const signUp = async (params: AuthCredentials) => {
       }
     }
 
-    await signInWithCredentials({ email, password });
+    const signInResult = await signInWithCredentials({ email, password });
+    if (!signInResult.success) {
+      return signInResult;
+    }
 
     revalidateMutationPaths("user.write");
-    return { success: true };
+    // New registrations always start PENDING (schema default).
+    return { success: true as const, accountStatus: "PENDING" as const };
   } catch (error) {
     // Check if error is related to integer range
     if (

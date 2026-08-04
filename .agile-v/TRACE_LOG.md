@@ -78,3 +78,5 @@
 | SPAN-0072 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | make-admin badges/chips; reject banner + reviewer SSR join | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |
 | SPAN-0073 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Admin Recent decisions + reviewer join/API/hook/invalidation | require_parent_requirement | REQ-0033 | PASS; type/lint/tests |
 | SPAN-0074 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | Decline dialog/Approve confirm + decision emails after() | require_parent_requirement | REQ-0033 | PASS; tip `5ca0215` |
+| SPAN-0075 | 2026-08-04 | C2 | Resume | Orchestrator | Agile V Infinity Loop resume; sync STATE/SKILLS; no product code | require_parent_requirement | REQ-0018 | PASS; tip `e616709`; await owner |
+| SPAN-0076 | 2026-08-04 | C2 | 3 UX polish | Build Agent JS | PENDING make-admin UX; signup emails; pending toast; sidebar badges; RQ gate; user:delete; no serverFn password logs | require_parent_requirement | REQ-0010, REQ-0008, REQ-0033, REQ-0025 | PASS; type/lint/103 tests |

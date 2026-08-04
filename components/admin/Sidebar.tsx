@@ -2,7 +2,7 @@
 
 /**
  * Admin sidebar nav.
- * All Users shows a live PENDING admin-request count (SSR seed + RQ invalidation).
+ * Badges: pending make-admin (All Users), pending sign-ups, pending borrows.
  * Nav icons are Lucide (constants icon keys) — brand logo stays a public SVG.
  */
 
@@ -12,7 +12,11 @@ import { cn, getInitials } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Session } from "next-auth";
-import { usePendingAdminRequests } from "@/hooks/useQueries";
+import {
+  useBorrowRequests,
+  usePendingAdminRequests,
+  usePendingUsers,
+} from "@/hooks/useQueries";
 import type { AdminRequest } from "@/lib/services/users";
 import {
   BarChart3,
@@ -35,21 +39,38 @@ const ADMIN_SIDEBAR_ICONS: Record<AdminSidebarIconKey, LucideIcon> = {
   wand: Wand2,
 };
 
+function formatBadgeCount(count: number): string {
+  return count > 99 ? "99+" : String(count);
+}
+
 const Sidebar = ({
   session,
   initialPendingAdminRequests = [],
+  initialPendingSignUpCount = 0,
+  initialPendingBorrowCount = 0,
 }: {
   session: Session;
   /** SSR seed for pending make-admin requests (All Users badge) */
   initialPendingAdminRequests?: AdminRequest[];
+  /** SSR count for Sign-up Requests badge */
+  initialPendingSignUpCount?: number;
+  /** SSR count for Borrow Requests badge */
+  initialPendingBorrowCount?: number;
 }) => {
   const pathname = usePathname();
   const { data: pendingAdminRequests } = usePendingAdminRequests(
     initialPendingAdminRequests,
   );
+  const { data: pendingSignUps } = usePendingUsers();
+  const { data: pendingBorrows } = useBorrowRequests({ status: "PENDING" });
+
   const pendingAdminCount = (
     pendingAdminRequests ?? initialPendingAdminRequests
   ).length;
+  const pendingSignUpCount =
+    pendingSignUps?.length ?? initialPendingSignUpCount;
+  const pendingBorrowCount =
+    pendingBorrows?.length ?? initialPendingBorrowCount;
 
   return (
     <div className="admin-sidebar">
@@ -72,8 +93,26 @@ const Sidebar = ({
                 pathname.includes(link.route) &&
                 link.route.length > 1) ||
               pathname === link.route;
-            const showAdminBadge =
-              link.route === "/admin/users" && pendingAdminCount > 0;
+
+            let badgeCount = 0;
+            let badgeLabel = "";
+            if (link.route === "/admin/users" && pendingAdminCount > 0) {
+              badgeCount = pendingAdminCount;
+              badgeLabel = `${pendingAdminCount} pending admin requests`;
+            } else if (
+              link.route === "/admin/account-requests" &&
+              pendingSignUpCount > 0
+            ) {
+              badgeCount = pendingSignUpCount;
+              badgeLabel = `${pendingSignUpCount} pending sign-up requests`;
+            } else if (
+              link.route === "/admin/book-requests" &&
+              pendingBorrowCount > 0
+            ) {
+              badgeCount = pendingBorrowCount;
+              badgeLabel = `${pendingBorrowCount} pending borrow requests`;
+            }
+
             const Icon = ADMIN_SIDEBAR_ICONS[link.icon];
 
             return (
@@ -101,15 +140,15 @@ const Sidebar = ({
                     {link.text}
                   </p>
 
-                  {showAdminBadge ? (
+                  {badgeCount > 0 ? (
                     <span
                       className={cn(
                         "admin-sidebar-badge",
                         isSelected && "admin-sidebar-badge--selected",
                       )}
-                      aria-label={`${pendingAdminCount} pending admin requests`}
+                      aria-label={badgeLabel}
                     >
-                      {pendingAdminCount > 99 ? "99+" : pendingAdminCount}
+                      {formatBadgeCount(badgeCount)}
                     </span>
                   ) : null}
                 </div>

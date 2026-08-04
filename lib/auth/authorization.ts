@@ -17,6 +17,18 @@ export interface AuthorizedActor {
   status: "APPROVED";
 }
 
+/**
+ * Signed-in identity for view-only surfaces (e.g. /make-admin locked UX).
+ * Allows PENDING / REJECTED; privileged mutations still use AuthorizedActor.
+ */
+export interface SignedInActor {
+  id: string;
+  email: string;
+  name: string;
+  role: ActorRole;
+  status: ActorStatus;
+}
+
 export type AuthorizationFailureCode = "UNAUTHENTICATED" | "FORBIDDEN";
 
 export class AuthorizationError extends Error {
@@ -35,6 +47,24 @@ interface DatabaseActor {
   name: string;
   role: ActorRole | null;
   status: ActorStatus | null;
+}
+
+async function loadDatabaseActor(
+  sessionUserId: string,
+): Promise<DatabaseActor | null> {
+  const [databaseActor] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.fullName,
+      role: users.role,
+      status: users.status,
+    })
+    .from(users)
+    .where(eq(users.id, sessionUserId))
+    .limit(1);
+
+  return databaseActor ?? null;
 }
 
 /**
@@ -70,6 +100,40 @@ export function validateActor(
   };
 }
 
+/**
+ * Session + DB user required; account may be PENDING / APPROVED / REJECTED.
+ * Used only for pages that must render a locked UX instead of bouncing.
+ */
+export function validateSignedInActor(
+  sessionUserId: string | null | undefined,
+  databaseActor: DatabaseActor | null,
+): SignedInActor {
+  if (!sessionUserId || !databaseActor || databaseActor.id !== sessionUserId) {
+    throw new AuthorizationError("UNAUTHENTICATED", "Authentication required");
+  }
+
+  const status = databaseActor.status;
+  if (
+    status !== "PENDING" &&
+    status !== "APPROVED" &&
+    status !== "REJECTED"
+  ) {
+    throw new AuthorizationError("FORBIDDEN", "Invalid account status");
+  }
+
+  if (!databaseActor.role) {
+    throw new AuthorizationError("FORBIDDEN", "Invalid account role");
+  }
+
+  return {
+    id: databaseActor.id,
+    email: databaseActor.email,
+    name: databaseActor.name,
+    role: databaseActor.role,
+    status,
+  };
+}
+
 async function requireActor(requiredRole?: ActorRole): Promise<AuthorizedActor> {
   const session = await auth();
   const sessionUserId = session?.user?.id;
@@ -78,19 +142,8 @@ async function requireActor(requiredRole?: ActorRole): Promise<AuthorizedActor> 
     throw new AuthorizationError("UNAUTHENTICATED", "Authentication required");
   }
 
-  const [databaseActor] = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      name: users.fullName,
-      role: users.role,
-      status: users.status,
-    })
-    .from(users)
-    .where(eq(users.id, sessionUserId))
-    .limit(1);
-
-  return validateActor(sessionUserId, databaseActor ?? null, requiredRole);
+  const databaseActor = await loadDatabaseActor(sessionUserId);
+  return validateActor(sessionUserId, databaseActor, requiredRole);
 }
 
 export function requireAuthenticatedActor(): Promise<AuthorizedActor> {
@@ -99,6 +152,19 @@ export function requireAuthenticatedActor(): Promise<AuthorizedActor> {
 
 export function requireAdminActor(): Promise<AuthorizedActor> {
   return requireActor("ADMIN");
+}
+
+/** Authenticated user of any approval status (view-capable surfaces). */
+export async function requireSignedInActor(): Promise<SignedInActor> {
+  const session = await auth();
+  const sessionUserId = session?.user?.id;
+
+  if (!sessionUserId) {
+    throw new AuthorizationError("UNAUTHENTICATED", "Authentication required");
+  }
+
+  const databaseActor = await loadDatabaseActor(sessionUserId);
+  return validateSignedInActor(sessionUserId, databaseActor);
 }
 
 export function assertOwnerOrAdmin(

@@ -3,11 +3,16 @@
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { eq, desc } from "drizzle-orm";
+import { after } from "next/server";
 import {
   getActionErrorMessage,
   requireAdminActor,
 } from "@/lib/auth/authorization";
 import { parseEntityId } from "@/lib/actionInputs";
+import {
+  DEFAULT_ACCOUNT_REJECTION_REASON,
+  notifyAccountStatusDecision,
+} from "@/lib/admin/accountStatusEmails";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { isProtectedDemoAccount } from "@/constants";
 
@@ -73,7 +78,9 @@ export const updateUserStatus = async (
       .select({
         id: users.id,
         email: users.email,
+        fullName: users.fullName,
         universityId: users.universityId,
+        status: users.status,
       })
       .from(users)
       .where(eq(users.id, safeUserId))
@@ -87,9 +94,12 @@ export const updateUserStatus = async (
       return { success: false, error: DEMO_ACCOUNT_LOCKED };
     }
 
+    const previousStatus = existing[0].status;
+    const decidedAt = new Date();
+
     const updated = await db
       .update(users)
-      .set({ status, updatedAt: new Date(), updatedBy: actor.email })
+      .set({ status, updatedAt: decidedAt, updatedBy: actor.email })
       .where(eq(users.id, safeUserId))
       .returning({ id: users.id });
 
@@ -98,6 +108,26 @@ export const updateUserStatus = async (
     }
 
     revalidateMutationPaths("user.write");
+
+    // Notify on APPROVED/REJECTED transitions only (not PENDING, not no-ops).
+    if (
+      previousStatus !== status &&
+      (status === "APPROVED" || status === "REJECTED")
+    ) {
+      const target = existing[0];
+      after(async () => {
+        await notifyAccountStatusDecision({
+          to: target.email,
+          fullName: target.fullName,
+          status,
+          userId: target.id,
+          decidedAt,
+          rejectionReason:
+            status === "REJECTED" ? DEFAULT_ACCOUNT_REJECTION_REASON : null,
+        });
+      });
+    }
+
     return { success: true };
   } catch (error) {
     console.error("Error updating user status:", error);

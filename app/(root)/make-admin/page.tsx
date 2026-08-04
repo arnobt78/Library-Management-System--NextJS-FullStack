@@ -1,27 +1,107 @@
 /**
  * Request Admin Access — lives under (root) for shared Header/Footer/page-shell.
- * SSR loads latest admin_requests status (+ reviewer); client form owns submit/withdraw.
+ * PENDING/REJECTED accounts see a locked panel (no bounce); APPROVED get the form.
  */
 
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import GlassSectionHeader from "@/components/GlassSectionHeader";
 import MakeAdminRequestForm from "@/components/MakeAdminRequestForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getAuthorizationFailure } from "@/lib/auth/authorization";
+import type { SignupApprovalInfo } from "@/lib/admin/adminRequestTypes";
 import { getMyAdminRequestPageData } from "@/lib/admin/myAdminRequest";
-import { CheckCircle2, LayoutDashboard, Shield } from "lucide-react";
+import { formatBorrowDateTime } from "@/lib/profile/formatBorrowDates";
+import {
+  BookOpen,
+  Bookmark,
+  CheckCircle2,
+  Clock,
+  LayoutDashboard,
+  Shield,
+  ShieldOff,
+  User,
+  UserPlus,
+  Users,
+  XCircle,
+} from "lucide-react";
+
+const ACCESS_CHIPS = [
+  { label: "Admin Dashboard", icon: LayoutDashboard },
+  { label: "User Management", icon: Users },
+  { label: "Book Management", icon: BookOpen },
+  { label: "Borrow Requests", icon: Bookmark },
+  { label: "Sign-up Requests", icon: UserPlus },
+] as const;
+
+function formatWhen(value: Date | string | null | undefined): string | null {
+  if (value == null) return null;
+  return formatBorrowDateTime(value);
+}
+
+function SignupHistoryStrip({
+  signupApproval,
+  accountStatus,
+}: {
+  signupApproval: SignupApprovalInfo;
+  accountStatus: "PENDING" | "APPROVED" | "REJECTED";
+}) {
+  const created = formatWhen(signupApproval.accountCreatedAt);
+  const approved = formatWhen(signupApproval.accountApprovedAt);
+
+  return (
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-light-200 sm:text-sm">
+      <p className="font-medium text-light-100">Account registration</p>
+      {created ? (
+        <p className="flex items-center gap-1.5">
+          <Clock className="size-3.5 shrink-0" aria-hidden />
+          Created on {created}
+        </p>
+      ) : null}
+      {accountStatus === "PENDING" ? (
+        <p>Status: awaiting admin approval as a library user.</p>
+      ) : null}
+      {accountStatus === "REJECTED" ? (
+        <p>Status: registration was not approved. Contact a librarian if this is unexpected.</p>
+      ) : null}
+      {accountStatus === "APPROVED" && approved ? (
+        <p>Approved as library user on {approved}</p>
+      ) : null}
+      {accountStatus === "APPROVED" && signupApproval.approver ? (
+        <AdminRequestReviewerAttribution
+          reviewer={signupApproval.approver}
+          prefix="Approved by"
+          size={28}
+          className="text-light-200"
+          textClassName="text-light-100"
+        />
+      ) : null}
+      {accountStatus === "APPROVED" && !signupApproval.approver ? (
+        <p className="text-light-200/80">Approved by an admin</p>
+      ) : null}
+    </div>
+  );
+}
 
 const Page = async () => {
   let pageData;
   try {
     pageData = await getMyAdminRequestPageData();
-  } catch {
-    redirect("/sign-in");
+  } catch (error) {
+    const failure = getAuthorizationFailure(error);
+    if (failure?.status === 401) {
+      redirect("/sign-in");
+    }
+    throw error;
   }
 
-  const { email, role, latestRequest } = pageData;
+  const { email, role, accountStatus, signupApproval, latestRequest } =
+    pageData;
+
+  const accountLocked = accountStatus !== "APPROVED";
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -33,7 +113,7 @@ const Page = async () => {
       />
 
       <div className="rounded-xl border border-white/10 bg-dark-300/60 p-4 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:p-6">
-        {role === "ADMIN" ? (
+        {role === "ADMIN" && accountStatus === "APPROVED" ? (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-light-200 sm:text-sm">
@@ -45,6 +125,10 @@ const Page = async () => {
                 Admin
               </Badge>
             </div>
+            <SignupHistoryStrip
+              signupApproval={signupApproval}
+              accountStatus={accountStatus}
+            />
             <p className="text-sm text-light-200">
               You already have administrator privileges. Open the admin
               dashboard to manage users, books, and borrow requests.
@@ -55,6 +139,103 @@ const Page = async () => {
                 Open Admin Dashboard
               </Link>
             </Button>
+          </div>
+        ) : accountLocked ? (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <p className="text-xs text-light-200 sm:text-sm">
+                  <span className="text-light-100/70">Current user: </span>
+                  <span className="break-all text-light-100">{email}</span>
+                </p>
+                <Badge variant="glassMuted">
+                  <User className="size-3" />
+                  User
+                </Badge>
+              </div>
+              {accountStatus === "PENDING" ? (
+                <Badge variant="glassPending">
+                  <Clock className="size-3" />
+                  Registration pending
+                </Badge>
+              ) : (
+                <Badge
+                  variant="glassMuted"
+                  className="border-red-400/40 from-red-500/25 via-red-500/10 to-red-500/5"
+                >
+                  <XCircle className="size-3" />
+                  Registration rejected
+                </Badge>
+              )}
+            </div>
+
+            <div
+              className={
+                accountStatus === "PENDING"
+                  ? "space-y-1 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 sm:text-sm"
+                  : "space-y-1 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200 sm:text-sm"
+              }
+            >
+              <p className="font-medium">
+                {accountStatus === "PENDING"
+                  ? "You cannot request admin access yet"
+                  : "Admin requests are unavailable"}
+              </p>
+              <p>
+                {accountStatus === "PENDING"
+                  ? "An admin must approve your registration as a library user first. After approval you can submit a make-admin request here."
+                  : "Your registration was not approved, so admin access requests stay locked."}
+              </p>
+            </div>
+
+            <SignupHistoryStrip
+              signupApproval={signupApproval}
+              accountStatus={accountStatus}
+            />
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-light-200 sm:text-sm">
+                Why do you need admin access?
+              </label>
+              <textarea
+                disabled
+                readOnly
+                rows={4}
+                className="w-full resize-none rounded-md border border-white/10 bg-dark-300/50 px-2.5 py-1.5 text-xs text-light-100 opacity-60 placeholder:text-light-200/50 sm:px-3 sm:py-2 sm:text-sm"
+                placeholder="Available after your account is approved…"
+                value=""
+              />
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  disabled
+                  className="profile-action-btn profile-action-btn--submit opacity-50"
+                >
+                  <ShieldOff className="size-3.5 sm:size-4" />
+                  Submit request
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-3 sm:pt-4">
+              <p className="text-xs text-light-200/70 sm:text-sm">
+                After approval, you&apos;ll be able to access:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {ACCESS_CHIPS.map(({ label, icon: Icon }) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-dark-300/60 px-2.5 py-1.5 text-[11px] font-medium text-light-100 opacity-70 backdrop-blur-sm sm:text-xs"
+                  >
+                    <Icon
+                      className="size-3.5 shrink-0 text-primary sm:size-4"
+                      aria-hidden
+                    />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <MakeAdminRequestForm
@@ -67,6 +248,7 @@ const Page = async () => {
             initialReviewer={latestRequest?.reviewer ?? null}
             initialCreatedAt={latestRequest?.createdAt ?? null}
             initialReviewedAt={latestRequest?.reviewedAt ?? null}
+            signupApproval={signupApproval}
           />
         )}
       </div>

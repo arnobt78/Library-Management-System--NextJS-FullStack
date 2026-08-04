@@ -62,11 +62,16 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Scroll polish: `ScrollToTop` sets `history.scrollRestoration=manual` + `scrollTo(auto)`; `RootHeaderShell` defaults `scrolled=true`, measures in `useLayoutEffect`.
 - Reviews: shared `ReviewFormDialog` create+edit (no 1.5s delay); delete confirm spins until settle; kebab Cancel+separator; Created/Edited icons; `universityCard`+Robohash avatars; optimistic `setQueryData` + dynamic toasts.
 - My Profile borrow title → `Link` `/books/[id]` (`hover:text-light-100/70`).
-- `/make-admin` + admin-requests: justify user/status; glass chips; reject quote+reviewer+timestamps; Decline dialog (`DEFAULT_ADMIN_REJECTION_REASON`); Approve confirm; Recent decisions (`?scope=decisions`); decision emails `after()` Brevo→Resend; `admin-request.write`. Demo Approve blocked.
-- Admin nav: “Sign-up Requests” = pending registrations; make-admin queue on `/admin/users` + sidebar badge.
+- `/make-admin`: `requireSignedInActor` (any status); PENDING/REJECTED locked panel (no bounce); APPROVED form + signup approver strip (`users.updatedBy` join). Create/cancel stay APPROVED-only.
+- Auth JWT/session carries `status`; PENDING→APPROVED refreshes on jwt; auth toasts welcome/signup + companion pending-approval; borrow RQ `enabled` skips PENDING/REJECTED 403 noise.
+- Sign-up approve/reject: `accountStatusEmails` via `after()` Brevo→Resend from `updateUserStatus` (not PENDING/demo no-ops).
+- Admin nav badges: All Users (make-admin pending), Sign-up Requests, Borrow Requests (SSR counts + RQ).
 - `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
 - `/api-status`: glass health + embedded PerformanceDashboard; Refresh/Reset → `showToast.status.*` (dynamic healthy count/ms).
 - Media: `SafeImage` (`components/ui/safe-image.tsx`) for local/remote/`next/image` URLs; ImageKit relative paths stay on `@imagekit/next`.
 - Prod guardrails: dashboard Bot Challenge + AI Deny (not in repo); `app/robots.ts`; headers + `/_next/static` immutable in `next.config.ts`/`vercel.json`; CSP `robohash.org`; `html[data-scroll-behavior=smooth]`. See `docs/VERCEL_PRODUCTION_GUARDRAILS.md`.
 - Sentry (`@sentry/nextjs`): `instrumentation-client` + server/edge configs; `tunnelRoute: /api/monitoring`; `global-error` captures; env in `.env.example` (real keys only in `.env`/Vercel). No PostHog; Redis stays rate-limit only.
 - Auth: tight title/`text-light-200` sub; `.auth-box` glass; `isProtectedDemoAccount` locks role/status + Approve. Lucide UI icons; brand logos kept.
+- Dev logging: `logging.serverFunctions: false` (no Server Action password dumps). `proxy.ts` matcher skips static assets.
+- Ops: `npm run user:delete -- <email>` FK-safe single-user wipe for re-signup tests (blocks demo accounts).
+- Agile V: C2 active; Gate 1 `GATE-0006`; PENDING-UX + signup emails landed; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
