@@ -78,3 +78,4 @@
 | DEC-0074 | 2026-08-04 | C2 | Build Agent JS | make-admin inline badges; glass benefit chips; reject banner + reviewedBy join | Clearer demo UX; attribution needs SSR reviewer join | REQ-0033 |
 | DEC-0075 | 2026-08-04 | C2 | Build Agent JS | /admin/users Recent decisions + reviewer join; API scope=decisions; RQ key under admin domain | Sticky attribution baseline; pending cards stay action-only | REQ-0033 |
 | DEC-0076 | 2026-08-04 | C2 | Build Agent JS | Decline dialog + default reason Zod; Approve confirm; after() Brevo→Resend decision email | Applicant needs meaningful Reason + receipt without blocking mutation | REQ-0033 |
+| DEC-0077 | 2026-08-04 | C2 | Build Agent JS | Signup `status_reviewed_*` UUID+time; borrow RQ APPROVED-only; unique decision email subjects; shared AccountRegistrationNotice | Durable who/when; stop PENDING 403 noise; spam-safer subjects | REQ-0033, REQ-0010 |

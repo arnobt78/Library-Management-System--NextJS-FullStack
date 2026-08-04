@@ -4,8 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { parseEntityId, parseProfilePagination } from "@/lib/actionInputs";
 import { getAdminUserProfile } from "@/lib/admin/userProfile";
+import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
+import { formatBorrowDateTime } from "@/lib/profile/formatBorrowDates";
 
 export const runtime = "nodejs";
 
@@ -165,11 +167,67 @@ async function AdminUserDetail({
             ) : null}
           </div>
           <div className="rounded-2xl bg-white p-4">
+            <h2 className="font-semibold">Registration decision</h2>
+            {(data.user.status === "APPROVED" ||
+              data.user.status === "REJECTED") &&
+            data.user.statusReviewedAt ? (
+              <div className="mt-2 space-y-2 text-sm text-gray-600">
+                <p>
+                  {data.user.status === "APPROVED" ? "Approved" : "Rejected"} on{" "}
+                  {formatBorrowDateTime(data.user.statusReviewedAt) ?? "—"}
+                </p>
+                <AdminRequestReviewerAttribution
+                  reviewer={data.user.signupDecisionActor}
+                  prefix={
+                    data.user.status === "APPROVED"
+                      ? "Approved by"
+                      : "Rejected by"
+                  }
+                  size={28}
+                  className="text-gray-600"
+                  textClassName="text-gray-900"
+                />
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-gray-500">
+                No registration decision recorded yet
+              </p>
+            )}
+          </div>
+          <div className="rounded-2xl bg-white p-4">
             <h2 className="font-semibold">Reviews and access requests</h2>
             <p className="mt-2 text-sm text-gray-600">
               {data.reviewHistory.length} recent reviews ·{" "}
               {data.requestHistory.length} access requests
             </p>
+            <div className="mt-3 space-y-3">
+              {data.requestHistory.map((req) => (
+                <div
+                  key={req.id}
+                  className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm"
+                >
+                  <p className="font-medium text-gray-900">
+                    {req.status}
+                    {req.reviewedAt
+                      ? ` · ${formatBorrowDateTime(req.reviewedAt) ?? ""}`
+                      : ""}
+                  </p>
+                  {(req.status === "APPROVED" || req.status === "REJECTED") && (
+                    <AdminRequestReviewerAttribution
+                      reviewer={req.reviewer}
+                      prefix={
+                        req.status === "APPROVED"
+                          ? "Approved by"
+                          : "Rejected by"
+                      }
+                      size={24}
+                      className="mt-1 text-xs text-gray-600"
+                      textClassName="text-gray-900"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

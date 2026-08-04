@@ -109,8 +109,10 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 
 ## Make-admin / signup (2026-08-04)
 
-- `/make-admin`: `requireSignedInActor`; PENDING/REJECTED locked panel; APPROVED form + signup approver strip; create/cancel APPROVED-only.
-- Sign-up approve/reject emails (`accountStatusEmails` + `after()`); pending-approval toast; Sign-up/Borrow admin badges; borrow RQ skips PENDING/REJECTED.
+- `/make-admin`: `requireSignedInActor`; PENDING/REJECTED use `AccountRegistrationNotice` + locked form; APPROVED form + signup/make-admin reviewer strips; create/cancel APPROVED-only.
+- Signup who/when: `status_reviewed_by`/`status_reviewed_at` (`0011`); make-admin who/when: `admin_requests.reviewed_*`. Shown on make-admin, my-profile, Sign-up recent decisions, user 360.
+- Decision emails: unique subject + text actor (no images); pending-approval toast; Sign-up/Borrow admin badges.
+- Borrow RQ APPROVED-only (`accountStatus` prop/SSR → session); book detail + my-profile pass status. PENDING my-profile: zero KPIs + notice tabs (no borrow fetch / red 403).
 - Dev: `logging.serverFunctions: false`; `proxy.ts` static matcher; `npm run user:delete -- <email>` for re-signup tests.
 
 ## API docs (2026-08-03)

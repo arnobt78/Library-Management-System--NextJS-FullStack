@@ -6,6 +6,7 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AccountRegistrationNotice from "@/components/AccountRegistrationNotice";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import GlassSectionHeader from "@/components/GlassSectionHeader";
 import MakeAdminRequestForm from "@/components/MakeAdminRequestForm";
@@ -23,10 +24,8 @@ import {
   LayoutDashboard,
   Shield,
   ShieldOff,
-  User,
   UserPlus,
   Users,
-  XCircle,
 } from "lucide-react";
 
 const ACCESS_CHIPS = [
@@ -50,7 +49,10 @@ function SignupHistoryStrip({
   accountStatus: "PENDING" | "APPROVED" | "REJECTED";
 }) {
   const created = formatWhen(signupApproval.accountCreatedAt);
-  const approved = formatWhen(signupApproval.accountApprovedAt);
+  const decided = formatWhen(
+    signupApproval.accountDecidedAt ?? signupApproval.accountApprovedAt,
+  );
+  const actor = signupApproval.decisionActor ?? signupApproval.approver;
 
   return (
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-light-200 sm:text-sm">
@@ -65,22 +67,32 @@ function SignupHistoryStrip({
         <p>Status: awaiting admin approval as a library user.</p>
       ) : null}
       {accountStatus === "REJECTED" ? (
-        <p>Status: registration was not approved. Contact a librarian if this is unexpected.</p>
+        <>
+          <p>
+            Status: registration was not approved. Contact a librarian if this
+            is unexpected.
+          </p>
+          {decided ? <p>Rejected on {decided}</p> : null}
+          <AdminRequestReviewerAttribution
+            reviewer={actor}
+            prefix="Rejected by"
+            size={28}
+            className="text-light-200"
+            textClassName="text-light-100"
+          />
+        </>
       ) : null}
-      {accountStatus === "APPROVED" && approved ? (
-        <p>Approved as library user on {approved}</p>
+      {accountStatus === "APPROVED" && decided ? (
+        <p>Approved as library user on {decided}</p>
       ) : null}
-      {accountStatus === "APPROVED" && signupApproval.approver ? (
+      {accountStatus === "APPROVED" ? (
         <AdminRequestReviewerAttribution
-          reviewer={signupApproval.approver}
+          reviewer={actor}
           prefix="Approved by"
           size={28}
           className="text-light-200"
           textClassName="text-light-100"
         />
-      ) : null}
-      {accountStatus === "APPROVED" && !signupApproval.approver ? (
-        <p className="text-light-200/80">Approved by an admin</p>
       ) : null}
     </div>
   );
@@ -142,55 +154,17 @@ const Page = async () => {
           </div>
         ) : accountLocked ? (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <p className="text-xs text-light-200 sm:text-sm">
-                  <span className="text-light-100/70">Current user: </span>
-                  <span className="break-all text-light-100">{email}</span>
-                </p>
-                <Badge variant="glassMuted">
-                  <User className="size-3" />
-                  User
-                </Badge>
-              </div>
-              {accountStatus === "PENDING" ? (
-                <Badge variant="glassPending">
-                  <Clock className="size-3" />
-                  Registration pending
-                </Badge>
-              ) : (
-                <Badge
-                  variant="glassMuted"
-                  className="border-red-400/40 from-red-500/25 via-red-500/10 to-red-500/5"
-                >
-                  <XCircle className="size-3" />
-                  Registration rejected
-                </Badge>
-              )}
-            </div>
-
-            <div
-              className={
-                accountStatus === "PENDING"
-                  ? "space-y-1 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 sm:text-sm"
-                  : "space-y-1 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200 sm:text-sm"
+            <AccountRegistrationNotice
+              accountStatus={
+                accountStatus === "REJECTED" ? "REJECTED" : "PENDING"
               }
-            >
-              <p className="font-medium">
-                {accountStatus === "PENDING"
-                  ? "You cannot request admin access yet"
-                  : "Admin requests are unavailable"}
-              </p>
-              <p>
-                {accountStatus === "PENDING"
-                  ? "An admin must approve your registration as a library user first. After approval you can submit a make-admin request here."
-                  : "Your registration was not approved, so admin access requests stay locked."}
-              </p>
-            </div>
-
-            <SignupHistoryStrip
-              signupApproval={signupApproval}
-              accountStatus={accountStatus}
+              context="make-admin"
+              email={email}
+              createdAt={signupApproval.accountCreatedAt}
+              decidedAt={signupApproval.accountDecidedAt}
+              decisionActor={
+                signupApproval.decisionActor ?? signupApproval.approver
+              }
             />
 
             <div>

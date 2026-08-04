@@ -1,7 +1,7 @@
 /**
  * Current-user admin request status for /make-admin SSR.
  * Uses requireSignedInActor so PENDING/REJECTED can view a locked page.
- * Joins make-admin reviewer (reviewedBy) + signup approver (updatedBy email).
+ * Joins make-admin reviewer (reviewedBy) + signup decision actor (statusReviewedBy).
  */
 
 import { db } from "@/database/drizzle";
@@ -46,7 +46,7 @@ export type MyAdminRequestPageData = {
 };
 
 const reviewerUsers = alias(users, "admin_request_reviewer");
-const signupApproverUsers = alias(users, "signup_approver");
+const signupDecisionUsers = alias(users, "signup_decision_actor");
 
 /**
  * Load the signed-in user's account + latest admin_requests for /make-admin.
@@ -63,16 +63,15 @@ export async function getMyAdminRequestPageData(): Promise<MyAdminRequestPageDat
       role: users.role,
       status: users.status,
       createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
-      updatedBy: users.updatedBy,
-      approverFullName: signupApproverUsers.fullName,
-      approverEmail: signupApproverUsers.email,
-      approverUniversityCard: signupApproverUsers.universityCard,
+      statusReviewedAt: users.statusReviewedAt,
+      actorFullName: signupDecisionUsers.fullName,
+      actorEmail: signupDecisionUsers.email,
+      actorUniversityCard: signupDecisionUsers.universityCard,
     })
     .from(users)
     .leftJoin(
-      signupApproverUsers,
-      eq(users.updatedBy, signupApproverUsers.email),
+      signupDecisionUsers,
+      eq(users.statusReviewedBy, signupDecisionUsers.id),
     )
     .where(eq(users.id, actor.id))
     .limit(1);
@@ -88,20 +87,29 @@ export async function getMyAdminRequestPageData(): Promise<MyAdminRequestPageDat
       ? user.status
       : "PENDING";
 
+  const decisionActor: AdminRequestReviewer | null =
+    (accountStatus === "APPROVED" || accountStatus === "REJECTED") &&
+    user.actorEmail &&
+    user.actorFullName
+      ? {
+          fullName: user.actorFullName,
+          email: user.actorEmail,
+          universityCard: user.actorUniversityCard ?? null,
+        }
+      : null;
+
+  const accountDecidedAt =
+    accountStatus === "APPROVED" || accountStatus === "REJECTED"
+      ? (user.statusReviewedAt ?? null)
+      : null;
+
   const signupApproval: SignupApprovalInfo = {
     accountCreatedAt: user.createdAt,
+    accountDecidedAt,
     accountApprovedAt:
-      accountStatus === "APPROVED" ? (user.updatedAt ?? null) : null,
-    approver:
-      accountStatus === "APPROVED" &&
-      user.approverEmail &&
-      user.approverFullName
-        ? {
-            fullName: user.approverFullName,
-            email: user.approverEmail,
-            universityCard: user.approverUniversityCard ?? null,
-          }
-        : null,
+      accountStatus === "APPROVED" ? accountDecidedAt : null,
+    decisionActor,
+    approver: decisionActor,
   };
 
   let latestRequest: MyAdminRequest | null = null;

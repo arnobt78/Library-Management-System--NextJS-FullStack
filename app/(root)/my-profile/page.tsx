@@ -1,12 +1,16 @@
 import React from "react";
 import { auth } from "@/auth";
 import { db } from "@/database/drizzle";
-import { borrowRecords, books, bookReviews } from "@/database/schema";
+import { borrowRecords, books, bookReviews, users } from "@/database/schema";
 import { eq, desc, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import MyProfileTabs from "@/components/MyProfileTabs";
 import ReservationsPanel, {
   type ReservationSummary,
 } from "@/components/ReservationsPanel";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+
+const signupDecisionUsers = alias(users, "signup_decision_actor");
 
 const Page = async () => {
   const session = await auth();
@@ -20,6 +24,38 @@ const Page = async () => {
       </div>
     );
   }
+
+  // Signup decision actor via statusReviewedBy (durable; not overwritten by role edits)
+  const [accountRow] = await db
+    .select({
+      email: users.email,
+      status: users.status,
+      createdAt: users.createdAt,
+      statusReviewedAt: users.statusReviewedAt,
+      actorFullName: signupDecisionUsers.fullName,
+      actorEmail: signupDecisionUsers.email,
+      actorUniversityCard: signupDecisionUsers.universityCard,
+    })
+    .from(users)
+    .leftJoin(
+      signupDecisionUsers,
+      eq(users.statusReviewedBy, signupDecisionUsers.id),
+    )
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+
+  const accountStatus = accountRow?.status ?? null;
+  const accountEmail = accountRow?.email ?? session.user.email ?? null;
+  const accountCreatedAt = accountRow?.createdAt ?? null;
+  const accountDecidedAt = accountRow?.statusReviewedAt ?? null;
+  const accountDecisionActor: AdminRequestReviewer | null =
+    accountRow?.actorEmail && accountRow?.actorFullName
+      ? {
+          fullName: accountRow.actorFullName,
+          email: accountRow.actorEmail,
+          universityCard: accountRow.actorUniversityCard ?? null,
+        }
+      : null;
 
   // Fetch user's reviews count
   const userReviews = await db
@@ -179,6 +215,11 @@ const Page = async () => {
       <ReservationsPanel initialReservations={initialReservations} />
       <MyProfileTabs
         userId={session.user.id}
+        accountStatus={accountStatus}
+        accountEmail={accountEmail}
+        accountCreatedAt={accountCreatedAt}
+        accountDecidedAt={accountDecidedAt}
+        accountDecisionActor={accountDecisionActor}
         initialActiveBorrows={activeBorrows}
         initialPendingRequests={pendingRequests}
         initialBorrowHistory={borrowHistory}

@@ -1,12 +1,14 @@
 /**
  * Admin Sign-up Requests Page (`/admin/account-requests` — route kept for stability).
  *
- * SSR-fetches pending user registrations (users.status = PENDING).
+ * SSR-fetches pending user registrations (users.status = PENDING)
+ * plus recent APPROVED/REJECTED decisions with statusReviewed* attribution.
  * Not make-admin privilege requests (those live on /admin/users).
  */
 
 import React from "react";
 import { getAllUsers } from "@/lib/admin/actions/user";
+import { getRecentSignupStatusDecisions } from "@/lib/admin/signupStatusDecisions";
 import AccountRequestsClient from "./AccountRequestsClient";
 
 export const runtime = "nodejs";
@@ -18,8 +20,11 @@ const Page = async ({
 }) => {
   const params = await searchParams;
 
-  // Fetch all users server-side for SSR, then filter for PENDING
-  const result = await getAllUsers();
+  // Fetch pending queue + recent decisions in parallel for SSR
+  const [result, decisionsResult] = await Promise.all([
+    getAllUsers(),
+    getRecentSignupStatusDecisions(),
+  ]);
 
   if (!result.success) {
     return (
@@ -44,6 +49,7 @@ const Page = async ({
   return (
     <AccountRequestsClient
       initialUsers={pendingUsers}
+      initialRecentDecisions={decisionsResult.data ?? []}
       successMessage={params.success}
       errorMessage={params.error}
     />

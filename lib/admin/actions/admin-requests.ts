@@ -48,6 +48,9 @@ function scheduleAdminRequestDecisionEmail(
       status: decision,
       requestId: data.id,
       reviewedAt: data.reviewedAt,
+      decidedBy: data.reviewer
+        ? { fullName: data.reviewer.fullName, email: data.reviewer.email }
+        : null,
       rejectionReason:
         decision === "REJECTED" ? data.rejectionReason : null,
     });

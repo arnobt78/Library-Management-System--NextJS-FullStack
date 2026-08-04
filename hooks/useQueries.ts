@@ -529,20 +529,27 @@ export const usePendingUsers = (
  *
  * // With SSR initial data
  * const { data } = useBorrowRecords(userId, undefined, serverBorrowsData);
+ *
+ * // Prefer explicit account status when session may omit it
+ * const { data } = useBorrowRecords(userId, undefined, undefined, "APPROVED");
  * ```
  */
 export const useBorrowRecords = (
   userId: string,
   filters?: Omit<BorrowFilters, "userId">,
-  initialData?: BorrowsListResponse
+  initialData?: BorrowsListResponse,
+  /**
+   * Prefer SSR/prop status when session JWT omits status (avoids PENDING 403 noise).
+   */
+  accountStatus?: string | null,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const accountStatus = (session?.user as SessionUser | undefined)?.status;
-  // Skip expected 403 noise for PENDING/REJECTED; allow APPROVED and legacy JWTs without status
-  const canFetchBorrows =
-    accountStatus !== "PENDING" && accountStatus !== "REJECTED";
+  const sessionStatus = (session?.user as SessionUser | undefined)?.status;
+  // Privileged borrow APIs require APPROVED — never fetch until status is known APPROVED
+  const effectiveStatus = accountStatus ?? sessionStatus;
+  const canFetchBorrows = effectiveStatus === "APPROVED";
 
   // Get filters from URL params if not provided
   const urlFilters: BorrowFilters = {
@@ -601,6 +608,9 @@ export const useBorrowRecords = (
  *
  * // With SSR initial data
  * const { data } = useUserBorrows(userId, "BORROWED", serverBorrows);
+ *
+ * // Gate with SSR status (5th arg) so PENDING never hits APPROVED-only APIs
+ * const { data } = useUserBorrows(userId, undefined, initial, updatedAt, userStatus);
  * ```
  */
 export const useUserBorrows = (
@@ -612,15 +622,19 @@ export const useUserBorrows = (
    * initial data as fresh (age < staleTime) and avoids an immediate background
    * refetch that could briefly show stale cache entries without the book JOIN.
    */
-  initialDataUpdatedAt?: number
+  initialDataUpdatedAt?: number,
+  /**
+   * Prefer SSR/prop status when session JWT omits status (avoids PENDING 403 noise).
+   */
+  accountStatus?: string | null,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const accountStatus = (session?.user as SessionUser | undefined)?.status;
-  // Skip expected 403 noise for PENDING/REJECTED; allow APPROVED and legacy JWTs without status
-  const canFetchBorrows =
-    accountStatus !== "PENDING" && accountStatus !== "REJECTED";
+  const sessionStatus = (session?.user as SessionUser | undefined)?.status;
+  // Privileged borrow APIs require APPROVED — never fetch until status is known APPROVED
+  const effectiveStatus = accountStatus ?? sessionStatus;
+  const canFetchBorrows = effectiveStatus === "APPROVED";
 
   // Get status from URL params if not provided
   const finalStatus: BorrowStatus | undefined =
@@ -635,6 +649,7 @@ export const useUserBorrows = (
       trackQuery(`user-borrows-${userId}`, async () => {
         return getUserBorrows(userId, finalStatus);
       }),
+    // When false, TanStack Query does not fetch (refetchOnMount cannot override)
     enabled: !!userId && canFetchBorrows,
     staleTime: 30 * 1000,
     refetchOnMount: true,

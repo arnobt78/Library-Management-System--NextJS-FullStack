@@ -7,7 +7,7 @@
 - Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed; await owner next instruction; C2 Gate 2 blocked by nonlocal EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: `7852b83` (PENDING make-admin UX + signup emails + badges)
+- Latest known tip: (pending) decision attribution `0011` + PENDING borrow/profile shell
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
@@ -47,6 +47,7 @@ Owner-directed: await new instruction (no synthesis until directed). Default inc
 
 - `npm run seed:reset`: FK-safe wipe + 17 books + `test@user.com` / `test@admin.com` (APPROVED, local avatars).
 - Auth glass + demo locks; make-admin Approve blocked for showcase; Decline/Create/Cancel OK.
-- `/make-admin`: `requireSignedInActor`; PENDING locked panel; signup approver strip; APPROVED form create/cancel.
-- Sign-up emails `accountStatusEmails`; pending-approval toast; Sign-up/Borrow sidebar badges; borrow RQ gated for PENDING/REJECTED.
-- `user.write` RSC includes `/make-admin` + `/admin/account-requests`; `npm run user:delete`; `logging.serverFunctions: false`.
+- `/make-admin`: `requireSignedInActor`; PENDING/REJECTED `AccountRegistrationNotice` + locked form; signup/make-admin reviewer strips; APPROVED form create/cancel.
+- Signup attribution: migration `0011` `status_reviewed_*`; emails unique subject + text actor; Sign-up recent decisions + user 360.
+- Borrow RQ APPROVED-only (SSR/prop status); PENDING my-profile friendly shell (no 403 console / red error).
+- `user.write` RSC includes `/make-admin` + `/admin/account-requests`; `admin-request.write` → `/make-admin` + `/admin/users` + `/admin/users/[id]`; `npm run user:delete`; `logging.serverFunctions: false`.

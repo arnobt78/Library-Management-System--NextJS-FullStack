@@ -52,7 +52,13 @@ export const MUTATION_RSC_PATH_REGISTRY = {
   "reservation.lifecycle": ["/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "renewal.write": ["/books/[id]", "/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights"],
-  "admin-request.write": ["/make-admin", "/admin/account-requests", "/admin/users", "/admin/business-insights"],
+  // Make-admin decisions land on /make-admin + All Users (+ user 360); signup queue is user.write
+  "admin-request.write": [
+    "/make-admin",
+    "/admin/users",
+    "/admin/users/[id]",
+    "/admin/business-insights",
+  ],
   "fine.write": ["/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "recommendation.write": ["/", "/all-books", "/admin/automation", "/admin/business-insights"],
   "operations.write": ["/my-profile", "/api-status", "/admin", "/admin/book-requests", "/admin/automation", "/admin/business-insights"],

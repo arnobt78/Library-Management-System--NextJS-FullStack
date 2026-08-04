@@ -97,9 +97,26 @@ export const updateUserStatus = async (
     const previousStatus = existing[0].status;
     const decidedAt = new Date();
 
+    // Persist durable signup decision actor separately from updatedBy (role edits).
+    const statusReviewPatch =
+      status === "APPROVED" || status === "REJECTED"
+        ? {
+            statusReviewedBy: actor.id,
+            statusReviewedAt: decidedAt,
+          }
+        : {
+            statusReviewedBy: null,
+            statusReviewedAt: null,
+          };
+
     const updated = await db
       .update(users)
-      .set({ status, updatedAt: decidedAt, updatedBy: actor.email })
+      .set({
+        status,
+        updatedAt: decidedAt,
+        updatedBy: actor.email,
+        ...statusReviewPatch,
+      })
       .where(eq(users.id, safeUserId))
       .returning({ id: users.id });
 
@@ -122,6 +139,7 @@ export const updateUserStatus = async (
           status,
           userId: target.id,
           decidedAt,
+          decidedBy: { fullName: actor.name, email: actor.email },
           rejectionReason:
             status === "REJECTED" ? DEFAULT_ACCOUNT_REJECTION_REASON : null,
         });

@@ -307,14 +307,20 @@ export default function MakeAdminRequestForm({
               {formatRequestWhen(signupApproval.accountCreatedAt) ?? "N/A"}
             </p>
           ) : null}
-          {signupApproval.accountApprovedAt ? (
+          {(signupApproval.accountDecidedAt ??
+          signupApproval.accountApprovedAt) ? (
             <p>
               Approved as library user on{" "}
-              {formatRequestWhen(signupApproval.accountApprovedAt) ?? "N/A"}
+              {formatRequestWhen(
+                signupApproval.accountDecidedAt ??
+                  signupApproval.accountApprovedAt,
+              ) ?? "N/A"}
             </p>
           ) : null}
           <AdminRequestReviewerAttribution
-            reviewer={signupApproval.approver}
+            reviewer={
+              signupApproval.decisionActor ?? signupApproval.approver
+            }
             prefix="Approved by"
             size={28}
             className="text-light-200"
@@ -401,8 +407,15 @@ export default function MakeAdminRequestForm({
       )}
 
       {status === "APPROVED" && (
-        <div className="space-y-1 rounded-xl border border-green-400/30 bg-green-500/10 px-3 py-2.5 text-xs text-green-200 sm:text-sm">
+        <div className="space-y-2 rounded-xl border border-green-400/30 bg-green-500/10 px-3 py-2.5 text-xs text-green-200 sm:text-sm">
           <p>Your admin request was approved.</p>
+          <AdminRequestReviewerAttribution
+            reviewer={reviewer}
+            prefix="Approved by"
+            size={28}
+            textClassName="text-green-100"
+            className="text-green-200/90"
+          />
           {(submittedLabel || reviewedLabel) && (
             <p className="text-green-200/80">
               {submittedLabel ? `Submitted on ${submittedLabel}` : null}

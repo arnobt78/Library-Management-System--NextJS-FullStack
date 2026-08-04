@@ -8,6 +8,7 @@
 import { db } from "@/database/drizzle";
 import { books, users, borrowRecords, bookReviews, reservations, reservationEvents } from "@/database/schema";
 import { eq, sql, inArray, and } from "drizzle-orm";
+import { after } from "next/server";
 import { verifyAdminDeleteSecret } from "../verifyAdminDeleteSecret";
 import {
   getActionErrorMessage,
@@ -19,6 +20,11 @@ import {
 } from "../borrowLifecycle";
 import { parseEntityIds } from "../../actionInputs";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import {
+  DEFAULT_ACCOUNT_REJECTION_REASON,
+  notifyAccountStatusDecision,
+} from "@/lib/admin/accountStatusEmails";
+import { isProtectedDemoAccount } from "@/constants";
 
 type BulkBookUpdates = Pick<typeof books.$inferInsert, "isActive">;
 type BulkUserUpdates = Pick<typeof users.$inferInsert, "role" | "status">;
@@ -179,12 +185,29 @@ export async function bulkUpdateUsers(
       return { success: false, message: "No users selected" };
     }
     const safeUserIds = parseEntityIds(userIds);
+    const decidedAt = new Date();
+
+    // When status is decided, also stamp durable statusReviewedBy/At (UUID actor).
+    const statusReviewPatch =
+      updates.status === "APPROVED" || updates.status === "REJECTED"
+        ? {
+            statusReviewedBy: actor.id,
+            statusReviewedAt: decidedAt,
+          }
+        : updates.status === "PENDING"
+          ? {
+              statusReviewedBy: null,
+              statusReviewedAt: null,
+            }
+          : {};
+
     await db
       .update(users)
       .set({
         ...updates,
-        updatedAt: new Date(),
+        updatedAt: decidedAt,
         updatedBy: actor.email,
+        ...statusReviewPatch,
       })
       .where(inArray(users.id, safeUserIds));
 
@@ -201,12 +224,149 @@ export async function bulkUpdateUsers(
   }
 }
 
+/**
+ * Bulk signup approve — stamps statusReviewed* and emails each non-demo target.
+ */
 export async function bulkApproveUsers(userIds: string[]) {
-  return bulkUpdateUsers(userIds, { status: "APPROVED" });
+  try {
+    const actor = await requireAdminActor();
+    if (userIds.length === 0) {
+      return { success: false, message: "No users selected" };
+    }
+    const safeUserIds = parseEntityIds(userIds);
+    const decidedAt = new Date();
+
+    const targets = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        universityId: users.universityId,
+        status: users.status,
+      })
+      .from(users)
+      .where(inArray(users.id, safeUserIds));
+
+    const eligible = targets.filter((u) => !isProtectedDemoAccount(u));
+    const eligibleIds = eligible.map((u) => u.id);
+    if (eligibleIds.length === 0) {
+      return { success: false, message: "No eligible users to approve" };
+    }
+
+    await db
+      .update(users)
+      .set({
+        status: "APPROVED",
+        updatedAt: decidedAt,
+        updatedBy: actor.email,
+        statusReviewedBy: actor.id,
+        statusReviewedAt: decidedAt,
+      })
+      .where(inArray(users.id, eligibleIds));
+
+    revalidateMutationPaths("user.write");
+
+    const toNotify = eligible.filter((u) => u.status !== "APPROVED");
+    if (toNotify.length > 0) {
+      after(async () => {
+        await Promise.all(
+          toNotify.map((u) =>
+            notifyAccountStatusDecision({
+              to: u.email,
+              fullName: u.fullName,
+              status: "APPROVED",
+              userId: u.id,
+              decidedAt,
+              decidedBy: { fullName: actor.name, email: actor.email },
+            }),
+          ),
+        );
+      });
+    }
+
+    return {
+      success: true,
+      message: `Successfully approved ${eligibleIds.length} user(s)`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to approve users"),
+    };
+  }
 }
 
+/**
+ * Bulk signup reject — stamps statusReviewed* and emails each non-demo target.
+ */
 export async function bulkRejectUsers(userIds: string[]) {
-  return bulkUpdateUsers(userIds, { status: "REJECTED" });
+  try {
+    const actor = await requireAdminActor();
+    if (userIds.length === 0) {
+      return { success: false, message: "No users selected" };
+    }
+    const safeUserIds = parseEntityIds(userIds);
+    const decidedAt = new Date();
+
+    const targets = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        universityId: users.universityId,
+        status: users.status,
+      })
+      .from(users)
+      .where(inArray(users.id, safeUserIds));
+
+    const eligible = targets.filter((u) => !isProtectedDemoAccount(u));
+    const eligibleIds = eligible.map((u) => u.id);
+    if (eligibleIds.length === 0) {
+      return { success: false, message: "No eligible users to reject" };
+    }
+
+    await db
+      .update(users)
+      .set({
+        status: "REJECTED",
+        updatedAt: decidedAt,
+        updatedBy: actor.email,
+        statusReviewedBy: actor.id,
+        statusReviewedAt: decidedAt,
+      })
+      .where(inArray(users.id, eligibleIds));
+
+    revalidateMutationPaths("user.write");
+
+    const toNotify = eligible.filter((u) => u.status !== "REJECTED");
+    if (toNotify.length > 0) {
+      after(async () => {
+        await Promise.all(
+          toNotify.map((u) =>
+            notifyAccountStatusDecision({
+              to: u.email,
+              fullName: u.fullName,
+              status: "REJECTED",
+              userId: u.id,
+              decidedAt,
+              decidedBy: { fullName: actor.name, email: actor.email },
+              rejectionReason: DEFAULT_ACCOUNT_REJECTION_REASON,
+            }),
+          ),
+        );
+      });
+    }
+
+    return {
+      success: true,
+      message: `Successfully rejected ${eligibleIds.length} user(s)`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to reject users"),
+    };
+  }
 }
 
 export async function bulkMakeAdminUsers(userIds: string[]) {

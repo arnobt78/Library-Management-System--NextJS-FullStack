@@ -72,13 +72,13 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
   initialUserBorrows,
   initialReviewEligibility,
 }) => {
-  // Use React Query to check if user has an existing borrow for this book
-  // This will update immediately when borrow status changes
-  // Use SSR initial data to prevent duplicate fetch and ensure correct state on first load
+  // Gate on SSR userStatus so PENDING never hits APPROVED-only borrow APIs (no 403 noise)
   const { data: userBorrows } = useUserBorrows(
     userId,
     undefined, // No status filter - get all
-    initialUserBorrows // Use SSR initial data (prevents duplicate fetch, ensures correct button state)
+    initialUserBorrows, // SSR seed when APPROVED
+    undefined,
+    userStatus,
   );
 
   // CRITICAL: Handle case where userBorrows might be undefined or loading

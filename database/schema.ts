@@ -85,6 +85,9 @@ export const users = pgTable("users", {
   lastLogin: timestamp("last_login", { withTimezone: true }), // Updated on each login
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(), // Last account/permission change
   updatedBy: text("updated_by"), // Server-derived actor email for permission/status auditability
+  // Durable signup APPROVED/REJECTED actor (UUID) — not overwritten by role-only edits
+  statusReviewedBy: uuid("status_reviewed_by"), // FK to users.id (see migration 0011)
+  statusReviewedAt: timestamp("status_reviewed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", {
     withTimezone: true,
   }).defaultNow(), // Account creation timestamp

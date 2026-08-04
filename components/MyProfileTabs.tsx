@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import BookCover from "@/components/BookCover";
 import CountdownTimer from "@/components/CountdownTimer";
 import BorrowSkeleton from "@/components/skeletons/BorrowSkeleton";
+import AccountRegistrationNotice from "@/components/AccountRegistrationNotice";
 import GlassSectionHeader from "@/components/GlassSectionHeader";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import {
   formatBorrowDate,
   formatBorrowDateTime,
@@ -112,6 +114,26 @@ interface MyProfileTabsProps {
    */
   userId: string;
   /**
+   * DB-backed account status (gates borrow RQ; PENDING/REJECTED get friendly shell)
+   */
+  accountStatus?: string | null;
+  /**
+   * Email for registration notice (optional)
+   */
+  accountEmail?: string | null;
+  /**
+   * Account createdAt for registration notice strip
+   */
+  accountCreatedAt?: Date | string | null;
+  /**
+   * When registration was approved/rejected (statusReviewedAt)
+   */
+  accountDecidedAt?: Date | string | null;
+  /**
+   * Admin who approved/rejected registration
+   */
+  accountDecisionActor?: AdminRequestReviewer | null;
+  /**
    * Initial active borrows from SSR (prevents duplicate fetch)
    */
   initialActiveBorrows?: BorrowRecordWithBook[];
@@ -137,6 +159,11 @@ interface MyProfileTabsProps {
 
 const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   userId,
+  accountStatus = null,
+  accountEmail = null,
+  accountCreatedAt = null,
+  accountDecidedAt = null,
+  accountDecisionActor = null,
   // initialActiveBorrows / initialPendingRequests are kept in the interface for
   // backward compatibility; superseded by initialBorrowHistory as the single source.
   initialActiveBorrows: _initialActiveBorrows,
@@ -217,7 +244,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     undefined, // no status filter — fetch all, filter client-side
     ssrInitialData,
     ssrInitialData ? ssrTimestamp : undefined,
+    accountStatus,
   );
+
+  const registrationLocked =
+    accountStatus === "PENDING" || accountStatus === "REJECTED";
 
   // Transform React Query data (BorrowRecordFull[]) into the local BorrowRecordWithBook shape.
   // TanStack Query provides structural sharing, so a pure memoized transform keeps stable
@@ -348,6 +379,185 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     [borrowHistory],
   );
 
+  // PENDING/REJECTED: keep chrome + zero KPIs + tabs; show registration notice (no borrow RQ / no red 403)
+  if (registrationLocked) {
+    const lockedKpiValues: Array<{
+      key: string;
+      title: string;
+      hint: string;
+      value: string | number;
+      icon: React.ReactNode;
+      tone: string;
+    }> = [
+      {
+        key: "total",
+        title: "Total Borrows",
+        hint: "All requests ever placed",
+        value: 0,
+        icon: <Layers className="size-4 shrink-0" />,
+        tone: "from-slate-500/25 via-slate-500/10 to-slate-500/5 border-slate-400/30 text-slate-100 shadow-[0_10px_30px_rgba(148,163,184,0.15)]",
+      },
+      {
+        key: "pending",
+        title: "Pending",
+        hint: "Awaiting admin approval",
+        value: 0,
+        icon: <Hourglass className="size-4 shrink-0" />,
+        tone: "from-amber-500/25 via-amber-500/10 to-amber-500/5 border-amber-400/30 text-amber-100 shadow-[0_10px_30px_rgba(245,158,11,0.2)]",
+      },
+      {
+        key: "active",
+        title: "Active Loans",
+        hint: "Checked out right now",
+        value: 0,
+        icon: <BookMarked className="size-4 shrink-0" />,
+        tone: "from-blue-500/25 via-blue-500/10 to-blue-500/5 border-blue-400/30 text-blue-100 shadow-[0_10px_30px_rgba(59,130,246,0.2)]",
+      },
+      {
+        key: "returned",
+        title: "Returned",
+        hint: "Successfully checked in",
+        value: 0,
+        icon: <CheckCircle2 className="size-4 shrink-0" />,
+        tone: "from-emerald-500/25 via-emerald-500/10 to-emerald-500/5 border-emerald-400/30 text-emerald-100 shadow-[0_10px_30px_rgba(16,185,129,0.2)]",
+      },
+      {
+        key: "reviews",
+        title: "Reviews Written",
+        hint: "Your published ratings",
+        value: totalReviews,
+        icon: <MessageSquareText className="size-4 shrink-0" />,
+        tone: "from-indigo-500/25 via-indigo-500/10 to-indigo-500/5 border-indigo-400/30 text-indigo-100 shadow-[0_10px_30px_rgba(99,102,241,0.2)]",
+      },
+      {
+        key: "totalFines",
+        title: "Total Fines",
+        hint: "Sum of accrued fines",
+        value: "—",
+        icon: <BadgeDollarSign className="size-4 shrink-0" />,
+        tone: "from-rose-500/25 via-rose-500/10 to-rose-500/5 border-rose-400/30 text-rose-100 shadow-[0_10px_30px_rgba(244,63,94,0.2)]",
+      },
+    ];
+
+    return (
+      <div className="w-full">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+            My Borrowing History
+          </h1>
+          <p className="text-sm text-light-200 sm:text-base">
+            Track active loans, pending requests, and your full borrow history
+          </p>
+        </div>
+
+        <section className="profile-stats-panel mb-4 sm:mb-6">
+          <GlassSectionHeader
+            className="mb-3 sm:mb-4"
+            icon={<BarChart3 className="size-5" />}
+            title="Borrow Statistics"
+            subtitle="Available after your registration is approved"
+          />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-3">
+            {lockedKpiValues.map((item) => (
+              <div key={item.key} className={`profile-kpi-card ${item.tone}`}>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="shrink-0 opacity-90">{item.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold leading-tight sm:text-sm">
+                      {item.title}
+                    </p>
+                    <p className="text-[10px] leading-snug opacity-75 sm:text-xs">
+                      {item.hint}
+                    </p>
+                  </div>
+                </div>
+                <p className="shrink-0 text-lg font-semibold leading-none sm:text-xl">
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <Tabs
+          value={activeTabValue}
+          onValueChange={handleTabChange}
+          className="w-full"
+          suppressHydrationWarning
+        >
+          <TabsList className="profile-tabs-list mb-4 sm:mb-6">
+            <TabsTrigger
+              value="active-borrows"
+              className="profile-tab-trigger profile-tab-active-borrows"
+            >
+              <BookOpen className="size-4 shrink-0" />
+              <span>Active Borrows (0)</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending-requests"
+              className="profile-tab-trigger profile-tab-pending"
+            >
+              <Hourglass className="size-4 shrink-0" />
+              <span>Pending Requests (0)</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="borrow-history"
+              className="profile-tab-trigger profile-tab-history"
+            >
+              <History className="size-4 shrink-0" />
+              <span>Borrow History (0)</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {(
+            [
+              {
+                value: "active-borrows" as const,
+                title: "Active loans",
+                subtitle: "Books currently checked out to you",
+                icon: <BookOpen className="size-5 text-blue-300" />,
+              },
+              {
+                value: "pending-requests" as const,
+                title: "Pending requests",
+                subtitle: "Awaiting librarian approval before checkout",
+                icon: <Hourglass className="size-5 text-amber-300" />,
+              },
+              {
+                value: "borrow-history" as const,
+                title: "Borrow history",
+                subtitle: "Completed returns and past loans",
+                icon: <History className="size-5 text-violet-300" />,
+              },
+            ] as const
+          ).map((section) => (
+            <TabsContent key={section.value} value={section.value} className="mt-0">
+              <div className="space-y-3 sm:space-y-4">
+                <GlassSectionHeader
+                  icon={section.icon}
+                  title={section.title}
+                  subtitle={section.subtitle}
+                />
+                <div className="profile-borrow-row p-4 sm:p-6">
+                  <AccountRegistrationNotice
+                    accountStatus={
+                      accountStatus === "REJECTED" ? "REJECTED" : "PENDING"
+                    }
+                    context="profile"
+                    email={accountEmail}
+                    createdAt={accountCreatedAt}
+                    decidedAt={accountDecidedAt}
+                    decisionActor={accountDecisionActor}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
+    );
+  }
+
   // Show skeleton while loading (only if no data at all - not during refetch)
   // CRITICAL: Use isLoading (not isFetching) to only show skeleton on initial load
   // isFetching would show skeleton during refetch, causing flicker
@@ -404,7 +614,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     );
   }
 
-  // Show error state
+  // Unexpected fetch failures only (PENDING/REJECTED never reach here)
   if (isError && (!initialBorrowHistory || initialBorrowHistory.length === 0)) {
     return (
       <div className="w-full">

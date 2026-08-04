@@ -40,13 +40,19 @@ import {
 import { usePendingUsers } from "@/hooks/useQueries";
 import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
+import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import type { User as UserType } from "@/lib/services/users";
+import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 
 interface AccountRequestsClientProps {
   /**
    * Initial pending users data from SSR (prevents duplicate fetch)
    */
   initialUsers?: UserType[];
+  /**
+   * Recent APPROVED/REJECTED signup decisions (SSR; who + when)
+   */
+  initialRecentDecisions?: SignupStatusDecision[];
   /**
    * Success message from URL params
    */
@@ -59,6 +65,7 @@ interface AccountRequestsClientProps {
 
 const AccountRequestsClient = ({
   initialUsers,
+  initialRecentDecisions = [],
   successMessage,
   errorMessage,
 }: AccountRequestsClientProps) => {
@@ -340,6 +347,69 @@ const AccountRequestsClient = ({
             ))}
           </div>
         )}
+
+        {/* Recent signup decisions — durable statusReviewedBy/At attribution */}
+        {initialRecentDecisions.length > 0 ? (
+          <div className="mt-6 sm:mt-8">
+            <h3 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">
+              Recent decisions ({initialRecentDecisions.length})
+            </h3>
+            <div className="space-y-3 sm:space-y-4">
+              {initialRecentDecisions.map((decision) => {
+                const approved = decision.status === "APPROVED";
+                const borderClass = approved
+                  ? "border-green-200 bg-green-50"
+                  : "border-red-200 bg-red-50";
+                const textClass = approved ? "text-green-900" : "text-red-900";
+                const mutedClass = approved ? "text-green-700" : "text-red-700";
+
+                return (
+                  <div
+                    key={decision.id}
+                    className={`rounded-lg border p-3 sm:p-4 ${borderClass}`}
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
+                          approved
+                            ? "bg-green-200 text-green-900"
+                            : "bg-red-200 text-red-900"
+                        }`}
+                      >
+                        {approved ? (
+                          <CheckCircle className="size-3" aria-hidden />
+                        ) : (
+                          <XCircle className="size-3" aria-hidden />
+                        )}
+                        {approved ? "Approved" : "Rejected"}
+                      </span>
+                      <h4
+                        className={`text-sm font-medium sm:text-base ${textClass}`}
+                      >
+                        {decision.fullName}
+                      </h4>
+                      <span className={`text-xs sm:text-sm ${mutedClass}`}>
+                        ({decision.email})
+                      </span>
+                    </div>
+                    <AdminRequestReviewerAttribution
+                      reviewer={decision.decisionActor}
+                      prefix={approved ? "Approved by" : "Rejected by"}
+                      size={28}
+                      className={`mt-2 text-xs sm:text-sm ${mutedClass}`}
+                      textClassName={textClass}
+                    />
+                    <p className={`mt-1 text-xs ${mutedClass}`}>
+                      {decision.decidedAt
+                        ? new Date(decision.decidedAt).toLocaleString()
+                        : "N/A"}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

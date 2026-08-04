@@ -1,10 +1,15 @@
 /**
  * Transactional emails for make-admin Approve / Decline decisions.
  * Uses Brevo → Resend via sendEmailWithFallback; failures are logged only.
+ * Subjects include ISO + random nonce; reviewer is text-only (no <img>).
  */
 
 import { sendEmailWithFallback } from "@/lib/services/email-service";
 import config from "@/lib/config";
+import {
+  buildUniqueDecisionSubject,
+  type DecisionActorText,
+} from "@/lib/email/decisionSubject";
 
 export type AdminRequestDecisionEmailInput = {
   to: string;
@@ -12,6 +17,7 @@ export type AdminRequestDecisionEmailInput = {
   status: "APPROVED" | "REJECTED";
   requestId: string;
   reviewedAt: Date | string | null | undefined;
+  decidedBy?: DecisionActorText | null;
   rejectionReason?: string | null;
 };
 
@@ -72,9 +78,10 @@ export function buildAdminRequestDecisionEmail(
   const ctaPath = approved ? "/admin" : "/make-admin";
   const ctaUrl = base ? `${base}${ctaPath}` : ctaPath;
   const ctaLabel = approved ? "Open Admin Dashboard" : "View request status";
-  const subject = approved
-    ? "BookWise: Admin request approved"
-    : "BookWise: Admin request declined";
+  const subject = buildUniqueDecisionSubject(
+    approved ? "Admin request approved" : "Admin request declined",
+    input.reviewedAt,
+  );
   const headline = approved
     ? "Your admin access request was approved"
     : "Your admin access request was declined";
@@ -85,6 +92,10 @@ export function buildAdminRequestDecisionEmail(
     !approved && input.rejectionReason?.trim()
       ? input.rejectionReason.trim()
       : null;
+  const decidedBy = input.decidedBy;
+  const decidedByLine = decidedBy
+    ? `${decidedBy.fullName} (${decidedBy.email})`
+    : null;
 
   const textLines = [
     headline,
@@ -96,6 +107,11 @@ export function buildAdminRequestDecisionEmail(
     `Timestamp (ISO): ${iso}`,
     `Reference: ${reference}`,
   ];
+  if (decidedByLine) {
+    textLines.push(
+      `${approved ? "Approved by" : "Declined by"}: ${decidedByLine}`,
+    );
+  }
   if (reasonBlock) {
     textLines.push("", `Note from reviewer:`, reasonBlock);
   }
@@ -109,6 +125,13 @@ export function buildAdminRequestDecisionEmail(
 
   const reasonHtml = reasonBlock
     ? `<p style="margin:16px 0 0;padding:12px 14px;background:#f4f4f5;border-left:3px solid #71717a;border-radius:4px;color:#3f3f46;font-size:14px;line-height:1.5;"><strong>Note from reviewer</strong><br/>${escapeHtml(reasonBlock)}</p>`
+    : "";
+
+  const decidedByHtml = decidedByLine
+    ? `<tr>
+            <td style="padding:6px 0;"><strong>${approved ? "Approved by" : "Declined by"}</strong></td>
+            <td style="padding:6px 0;">${escapeHtml(decidedByLine)}</td>
+          </tr>`
     : "";
 
   const html = `<!DOCTYPE html>
@@ -130,7 +153,7 @@ export function buildAdminRequestDecisionEmail(
         <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#3f3f46;">${escapeHtml(bodyLead)}</p>
         <table role="presentation" style="width:100%;border-collapse:collapse;font-size:13px;color:#52525b;">
           <tr>
-            <td style="padding:6px 0;width:120px;"><strong>Decision</strong></td>
+            <td style="padding:6px 0;width:140px;"><strong>Decision</strong></td>
             <td style="padding:6px 0;">${approved ? "Approved" : "Declined"}</td>
           </tr>
           <tr>
@@ -145,6 +168,7 @@ export function buildAdminRequestDecisionEmail(
             <td style="padding:6px 0;"><strong>Reference</strong></td>
             <td style="padding:6px 0;font-family:ui-monospace,monospace;font-size:12px;">${escapeHtml(reference)}</td>
           </tr>
+          ${decidedByHtml}
         </table>
         ${reasonHtml}
         <p style="margin:24px 0 0;">

@@ -1,6 +1,7 @@
 // Parent: REQ-0029, REQ-0031
 
 import { and, desc, eq, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/database/drizzle";
 import {
   adminRequests,
@@ -13,6 +14,10 @@ import {
 import { requireAdminActor } from "@/lib/auth/authorization";
 import { getDeterministicInsights } from "@/lib/admin/actions/analytics";
 import { parseProfilePagination } from "@/lib/actionInputs";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+
+const signupDecisionUsers = alias(users, "profile_signup_decision_actor");
+const adminRequestReviewerUsers = alias(users, "profile_admin_request_reviewer");
 
 export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
   await requireAdminActor();
@@ -20,10 +25,10 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
   const offset = (safePage - 1) * safeSize;
 
   const [
-    user,
+    userRow,
     history,
     reviewHistory,
-    requestHistory,
+    requestHistoryRows,
     reservationHistory,
     metrics,
     genres,
@@ -43,8 +48,16 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         updatedBy: users.updatedBy,
+        statusReviewedAt: users.statusReviewedAt,
+        actorFullName: signupDecisionUsers.fullName,
+        actorEmail: signupDecisionUsers.email,
+        actorUniversityCard: signupDecisionUsers.universityCard,
       })
       .from(users)
+      .leftJoin(
+        signupDecisionUsers,
+        eq(users.statusReviewedBy, signupDecisionUsers.id),
+      )
       .where(eq(users.id, userId))
       .limit(1)
       .then((rows) => rows[0]),
@@ -89,8 +102,15 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         rejectionReason: adminRequests.rejectionReason,
         createdAt: adminRequests.createdAt,
         reviewedAt: adminRequests.reviewedAt,
+        reviewerFullName: adminRequestReviewerUsers.fullName,
+        reviewerEmail: adminRequestReviewerUsers.email,
+        reviewerUniversityCard: adminRequestReviewerUsers.universityCard,
       })
       .from(adminRequests)
+      .leftJoin(
+        adminRequestReviewerUsers,
+        eq(adminRequests.reviewedBy, adminRequestReviewerUsers.id),
+      )
       .where(eq(adminRequests.userId, userId))
       .orderBy(desc(adminRequests.createdAt))
       .limit(25),
@@ -126,6 +146,51 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
       .limit(5),
     getDeterministicInsights(),
   ]);
+
+  const signupDecisionActor: AdminRequestReviewer | null =
+    userRow?.actorEmail && userRow?.actorFullName
+      ? {
+          fullName: userRow.actorFullName,
+          email: userRow.actorEmail,
+          universityCard: userRow.actorUniversityCard ?? null,
+        }
+      : null;
+
+  const user = userRow
+    ? {
+        id: userRow.id,
+        fullName: userRow.fullName,
+        email: userRow.email,
+        universityId: userRow.universityId,
+        universityCard: userRow.universityCard,
+        role: userRow.role,
+        status: userRow.status,
+        lastLogin: userRow.lastLogin,
+        lastActivityDate: userRow.lastActivityDate,
+        createdAt: userRow.createdAt,
+        updatedAt: userRow.updatedAt,
+        updatedBy: userRow.updatedBy,
+        statusReviewedAt: userRow.statusReviewedAt ?? null,
+        signupDecisionActor,
+      }
+    : undefined;
+
+  const requestHistory = requestHistoryRows.map((row) => ({
+    id: row.id,
+    status: row.status,
+    requestReason: row.requestReason,
+    rejectionReason: row.rejectionReason,
+    createdAt: row.createdAt,
+    reviewedAt: row.reviewedAt,
+    reviewer:
+      row.reviewerEmail && row.reviewerFullName
+        ? ({
+            fullName: row.reviewerFullName,
+            email: row.reviewerEmail,
+            universityCard: row.reviewerUniversityCard ?? null,
+          } satisfies AdminRequestReviewer)
+        : null,
+  }));
 
   return {
     user,

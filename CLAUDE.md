@@ -38,6 +38,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - REQ-0019–0025 re-Prove passes: typecheck, lint, 40 default tests, 4 real PostgreSQL integration tests, audit 0, Next 16.2.12 build.
 - REQ-0025 uses DB-backed actors, owner/admin policy, row locks, atomic lifecycle writes, and environment-only CLI secrets.
 - Migration `0010_reservations.sql` was applied and schema-verified on the configured database on 2026-08-02; apply it separately to any other environment before matching code. `0010_reservations.down.sql` is the C2 rollback.
+- Migration `0011_user_status_review.sql` on shared DB (2026-08-04): `status_reviewed_by`/`status_reviewed_at`. Down: `0011_user_status_review.down.sql`.
 - Full Verify is 27/27 PASS; Gate 2 is approved (`GATE-0004`); accepted implementation is `d9b9fd9`; C1 is archived.
 - C2 REQ-0026–0033 Gate 1 is approved (`GATE-0006`); final local Prove passes: types, lint, 84 tests, 10 PostgreSQL tests repeated across 10 stress runs, audit 0, Next 16.2.12 build.
 - C2 adds scrypt rehash-on-login, safe status/media boundaries, typed mutation registry, server-first/Suspense routes, user 360, FIFO reservations/renewals with command ledger/outbox, deterministic insights, and PostgreSQL telemetry/SLO calculation.
@@ -57,14 +58,16 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Sticky root Header: `.root-header` + `RootHeaderShell` (transparent top, blur when scrolled); `overflow-x-clip` so sticky works.
 - `/all-books` toolbar: Search|Genre|Availability|Rating flex-1; Sort+chips meta row; instant search 300ms debounce; dropdowns `replace`; SSR search `ilike`; subtitle = unfiltered `libraryTotalBooks`; Showing = filtered; no Updating…; first-load pulse skeletons only.
 - FilterSelect `h-9` + `labelLayout` + dark hover keeps icons visible; `FilterSurface` dark/light option tones; `.catalog-search-input` clear (x) = light-200.
-- My Profile: `?tab=…`; KPIs/`GlassSectionHeader`/glass tabs+rows; `CountdownTimer` sync-init + `ClockAlert` (no false red); glass CTAs; `review.write`→`/my-profile`.
+- My Profile: `?tab=…`; KPIs/`GlassSectionHeader`/glass tabs+rows; `CountdownTimer` sync-init + `ClockAlert` (no false red); glass CTAs; `review.write`→`/my-profile`. PENDING/REJECTED: DB status + `AccountRegistrationNotice` shell.
 - Admin→profile: borrow rows are `div.profile-borrow-row` with `!bg-dark-300/60` (no Card `bg-card`); status uses `formatBorrowDate(Time)` (`requested`/`approved`/`returned`); do not add `html.dark` (breaks light admin). Soft-nav risk: admin.css dual Tailwind base.
 - Scroll polish: `ScrollToTop` sets `history.scrollRestoration=manual` + `scrollTo(auto)`; `RootHeaderShell` defaults `scrolled=true`, measures in `useLayoutEffect`.
 - Reviews: shared `ReviewFormDialog` create+edit (no 1.5s delay); delete confirm spins until settle; kebab Cancel+separator; Created/Edited icons; `universityCard`+Robohash avatars; optimistic `setQueryData` + dynamic toasts.
 - My Profile borrow title → `Link` `/books/[id]` (`hover:text-light-100/70`).
-- `/make-admin`: `requireSignedInActor` (any status); PENDING/REJECTED locked panel (no bounce); APPROVED form + signup approver strip (`users.updatedBy` join). Create/cancel stay APPROVED-only.
-- Auth JWT/session carries `status`; PENDING→APPROVED refreshes on jwt; auth toasts welcome/signup + companion pending-approval; borrow RQ `enabled` skips PENDING/REJECTED 403 noise.
-- Sign-up approve/reject: `accountStatusEmails` via `after()` Brevo→Resend from `updateUserStatus` (not PENDING/demo no-ops).
+- `/make-admin`: `requireSignedInActor` (any status); PENDING/REJECTED via `AccountRegistrationNotice` + locked form; APPROVED form + signup strip via `statusReviewedBy` join. Create/cancel APPROVED-only.
+- Auth JWT/session carries `status`; PENDING→APPROVED refreshes on jwt; auth toasts welcome/signup + companion pending-approval.
+- Borrow RQ (`useUserBorrows`/`useBorrowRecords`): `enabled` only when effective status is `APPROVED` (prop/SSR preferred over session). Book detail passes SSR `userStatus`. My-profile loads DB status; PENDING/REJECTED get KPI zeros + notice tabs (no 403/red error).
+- Signup decision attribution: `users.status_reviewed_by`/`status_reviewed_at` (migration `0011`); make-admin keeps `admin_requests.reviewed_by`/`reviewed_at`. Shared `AdminRequestReviewerAttribution` on make-admin, my-profile notice, Sign-up recent decisions, user 360.
+- Decision emails: unique subject (`ISO` + nonce) + text actor; no `<img>`. Bulk approve/reject stamps review fields + emails.
 - Admin nav badges: All Users (make-admin pending), Sign-up Requests, Borrow Requests (SSR counts + RQ).
 - `/api-docs`: All Books-style hero; `GlassSectionHeader` sections; catalog `lib/apiDocs/endpoints.ts` (full `app/api` routes).
 - `/api-status`: glass health + embedded PerformanceDashboard; Refresh/Reset → `showToast.status.*` (dynamic healthy count/ms).
