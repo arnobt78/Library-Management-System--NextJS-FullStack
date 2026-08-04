@@ -74,4 +74,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Auth: tight title/`text-light-200` sub; `.auth-box` glass; `isProtectedDemoAccount` locks role/status + Approve. Lucide UI icons; brand logos kept.
 - Dev logging: `logging.serverFunctions: false` (no Server Action password dumps). `proxy.ts` matcher skips static assets.
 - Ops: `npm run user:delete -- <email>` FK-safe single-user wipe for re-signup tests (blocks demo accounts).
-- Agile V: C2 active; Gate 1 `GATE-0006`; PENDING-UX + signup emails landed; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006`; tip `7852b83`; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
