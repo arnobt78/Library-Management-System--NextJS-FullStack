@@ -7,7 +7,7 @@
 - Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed (admin privilege ledger unify + borrow CANCELLED); await owner test; C2 Gate 2 blocked by nonlocal EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: pending bind after privilege-ledger commit
+- Latest known tip: `85ae1b3` (adminPrivilegeLedger + borrow CANCELLED + decision purge)
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
