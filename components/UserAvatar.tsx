@@ -3,8 +3,10 @@
 /**
  * Circle user avatar:
  * university_card (local / remote / ImageKit) → Robohash(email) → initials.
+ * Circle chrome is always `bg-light-100` so load gaps never flash black.
  */
 
+import { useState } from "react";
 import { Image as ImageKitImage } from "@imagekit/next";
 import config from "@/lib/config";
 import { SafeImage } from "@/components/ui/safe-image";
@@ -54,6 +56,10 @@ const UserAvatar = ({
       resolved.kind === "imagekit");
   const showRobohash = !showPrimary && Boolean(roboSrc) && !roboFailed;
 
+  // Hide decoded pixels until load so only bg-light-100 shows (no black flash).
+  const [primaryReady, setPrimaryReady] = useState(false);
+  const [roboReady, setRoboReady] = useState(false);
+
   // Prefer Tailwind size-full when parent already sizes the circle (header buttons)
   const useParentSize = className?.includes("size-full");
   const sizeStyle = useParentSize ? undefined : { width: size, height: size };
@@ -62,7 +68,7 @@ const UserAvatar = ({
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-full bg-gray-700",
+        "relative shrink-0 overflow-hidden rounded-full bg-light-100",
         !useParentSize && "size-10",
         className,
       )}
@@ -74,9 +80,13 @@ const UserAvatar = ({
           src={resolved.src}
           alt={alt}
           fill
-          className="object-cover"
+          className={cn(
+            "object-cover transition-opacity duration-150",
+            primaryReady ? "opacity-100" : "opacity-0",
+          )}
           sizes={sizesAttr}
           onError={onPrimaryError}
+          onLoad={() => setPrimaryReady(true)}
         />
       ) : showPrimary && resolved.kind === "imagekit" ? (
         <ImageKitImage
@@ -84,20 +94,28 @@ const UserAvatar = ({
           urlEndpoint={config.env.imagekit.urlEndpoint}
           alt={alt}
           fill
-          className="rounded-full object-cover"
+          className={cn(
+            "rounded-full object-cover transition-opacity duration-150",
+            primaryReady ? "opacity-100" : "opacity-0",
+          )}
           onError={onPrimaryError}
+          onLoad={() => setPrimaryReady(true)}
         />
       ) : showRobohash ? (
         <SafeImage
           src={roboSrc}
           alt={alt}
           fill
-          className="bg-dark-300 object-cover"
+          className={cn(
+            "bg-light-100 object-cover transition-opacity duration-150",
+            roboReady ? "opacity-100" : "opacity-0",
+          )}
           sizes={sizesAttr}
           onError={onRoboError}
+          onLoad={() => setRoboReady(true)}
         />
       ) : (
-        <div className="flex size-full items-center justify-center text-light-100">
+        <div className="flex size-full items-center justify-center bg-light-100 text-dark-100">
           <span className="text-[10px] font-semibold sm:text-xs">
             {getInitials(fullName || "U")}
           </span>

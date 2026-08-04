@@ -117,6 +117,8 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - REJECTED students re-apply → PENDING (`requestRegistrationReview`); welcome email on signup; mutations `await invalidateMutation` so spinners hold until lists/shells update; `PersonAttribution` for applicants.
 - Admin PersonAttribution links (explicit `href`) → `/admin/users/[id]`; student make-admin/profile stay non-linked.
 - Ops: `npm run admin-requests:purge -- <email>`; `npm run signup-decisions:purge` clears Sign-up Recent ledger.
+- Borrow reject soft-cancels to `CANCELLED` (`0013`); history retained.
+- All Users/bulk Make Admin writes `admin_requests` via `adminPrivilegeLedger` (same ledger as /make-admin approve); demote revokes APPROVED. RQ/RSC: `admin-request.write`.
 - Decision emails: unique subject + text actor (no images); pending-approval toast; Sign-up/Borrow admin badges.
 - Borrow RQ APPROVED-only (`accountStatus` prop/SSR → session); book detail + my-profile pass status. PENDING my-profile: zero KPIs + notice tabs (no borrow fetch / red 403).
 - Dev: `logging.serverFunctions: false`; `proxy.ts` static matcher; `npm run user:delete -- <email>` for re-signup tests.

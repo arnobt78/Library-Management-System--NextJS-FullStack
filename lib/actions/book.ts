@@ -30,7 +30,7 @@ export type BorrowBookResponse =
         borrowDate: Date | null;
         dueDate: string | null;
         returnDate: string | null;
-        status: "PENDING" | "BORROWED" | "RETURNED";
+        status: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
         borrowedBy: string | null;
         returnedBy: string | null;
         fineAmount: string | null;

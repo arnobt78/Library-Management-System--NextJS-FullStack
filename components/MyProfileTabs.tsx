@@ -72,7 +72,7 @@ interface BorrowRecordWithBook {
   borrowDate: Date;
   dueDate: Date | null; // Can be null for pending requests
   returnDate?: Date | null;
-  status: "PENDING" | "BORROWED" | "RETURNED";
+  status: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
   borrowedBy?: string | null;
   returnedBy?: string | null;
   fineAmount: number;
@@ -340,7 +340,10 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   );
 
   const borrowHistory: BorrowRecordWithBook[] = React.useMemo(
-    () => allBorrows.filter((r) => r.status === "RETURNED"),
+    () =>
+      allBorrows.filter(
+        (r) => r.status === "RETURNED" || r.status === "CANCELLED",
+      ),
     [allBorrows],
   );
 
@@ -799,7 +802,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       const rowAccent =
         record.status === "PENDING"
           ? "profile-borrow-row--pending"
-          : record.status === "RETURNED"
+          : record.status === "RETURNED" || record.status === "CANCELLED"
             ? "profile-borrow-row--returned"
             : record.status === "BORROWED" && isOverdue
               ? "profile-borrow-row--overdue"

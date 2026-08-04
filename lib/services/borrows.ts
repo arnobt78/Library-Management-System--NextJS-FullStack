@@ -19,7 +19,7 @@ import { ApiError } from "./apiError";
 /**
  * Borrow record status type
  */
-export type BorrowStatus = "PENDING" | "BORROWED" | "RETURNED";
+export type BorrowStatus = "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
 
 /**
  * Borrow record interface matching the database schema

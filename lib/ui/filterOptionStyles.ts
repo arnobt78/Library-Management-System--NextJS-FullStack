@@ -207,6 +207,13 @@ export function borrowStatusFilterOptions(): FilterSelectOption[] {
       itemClassName: "text-emerald-500",
       iconClassName: "text-emerald-500",
     },
+    {
+      value: "CANCELLED",
+      label: "Cancelled",
+      icon: XCircle,
+      itemClassName: "text-rose-500",
+      iconClassName: "text-rose-500",
+    },
   ];
 }
 

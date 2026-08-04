@@ -89,7 +89,7 @@ export const getAllBorrowRequests = async () => {
 
 export const updateBorrowStatus = async (
   recordId: string,
-  status: "PENDING" | "BORROWED" | "RETURNED"
+  status: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED"
 ) => {
   try {
     const actor = await requireAdminActor();
@@ -162,8 +162,11 @@ export const approveBorrowRequest = async (recordId: string) => {
 
 export const rejectBorrowRequest = async (recordId: string) => {
   try {
-    await requireAdminActor();
-    const result = await rejectBorrowRecord(parseEntityId(recordId));
+    const actor = await requireAdminActor();
+    const result = await rejectBorrowRecord(
+      parseEntityId(recordId),
+      actor.email,
+    );
     if (result.success) revalidateMutationPaths("borrow.lifecycle");
     return result;
   } catch (error) {

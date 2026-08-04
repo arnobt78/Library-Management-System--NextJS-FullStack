@@ -46,9 +46,10 @@ export const STATUS_ENUM = pgEnum("status", [
 ]);
 export const ROLE_ENUM = pgEnum("role", ["USER", "ADMIN"]);
 export const BORROW_STATUS_ENUM = pgEnum("borrow_status", [
-  "PENDING",    // User requested to borrow, awaiting admin approval
-  "BORROWED",   // Book is currently borrowed by user
-  "RETURNED",   // Book has been returned
+  "PENDING", // User requested to borrow, awaiting admin approval
+  "BORROWED", // Book is currently borrowed by user
+  "RETURNED", // Book has been returned
+  "CANCELLED", // Admin rejected the pending request (row kept for history)
 ]);
 export const RESERVATION_STATUS_ENUM = pgEnum("reservation_status", [
   "WAITING",

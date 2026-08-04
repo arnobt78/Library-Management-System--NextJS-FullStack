@@ -74,35 +74,38 @@ export async function getRecentSignupStatusDecisions(
       .orderBy(desc(userStatusDecisions.decidedAt))
       .limit(safeLimit);
 
+    const mapped = rows
+      .filter(
+        (
+          row,
+        ): row is typeof row & { decision: "APPROVED" | "REJECTED" } =>
+          row.decision === "APPROVED" || row.decision === "REJECTED",
+      )
+      .map((row) => ({
+        id: row.id,
+        userId: row.userId,
+        fullName: row.fullName,
+        email: row.email,
+        universityId: row.universityId,
+        universityCard: row.universityCard ?? null,
+        status: row.decision,
+        createdAt: row.createdAt,
+        decidedAt: row.decidedAt ?? null,
+        decisionActor:
+          row.actorEmail && row.actorFullName
+            ? {
+                id: row.actorId ?? null,
+                fullName: row.actorFullName,
+                email: row.actorEmail,
+                universityCard: row.actorUniversityCard ?? null,
+              }
+            : null,
+      }));
+
+
     return {
       success: true,
-      data: rows
-        .filter(
-          (
-            row,
-          ): row is typeof row & { decision: "APPROVED" | "REJECTED" } =>
-            row.decision === "APPROVED" || row.decision === "REJECTED",
-        )
-        .map((row) => ({
-          id: row.id,
-          userId: row.userId,
-          fullName: row.fullName,
-          email: row.email,
-          universityId: row.universityId,
-          universityCard: row.universityCard ?? null,
-          status: row.decision,
-          createdAt: row.createdAt,
-          decidedAt: row.decidedAt ?? null,
-          decisionActor:
-            row.actorEmail && row.actorFullName
-              ? {
-                  id: row.actorId ?? null,
-                  fullName: row.actorFullName,
-                  email: row.actorEmail,
-                  universityCard: row.actorUniversityCard ?? null,
-                }
-              : null,
-        })),
+      data: mapped,
     };
   } catch (error) {
     console.error("Error fetching signup status decisions:", error);

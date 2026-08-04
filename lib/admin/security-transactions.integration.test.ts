@@ -216,6 +216,19 @@ integration("PostgreSQL lifecycle invariants", () => {
     const { updateUserRole } = await import("./actions/user");
     expect((await updateUserRole(readerId, "ADMIN")).success).toBe(true);
 
+    // All Users promote must write admin_requests (direct-grant or pending approve).
+    const ledger = await setupPool.query(
+      "SELECT status, request_reason, reviewed_by FROM admin_requests WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1",
+      [readerId],
+    );
+    expect(ledger.rows[0]).toMatchObject({
+      status: "APPROVED",
+      reviewed_by: actor.id,
+    });
+    expect(String(ledger.rows[0].request_reason).length).toBeGreaterThanOrEqual(
+      10,
+    );
+
     await setupPool.query(
       `INSERT INTO borrow_records (id, user_id, book_id, borrow_date, due_date, status, renewal_count)
        VALUES ($1, $2, $3, now(), current_date - 2, 'BORROWED', 0)`,
@@ -232,6 +245,35 @@ integration("PostgreSQL lifecycle invariants", () => {
       user_actor: actor.email,
       fine_actor: actor.email,
     });
+  });
+
+  it("promotes pending admin request via updateUserRole and demotes with ledger revoke", async () => {
+    await setupPool.query(
+      "INSERT INTO admin_requests (id, user_id, request_reason, status, created_at) VALUES ($1, $2, 'I need admin for library ops.', 'PENDING', now())",
+      [requestId, readerId],
+    );
+    const { updateUserRole } = await import("./actions/user");
+    const { removeAdminPrivileges } = await import("./actions/admin-requests");
+
+    expect((await updateUserRole(readerId, "ADMIN")).success).toBe(true);
+    const approved = await setupPool.query(
+      "SELECT u.role, r.status, r.reviewed_by FROM users u JOIN admin_requests r ON r.id = $1 WHERE u.id = $2",
+      [requestId, readerId],
+    );
+    expect(approved.rows[0]).toMatchObject({
+      role: "ADMIN",
+      status: "APPROVED",
+      reviewed_by: actor.id,
+    });
+
+    expect((await removeAdminPrivileges(readerId)).success).toBe(true);
+    const demoted = await setupPool.query(
+      "SELECT u.role, r.status, r.rejection_reason FROM users u JOIN admin_requests r ON r.id = $1 WHERE u.id = $2",
+      [requestId, readerId],
+    );
+    expect(demoted.rows[0].role).toBe("USER");
+    expect(demoted.rows[0].status).toBe("REJECTED");
+    expect(String(demoted.rows[0].rejection_reason)).toContain("removed");
   });
 
   it("rolls back dependent deletes when the book delete fails", async () => {

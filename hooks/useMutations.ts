@@ -283,8 +283,8 @@ export const useUpdateUserRole = () => {
       return { userId, role };
     },
     onSuccess: async (data, variables) => {
-      // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      await invalidateMutation(queryClient, "user.write");
+      // Role + admin_requests ledger — same domain as approve/remove admin request
+      await invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
       const roleText = data.role === "ADMIN" ? "admin" : "regular user";
@@ -404,6 +404,13 @@ export const useApproveUser = () => {
     }: {
       userId: string;
       userName?: string; // Optional, for toast message
+      /** SSR/admin actor — preferred; useSession is often null in admin client trees. */
+      decisionActor?: {
+        id?: string | null;
+        fullName: string;
+        email: string;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await updateUserStatus(userId, "APPROVED");
       if (!result.success) {
@@ -411,9 +418,9 @@ export const useApproveUser = () => {
       }
       return { userId, status: "APPROVED" as const };
     },
-    onMutate: async ({ userId, userName }) => {
+    onMutate: async ({ userId, userName, decisionActor: actorFromCaller }) => {
       const su = session?.user as SessionUser | undefined;
-      const decisionActor =
+      const fromSession =
         su?.email && (su.name || su.email)
           ? {
               id: su.id ?? null,
@@ -422,6 +429,14 @@ export const useApproveUser = () => {
               universityCard: null as string | null,
             }
           : null;
+      const decisionActor = actorFromCaller
+        ? {
+            id: actorFromCaller.id ?? null,
+            fullName: actorFromCaller.fullName,
+            email: actorFromCaller.email,
+            universityCard: actorFromCaller.universityCard ?? null,
+          }
+        : fromSession;
       return applyOptimisticSignupDecision(queryClient, {
         userId,
         status: "APPROVED",
@@ -477,6 +492,13 @@ export const useRejectUser = () => {
     }: {
       userId: string;
       userName?: string; // Optional, for toast message
+      /** SSR/admin actor — preferred; useSession is often null in admin client trees. */
+      decisionActor?: {
+        id?: string | null;
+        fullName: string;
+        email: string;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await updateUserStatus(userId, "REJECTED");
       if (!result.success) {
@@ -484,9 +506,9 @@ export const useRejectUser = () => {
       }
       return { userId, status: "REJECTED" as const };
     },
-    onMutate: async ({ userId, userName }) => {
+    onMutate: async ({ userId, userName, decisionActor: actorFromCaller }) => {
       const su = session?.user as SessionUser | undefined;
-      const decisionActor =
+      const fromSession =
         su?.email && (su.name || su.email)
           ? {
               id: su.id ?? null,
@@ -495,6 +517,14 @@ export const useRejectUser = () => {
               universityCard: null as string | null,
             }
           : null;
+      const decisionActor = actorFromCaller
+        ? {
+            id: actorFromCaller.id ?? null,
+            fullName: actorFromCaller.fullName,
+            email: actorFromCaller.email,
+            universityCard: actorFromCaller.universityCard ?? null,
+          }
+        : fromSession;
       return applyOptimisticSignupDecision(queryClient, {
         userId,
         status: "REJECTED",
@@ -829,6 +859,59 @@ export const useApproveBorrow = () => {
       }
       return { recordId };
     },
+    onMutate: async ({ recordId }) => {
+      // Instant PENDING → BORROWED so admin + profile lists do not flash empty.
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
+      const previousRequests = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      const previousUserBorrows = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.userRoot,
+      });
+      const dueDate = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d.toISOString().slice(0, 10);
+      })();
+      const patchStatus = (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((row: { id?: string; status?: string }) =>
+          row?.id === recordId
+            ? { ...row, status: "BORROWED", dueDate }
+            : row,
+        );
+      };
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.requestsRoot },
+        patchStatus,
+      );
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.userRoot },
+        patchStatus,
+      );
+      return { previousRequests, previousUserBorrows };
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previousRequests) {
+        for (const [key, data] of context.previousRequests) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context?.previousUserBorrows) {
+        for (const [key, data] of context.previousUserBorrows) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      const bookTitle = variables.bookTitle || "book";
+      showToast.error(
+        "Approval Failed",
+        error.message ||
+          `Unable to approve borrow request for "${bookTitle}". ${error.message.includes("no longer available") ? "The book is no longer available." : "Please try again."}`
+      );
+    },
     onSuccess: async (data, variables) => {
       // Await so row spinners stay until lists refetch
       await invalidateMutation(queryClient, "borrow.lifecycle");
@@ -839,15 +922,6 @@ export const useApproveBorrow = () => {
       showToast.success(
         "Borrow Request Approved",
         `${userName} can now borrow "${bookTitle}".`
-      );
-    },
-    onError: (error: Error, variables) => {
-      // Show error toast
-      const bookTitle = variables.bookTitle || "book";
-      showToast.error(
-        "Approval Failed",
-        error.message ||
-          `Unable to approve borrow request for "${bookTitle}". ${error.message.includes("no longer available") ? "The book is no longer available." : "Please try again."}`
       );
     },
   });
@@ -889,24 +963,60 @@ export const useRejectBorrow = () => {
       }
       return { recordId };
     },
-    onSuccess: async (data, variables) => {
-      await invalidateMutation(queryClient, "borrow.lifecycle");
-
-      // Show success toast
-      const bookTitle = variables.bookTitle || "Book";
-      const userName = variables.userName || "User";
-      showToast.success(
-        "Borrow Request Rejected",
-        `Borrow request for "${bookTitle}" by ${userName} has been rejected.`
+    onMutate: async ({ recordId }) => {
+      // Soft-cancel in cache immediately (row stays as CANCELLED, not deleted).
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
+      const previousRequests = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      const previousUserBorrows = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.userRoot,
+      });
+      const patchStatus = (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((row: { id?: string; status?: string }) =>
+          row?.id === recordId ? { ...row, status: "CANCELLED" } : row,
+        );
+      };
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.requestsRoot },
+        patchStatus,
       );
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.userRoot },
+        patchStatus,
+      );
+      return { previousRequests, previousUserBorrows };
     },
-    onError: (error: Error, variables) => {
-      // Show error toast
+    onError: (error: Error, variables, context) => {
+      if (context?.previousRequests) {
+        for (const [key, data] of context.previousRequests) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context?.previousUserBorrows) {
+        for (const [key, data] of context.previousUserBorrows) {
+          queryClient.setQueryData(key, data);
+        }
+      }
       const bookTitle = variables.bookTitle || "book";
       showToast.error(
         "Rejection Failed",
         error.message ||
           `Unable to reject borrow request for "${bookTitle}". Please try again.`
+      );
+    },
+    onSuccess: async (data, variables) => {
+      await invalidateMutation(queryClient, "borrow.lifecycle");
+
+      const bookTitle = variables.bookTitle || "Book";
+      const userName = variables.userName || "User";
+      showToast.success(
+        "Borrow Request Rejected",
+        `Borrow request for "${bookTitle}" by ${userName} has been rejected.`
       );
     },
   });

@@ -37,14 +37,18 @@ import {
   Clock,
   FilterX,
   Loader2,
+  CalendarPlus,
+  CalendarCheck,
 } from "lucide-react";
 import { usePendingUsers, useSignupStatusDecisions } from "@/hooks/useQueries";
 import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import PersonAttribution from "@/components/PersonAttribution";
+import DateMetaLine from "@/components/DateMetaLine";
 import type { User as UserType } from "@/lib/services/users";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
 interface AccountRequestsClientProps {
   /**
@@ -55,6 +59,10 @@ interface AccountRequestsClientProps {
    * Recent APPROVED/REJECTED signup decisions (SSR; who + when)
    */
   initialRecentDecisions?: SignupStatusDecision[];
+  /**
+   * Logged-in admin from SSR — used for optimistic “Approved/Rejected by” (useSession is null here).
+   */
+  currentAdmin: AdminRequestReviewer;
   /**
    * Success message from URL params
    */
@@ -68,6 +76,7 @@ interface AccountRequestsClientProps {
 const AccountRequestsClient = ({
   initialUsers,
   initialRecentDecisions = [],
+  currentAdmin,
   successMessage,
   errorMessage,
 }: AccountRequestsClientProps) => {
@@ -188,6 +197,7 @@ const AccountRequestsClient = ({
       {
         userId,
         userName: user?.fullName,
+        decisionActor: currentAdmin,
       },
       {
         onSettled: () => {
@@ -206,6 +216,7 @@ const AccountRequestsClient = ({
       {
         userId,
         userName: user?.fullName,
+        decisionActor: currentAdmin,
       },
       {
         onSettled: () => {
@@ -438,9 +449,12 @@ const AccountRequestsClient = ({
                       />
                     </div>
                     {registered ? (
-                      <p className={`mb-1 text-xs sm:text-sm ${mutedClass}`}>
+                      <DateMetaLine
+                        icon={CalendarPlus}
+                        className={`mb-1 ${mutedClass}`}
+                      >
                         Registered on {registered}
-                      </p>
+                      </DateMetaLine>
                     ) : null}
                     <AdminRequestReviewerAttribution
                       reviewer={decision.decisionActor}
@@ -454,11 +468,11 @@ const AccountRequestsClient = ({
                           : null
                       }
                     />
-                    <p className={`mt-1 text-xs ${mutedClass}`}>
+                    <DateMetaLine icon={CalendarCheck} className={`mt-1 ${mutedClass}`}>
                       {decision.decidedAt
                         ? new Date(decision.decidedAt).toLocaleString()
                         : "N/A"}
-                    </p>
+                    </DateMetaLine>
                   </div>
                 );
               })}

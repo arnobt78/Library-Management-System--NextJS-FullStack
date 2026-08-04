@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import PersonAttribution from "@/components/PersonAttribution";
+import DateMetaLine from "@/components/DateMetaLine";
 import AdminRequestDeclineDialog from "@/components/admin/AdminRequestDeclineDialog";
 import {
   AlertDialog,
@@ -69,6 +70,8 @@ import {
   XCircle,
   Lock,
   Loader2,
+  CalendarPlus,
+  CalendarCheck,
 } from "lucide-react";
 import { isProtectedDemoAccount } from "@/constants";
 
@@ -133,6 +136,13 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   );
   const [approveOpen, setApproveOpen] = useState(false);
   const [declineOpen, setDeclineOpen] = useState(false);
+  /** Table Make Admin / Remove Admin confirm target */
+  const [roleTarget, setRoleTarget] = useState<{
+    id: string;
+    fullName: string;
+    email: string;
+    action: "make" | "remove";
+  } | null>(null);
 
   // Debounce search input for instant filtering
   React.useEffect(() => {
@@ -296,17 +306,49 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     initialRecentDecisions) ||
     []) as AdminRequest[];
 
-  // Handler functions for mutations
-  const handleUpdateUserRole = async (
-    userId: string,
-    role: "USER" | "ADMIN",
-  ) => {
-    const user = users.find((u) => u.id === userId);
-    updateUserRoleMutation.mutate({
-      userId,
-      role,
-      userName: user?.fullName,
+  // Handler functions for mutations — role changes go through confirm dialogs
+  const openMakeAdminConfirm = (user: User) => {
+    setRoleTarget({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      action: "make",
     });
+  };
+
+  const openRemoveAdminConfirm = (user: User) => {
+    setRoleTarget({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      action: "remove",
+    });
+  };
+
+  const handleConfirmRoleChange = () => {
+    if (!roleTarget) return;
+    if (roleTarget.action === "make") {
+      updateUserRoleMutation.mutate(
+        {
+          userId: roleTarget.id,
+          role: "ADMIN",
+          userName: roleTarget.fullName,
+        },
+        {
+          onSuccess: () => setRoleTarget(null),
+        },
+      );
+      return;
+    }
+    removeAdminPrivilegesMutation.mutate(
+      {
+        userId: roleTarget.id,
+        userName: roleTarget.fullName,
+      },
+      {
+        onSuccess: () => setRoleTarget(null),
+      },
+    );
   };
 
   const handleUpdateUserStatus = async (
@@ -362,14 +404,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         },
       },
     );
-  };
-
-  const handleRemoveAdminPrivileges = async (userId: string) => {
-    const user = users.find((u) => u.id === userId);
-    removeAdminPrivilegesMutation.mutate({
-      userId,
-      userName: user?.fullName,
-    });
   };
 
   // Show skeleton while loading (only if no initial data)
@@ -596,12 +630,12 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                     <p className="mb-2 text-xs text-yellow-800 sm:text-sm">
                       <strong>Reason:</strong> {request.requestReason}
                     </p>
-                    <p className="text-xs text-yellow-600">
+                    <DateMetaLine icon={CalendarPlus} className="text-yellow-600">
                       Requested on:{" "}
                       {request.createdAt
                         ? new Date(request.createdAt).toLocaleString()
                         : "N/A"}
-                    </p>
+                    </DateMetaLine>
                   </div>
                   <div className="flex flex-col gap-2 sm:ml-4 sm:flex-row sm:items-start">
                     <div className="flex flex-col gap-1.5">
@@ -747,11 +781,11 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                         : null
                     }
                   />
-                  <p className={`mt-1 text-xs ${mutedClass}`}>
+                  <DateMetaLine icon={CalendarCheck} className={`mt-1 ${mutedClass}`}>
                     {decision.reviewedAt
                       ? new Date(decision.reviewedAt).toLocaleString()
                       : "N/A"}
-                  </p>
+                  </DateMetaLine>
                 </div>
               );
             })}
@@ -867,42 +901,8 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                           </span>
                         ) : (
                           <>
-                            {/* Show Remove Admin for existing admins (except current user) */}
-                            {user.role === "ADMIN" &&
-                              user.id !==
-                                (currentUserId || session?.user?.id) && (
-                                <Button
-                                  size="sm"
-                                  className="bg-red-600 text-white hover:bg-red-700"
-                                  onClick={() =>
-                                    handleRemoveAdminPrivileges(user.id)
-                                  }
-                                  disabled={
-                                    removeAdminPrivilegesMutation.isPending
-                                  }
-                                >
-                                  <ShieldOff className="size-4" />
-                                  Remove Admin
-                                </Button>
-                              )}
-
-                            {/* Show Make Admin for regular users */}
-                            {user.role === "USER" && (
-                              <Button
-                                size="sm"
-                                className="bg-purple-600 text-white hover:bg-purple-700"
-                                onClick={() =>
-                                  handleUpdateUserRole(user.id, "ADMIN")
-                                }
-                                disabled={updateUserRoleMutation.isPending}
-                              >
-                                <Shield className="size-4" />
-                                Make Admin
-                              </Button>
-                            )}
-
-                            {/* Show Approve/Reject for pending users */}
-                            {user.status === "PENDING" && (
+                            {/* Pending signup: approve/reject student first — never Make Admin. */}
+                            {user.status === "PENDING" ? (
                               <>
                                 <Button
                                   size="sm"
@@ -913,7 +913,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                                   disabled={updateUserStatusMutation.isPending}
                                 >
                                   <CheckCircle className="size-4" />
-                                  Approve
+                                  Approve Student
                                 </Button>
                                 <Button
                                   size="sm"
@@ -926,6 +926,55 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                                   <XCircle className="size-4" />
                                   Reject
                                 </Button>
+                              </>
+                            ) : (
+                              <>
+                                {/* Approved admins (not self): demote */}
+                                {user.role === "ADMIN" &&
+                                  user.id !==
+                                    (currentUserId || session?.user?.id) && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-red-600 text-white hover:bg-red-700"
+                                      onClick={() =>
+                                        openRemoveAdminConfirm(user)
+                                      }
+                                      disabled={
+                                        removeAdminPrivilegesMutation.isPending
+                                      }
+                                    >
+                                      <ShieldOff className="size-4" />
+                                      Remove Admin
+                                    </Button>
+                                  )}
+
+                                {/* Approved students: promote */}
+                                {user.role === "USER" &&
+                                  user.status === "APPROVED" && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-purple-600 text-white hover:bg-purple-700"
+                                      onClick={() =>
+                                        openMakeAdminConfirm(user)
+                                      }
+                                      disabled={
+                                        updateUserRoleMutation.isPending
+                                      }
+                                    >
+                                      <Shield className="size-4" />
+                                      Make Admin
+                                    </Button>
+                                  )}
+
+                                {/* Self-admin row: no demote (avoids lockout) */}
+                                {user.role === "ADMIN" &&
+                                  user.id ===
+                                    (currentUserId || session?.user?.id) && (
+                                    <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
+                                      <Shield className="size-3.5 shrink-0" aria-hidden />
+                                      You
+                                    </span>
+                                  )}
                               </>
                             )}
                           </>
@@ -988,6 +1037,97 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
               {approveAdminRequestMutation.isPending
                 ? "Promoting…"
                 : "Promote to admin"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={roleTarget != null}
+        onOpenChange={(open) => {
+          if (
+            updateUserRoleMutation.isPending ||
+            removeAdminPrivilegesMutation.isPending
+          ) {
+            return;
+          }
+          if (!open) setRoleTarget(null);
+        }}
+      >
+        <AlertDialogContent className="border-gray-600 bg-gray-800/95">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-light-100">
+              {roleTarget?.action === "remove"
+                ? "Remove admin privileges?"
+                : "Promote to admin?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-light-200">
+              {roleTarget?.action === "remove" ? (
+                <>
+                  Remove administrator access from{" "}
+                  <span className="font-medium text-light-100">
+                    {roleTarget.fullName}
+                  </span>
+                  {roleTarget.email ? ` (${roleTarget.email})` : ""}? They will
+                  become a standard library user and can request admin access
+                  again later.
+                </>
+              ) : (
+                <>
+                  Grant administrator privileges to{" "}
+                  <span className="font-medium text-light-100">
+                    {roleTarget?.fullName ?? "this user"}
+                  </span>
+                  {roleTarget?.email ? ` (${roleTarget.email})` : ""}? They will
+                  be able to manage users, books, and borrow requests.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={
+                updateUserRoleMutation.isPending ||
+                removeAdminPrivilegesMutation.isPending
+              }
+              className="border-gray-500 bg-gray-600 text-white hover:bg-gray-500 hover:text-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmRoleChange();
+              }}
+              disabled={
+                updateUserRoleMutation.isPending ||
+                removeAdminPrivilegesMutation.isPending
+              }
+              className={
+                roleTarget?.action === "remove"
+                  ? "gap-1.5 bg-red-600 text-white hover:bg-red-700"
+                  : "gap-1.5 bg-purple-600 text-white hover:bg-purple-700"
+              }
+            >
+              {(updateUserRoleMutation.isPending ||
+                removeAdminPrivilegesMutation.isPending) && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              {!updateUserRoleMutation.isPending &&
+                !removeAdminPrivilegesMutation.isPending &&
+                (roleTarget?.action === "remove" ? (
+                  <ShieldOff className="size-4" />
+                ) : (
+                  <Shield className="size-4" />
+                ))}
+              {updateUserRoleMutation.isPending ||
+              removeAdminPrivilegesMutation.isPending
+                ? roleTarget?.action === "remove"
+                  ? "Removing…"
+                  : "Promoting…"
+                : roleTarget?.action === "remove"
+                  ? "Remove Admin"
+                  : "Make Admin"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

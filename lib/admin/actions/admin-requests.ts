@@ -24,6 +24,7 @@ import {
   ADMIN_REQUEST_WITHDRAWN_REASON,
   RECENT_ADMIN_REQUEST_DECISIONS_LIMIT,
 } from "@/lib/admin/adminRequestConstants";
+import { revokeLatestApprovedAdminRequest } from "@/lib/admin/adminPrivilegeLedger";
 import { notifyAdminRequestDecision } from "@/lib/admin/adminRequestEmails";
 import type {
   AdminRequestReviewer,
@@ -582,15 +583,25 @@ export async function removeAdminPrivileges(
       };
     }
 
-    // Update the user's role to USER
-    await db
-      .update(users)
-      .set({
-        role: "USER",
-        updatedAt: new Date(),
-        updatedBy: actor.email,
-      })
-      .where(eq(users.id, safeUserId));
+    const decidedAt = new Date();
+
+    // Demote role + settle latest APPROVED make-admin row so /make-admin unlocks re-apply.
+    await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({
+          role: "USER",
+          updatedAt: decidedAt,
+          updatedBy: actor.email,
+        })
+        .where(eq(users.id, safeUserId));
+
+      await revokeLatestApprovedAdminRequest(tx, {
+        userId: safeUserId,
+        actorId: actor.id,
+        now: decidedAt,
+      });
+    });
 
     revalidateMutationPaths("admin-request.write");
     return {

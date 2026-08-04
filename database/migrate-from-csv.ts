@@ -394,7 +394,7 @@ async function seedBorrowRecords() {
         dueDate: formatDateForPostgres(parseDate(row.due_date)),
         returnDate: formatDateForPostgres(parseDate(row.return_date)),
         status:
-          (row.status as "PENDING" | "BORROWED" | "RETURNED") || "BORROWED",
+          (row.status as "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED") || "BORROWED",
         borrowedBy: row.borrowed_by || null,
         returnedBy: row.returned_by || null,
         fineAmount: parseDecimal(row.fine_amount),

@@ -19,6 +19,7 @@ export function SafeImage({
   width,
   height,
   onError,
+  onLoad,
   priority,
   loading,
   ...rest
@@ -47,6 +48,8 @@ export function SafeImage({
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           sizes={typeof rest.sizes === "string" ? rest.sizes : undefined}
+          onError={handleError}
+          onLoad={onLoad}
         />
       );
     }
@@ -59,6 +62,8 @@ export function SafeImage({
         className={cn(className)}
         loading={eager ? "eager" : "lazy"}
         decoding="async"
+        onError={handleError}
+        onLoad={onLoad}
       />
     );
   }
@@ -75,6 +80,7 @@ export function SafeImage({
       priority={priority}
       loading={loading}
       onError={handleError}
+      onLoad={onLoad}
     />
   );
 }

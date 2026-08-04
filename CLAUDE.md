@@ -84,4 +84,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Auth: tight title/`text-light-200` sub; `.auth-box` glass; `isProtectedDemoAccount` locks role/status + Approve. Lucide UI icons; brand logos kept.
 - Dev logging: `logging.serverFunctions: false` (no Server Action password dumps). `proxy.ts` matcher skips static assets.
 - Ops: `npm run user:delete -- <email>` FK-safe single-user wipe for re-signup tests (blocks demo accounts).
-- Agile V: C2 active; Gate 1 `GATE-0006`; tip `ca9c7b9`; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.
+- Borrow soft-cancel: migration `0013` adds `CANCELLED`; reject pending → keep row (history), not DELETE.
+- Admin privilege ledger: All Users/bulk Make Admin → `adminPrivilegeLedger` (approve PENDING or insert `ADMIN_REQUEST_DIRECT_GRANT_REASON`); demote/`updateUserRole(USER)` → `removeAdminPrivileges` revoke. Invalidate `admin-request.write`.
+- Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
+- Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
+- Agile V: C2 active; Gate 1 `GATE-0006`; Wave 5 production evidence incomplete; EvalGate FAIL blocks Gate 2.

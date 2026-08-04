@@ -4,10 +4,10 @@
 - Cycle: C2
 - Stage: 4 - Prove and independent Verify
 - SCOPE-V phase: Evaluate
-- Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed; await owner next instruction; C2 Gate 2 blocked by nonlocal EvalGate FAIL
+- Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed (admin privilege ledger unify + borrow CANCELLED); await owner test; C2 Gate 2 blocked by nonlocal EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: `ca9c7b9` (session actor + admin PersonAttribution href + signup-decisions:purge)
+- Latest known tip: pending bind after privilege-ledger commit
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
@@ -54,3 +54,5 @@ Owner-directed: await new instruction (no synthesis until directed). Default inc
 - Optimistic signup Recent uses session actor (no “an admin” flash); admin cards link to `/admin/users/[id]`; `signup-decisions:purge`.
 - Borrow RQ APPROVED-only (SSR/prop status); PENDING my-profile friendly shell (no 403 console / red error).
 - `user.write` RSC includes `/make-admin` + `/admin/account-requests`; `admin-request.write` → `/make-admin` + `/admin/users` + `/admin/users/[id]`; `npm run user:delete`; `logging.serverFunctions: false`.
+- Borrow soft-cancel `CANCELLED` (`0013`); All Users/bulk Make Admin → `adminPrivilegeLedger` + demote revoke; invalidate `admin-request.write`.
+- Fresh-test ops (2026-08-04): purged signup + settled admin decision ledgers; deleted `arnob_t78@yahoo.com` for re-signup.

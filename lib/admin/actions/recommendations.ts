@@ -30,7 +30,7 @@ export async function getUserBorrowHistory(userId: string): Promise<
     bookAuthor: string;
     bookGenre: string;
     borrowDate: Date | null;
-    status: "PENDING" | "BORROWED" | "RETURNED";
+    status: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
   }>
 > {
   const history = await db

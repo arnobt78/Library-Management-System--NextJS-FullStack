@@ -180,13 +180,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         } catch {
           // Don't fail authentication if last_login update fails
         }
-      } else if (
-        token.id &&
-        (token.status === "PENDING" ||
-          token.status === "REJECTED" ||
-          !token.status)
-      ) {
-        // Refresh PENDING/REJECTED (or missing) status so client gates update after admin approval
+      } else if (token.id) {
+        // Always refresh role/status from DB (covers ADMIN→USER demotion + signup approve).
         try {
           const db = await getDb();
           const users = await getUsersSchema();

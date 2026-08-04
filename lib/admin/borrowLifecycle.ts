@@ -10,6 +10,7 @@ import {
 import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   canApproveBorrow,
+  canCancelBorrow,
   canReturnBorrow,
 } from "./borrowTransitionPolicy";
 import { offerNextReservation } from "@/lib/circulation/reservations";
@@ -225,7 +226,8 @@ export function returnBorrowRecord(
 }
 
 export async function rejectBorrowRecord(
-  recordId: string
+  recordId: string,
+  actorEmail?: string,
 ): Promise<BorrowActionResult> {
   return db.transaction(async (tx) => {
     const [record] = await tx
@@ -239,18 +241,31 @@ export async function rejectBorrowRecord(
       return { success: false, error: "Borrow record not found" };
     }
 
-    if (record.status !== "PENDING") {
-      return { success: false, error: "This request has already been processed" };
+    const decision = canCancelBorrow(record.status);
+    if (!decision.allowed) {
+      return { success: false, error: decision.error };
     }
 
-    await tx
-      .delete(borrowRecords)
+    // Soft-cancel: keep the row so profile + admin lists retain history.
+    const updated = await tx
+      .update(borrowRecords)
+      .set({
+        status: "CANCELLED",
+        updatedAt: new Date(),
+        updatedBy: actorEmail ?? "admin",
+        notes: "Rejected by librarian",
+      })
       .where(
         and(
           eq(borrowRecords.id, recordId),
-          eq(borrowRecords.status, "PENDING")
-        )
-      );
+          eq(borrowRecords.status, "PENDING"),
+        ),
+      )
+      .returning({ id: borrowRecords.id });
+
+    if (updated.length !== 1) {
+      return { success: false, error: "This request has already been processed" };
+    }
 
     return { success: true };
   });
@@ -272,7 +287,8 @@ export function approveBorrowRecords(
 }
 
 export function rejectBorrowRecords(
-  recordIds: string[]
+  recordIds: string[],
+  actorEmail?: string,
 ): Promise<BorrowActionResult> {
   return db.transaction(async (tx) => {
     const uniqueIds = [...new Set(recordIds)];
@@ -290,8 +306,15 @@ export function rejectBorrowRecords(
       return { success: false, error: "One or more requests were already processed" };
     }
 
+    // Soft-cancel all selected pending rows (preserve audit trail).
     await tx
-      .delete(borrowRecords)
+      .update(borrowRecords)
+      .set({
+        status: "CANCELLED",
+        updatedAt: new Date(),
+        updatedBy: actorEmail ?? "admin",
+        notes: "Rejected by librarian",
+      })
       .where(inArray(borrowRecords.id, uniqueIds));
     return { success: true };
   });

@@ -73,7 +73,7 @@ const Page = async ({
       borrowDate: record.borrowDate, // timestamp() returns Date object
       dueDate: dueDateStr,
       returnDate: returnDateStr,
-      status: record.status as "PENDING" | "BORROWED" | "RETURNED",
+      status: record.status as "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED",
       borrowedBy: record.borrowedBy,
       returnedBy: record.returnedBy,
       fineAmount: record.fineAmount || "0.00", // Ensure it's a string

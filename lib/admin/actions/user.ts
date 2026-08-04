@@ -13,25 +13,40 @@ import {
   DEFAULT_ACCOUNT_REJECTION_REASON,
   notifyAccountStatusDecision,
 } from "@/lib/admin/accountStatusEmails";
+import { settlePendingOrInsertApprovedAdminRequest } from "@/lib/admin/adminPrivilegeLedger";
+import { notifyAdminRequestDecision } from "@/lib/admin/adminRequestEmails";
+import { removeAdminPrivileges } from "@/lib/admin/actions/admin-requests";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { isProtectedDemoAccount } from "@/constants";
 
 const DEMO_ACCOUNT_LOCKED =
   "Demo showcase accounts cannot change role or status";
 
+/**
+ * Change a user's role. ADMIN promote writes/settles admin_requests (same ledger as
+ * /make-admin approve). USER demote delegates to removeAdminPrivileges so history settles.
+ */
 export const updateUserRole = async (
   userId: string,
   role: "USER" | "ADMIN",
 ) => {
   try {
-    const actor = await requireAdminActor();
     const safeUserId = parseEntityId(userId);
+
+    // Single demote door — always revoke APPROVED ledger when present.
+    if (role === "USER") {
+      return removeAdminPrivileges(safeUserId);
+    }
+
+    const actor = await requireAdminActor();
 
     const existing = await db
       .select({
         id: users.id,
         email: users.email,
+        fullName: users.fullName,
         universityId: users.universityId,
+        role: users.role,
       })
       .from(users)
       .where(eq(users.id, safeUserId))
@@ -45,17 +60,50 @@ export const updateUserRole = async (
       return { success: false, error: DEMO_ACCOUNT_LOCKED };
     }
 
-    const updated = await db
-      .update(users)
-      .set({ role, updatedAt: new Date(), updatedBy: actor.email })
-      .where(eq(users.id, safeUserId))
-      .returning({ id: users.id });
-
-    if (updated.length !== 1) {
-      return { success: false, error: "User not found" };
+    if (existing[0].role === "ADMIN") {
+      return { success: false, error: "User is already an admin" };
     }
 
-    revalidateMutationPaths("user.write");
+    const decidedAt = new Date();
+
+    // Atomic role + admin_requests so All Users Make Admin matches approve path.
+    const ledgerRequestId = await db.transaction(async (tx) => {
+      const updated = await tx
+        .update(users)
+        .set({
+          role: "ADMIN",
+          updatedAt: decidedAt,
+          updatedBy: actor.email,
+        })
+        .where(eq(users.id, safeUserId))
+        .returning({ id: users.id });
+
+      if (updated.length !== 1) {
+        throw new Error("User not found");
+      }
+
+      return settlePendingOrInsertApprovedAdminRequest(tx, {
+        userId: safeUserId,
+        actorId: actor.id,
+        now: decidedAt,
+      });
+    });
+
+    revalidateMutationPaths("admin-request.write");
+
+    const target = existing[0];
+    after(async () => {
+      await notifyAdminRequestDecision({
+        to: target.email,
+        fullName: target.fullName,
+        status: "APPROVED",
+        requestId: ledgerRequestId,
+        reviewedAt: decidedAt,
+        decidedBy: { fullName: actor.name, email: actor.email },
+        rejectionReason: null,
+      });
+    });
+
     return { success: true };
   } catch (error) {
     console.error("Error updating user role:", error);
@@ -138,6 +186,7 @@ export const updateUserStatus = async (
         });
       }
     });
+
 
     revalidateMutationPaths("user.write");
 

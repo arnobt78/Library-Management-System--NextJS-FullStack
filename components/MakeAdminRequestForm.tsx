@@ -24,7 +24,7 @@ import {
   useCancelMyAdminRequest,
   useCreateAdminRequest,
 } from "@/hooks/useMutations";
-import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
+import { ADMIN_REQUEST_REVOKED_REASON, ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import type {
   AdminRequestReviewer,
   SignupApprovalInfo,
@@ -223,12 +223,17 @@ export default function MakeAdminRequestForm({
   const isBusy = isSubmitting || isCancelling;
 
   const isPendingStatus = status === "PENDING";
-  const canEdit = !isPendingStatus && status !== "APPROVED";
+  // APPROVED banner/lock only while the account still holds ADMIN (demotion unlocks re-apply).
+  const privilegesActive = userRole === "ADMIN" && status === "APPROVED";
+  const canEdit = !isPendingStatus && !privilegesActive;
   const hasText = reason.trim().length > 0;
   const reasonOk = reason.trim().length >= 10;
   const withdrawn =
     status === "REJECTED" &&
     rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
+  const revoked =
+    status === "REJECTED" &&
+    rejectionReason === ADMIN_REQUEST_REVOKED_REASON;
   const isShowcaseDemo =
     userRole === "USER" && isProtectedDemoAccount({ email: userEmail });
 
@@ -355,7 +360,9 @@ export default function MakeAdminRequestForm({
 
       {status === "REJECTED" && !withdrawn && (
         <div className="space-y-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200 sm:text-sm">
-          {rejectedQuote ? (
+          {revoked ? (
+            <p>Your admin privileges were removed.</p>
+          ) : rejectedQuote ? (
             <p>
               Based on your request{" "}
               <span
@@ -370,7 +377,7 @@ export default function MakeAdminRequestForm({
           )}
           <AdminRequestReviewerAttribution
             reviewer={reviewer}
-            prefix="is Rejected by"
+            prefix={revoked ? "Removed by" : "Rejected by"}
             size={28}
             textClassName="text-red-100"
             className="text-red-200/90"
@@ -384,7 +391,11 @@ export default function MakeAdminRequestForm({
             <p className="text-red-200/80">
               {submittedLabel ? `Submitted on ${submittedLabel}` : null}
               {submittedLabel && reviewedLabel ? " · " : null}
-              {reviewedLabel ? `Rejected on ${reviewedLabel}` : null}
+              {reviewedLabel
+                ? revoked
+                  ? `Removed on ${reviewedLabel}`
+                  : `Rejected on ${reviewedLabel}`
+                : null}
             </p>
           )}
           <p className="text-red-200/80">
@@ -406,7 +417,7 @@ export default function MakeAdminRequestForm({
         </div>
       )}
 
-      {status === "APPROVED" && (
+      {privilegesActive && (
         <div className="space-y-2 rounded-xl border border-green-400/30 bg-green-500/10 px-3 py-2.5 text-xs text-green-200 sm:text-sm">
           <p>Your admin request was approved.</p>
           <AdminRequestReviewerAttribution

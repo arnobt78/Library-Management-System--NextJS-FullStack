@@ -13,6 +13,7 @@ import {
   requireSignedInActor,
   type ActorStatus,
 } from "@/lib/auth/authorization";
+import { ADMIN_REQUEST_REVOKED_REASON } from "@/lib/admin/adminRequestConstants";
 import type {
   AdminRequestReviewer,
   AdminRequestStatus,
@@ -138,11 +139,22 @@ export async function getMyAdminRequestPageData(): Promise<MyAdminRequestPageDat
       .limit(1);
 
     if (latest) {
+      const stillAdmin = user.role === "ADMIN";
+      // Stale APPROVED ledger after demotion must not lock re-apply UI.
+      const effectiveStatus: MyAdminRequestStatus =
+        latest.status === "APPROVED" && !stillAdmin
+          ? "REJECTED"
+          : (latest.status as MyAdminRequestStatus);
+      const effectiveRejection =
+        latest.status === "APPROVED" && !stillAdmin
+          ? (latest.rejectionReason ?? ADMIN_REQUEST_REVOKED_REASON)
+          : (latest.rejectionReason ?? null);
+
       latestRequest = {
         id: latest.id,
-        status: latest.status as MyAdminRequestStatus,
+        status: effectiveStatus,
         requestReason: latest.requestReason,
-        rejectionReason: latest.rejectionReason ?? null,
+        rejectionReason: effectiveRejection,
         createdAt: latest.createdAt,
         reviewedAt: latest.reviewedAt ?? null,
         reviewer:

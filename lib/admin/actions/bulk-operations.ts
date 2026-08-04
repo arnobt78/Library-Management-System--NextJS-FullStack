@@ -33,6 +33,10 @@ import {
   notifyAccountStatusDecision,
 } from "@/lib/admin/accountStatusEmails";
 import { isProtectedDemoAccount } from "@/constants";
+import {
+  revokeLatestApprovedAdminRequest,
+  settlePendingOrInsertApprovedAdminRequest,
+} from "@/lib/admin/adminPrivilegeLedger";
 
 type BulkBookUpdates = Pick<typeof books.$inferInsert, "isActive">;
 type BulkUserUpdates = Pick<typeof users.$inferInsert, "role" | "status">;
@@ -188,6 +192,14 @@ export async function bulkUpdateUsers(
   updates: BulkUserUpdates
 ) {
   try {
+    // Role changes must go through ledger-aware promote/demote (not a bare UPDATE).
+    if (updates.role === "ADMIN") {
+      return bulkMakeAdminUsers(userIds);
+    }
+    if (updates.role === "USER") {
+      return bulkRemoveAdminUsers(userIds);
+    }
+
     const actor = await requireAdminActor();
     if (userIds.length === 0) {
       return { success: false, message: "No users selected" };
@@ -209,10 +221,12 @@ export async function bulkUpdateUsers(
             }
           : {};
 
+    const { role: _ignoredRole, ...nonRoleUpdates } = updates;
+
     await db
       .update(users)
       .set({
-        ...updates,
+        ...nonRoleUpdates,
         updatedAt: decidedAt,
         updatedBy: actor.email,
         ...statusReviewPatch,
@@ -411,12 +425,136 @@ export async function bulkRejectUsers(userIds: string[]) {
   }
 }
 
+/**
+ * Bulk promote — same admin_requests ledger as single updateUserRole(ADMIN)
+ * (approve PENDING or insert direct-grant APPROVED). Skips demo + already ADMIN.
+ */
 export async function bulkMakeAdminUsers(userIds: string[]) {
-  return bulkUpdateUsers(userIds, { role: "ADMIN" });
+  try {
+    const actor = await requireAdminActor();
+    if (userIds.length === 0) {
+      return { success: false, message: "No users selected" };
+    }
+    const safeUserIds = parseEntityIds(userIds);
+    const decidedAt = new Date();
+
+    const targets = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        universityId: users.universityId,
+        role: users.role,
+      })
+      .from(users)
+      .where(inArray(users.id, safeUserIds));
+
+    const eligible = targets.filter(
+      (u) => u.role !== "ADMIN" && !isProtectedDemoAccount(u),
+    );
+
+    if (eligible.length === 0) {
+      return {
+        success: false,
+        message: "No eligible users to promote (demo or already admin)",
+      };
+    }
+
+    await db.transaction(async (tx) => {
+      for (const target of eligible) {
+        await tx
+          .update(users)
+          .set({
+            role: "ADMIN",
+            updatedAt: decidedAt,
+            updatedBy: actor.email,
+          })
+          .where(eq(users.id, target.id));
+
+        await settlePendingOrInsertApprovedAdminRequest(tx, {
+          userId: target.id,
+          actorId: actor.id,
+          now: decidedAt,
+        });
+      }
+    });
+
+    revalidateMutationPaths("admin-request.write");
+    return {
+      success: true,
+      message: `Successfully promoted ${eligible.length} user(s) to admin`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to promote users"),
+    };
+  }
 }
 
+/**
+ * Bulk demote — settles APPROVED admin_requests like removeAdminPrivileges.
+ * Skips demo + non-ADMIN targets.
+ */
 export async function bulkRemoveAdminUsers(userIds: string[]) {
-  return bulkUpdateUsers(userIds, { role: "USER" });
+  try {
+    const actor = await requireAdminActor();
+    if (userIds.length === 0) {
+      return { success: false, message: "No users selected" };
+    }
+    const safeUserIds = parseEntityIds(userIds);
+    const decidedAt = new Date();
+
+    const targets = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        universityId: users.universityId,
+        role: users.role,
+      })
+      .from(users)
+      .where(inArray(users.id, safeUserIds));
+
+    const eligible = targets.filter(
+      (u) => u.role === "ADMIN" && !isProtectedDemoAccount(u),
+    );
+
+    if (eligible.length === 0) {
+      return {
+        success: false,
+        message: "No eligible admins to demote (demo or not admin)",
+      };
+    }
+
+    await db.transaction(async (tx) => {
+      for (const target of eligible) {
+        await tx
+          .update(users)
+          .set({
+            role: "USER",
+            updatedAt: decidedAt,
+            updatedBy: actor.email,
+          })
+          .where(eq(users.id, target.id));
+
+        await revokeLatestApprovedAdminRequest(tx, {
+          userId: target.id,
+          actorId: actor.id,
+          now: decidedAt,
+        });
+      }
+    });
+
+    revalidateMutationPaths("admin-request.write");
+    return {
+      success: true,
+      message: `Successfully removed admin from ${eligible.length} user(s)`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to remove admin privileges"),
+    };
+  }
 }
 
 // Bulk borrow operations
@@ -447,12 +585,12 @@ export async function bulkApproveBorrowRequests(recordIds: string[]) {
 
 export async function bulkRejectBorrowRequests(recordIds: string[]) {
   try {
-    await requireAdminActor();
+    const actor = await requireAdminActor();
     if (recordIds.length === 0) {
       return { success: false, message: "No requests selected" };
     }
     const safeRecordIds = parseEntityIds(recordIds);
-    const result = await rejectBorrowRecords(safeRecordIds);
+    const result = await rejectBorrowRecords(safeRecordIds, actor.email);
     if (!result.success) {
       return { success: false, message: result.error };
     }

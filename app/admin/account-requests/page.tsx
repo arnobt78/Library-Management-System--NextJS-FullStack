@@ -9,6 +9,10 @@
 import React from "react";
 import { getAllUsers } from "@/lib/admin/actions/user";
 import { getRecentSignupStatusDecisions } from "@/lib/admin/signupStatusDecisions";
+import { requireAdminActor } from "@/lib/auth/authorization";
+import { db } from "@/database/drizzle";
+import { users } from "@/database/schema";
+import { eq } from "drizzle-orm";
 import AccountRequestsClient from "./AccountRequestsClient";
 
 export const runtime = "nodejs";
@@ -20,8 +24,9 @@ const Page = async ({
 }) => {
   const params = await searchParams;
 
-  // Fetch pending queue + recent decisions in parallel for SSR
-  const [result, decisionsResult] = await Promise.all([
+  // Fetch actor + pending queue + recent decisions in parallel for SSR
+  const [actor, result, decisionsResult] = await Promise.all([
+    requireAdminActor(),
     getAllUsers(),
     getRecentSignupStatusDecisions(),
   ]);
@@ -43,13 +48,28 @@ const Page = async ({
     );
   }
 
-  const users = result.data || [];
-  const pendingUsers = users.filter((user) => user.status === "PENDING");
+  const usersList = result.data || [];
+  const pendingUsers = usersList.filter((user) => user.status === "PENDING");
+
+  // Include university card so optimistic “Approved/Rejected by” skips Robohash flash.
+  const [adminRow] = await db
+    .select({ universityCard: users.universityCard })
+    .from(users)
+    .where(eq(users.id, actor.id))
+    .limit(1);
+
+  const currentAdmin = {
+    id: actor.id,
+    fullName: actor.name,
+    email: actor.email,
+    universityCard: adminRow?.universityCard ?? null,
+  };
 
   return (
     <AccountRequestsClient
       initialUsers={pendingUsers}
       initialRecentDecisions={decisionsResult.data ?? []}
+      currentAdmin={currentAdmin}
       successMessage={params.success}
       errorMessage={params.error}
     />

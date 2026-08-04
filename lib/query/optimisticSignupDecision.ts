@@ -88,6 +88,7 @@ export async function applyOptimisticSignupDecision(
     },
   );
 
+
   return { previousPending, previousDecisions };
 }
 
