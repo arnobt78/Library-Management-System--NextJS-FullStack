@@ -7,7 +7,7 @@
 - Status: ACTIVE - C2 Infinity Loop resumed; Stage 3 UX polish under REQ-0033 landed; await owner next instruction; C2 Gate 2 blocked by nonlocal EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest known tip: uncommitted spinner/ledger UX (`0012` + await invalidate + PersonAttribution); prior `683655d`
+- Latest known tip: `7091dd0` (signup ledger 0012 + await invalidate + PersonAttribution + optimistic decisions)
 - Started: 2026-08-01
 - Last updated: 2026-08-04
 - Active requirements revision: C2-approved.1 (REQ-0026 through REQ-0033 approved; C1 approvals unchanged)
