@@ -2,23 +2,19 @@
 
 /**
  * Book reviews list — portaled menu, shared ReviewFormDialog for edit,
- * university_card / Robohash avatars, optimistic RQ + review.write toasts.
+ * university_card / Robohash avatars, status badge + date/moderator densify.
+ * Parent: CR-0003 / REQ-0035 polish
  */
 
 import React, { useMemo, useState } from "react";
-import {
-  CalendarArrowUp,
-  CalendarCheck2,
-  Loader2,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Loader2, MoreVertical, Pencil, Trash2, X } from "lucide-react";
 import { useDeleteReview } from "@/hooks/useMutations";
 import UserAvatar from "@/components/UserAvatar";
 import ReviewFormDialog from "@/components/ReviewFormDialog";
+import ReviewDateMeta from "@/components/reviews/ReviewDateMeta";
+import PersonAttribution from "@/components/PersonAttribution";
 import StarRow from "@/components/ui/StarRow";
+import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,13 +66,22 @@ function ReviewCard({
   const isDeleting = deleteReviewMutation.isPending;
 
   const isOwner = Boolean(currentUserId) && currentUserId === review.userId;
-  const isEdited =
-    review.createdAt &&
-    review.updatedAt &&
-    new Date(review.createdAt).getTime() !==
-      new Date(review.updatedAt).getTime();
+  // Owner always sees status; others see APPROVED (public) badges only.
+  const showStatus =
+    Boolean(review.status) &&
+    (isOwner || review.status === "APPROVED" || review.status === "REJECTED");
 
   const titleLabel = resolveActionBookTitle(bookTitle);
+
+  const moderator =
+    review.reviewedByName || review.reviewedByEmail
+      ? {
+          id: review.reviewedBy,
+          fullName: review.reviewedByName || "an admin",
+          email: review.reviewedByEmail || "",
+          universityCard: review.reviewedByUniversityCard ?? null,
+        }
+      : null;
 
   const handleDeleteConfirm = (e: React.MouseEvent) => {
     // Prevent Radix AlertDialogAction from auto-closing before mutate settles
@@ -87,6 +92,7 @@ function ReviewCard({
         reviewId: review.id,
         bookId,
         bookTitle,
+        userId: review.userId,
       },
       {
         onSuccess: () => {
@@ -102,50 +108,58 @@ function ReviewCard({
   return (
     <div className="rounded-lg border border-gray-600 bg-gray-800/50 p-3 shadow-sm sm:p-4">
       <div className="flex flex-row items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <UserAvatar
-                universityCard={review.universityCard}
-                fullName={review.userFullName}
-                email={review.userId}
-                size={36}
-                alt={`${review.userFullName} avatar`}
-              />
-              <h4 className="truncate text-sm font-medium text-light-100 sm:text-base">
-                {review.userFullName}
-              </h4>
-            </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          {/* Author row — kebab stays top-right outside this column */}
+          <div className="flex min-w-0 items-center gap-2">
+            <UserAvatar
+              universityCard={review.universityCard}
+              fullName={review.userFullName}
+              email={review.userId}
+              size={36}
+              alt={`${review.userFullName} avatar`}
+            />
+            <h4 className="truncate text-sm font-medium text-light-100 sm:text-base">
+              {review.userFullName}
+            </h4>
+          </div>
+
+          {/* Stars + status above comment — items-center, not justify-end */}
+          <div className="flex flex-wrap items-center gap-2">
             <StarRow
               rating={review.rating}
               starClassName="size-3 sm:size-4"
               filledClassName="fill-yellow-400 text-yellow-400"
               emptyClassName="fill-gray-300 text-gray-300"
-              className="flex items-center gap-0.5 sm:space-x-1"
+              className="shrink-0 sm:gap-1"
             />
+            {showStatus && review.status ? (
+              <ReviewStatusBadge status={review.status} variant="dark" />
+            ) : null}
           </div>
 
-          <p className="mt-2 text-sm text-light-200 sm:text-base">
-            {review.comment}
-          </p>
+          <p className="text-sm text-light-200 sm:text-base">{review.comment}</p>
 
-          <div className="mt-2 flex flex-col gap-1.5 text-[10px] sm:mt-3 sm:flex-row sm:items-center sm:justify-between sm:text-xs">
-            <span className="inline-flex items-center gap-1.5 text-light-100">
-              <CalendarCheck2 className="size-3.5 shrink-0 text-light-100 sm:size-4" />
-              Created:{" "}
-              {review.createdAt
-                ? new Date(review.createdAt).toLocaleString()
-                : "N/A"}
-            </span>
-            {isEdited && (
-              <span className="inline-flex items-center gap-1.5 text-light-100">
-                <CalendarArrowUp className="size-3.5 shrink-0 text-light-100 sm:size-4" />
-                Edited:{" "}
-                {review.updatedAt
-                  ? new Date(review.updatedAt).toLocaleString()
-                  : "N/A"}
-              </span>
-            )}
+          <div className="space-y-1.5">
+            <ReviewDateMeta
+              createdAt={review.createdAt}
+              updatedAt={review.updatedAt}
+              reviewedAt={review.reviewedAt}
+              status={review.status}
+              variant="dark"
+            />
+            {moderator &&
+            review.status &&
+            review.status !== "PENDING" ? (
+              <PersonAttribution
+                person={moderator}
+                prefix={
+                  review.status === "APPROVED" ? "Approved by" : "Rejected by"
+                }
+                layout="inline"
+                variant="dark"
+                size={28}
+              />
+            ) : null}
           </div>
         </div>
 
@@ -208,7 +222,7 @@ function ReviewCard({
                           starClassName="size-4"
                           filledClassName="fill-yellow-400 text-yellow-400"
                           emptyClassName="fill-gray-300 text-gray-300"
-                          className="flex items-center gap-0.5 sm:space-x-1"
+                          className="shrink-0 sm:gap-1"
                         />
                         <p className="mt-1.5 text-light-100">
                           {truncateComment(review.comment)}
@@ -249,6 +263,11 @@ function ReviewCard({
 interface ReviewsSectionProps {
   bookId: string;
   bookTitle: string;
+  bookCoverUrl?: string | null;
+  bookCoverColor?: string | null;
+  bookAuthor?: string | null;
+  bookGenre?: string | null;
+  bookRating?: number | null;
   reviews: Review[];
   currentUserId?: string | null;
 }
@@ -256,13 +275,26 @@ interface ReviewsSectionProps {
 export default function ReviewsSection({
   bookId,
   bookTitle,
+  bookCoverUrl,
+  bookCoverColor,
+  bookAuthor,
+  bookGenre,
+  bookRating,
   reviews,
   currentUserId,
 }: ReviewsSectionProps) {
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   // Optimistic patches merged over props — avoids stale-text flash without sync effect
   const [patches, setPatches] = useState<
-    Record<string, { rating: number; comment: string; updatedAt: Date }>
+    Record<
+      string,
+      {
+        rating: number;
+        comment: string;
+        updatedAt: Date;
+        status?: ReviewStatusValue;
+      }
+    >
   >({});
   const [removedIds, setRemovedIds] = useState<Record<string, true>>({});
 
@@ -278,6 +310,7 @@ export default function ReviewsSection({
             rating: patch.rating,
             comment: patch.comment,
             updatedAt: patch.updatedAt,
+            status: patch.status ?? r.status,
           };
         }),
     [reviews, patches, removedIds],
@@ -310,6 +343,8 @@ export default function ReviewsSection({
         rating: updated.rating,
         comment: updated.comment,
         updatedAt: new Date(),
+        // Content edit of an APPROVED review re-queues to PENDING server-side.
+        status: "PENDING",
       },
     }));
     setEditingReview(null);
@@ -350,7 +385,13 @@ export default function ReviewsSection({
           mode="edit"
           bookId={bookId}
           bookTitle={bookTitle}
+          bookCoverUrl={bookCoverUrl}
+          bookCoverColor={bookCoverColor}
+          bookAuthor={bookAuthor}
+          bookGenre={bookGenre}
+          bookRating={bookRating}
           reviewId={editingReview.id}
+          userId={editingReview.userId}
           initialRating={editingReview.rating}
           initialComment={editingReview.comment}
           isOpen

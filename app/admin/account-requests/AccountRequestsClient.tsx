@@ -612,7 +612,7 @@ const AccountRequestCard = ({
                   </div>
                 </div>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent>
                 <DialogHeader>
                   <DialogTitle className="text-base sm:text-lg">
                     University Card - {user.fullName}

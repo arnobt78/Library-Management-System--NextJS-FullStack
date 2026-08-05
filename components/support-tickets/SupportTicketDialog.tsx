@@ -207,7 +207,6 @@ function SupportTicketDialogForm({
   return (
     <DialogContent
       className={cn(
-        "sm:max-w-md",
         isDark
           ? "border-gray-600 bg-gray-800/95 [&>button]:text-white [&>button]:hover:text-white"
           : "border-gray-200 bg-white",

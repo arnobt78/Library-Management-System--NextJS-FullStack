@@ -37,8 +37,17 @@ export interface Review {
   /** Opaque, non-PII — used for ownership checks + avatar seed on public payloads. */
   userId: string;
   bookId?: string;
-  /** PENDING = awaiting moderation (only ever included for the review's own author) */
+  /**
+   * PENDING = own row awaiting moderation (author-only visibility).
+   * APPROVED/REJECTED may appear on public payloads for densify + badges.
+   */
   status?: ReviewStatusValue;
+  /** Moderator attribution (showcase) — never includes other reviewers' emails. */
+  reviewedBy?: string | null;
+  reviewedByName?: string | null;
+  reviewedByEmail?: string | null;
+  reviewedByUniversityCard?: string | null;
+  reviewedAt?: Date | string | null;
 }
 
 /**
@@ -210,10 +219,17 @@ export async function getReviewEligibility(
  * });
  * ```
  */
+/**
+ * Create a book review.
+ *
+ * Returns the full AdminBookReviewItem densify row (book meta + borrow dates)
+ * so My Reviews / admin queue paint without a second refetch.
+ * Parent: CR-0003 / REQ-0035 polish
+ */
 export async function createReview(
   bookId: string,
-  reviewData: CreateReviewInput
-): Promise<Review> {
+  reviewData: CreateReviewInput,
+): Promise<AdminBookReviewItem> {
   if (!bookId) {
     throw new ApiError("Book ID is required", 400);
   }
@@ -251,9 +267,8 @@ export async function createReview(
 
   const data = await response.json();
 
-  // Handle API response format
   if (data.success && data.review) {
-    return data.review;
+    return data.review as AdminBookReviewItem;
   }
 
   throw new ApiError("Invalid response format from create review API", 500);

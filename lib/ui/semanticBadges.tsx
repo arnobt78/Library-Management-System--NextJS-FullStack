@@ -131,31 +131,38 @@ export function TicketPriorityBadge({
 export function ReviewStatusBadge({
   status,
   className,
+  variant = "light",
 }: {
   status: ReviewStatusValue;
   className?: string;
+  /** light = admin tables; dark = glass profile / book-detail surfaces */
+  variant?: BadgeSurface;
 }) {
   const config: Record<
     ReviewStatusValue,
-    { icon: typeof Clock; tone: string }
+    { icon: typeof Clock; light: string; dark: string }
   > = {
     PENDING: {
       icon: Clock,
-      tone: "border-amber-200 bg-amber-50 text-amber-700",
+      light: "border-amber-200 bg-amber-50/90 text-amber-700 shadow-sm backdrop-blur-sm",
+      dark: "border-amber-400/30 bg-amber-500/15 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.15)]",
     },
     APPROVED: {
       icon: CheckCircle2,
-      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      light:
+        "border-emerald-200 bg-emerald-50/90 text-emerald-700 shadow-sm backdrop-blur-sm",
+      dark: "border-emerald-400/30 bg-emerald-500/15 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
     },
     REJECTED: {
       icon: XCircle,
-      tone: "border-rose-200 bg-rose-50 text-rose-700",
+      light: "border-rose-200 bg-rose-50/90 text-rose-700 shadow-sm backdrop-blur-sm",
+      dark: "border-rose-400/30 bg-rose-500/15 text-rose-100 shadow-[0_0_12px_rgba(244,63,94,0.15)]",
     },
   };
-  const { icon: Icon, tone } = config[status];
+  const { icon: Icon, light, dark } = config[status];
   const label = REVIEW_STATUS_LABELS[status];
   return (
-    <Badge className={cn(badgeBase, tone, className)}>
+    <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
       <Icon className="size-3" aria-hidden />
       {label}
     </Badge>

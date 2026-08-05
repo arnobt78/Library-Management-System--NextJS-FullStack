@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
 import { bookReviews, books, users, borrowRecords } from "@/database/schema";
+import { alias } from "drizzle-orm/pg-core";
 import { eq, and, desc, or } from "drizzle-orm";
 import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
 import { auth } from "@/auth";
@@ -14,6 +15,7 @@ import {
 } from "@/lib/notifications/inApp";
 import { notifyReviewSubmitted } from "@/lib/email/reviewEmails";
 import { reviewContentSchema } from "@/lib/validations/review";
+import { getAdminReviewDetail } from "@/lib/server/reviewData";
 
 export const runtime = "nodejs";
 
@@ -55,6 +57,7 @@ export async function GET(
     // Public book pages only ever show APPROVED reviews, except the viewer's
     // own review (shown instantly at PENDING so authors see their submission —
     // this is display-only; moderation status is unchanged until an admin acts).
+    // REJECTED own rows stay hidden from the public book list (visible on My Reviews).
     const session = await auth();
     const viewerId = session?.user?.id;
     const visibilityCondition = viewerId
@@ -64,10 +67,9 @@ export async function GET(
         )
       : eq(bookReviews.status, "APPROVED");
 
-    // No `userEmail` here — this is a public endpoint (anonymous visitors can
-    // read it), and returning other users' emails would leak PII to every
-    // book-page visitor. `userId` (opaque, non-PII) is enough for the client
-    // to compute review ownership and a stable avatar seed.
+    // Moderator join for showcase attribution (name/email/card). Author emails
+    // are intentionally omitted — only opaque userId for ownership/avatar seed.
+    const moderator = alias(users, "review_moderator_public");
     const reviews = await db
       .select({
         id: bookReviews.id,
@@ -79,9 +81,15 @@ export async function GET(
         userId: bookReviews.userId,
         userFullName: users.fullName,
         universityCard: users.universityCard,
+        reviewedBy: bookReviews.reviewedBy,
+        reviewedByName: moderator.fullName,
+        reviewedByEmail: moderator.email,
+        reviewedByUniversityCard: moderator.universityCard,
+        reviewedAt: bookReviews.reviewedAt,
       })
       .from(bookReviews)
       .innerJoin(users, eq(bookReviews.userId, users.id))
+      .leftJoin(moderator, eq(bookReviews.reviewedBy, moderator.id))
       .where(and(eq(bookReviews.bookId, bookId), visibilityCondition))
       .orderBy(desc(bookReviews.createdAt));
 
@@ -220,12 +228,44 @@ export async function POST(
 
     revalidateMutationPaths("review.write");
 
+    // Densify payload — full AdminBookReviewItem (book meta + preferred borrow).
+    // Fallback to thin returning if detail reload fails (should not happen).
+    const fullReview =
+      (await getAdminReviewDetail(newReview.id)) ??
+      ({
+        id: newReview.id,
+        rating: newReview.rating,
+        comment: newReview.comment,
+        status: newReview.status,
+        bookId,
+        bookTitle: bookRow?.title ?? "Unknown Book",
+        bookCoverUrl: null,
+        bookCoverColor: null,
+        bookAuthor: "",
+        bookGenre: "",
+        bookRating: 0,
+        userId: actor.id,
+        userName: actor.name,
+        userEmail: actor.email,
+        userUniversityCard: null,
+        reviewedBy: null,
+        reviewedByName: null,
+        reviewedByEmail: null,
+        reviewedByUniversityCard: null,
+        reviewedAt: null,
+        createdAt: newReview.createdAt?.toISOString() ?? null,
+        updatedAt: newReview.createdAt?.toISOString() ?? null,
+        borrowedAt: null,
+        dueDate: null,
+        returnedAt: null,
+      } satisfies AdminBookReviewItem);
+
     void logActivity({
       actorId: actor.id,
       action: "CREATE",
       entityType: "review",
       entityId: newReview.id,
-      details: { bookTitle: bookRow?.title, rating },
+      details: { bookTitle: bookRow?.title ?? fullReview.bookTitle, rating },
     });
 
     // Fan out to admins for moderation — fire-and-forget, never blocks the response.
@@ -238,7 +278,7 @@ export async function POST(
         {
           type: "REVIEW_SUBMITTED",
           title: "New book review awaiting moderation",
-          message: `${actor.name} reviewed "${bookRow?.title ?? "a book"}"`,
+          message: `${actor.name} reviewed "${bookRow?.title ?? fullReview.bookTitle}"`,
           link: `/admin/book-reviews/${newReview.id}`,
         },
       );
@@ -246,13 +286,13 @@ export async function POST(
       await notifyReviewSubmitted({
         recipients: admins.map((admin) => admin.email),
         reviewerName: actor.name,
-        bookTitle: bookRow?.title ?? "a book",
+        bookTitle: bookRow?.title ?? fullReview.bookTitle,
       });
     })();
 
     return NextResponse.json({
       success: true,
-      review: newReview,
+      review: fullReview,
       message: "Review submitted successfully",
     });
   } catch (error) {

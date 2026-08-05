@@ -1,6 +1,10 @@
 /**
  * Book Review moderation read path — shared by SSR pages and
- * `/api/reviews/admin*` refetches. Parent: CR-0003 / REQ-0034
+ * `/api/reviews/admin*` refetches. Parent: CR-0003 / REQ-0035 polish
+ *
+ * Enriched fields (no migration): book author/genre/rating, moderator
+ * email+card, and the review author's preferred borrow dates for the book
+ * (active BORROWED first, else latest RETURNED).
  */
 import "server-only";
 
@@ -13,6 +17,46 @@ import type { AdminReviewFilters } from "@/lib/services/reviews";
 
 const reviewer = alias(users, "review_reviewer");
 
+/**
+ * Correlated subquery: prefer open BORROWED (no return), else latest RETURNED.
+ * Returns borrow_date / due_date / return_date as text (ISO-friendly).
+ */
+const preferredBorrowDateSql = sql<string | null>`(
+  SELECT br.borrow_date::text
+  FROM borrow_records br
+  WHERE br.user_id = ${bookReviews.userId}
+    AND br.book_id = ${bookReviews.bookId}
+    AND br.status IN ('BORROWED', 'RETURNED')
+  ORDER BY
+    CASE WHEN br.status = 'BORROWED' AND br.return_date IS NULL THEN 0 ELSE 1 END,
+    br.borrow_date DESC
+  LIMIT 1
+)`;
+
+const preferredDueDateSql = sql<string | null>`(
+  SELECT br.due_date::text
+  FROM borrow_records br
+  WHERE br.user_id = ${bookReviews.userId}
+    AND br.book_id = ${bookReviews.bookId}
+    AND br.status IN ('BORROWED', 'RETURNED')
+  ORDER BY
+    CASE WHEN br.status = 'BORROWED' AND br.return_date IS NULL THEN 0 ELSE 1 END,
+    br.borrow_date DESC
+  LIMIT 1
+)`;
+
+const preferredReturnDateSql = sql<string | null>`(
+  SELECT br.return_date::text
+  FROM borrow_records br
+  WHERE br.user_id = ${bookReviews.userId}
+    AND br.book_id = ${bookReviews.bookId}
+    AND br.status IN ('BORROWED', 'RETURNED')
+  ORDER BY
+    CASE WHEN br.status = 'BORROWED' AND br.return_date IS NULL THEN 0 ELSE 1 END,
+    br.borrow_date DESC
+  LIMIT 1
+)`;
+
 function baseReviewSelect() {
   return db
     .select({
@@ -24,14 +68,23 @@ function baseReviewSelect() {
       bookTitle: books.title,
       bookCoverUrl: books.coverUrl,
       bookCoverColor: books.coverColor,
+      bookAuthor: books.author,
+      bookGenre: books.genre,
+      bookRating: books.rating,
       userId: bookReviews.userId,
       userName: users.fullName,
       userEmail: users.email,
+      userUniversityCard: users.universityCard,
       reviewedBy: bookReviews.reviewedBy,
       reviewedByName: reviewer.fullName,
+      reviewedByEmail: reviewer.email,
+      reviewedByUniversityCard: reviewer.universityCard,
       reviewedAt: bookReviews.reviewedAt,
       createdAt: bookReviews.createdAt,
       updatedAt: bookReviews.updatedAt,
+      borrowedAt: preferredBorrowDateSql,
+      dueDate: preferredDueDateSql,
+      returnedAt: preferredReturnDateSql,
     })
     .from(bookReviews)
     .innerJoin(books, eq(bookReviews.bookId, books.id))
@@ -39,14 +92,24 @@ function baseReviewSelect() {
     .leftJoin(reviewer, eq(bookReviews.reviewedBy, reviewer.id));
 }
 
-function serializeRow<T extends { createdAt: Date | null; updatedAt: Date | null; reviewedAt: Date | null }>(
-  row: T,
-) {
+function serializeRow(
+  row: Awaited<ReturnType<typeof baseReviewSelect>>[number],
+): AdminBookReviewItem {
   return {
     ...row,
+    bookCoverUrl: row.bookCoverUrl ?? null,
+    bookCoverColor: row.bookCoverColor ?? null,
+    userUniversityCard: row.userUniversityCard ?? null,
+    reviewedBy: row.reviewedBy ?? null,
+    reviewedByName: row.reviewedByName ?? null,
+    reviewedByEmail: row.reviewedByEmail ?? null,
+    reviewedByUniversityCard: row.reviewedByUniversityCard ?? null,
     createdAt: row.createdAt?.toISOString() ?? null,
     updatedAt: row.updatedAt?.toISOString() ?? null,
     reviewedAt: row.reviewedAt?.toISOString() ?? null,
+    borrowedAt: row.borrowedAt ?? null,
+    dueDate: row.dueDate ?? null,
+    returnedAt: row.returnedAt ?? null,
   };
 }
 

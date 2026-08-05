@@ -57,4 +57,26 @@ Repo reconciled: HEAD `3552e44`, implementation tip `85ae1b3`, `main` == `origin
 | BL-0021 | Activity History audit log (FIFO-50) and in-app notification bell across root + admin headers | REQ-0036 | Medium | CR-0003 Wave 1 | Implemented; local Prove PASS |
 | BL-0022 | KPI `StatCard` rollout on every admin page, shared `data-table`/`SearchInput`/`MultiSelectFilter` primitives, Library Overview rename, existing-list retrofit | REQ-0037 | Medium | CR-0003 Waves 4–5 | Implemented; local Prove PASS |
 
-**CR-0003 status (2026-08-05):** all 4 backlog items implemented; regression Prove PASS (typecheck/lint/110 tests/build/audit + manual multi-tab smoke). Nonlocal/production evidence (deployed email receipt, browser a11y/CWV, load) intentionally not attempted this session — same evidence class already blocking the pre-existing C2 EvalGate (`ER-C2-FINAL-CORRECTIVE-5`). Nothing committed; awaiting owner review.
+**CR-0003 status (2026-08-05):** all 4 backlog items implemented and committed at tip `8d1630a` (docs bind `1b1cc2f`). Local Prove PASS (typecheck/lint/110 tests/build/audit + manual multi-tab smoke). Nonlocal/production evidence intentionally not attempted — same evidence class blocking EvalGate (`ER-C2-FINAL-CORRECTIVE-5`).
+
+## Session resume note (2026-08-05)
+
+Repo reconciled: HEAD `1b1cc2f`, implementation tip `8d1630a`, `main` == `origin/main`, clean tree, no PENDING interrupt. Owner invoked Agile V core/pipeline resume without naming a product ask. **Human-Decision:** pick one before coding:
+
+1. **Wave 5 / BL-0017** — collect nonlocal REQ-0032 evidence toward EvalGate / C2 Gate 2  
+2. **REQ-0033 polish (BL-0018)** — concrete UX list under existing polish backlog  
+3. **New Stage 1 CR** — name the feature/extension for REQ drafting  
+4. **Bugfix** — name symptom + expected behavior (Stage 3 if REQs unchanged)  
+5. **Other named scope** — explicit path/files/outcome
+
+## CR-0003 review densify polish (2026-08-05)
+
+Owner approved plan `reviews_densify_polish_5cfafce4`. Delivered: max-w-4xl dialogs, `patchReviewCaches` densify, ReviewBookCard + ReviewDateMeta, My Reviews emerald tab, admin PersonAttribution. Prove PASS; included in densify commit batch.
+
+## Densify invalidation audit Waves A–C (2026-08-06)
+
+Owner approved plan `densify_invalidation_audit_map_b23e23e5` (Waves A+B+C). Delivered: `patchBorrowCaches`; `optimisticAdminRequestDecision`; await `book.write`. Prove PASS.
+
+## Approve review densify upsert (2026-08-06)
+
+Owner approved plan `approve_review_densify_upsert_b5f2bc1d`. `patchReviewCachesOnModerate` upserts public `book-reviews` on APPROVED (admin soft-nav). Review card UI polish + dialog identity. Prove 120 tests.

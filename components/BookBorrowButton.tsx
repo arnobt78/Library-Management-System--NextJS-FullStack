@@ -35,6 +35,11 @@ interface BookBorrowButtonProps {
    * Book title
    */
   bookTitle: string;
+  bookCoverUrl?: string | null;
+  bookCoverColor?: string | null;
+  bookAuthor?: string | null;
+  bookGenre?: string | null;
+  bookRating?: number | null;
   /**
    * Available copies (from book data, updates via React Query)
    */
@@ -65,6 +70,11 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
   bookId,
   userId,
   bookTitle,
+  bookCoverUrl,
+  bookCoverColor,
+  bookAuthor,
+  bookGenre,
+  bookRating,
   availableCopies,
   isActive,
   userStatus,
@@ -146,6 +156,11 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
           bookId={bookId}
           userId={userId}
           bookTitle={bookTitle}
+          bookCoverUrl={bookCoverUrl}
+          bookCoverColor={bookCoverColor}
+          bookAuthor={bookAuthor}
+          bookGenre={bookGenre}
+          bookRating={bookRating}
           initialReviewEligibility={initialReviewEligibility}
         />
       )}

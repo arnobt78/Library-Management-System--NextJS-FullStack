@@ -95,7 +95,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         className="w-56 border-gray-600 bg-gray-800/95 text-light-100 sm:w-64"
       >
         <DropdownMenuLabel className="px-2.5 py-1.5 sm:px-3 sm:py-2">
-          <div className="space-y-0.5 sm:space-y-1">
+          <div className=" sm:space-y-1">
             <p className="text-xs font-semibold text-light-100 sm:text-sm">
               {fullName}
             </p>

@@ -24,6 +24,11 @@ interface ReviewButtonProps {
   bookId: string;
   userId: string;
   bookTitle?: string;
+  bookCoverUrl?: string | null;
+  bookCoverColor?: string | null;
+  bookAuthor?: string | null;
+  bookGenre?: string | null;
+  bookRating?: number | null;
   /**
    * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
    */
@@ -34,6 +39,11 @@ export default function ReviewButton({
   bookId,
   userId: _userId,
   bookTitle,
+  bookCoverUrl,
+  bookCoverColor,
+  bookAuthor,
+  bookGenre,
+  bookRating,
   initialReviewEligibility,
 }: ReviewButtonProps) {
   const [showDialog, setShowDialog] = useState(false);
@@ -115,6 +125,11 @@ export default function ReviewButton({
         mode="create"
         bookId={bookId}
         bookTitle={bookTitle}
+        bookCoverUrl={bookCoverUrl}
+        bookCoverColor={bookCoverColor}
+        bookAuthor={bookAuthor}
+        bookGenre={bookGenre}
+        bookRating={bookRating}
         isOpen={showDialog}
         onClose={() => setShowDialog(false)}
         onReviewSubmitted={handleReviewSubmitted}

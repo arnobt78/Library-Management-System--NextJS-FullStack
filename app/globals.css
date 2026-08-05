@@ -588,7 +588,7 @@ html:has(body[data-scroll-locked]) {
 
   /* Transparent track — no outer white/muted pill */
   .profile-tabs-list {
-    @apply !h-auto !w-full !grid !grid-cols-1 !gap-2 !border-0 !bg-transparent !p-0 !shadow-none sm:!grid-cols-3;
+    @apply !h-auto !w-full !grid !grid-cols-1 !gap-2 !border-0 !bg-transparent !p-0 !shadow-none sm:!grid-cols-2 lg:!grid-cols-4;
   }
 
   .profile-tab-trigger {
@@ -605,6 +605,11 @@ html:has(body[data-scroll-locked]) {
 
   .profile-tab-history[data-state="active"] {
     @apply !border-violet-400/50 !bg-gradient-to-r !from-violet-500/40 !via-violet-500/20 !to-violet-500/10 !text-white !shadow-[0_10px_30px_rgba(139,92,246,0.3)];
+  }
+
+  /* Distinct emerald/teal glow — not Borrow History violet (REQ-0033 polish). */
+  .profile-tab-reviews[data-state="active"] {
+    @apply !border-emerald-400/50 !bg-gradient-to-r !from-emerald-500/40 !via-teal-500/20 !to-emerald-500/10 !text-white !shadow-[0_10px_30px_rgba(16,185,129,0.35)];
   }
 
   .profile-kpi-card {

@@ -24,10 +24,12 @@ export default function StarRow({
   starClassName = "size-3.5",
   filledClassName = "fill-amber-400 text-amber-400",
   emptyClassName = "fill-gray-200 text-gray-200",
-  className = "flex items-center gap-0.5",
+  className,
 }: StarRowProps) {
+  // Always keep horizontal flex — callers used to pass className="shrink-0"
+  // alone, which replaced the default and stacked Lucide stars vertically.
   return (
-    <div className={className}>
+    <div className={cn("flex items-center gap-0.5", className)}>
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}

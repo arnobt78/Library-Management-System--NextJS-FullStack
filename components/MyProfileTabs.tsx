@@ -619,7 +619,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             </TabsTrigger>
             <TabsTrigger
               value="my-reviews"
-              className="profile-tab-trigger profile-tab-history"
+              className="profile-tab-trigger profile-tab-reviews"
             >
               My Reviews
             </TabsTrigger>
@@ -1397,7 +1397,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           </TabsTrigger>
           <TabsTrigger
             value="my-reviews"
-            className="profile-tab-trigger profile-tab-history"
+            className="profile-tab-trigger profile-tab-reviews"
           >
             <MessageSquareText className="size-4 shrink-0" />
             <span>My Reviews ({liveTotalReviews})</span>

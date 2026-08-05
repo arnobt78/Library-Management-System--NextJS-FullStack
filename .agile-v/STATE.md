@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local); independent nonlocal/production Verify still outstanding for CR-0003 as for prior C2 waves
-- SCOPE-V phase: Verify (CR-0003 build complete; regression evidence collected)
-- Status: ACTIVE - CR-0003 (REQ-0034–0037) implemented + UX polish Prove PASS; owner authorized commit/push; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove complete (local) for densify + review UI; independent nonlocal/production Verify still outstanding
+- SCOPE-V phase: Verify (densify + review UI Prove PASS)
+- Status: ACTIVE - densify/review UI batch ready to commit; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `8d1630a` (CR-0003 tickets/reviews/activity/bell + detail polish)
-- Latest HEAD: `8d1630a`
+- Latest HEAD: `1b1cc2f` (docs bind tip to `8d1630a`; `main` == `origin/main`)
 - Started: 2026-08-01
-- Last updated: 2026-08-05 (CR-0003 polish Prove + docs write-through + commit)
+- Last updated: 2026-08-06 (docs sync; densify+review Prove 120; commit pending)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,7 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (CR-0003 synthesis + Prove)
+- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (docs sync + commit)
 
 ## Resume Protocol
 
@@ -41,18 +41,21 @@
 | INT-0006 | C2 Gate 1 | RESOLVED | `C2-G1-20260801-5d31a8c2` | GATE-0006 |
 | — | C2 Gate 2 | NOT OPENED | — | EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`) |
 
-## Reconciliation snapshot (2026-08-04)
+## Reconciliation snapshot (2026-08-05, resume)
 
 Verified facts:
-- Working tree clean for tracked code; branch `main` equals `origin/main` at `3552e44`.
-- Implementation tip `85ae1b3` present: `lib/admin/adminPrivilegeLedger.ts`, migration `0013_borrow_status_cancelled.sql`, signup ledger `0011`/`0012`.
-- Migrations on disk: `0010`–`0013` (+ downs). Shared-DB apply status for `0013` not re-probed this session.
-- No PENDING rows in `CHECKPOINTS.md`; Gate 1 tokens match `APPROVALS.md`.
-- EvalGate still FAIL; Wave 5 (BL-0017 / REQ-0032 remainder + nonlocal evidence) remains the Gate 2 path default.
+- Working tree clean; branch `main` equals `origin/main` at `1b1cc2f`.
+- Implementation tip `8d1630a` present and pushed; docs bind commit `1b1cc2f` records tip.
+- Migrations on disk: `0010`–`0014` (+ downs). `0014` was schema-verified on the configured shared DB in the CR-0003 session; not re-probed this resume.
+- Protocol path: `docs/AGILE_V_PROTOCOL.md` (not repo root). `AGENTS.md` + protocol are tracked.
+- No PENDING rows in `CHECKPOINTS.md`; INT-0005/INT-0006 tokens match `APPROVALS.md` / STATE checkpoint table.
+- EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); Wave 5 (BL-0017 / REQ-0032 remainder + nonlocal evidence) remains the Gate 2 path default.
+- CR-0003 (REQ-0034–0037 / BL-0019–0022) is committed + Prove-local PASS; not a Gate 2 unblocker.
 
-Drift / workspace notes:
-- Untracked (not committed): `AGENTS.md`, `docs/AGILE_V_PROTOCOL.md` — protocol bootstrap for multi-agent resume; not application code.
-- Memory drift: CLAUDE.md final Prove still cites **84** default tests; post-polish CHANGE_LOG entries cite up to **108** — re-count on next Prove, do not claim a number without running tests.
+Drift / workspace notes corrected this session:
+- BACKLOG CR-0003 footer previously said “Nothing committed; awaiting owner review” — stale vs tip `8d1630a` (fixed in BACKLOG).
+- CLAUDE.md tip/HEAD still may lag docs bind `1b1cc2f`; treat git HEAD as authority.
+- Default-test count: last recorded Prove is **110 passed / 11 skipped** — re-run before claiming a new number.
 - This session’s owner message invoked Agile V resume/plan only; **no product feature, bug, or Wave 5 evidence package was named**.
 
 ## CR-0003 implementation summary (2026-08-05)
@@ -98,9 +101,25 @@ Owner requested a deep audit of the CR-0003 diff before commit. A dedicated suba
 - Densify: `patchTicketCaches*` after `ticket.write`; `useBackWithRefresh` navigates without second invalidate wipe.
 - Instrumentation removed after owner confirm. Prove: typecheck/lint/110 tests/`npm run build` PASS.
 
+### Review densify + UI polish (2026-08-05)
+
+- Dialog + AlertDialog primitives: `max-w-4xl` + mobile gutters; stripped `sm:max-w-md` / `max-w-2xl` overrides.
+- `lib/utils/patchReviewCaches.ts` — snapshot → await `review.write` invalidate → re-patch book/user/admin/pendingCount (ticket densify order).
+- DTO enrich (no migration): bookAuthor/genre/rating, moderator email+card, preferred borrow dates; public GET moderator attribution.
+- UI: `ReviewDateMeta`, `ReviewBookCard` (circular cover), book-detail status badges + PersonAttribution, My Reviews 4-col emerald tab, admin list/detail circle covers + attribution.
+- Prove: typecheck/lint/110 tests/build PASS.
+
+### Review create densify harden (2026-08-06)
+
+- POST `/api/reviews/[bookId]` returns `getAdminReviewDetail` full `AdminBookReviewItem` (book meta + borrow dates).
+- `useCreateReview` densifies from server row + eligibility `setQueryData` (ReviewButton no flash).
+- Preserved: delete single pending bump; update re-queue clears moderator + bumps pending.
+- Unit tests: `lib/utils/patchReviewCaches.test.ts` (4 cases).
+- Prove: typecheck/lint/**114** tests/build PASS.
+
 ### Next Action
 
-CR-0003 + polish committed (owner-authorized). Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5` nonlocal evidence still open). Next: owner-selected Wave 5 evidence or new scoped CR.
+Review densify polish + create harden uncommitted. Owner: review/commit. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
 
 ## Demo / UX notes (through 2026-08-04)
 

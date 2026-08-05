@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * Admin Book Review detail — read-only book/reviewer panel + approve/reject
- * moderation controls + delete. Parent: CR-0003 / REQ-0034
+ * Admin Book Review detail — PersonAttribution for author + moderator,
+ * ReviewDateMeta, approve/reject densify via useModerateReview.
+ * Parent: CR-0003 / REQ-0035 polish
  */
 
 import { useRouter } from "next/navigation";
@@ -12,11 +13,10 @@ import {
   BookOpen,
   CheckCircle2,
   Loader2,
-  Mail,
   Trash2,
-  User,
   XCircle,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,52 @@ import { useDeleteReview, useModerateReview } from "@/hooks/useMutations";
 import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import { LIGHT_ALERT } from "@/lib/ui/glassActionChrome";
 import StarRow from "@/components/ui/StarRow";
+import PersonAttribution from "@/components/PersonAttribution";
+import ReviewDateMeta from "@/components/reviews/ReviewDateMeta";
+import { SafeImage } from "@/components/ui/safe-image";
+import { Image as ImageKitImage } from "@imagekit/next";
+import config from "@/lib/config";
+
+function AdminCircleCover({
+  coverUrl,
+  coverColor,
+  title,
+}: {
+  coverUrl: string | null;
+  coverColor: string | null;
+  title: string;
+}) {
+  const isRemote = Boolean(coverUrl?.startsWith("http"));
+  return (
+    <div
+      className="relative size-14 shrink-0 overflow-hidden rounded-full border-2 border-gray-200 sm:size-16"
+      style={{ backgroundColor: coverColor || "#f3f4f6" }}
+    >
+      {coverUrl && isRemote ? (
+        <SafeImage
+          src={coverUrl}
+          alt=""
+          width={64}
+          height={64}
+          className="size-full object-cover"
+        />
+      ) : coverUrl ? (
+        <ImageKitImage
+          src={coverUrl}
+          urlEndpoint={config.env.imagekit.urlEndpoint}
+          alt=""
+          width={64}
+          height={64}
+          className="size-full object-cover"
+        />
+      ) : (
+        <span className="flex size-full items-center justify-center text-sm font-medium text-gray-500">
+          {title.slice(0, 1).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function AdminBookReviewDetailContent({
   initialReview,
@@ -42,6 +88,7 @@ export default function AdminBookReviewDetailContent({
   initialReview: AdminBookReviewItem;
 }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const handleBack = useBackWithRefresh("review.write", "/admin/book-reviews");
   const { data: review = initialReview } = useAdminReviewDetail(
     initialReview.id,
@@ -50,20 +97,54 @@ export default function AdminBookReviewDetailContent({
   const moderateMutation = useModerateReview();
   const deleteMutation = useDeleteReview();
 
+  const decisionActor = session?.user
+    ? {
+        id: session.user.id,
+        fullName: session.user.name || "an admin",
+        email: session.user.email || "",
+        universityCard:
+          (session.user as { universityCard?: string | null }).universityCard ??
+          null,
+      }
+    : undefined;
+
   const handleModerate = (status: "APPROVED" | "REJECTED") => {
     moderateMutation.mutate({
       reviewId: review.id,
       status,
       bookTitle: review.bookTitle,
+      decisionActor,
     });
   };
 
   const handleDelete = () => {
     deleteMutation.mutate(
-      { reviewId: review.id, bookTitle: review.bookTitle },
+      {
+        reviewId: review.id,
+        bookId: review.bookId,
+        bookTitle: review.bookTitle,
+        userId: review.userId,
+      },
       { onSuccess: () => router.push("/admin/book-reviews") },
     );
   };
+
+  const author = {
+    id: review.userId,
+    fullName: review.userName,
+    email: review.userEmail,
+    universityCard: review.userUniversityCard,
+  };
+
+  const moderator =
+    review.reviewedByName || review.reviewedByEmail
+      ? {
+          id: review.reviewedBy,
+          fullName: review.reviewedByName || "an admin",
+          email: review.reviewedByEmail || "",
+          universityCard: review.reviewedByUniversityCard,
+        }
+      : null;
 
   return (
     <section className="space-y-4 sm:space-y-6">
@@ -78,58 +159,70 @@ export default function AdminBookReviewDetailContent({
 
       <div className="admin-panel">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={`/books/${review.bookId}`}
-                className="text-lg font-semibold text-dark-400 hover:text-primary-admin hover:underline sm:text-xl"
-              >
-                {review.bookTitle}
-              </Link>
-              <ReviewStatusBadge status={review.status} />
-            </div>
-            <StarRow
-              rating={review.rating}
-              starClassName="size-4"
-              className="flex items-center gap-1"
+          <div className="flex min-w-0 flex-1 gap-3">
+            <AdminCircleCover
+              coverUrl={review.bookCoverUrl}
+              coverColor={review.bookCoverColor}
+              title={review.bookTitle}
             />
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-              <span className="inline-flex items-center gap-1.5">
-                <User className="size-3.5" aria-hidden />
-                {review.userName}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Mail className="size-3.5" aria-hidden />
-                {review.userEmail}
-              </span>
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/books/${review.bookId}`}
+                  className="text-lg font-semibold text-dark-400 hover:text-primary-admin hover:underline sm:text-xl"
+                >
+                  {review.bookTitle}
+                </Link>
+                <ReviewStatusBadge status={review.status} />
+              </div>
+              <p className="text-sm text-gray-500">
+                by {review.bookAuthor || "Unknown"}
+                {review.bookGenre ? ` · ${review.bookGenre}` : ""}
+              </p>
+              <StarRow
+                rating={review.rating}
+                starClassName="size-4"
+                className="flex items-center gap-1"
+              />
+              <PersonAttribution
+                person={author}
+                prefix="Reviewer"
+                layout="stack"
+                variant="light"
+                href={`/admin/users/${review.userId}`}
+                size={36}
+              />
               <Link
                 href={`/books/${review.bookId}`}
-                className="inline-flex items-center gap-1.5 hover:text-primary-admin hover:underline"
+                className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-admin hover:underline"
               >
                 <BookOpen className="size-3.5" aria-hidden />
                 View book page
               </Link>
-            </div>
-            <p className="text-xs text-gray-400">
-              Submitted{" "}
-              {review.createdAt
-                ? new Date(review.createdAt).toLocaleString("en-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })
-                : "—"}
-              {review.reviewedAt ? (
-                <>
-                  {" "}
-                  · Reviewed{" "}
-                  {new Date(review.reviewedAt).toLocaleString("en-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                  {review.reviewedByName ? ` by ${review.reviewedByName}` : ""}
-                </>
+              <ReviewDateMeta
+                createdAt={review.createdAt}
+                updatedAt={review.updatedAt}
+                reviewedAt={review.reviewedAt}
+                status={review.status}
+                variant="light"
+              />
+              {moderator && review.status !== "PENDING" ? (
+                <PersonAttribution
+                  person={moderator}
+                  prefix={
+                    review.status === "APPROVED" ? "Approved by" : "Rejected by"
+                  }
+                  layout="inline"
+                  variant="light"
+                  href={
+                    review.reviewedBy
+                      ? `/admin/users/${review.reviewedBy}`
+                      : null
+                  }
+                  size={32}
+                />
               ) : null}
-            </p>
+            </div>
           </div>
 
           <AlertDialog>
@@ -194,14 +287,18 @@ export default function AdminBookReviewDetailContent({
         </div>
 
         <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50/60 p-3 sm:mt-6 sm:p-4">
-          <p className="whitespace-pre-wrap text-sm text-gray-700">{review.comment}</p>
+          <p className="whitespace-pre-wrap text-sm text-gray-700">
+            {review.comment}
+          </p>
         </div>
 
         <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row">
           <Button
             type="button"
             className="bg-emerald-600 hover:bg-emerald-700"
-            disabled={moderateMutation.isPending || review.status === "APPROVED"}
+            disabled={
+              moderateMutation.isPending || review.status === "APPROVED"
+            }
             onClick={() => handleModerate("APPROVED")}
           >
             {moderateMutation.isPending ? (
@@ -215,7 +312,9 @@ export default function AdminBookReviewDetailContent({
             type="button"
             variant="outline"
             className="border-amber-300 text-amber-700 hover:bg-amber-50"
-            disabled={moderateMutation.isPending || review.status === "REJECTED"}
+            disabled={
+              moderateMutation.isPending || review.status === "REJECTED"
+            }
             onClick={() => handleModerate("REJECTED")}
           >
             {moderateMutation.isPending ? (

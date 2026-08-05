@@ -170,12 +170,28 @@ interface AdminBookReviewItem {
   bookTitle: string;
   bookCoverUrl: string | null;
   bookCoverColor: string | null;
+  /** Catalog author — My Reviews / admin card densify (REQ-0035 polish). */
+  bookAuthor: string;
+  bookGenre: string;
+  /** Catalog star rating for the book itself (not the review rating). */
+  bookRating: number;
   userId: string;
   userName: string;
   userEmail: string;
+  /** Author university card path for PersonAttribution / avatars. */
+  userUniversityCard: string | null;
   reviewedBy: string | null;
   reviewedByName: string | null;
+  reviewedByEmail: string | null;
+  reviewedByUniversityCard: string | null;
   reviewedAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  /**
+   * Review author's preferred borrow for this book (active BORROWED first,
+   * else latest RETURNED). Null when the author never borrowed the book.
+   */
+  borrowedAt: string | null;
+  dueDate: string | null;
+  returnedAt: string | null;
 }

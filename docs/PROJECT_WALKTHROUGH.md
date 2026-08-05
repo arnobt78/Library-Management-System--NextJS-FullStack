@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-05 | Status: C2 Stage 4; CR-0003 local Prove passed; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-06 | Status: C2 Stage 4; densify + review UI local Prove passed; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -20,6 +20,14 @@ Browser
 - Client components own interaction, optimistic state, errors, and background refetch.
 - PostgreSQL is authoritative. Redis does not cache business records.
 - `proxy.ts` is the Next.js 16 request-proxy entry and exports Auth.js `auth` as `proxy`.
+
+## Mutation densify (2026-08-06)
+
+- Gold: `snapshot baselines → await invalidateMutation(domain) → patch*Caches*(…, baselines)`. Inactive keys are `removeQueries`; without re-patch, soft-nav/Back can flash SSR/`initialData`.
+- Reviews (`review.write`): `patchReviewCaches*` create/update/delete/moderate. **Approve upserts** into public `book-reviews` (admins never cached another user’s PENDING). Reject removes public row.
+- Borrow (`borrow.lifecycle`): `patchBorrowCaches*` return/borrow/approve/reject + inventory restore.
+- Admin-request approve/reject: signup-style optimistic pending→Recent. `book.write`: await invalidate.
+- Tickets: `patchTicketCaches*` (gold). Redis = rate-limit only (no business densify).
 
 ## Main directories
 

@@ -52,12 +52,68 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSession } from "next-auth/react";
 import { LIGHT_ALERT, LIGHT_MENU } from "@/lib/ui/glassActionChrome";
+import { SafeImage } from "@/components/ui/safe-image";
+import { Image as ImageKitImage } from "@imagekit/next";
+import config from "@/lib/config";
+
+function ListCircleCover({
+  coverUrl,
+  coverColor,
+  title,
+}: {
+  coverUrl: string | null;
+  coverColor: string | null;
+  title: string;
+}) {
+  const isRemote = Boolean(coverUrl?.startsWith("http"));
+  return (
+    <div
+      className="relative size-9 shrink-0 overflow-hidden rounded-full border border-gray-200"
+      style={{ backgroundColor: coverColor || "#f3f4f6" }}
+    >
+      {coverUrl && isRemote ? (
+        <SafeImage
+          src={coverUrl}
+          alt=""
+          width={36}
+          height={36}
+          className="size-full object-cover"
+        />
+      ) : coverUrl ? (
+        <ImageKitImage
+          src={coverUrl}
+          urlEndpoint={config.env.imagekit.urlEndpoint}
+          alt=""
+          width={36}
+          height={36}
+          className="size-full object-cover"
+        />
+      ) : (
+        <span className="flex size-full items-center justify-center text-[10px] font-medium text-gray-500">
+          {title.slice(0, 1).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function ReviewRowActions({ review }: { review: AdminBookReviewItem }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const moderateMutation = useModerateReview();
   const deleteMutation = useDeleteReview();
+  const { data: session } = useSession();
+  const decisionActor = session?.user
+    ? {
+        id: session.user.id,
+        fullName: session.user.name || "an admin",
+        email: session.user.email || "",
+        universityCard:
+          (session.user as { universityCard?: string | null }).universityCard ??
+          null,
+      }
+    : undefined;
 
   return (
     <>
@@ -85,6 +141,7 @@ function ReviewRowActions({ review }: { review: AdminBookReviewItem }) {
                   reviewId: review.id,
                   status: "APPROVED",
                   bookTitle: review.bookTitle,
+                  decisionActor,
                 })
               }
               disabled={moderateMutation.isPending}
@@ -101,6 +158,7 @@ function ReviewRowActions({ review }: { review: AdminBookReviewItem }) {
                   reviewId: review.id,
                   status: "REJECTED",
                   bookTitle: review.bookTitle,
+                  decisionActor,
                 })
               }
               disabled={moderateMutation.isPending}
@@ -161,7 +219,12 @@ function ReviewRowActions({ review }: { review: AdminBookReviewItem }) {
               onClick={(e) => {
                 e.preventDefault();
                 deleteMutation.mutate(
-                  { reviewId: review.id, bookTitle: review.bookTitle },
+                  {
+                    reviewId: review.id,
+                    bookId: review.bookId,
+                    bookTitle: review.bookTitle,
+                    userId: review.userId,
+                  },
                   { onSuccess: () => setDeleteOpen(false) },
                 );
               }}
@@ -252,10 +315,15 @@ export default function BookReviewList({
         cell: ({ row }) => (
           <Link
             href={`/admin/book-reviews/${row.original.id}`}
-            className="line-clamp-1 max-w-56 text-sm font-medium text-primary-admin hover:underline"
+            className="flex max-w-64 items-center gap-2 text-sm font-medium text-primary-admin hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
-            {row.original.bookTitle}
+            <ListCircleCover
+              coverUrl={row.original.bookCoverUrl}
+              coverColor={row.original.bookCoverColor}
+              title={row.original.bookTitle}
+            />
+            <span className="line-clamp-1">{row.original.bookTitle}</span>
           </Link>
         ),
       },

@@ -137,6 +137,11 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
           <ReviewsSection
             bookId={bookId}
             bookTitle={bookData.title}
+            bookCoverUrl={bookData.coverUrl}
+            bookCoverColor={bookData.coverColor}
+            bookAuthor={bookData.author}
+            bookGenre={bookData.genre}
+            bookRating={bookData.rating}
             reviews={reviews ?? initialReviews ?? []}
             currentUserId={userId}
           />

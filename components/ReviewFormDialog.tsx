@@ -3,9 +3,10 @@
 /**
  * Shared create/edit review dialog.
  * Create → useCreateReview; edit → useUpdateReview.
- * Closes immediately on success (no artificial delay) so the submit spinner
- * never idles while the dialog is still open.
- * Parent should remount via `key` when switching edit targets so initials seed cleanly.
+ * Header shows ReviewBookIdentity (cover + title/author + genre + catalog rating)
+ * when book meta is provided; plain description is accessibility fallback only.
+ * Closes immediately on success (no artificial delay).
+ * Parent: CR-0003 / REQ-0035 polish
  */
 
 import React, { useState } from "react";
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Pencil, Send, Star, X } from "lucide-react";
 import { useCreateReview, useUpdateReview } from "@/hooks/useMutations";
+import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 
 type ReviewFormMode = "create" | "edit";
 
@@ -27,8 +29,15 @@ interface ReviewFormDialogProps {
   mode?: ReviewFormMode;
   bookId: string;
   bookTitle?: string;
+  bookCoverUrl?: string | null;
+  bookCoverColor?: string | null;
+  bookAuthor?: string | null;
+  bookGenre?: string | null;
+  bookRating?: number | null;
   /** Required when mode="edit" */
   reviewId?: string;
+  /** Author userId — densify My Reviews cache on edit. */
+  userId?: string;
   initialRating?: number;
   initialComment?: string;
   isOpen: boolean;
@@ -47,7 +56,13 @@ export default function ReviewFormDialog({
   mode = "create",
   bookId,
   bookTitle,
+  bookCoverUrl,
+  bookCoverColor,
+  bookAuthor,
+  bookGenre,
+  bookRating,
   reviewId,
+  userId,
   initialRating = 5,
   initialComment = "",
   isOpen,
@@ -89,6 +104,7 @@ export default function ReviewFormDialog({
           reviewId,
           bookId,
           bookTitle,
+          userId,
           rating,
           comment: nextComment,
         },
@@ -123,13 +139,16 @@ export default function ReviewFormDialog({
   };
 
   const title = mode === "edit" ? "Edit Your Review" : "Write a Review";
-  const description = bookTitle
+  const fallbackDescription = bookTitle
     ? mode === "edit"
       ? `Update your review for “${bookTitle}”`
       : `Share your thoughts and rate “${bookTitle}”`
     : mode === "edit"
       ? "Update your thoughts and rating for this book"
       : "Share your thoughts and rate this book";
+
+  const hasIdentity = Boolean(bookTitle);
+
   const submitLabel =
     mode === "edit"
       ? isPending
@@ -141,15 +160,36 @@ export default function ReviewFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="border-gray-600 bg-gray-800/95 sm:max-w-md [&>button]:text-white [&>button]:hover:text-white">
+      <DialogContent className="border-gray-600 bg-gray-800/95 [&>button]:text-white [&>button]:hover:text-white">
         <DialogHeader>
           <DialogTitle className="text-base text-light-100 sm:text-lg">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-xs text-light-200/70 sm:text-sm">
-            {description}
+          {/* Visually hidden when identity strip is shown — keeps a11y description */}
+          <DialogDescription
+            className={
+              hasIdentity
+                ? "sr-only"
+                : "text-xs text-light-200/70 sm:text-sm"
+            }
+          >
+            {fallbackDescription}
           </DialogDescription>
         </DialogHeader>
+
+        {hasIdentity ? (
+          <ReviewBookIdentity
+            title={bookTitle!}
+            author={bookAuthor}
+            coverUrl={bookCoverUrl}
+            coverColor={bookCoverColor}
+            genre={bookGenre}
+            bookRating={bookRating}
+            showMeta
+            catalogRatingMode="number"
+            titleClassName="text-sm sm:text-base"
+          />
+        ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="space-y-1.5 sm:space-y-2">

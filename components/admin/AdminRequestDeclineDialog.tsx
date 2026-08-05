@@ -57,7 +57,7 @@ export default function AdminRequestDeclineDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="border-gray-600 bg-gray-800/95 sm:max-w-md [&>button]:text-white [&>button]:hover:text-white">
+      <DialogContent className="border-gray-600 bg-gray-800/95 [&>button]:text-white [&>button]:hover:text-white">
         <DialogHeader>
           <DialogTitle className="text-base text-light-100 sm:text-lg">
             Decline admin request

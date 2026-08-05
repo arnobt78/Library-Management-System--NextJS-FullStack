@@ -47,6 +47,7 @@ import {
   moderateReview,
   type CreateReviewInput,
   type UpdateReviewInput,
+  type ReviewEligibility,
 } from "@/lib/services/reviews";
 import {
   updateFineConfig,
@@ -85,9 +86,29 @@ import {
   snapshotTicketListBaselines,
 } from "@/lib/utils/patchTicketCaches";
 import {
+  findCachedAdminReview,
+  patchReviewCachesOnCreate,
+  patchReviewCachesOnDelete,
+  patchReviewCachesOnModerate,
+  patchReviewCachesOnUpdate,
+  snapshotReviewListBaselines,
+} from "@/lib/utils/patchReviewCaches";
+import {
   applyOptimisticSignupDecision,
   rollbackOptimisticSignupDecision,
 } from "@/lib/query/optimisticSignupDecision";
+import {
+  applyOptimisticAdminRequestDecision,
+  rollbackOptimisticAdminRequestDecision,
+} from "@/lib/query/optimisticAdminRequestDecision";
+import {
+  findCachedBorrowMeta,
+  patchBookInventory,
+  patchBorrowCachesOnCreate,
+  patchBorrowCachesOnStatusChange,
+  snapshotBorrowCacheBaselines,
+  snapshotBorrowListBaselines,
+} from "@/lib/utils/patchBorrowCaches";
 // BookParams is a global type from types.d.ts, no import needed
 
 /**
@@ -120,9 +141,9 @@ export const useCreateBook = () => {
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (books, borrows, reviews, analytics, admin)
-      invalidateMutation(queryClient, "book.write");
+    onSuccess: async (data, variables) => {
+      // Await so admin catalog / home do not soft-nav on stale SSR shells
+      await invalidateMutation(queryClient, "book.write");
 
       // Show success toast
       showToast.book.createSuccess(variables.title);
@@ -173,9 +194,8 @@ export const useUpdateBook = () => {
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (books, borrows, reviews, analytics, admin)
-      invalidateMutation(queryClient, "book.write");
+    onSuccess: async (data, variables) => {
+      await invalidateMutation(queryClient, "book.write");
 
       // Show success toast with updated title (or fallback to bookId)
       const bookTitle = variables.title || data?.title || "Book";
@@ -238,9 +258,8 @@ export const useDeleteBook = () => {
       }
       return { bookIds, message: result.message };
     },
-    onSuccess: (data, variables) => {
-      // Invalidate all related queries (books, borrows, reviews, analytics, admin)
-      invalidateMutation(queryClient, "book.write");
+    onSuccess: async (data, variables) => {
+      await invalidateMutation(queryClient, "book.write");
 
       // Show success toast
       const count = data.bookIds.length;
@@ -810,15 +829,30 @@ export const useBorrowBook = () => {
       // Return context for rollback
       return { previousQueries, optimisticRecordId: optimisticRecord.id };
     },
-    onSuccess: async (_data, _variables, _context) => {
+    onSuccess: async (data, variables, context) => {
+      const tempId = context?.optimisticRecordId as string | undefined;
+      const baselines = snapshotBorrowListBaselines(queryClient);
       await invalidateMutation(queryClient, "borrow.lifecycle");
+
+      const serverRecord = Array.isArray(data) ? data[0] : data;
+      if (tempId && serverRecord && typeof serverRecord === "object" && "id" in serverRecord) {
+        patchBorrowCachesOnCreate(
+          queryClient,
+          {
+            userId: variables.userId,
+            tempId,
+            serverRecord: serverRecord as { id: string },
+          },
+          baselines,
+        );
+      }
 
       // Prefer mutate bookTitle, then book detail cache, else "this book"
       const cached = queryClient.getQueryData<{ title?: string }>(
-        queryKeys.books.detail(_variables.bookId),
+        queryKeys.books.detail(variables.bookId),
       );
       showToast.book.borrowSuccess(
-        resolveActionBookTitle(_variables.bookTitle, cached?.title),
+        resolveActionBookTitle(variables.bookTitle, cached?.title),
       );
     },
     // CRITICAL: Rollback optimistic update on error
@@ -841,9 +875,6 @@ export const useBorrowBook = () => {
         error.message || `Unable to request "${bookTitle}". Please try again.`,
       );
     },
-    // CRITICAL: No onSettled needed - we've already updated user-borrows cache optimistically
-    // Invalidating it would cause unnecessary refetches and flicker
-    // The optimistic update is sufficient, and the cache will sync naturally when queries refetch later
   });
 };
 
@@ -895,6 +926,7 @@ export const useApproveBorrow = () => {
       const previousUserBorrows = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.userRoot,
       });
+      const meta = findCachedBorrowMeta(queryClient, recordId);
       const dueDate = (() => {
         const d = new Date();
         d.setDate(d.getDate() + 7);
@@ -916,7 +948,18 @@ export const useApproveBorrow = () => {
         { queryKey: queryKeys.borrows.userRoot },
         patchStatus,
       );
-      return { previousRequests, previousUserBorrows };
+      if (meta?.bookId) {
+        patchBookInventory(queryClient, meta.bookId, {
+          availableDelta: -1,
+          activeDelta: 1,
+        });
+      }
+      return {
+        previousRequests,
+        previousUserBorrows,
+        meta,
+        dueDate,
+      };
     },
     onError: (error: Error, variables, context) => {
       if (context?.previousRequests) {
@@ -929,6 +972,12 @@ export const useApproveBorrow = () => {
           queryClient.setQueryData(key, data);
         }
       }
+      if (context?.meta?.bookId) {
+        patchBookInventory(queryClient, context.meta.bookId, {
+          availableDelta: 1,
+          activeDelta: -1,
+        });
+      }
       const bookTitle = variables.bookTitle || "book";
       showToast.error(
         "Approval Failed",
@@ -936,9 +985,33 @@ export const useApproveBorrow = () => {
           `Unable to approve borrow request for "${bookTitle}". ${error.message.includes("no longer available") ? "The book is no longer available." : "Please try again."}`
       );
     },
-    onSuccess: async (data, variables) => {
-      // Await so row spinners stay until lists refetch
+    onSuccess: async (_data, variables, context) => {
+      const meta =
+        context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      const dueDate =
+        context?.dueDate ??
+        (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + 7);
+          return d.toISOString().slice(0, 10);
+        })();
+      const baselines = snapshotBorrowCacheBaselines(
+        queryClient,
+        meta?.bookId ? [meta.bookId] : [],
+      );
       await invalidateMutation(queryClient, "borrow.lifecycle");
+
+      patchBorrowCachesOnStatusChange(
+        queryClient,
+        {
+          recordId: variables.recordId,
+          patch: { status: "BORROWED", dueDate },
+          userId: meta?.userId,
+          bookId: meta?.bookId,
+          restoreInventory: Boolean(meta?.bookId),
+        },
+        baselines,
+      );
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -999,6 +1072,7 @@ export const useRejectBorrow = () => {
       const previousUserBorrows = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.userRoot,
       });
+      const meta = findCachedBorrowMeta(queryClient, recordId);
       const patchStatus = (old: unknown) => {
         if (!Array.isArray(old)) return old;
         return old.map((row: { id?: string; status?: string }) =>
@@ -1013,7 +1087,7 @@ export const useRejectBorrow = () => {
         { queryKey: queryKeys.borrows.userRoot },
         patchStatus,
       );
-      return { previousRequests, previousUserBorrows };
+      return { previousRequests, previousUserBorrows, meta };
     },
     onError: (error: Error, variables, context) => {
       if (context?.previousRequests) {
@@ -1033,8 +1107,25 @@ export const useRejectBorrow = () => {
           `Unable to reject borrow request for "${bookTitle}". Please try again.`
       );
     },
-    onSuccess: async (data, variables) => {
+    onSuccess: async (_data, variables, context) => {
+      const meta =
+        context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      const baselines = snapshotBorrowCacheBaselines(
+        queryClient,
+        meta?.bookId ? [meta.bookId] : [],
+      );
       await invalidateMutation(queryClient, "borrow.lifecycle");
+
+      patchBorrowCachesOnStatusChange(
+        queryClient,
+        {
+          recordId: variables.recordId,
+          patch: { status: "CANCELLED" },
+          userId: meta?.userId,
+          bookId: meta?.bookId,
+        },
+        baselines,
+      );
 
       const bookTitle = variables.bookTitle || "Book";
       const userName = variables.userName || "User";
@@ -1080,10 +1171,79 @@ export const useReturnBook = () => {
       }
       return result.data;
     },
-    // CRITICAL: No optimistic updates - just invalidate to trigger fresh API fetch
-    // This ensures we always have fresh data from server (1 blink is acceptable)
-    onSuccess: async (data, variables) => {
+    onMutate: async ({ recordId }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      const previousRequests = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      const previousUserBorrows = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.userRoot,
+      });
+      const meta = findCachedBorrowMeta(queryClient, recordId);
+      const returnDate = new Date().toISOString().slice(0, 10);
+      const patchStatus = (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((row: { id?: string; status?: string }) =>
+          row?.id === recordId
+            ? { ...row, status: "RETURNED", returnDate }
+            : row,
+        );
+      };
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.requestsRoot },
+        patchStatus,
+      );
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.userRoot },
+        patchStatus,
+      );
+      if (meta?.bookId) {
+        patchBookInventory(queryClient, meta.bookId, {
+          availableDelta: 1,
+          activeDelta: -1,
+          returnedDelta: 1,
+        });
+      }
+      return {
+        previousRequests,
+        previousUserBorrows,
+        meta,
+        returnDate,
+      };
+    },
+    onSuccess: async (data, variables, context) => {
+      const meta =
+        context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      const returnDate =
+        context?.returnDate ?? new Date().toISOString().slice(0, 10);
+      const fineAmount =
+        data?.fineAmount !== undefined
+          ? Number(data.fineAmount).toFixed(2)
+          : undefined;
+      const baselines = snapshotBorrowCacheBaselines(
+        queryClient,
+        meta?.bookId ? [meta.bookId] : [],
+      );
       await invalidateMutation(queryClient, "borrow.lifecycle");
+
+      patchBorrowCachesOnStatusChange(
+        queryClient,
+        {
+          recordId: variables.recordId,
+          patch: {
+            status: "RETURNED",
+            returnDate,
+            ...(fineAmount !== undefined ? { fineAmount } : {}),
+          },
+          userId: meta?.userId,
+          bookId: meta?.bookId,
+          restoreInventory: Boolean(meta?.bookId),
+        },
+        baselines,
+      );
 
       const bookTitle = resolveActionBookTitle(variables.bookTitle);
       if (
@@ -1100,16 +1260,30 @@ export const useReturnBook = () => {
         showToast.book.returnSuccess(bookTitle);
       }
     },
-    // CRITICAL: Show error toast on failure
-    onError: (error: Error, variables) => {
+    onError: (error: Error, variables, context) => {
+      if (context?.previousRequests) {
+        for (const [key, data] of context.previousRequests) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context?.previousUserBorrows) {
+        for (const [key, data] of context.previousUserBorrows) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      // Roll back optimistic inventory bump
+      if (context?.meta?.bookId) {
+        patchBookInventory(queryClient, context.meta.bookId, {
+          availableDelta: -1,
+          activeDelta: 1,
+          returnedDelta: -1,
+        });
+      }
       const bookTitle = resolveActionBookTitle(variables.bookTitle);
       showToast.book.returnError(
         error.message || `Unable to return "${bookTitle}". Please try again.`,
       );
     },
-    // CRITICAL: No onSettled needed - we've already updated user-borrows cache optimistically
-    // Invalidating it would cause unnecessary refetches and flicker
-    // The optimistic update is sufficient, and the cache will sync naturally when queries refetch later
   });
 };
 
@@ -1135,6 +1309,7 @@ export const useReturnBook = () => {
  */
 export const useCreateReview = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1143,19 +1318,109 @@ export const useCreateReview = () => {
     }: CreateReviewInput & {
       bookId: string;
       bookTitle?: string; // Optional, for toast message
+      /** Optional densify fallback when server row is thin. */
+      bookMeta?: {
+        bookAuthor?: string;
+        bookGenre?: string;
+        bookRating?: number;
+        bookCoverUrl?: string | null;
+        bookCoverColor?: string | null;
+      };
     }) => {
       const review = await createReview(bookId, reviewData);
       return review;
     },
-    onSuccess: (_data, variables) => {
-      // Invalidate all related queries (reviews, books, analytics)
-      invalidateMutation(queryClient, "review.write");
+    onSuccess: async (data, variables) => {
+      // Snapshot → await invalidate → re-patch (ticket densify order).
+      const baselines = snapshotReviewListBaselines(queryClient);
+      const nowIso = new Date().toISOString();
+      const bookCache = queryClient.getQueryData<{
+        title?: string;
+        author?: string;
+        genre?: string;
+        rating?: number;
+        coverUrl?: string | null;
+        coverColor?: string | null;
+      }>(queryKeys.books.detail(variables.bookId));
 
-      const cached = queryClient.getQueryData<{ title?: string }>(
-        queryKeys.books.detail(variables.bookId),
+      // Prefer server-authoritative AdminBookReviewItem from POST;
+      // fill gaps from book detail cache / session / bookMeta only.
+      const densifyItem: AdminBookReviewItem = {
+        id: data.id,
+        rating: data.rating,
+        comment: data.comment,
+        status: data.status ?? "PENDING",
+        bookId: data.bookId || variables.bookId,
+        bookTitle:
+          data.bookTitle ||
+          variables.bookTitle ||
+          bookCache?.title ||
+          "Unknown Book",
+        bookCoverUrl:
+          data.bookCoverUrl ??
+          variables.bookMeta?.bookCoverUrl ??
+          bookCache?.coverUrl ??
+          null,
+        bookCoverColor:
+          data.bookCoverColor ??
+          variables.bookMeta?.bookCoverColor ??
+          bookCache?.coverColor ??
+          null,
+        bookAuthor:
+          data.bookAuthor ||
+          variables.bookMeta?.bookAuthor ||
+          bookCache?.author ||
+          "",
+        bookGenre:
+          data.bookGenre ||
+          variables.bookMeta?.bookGenre ||
+          bookCache?.genre ||
+          "",
+        bookRating:
+          data.bookRating ||
+          variables.bookMeta?.bookRating ||
+          bookCache?.rating ||
+          0,
+        userId: data.userId || session?.user?.id || "",
+        userName:
+          data.userName ||
+          session?.user?.name ||
+          "You",
+        userEmail: data.userEmail || session?.user?.email || "",
+        userUniversityCard:
+          data.userUniversityCard ??
+          (session?.user as { universityCard?: string | null } | undefined)
+            ?.universityCard ??
+          null,
+        reviewedBy: data.reviewedBy ?? null,
+        reviewedByName: data.reviewedByName ?? null,
+        reviewedByEmail: data.reviewedByEmail ?? null,
+        reviewedByUniversityCard: data.reviewedByUniversityCard ?? null,
+        reviewedAt: data.reviewedAt ?? null,
+        createdAt: data.createdAt ?? nowIso,
+        updatedAt: data.updatedAt ?? nowIso,
+        borrowedAt: data.borrowedAt ?? null,
+        dueDate: data.dueDate ?? null,
+        returnedAt: data.returnedAt ?? null,
+      };
+
+      await invalidateMutation(queryClient, "review.write");
+      patchReviewCachesOnCreate(queryClient, densifyItem, baselines);
+
+      // Eligibility densify — ReviewButton flips without eligibility refetch flash.
+      queryClient.setQueryData(
+        queryKeys.reviews.eligibility(variables.bookId),
+        (prev: ReviewEligibility | undefined) => ({
+          success: true,
+          canReview: false,
+          hasExistingReview: true,
+          isCurrentlyBorrowed: prev?.isCurrentlyBorrowed ?? false,
+          reason: "You have already reviewed this book",
+        }),
       );
+
       showToast.book.reviewSuccess(
-        resolveActionBookTitle(variables.bookTitle, cached?.title),
+        resolveActionBookTitle(variables.bookTitle, bookCache?.title),
       );
     },
     onError: (error: Error, variables) => {
@@ -1206,40 +1471,143 @@ export const useUpdateReview = () => {
       reviewId: string;
       bookId?: string;
       bookTitle?: string;
+      userId?: string;
     } & UpdateReviewInput) => {
       return updateReview(reviewId, { rating, comment });
     },
     onMutate: async (variables) => {
-      if (!variables.bookId) return {};
-      const key = queryKeys.reviews.book(variables.bookId);
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<
-        Array<{
-          id: string;
-          rating: number;
-          comment: string;
-          updatedAt: Date | null;
-        }>
-      >(key);
-      if (previous) {
+      // Optimistic densify only (no pending-count bump — that runs once in onSuccess).
+      const baselines = snapshotReviewListBaselines(queryClient);
+      const cachedBefore = findCachedAdminReview(
+        queryClient,
+        variables.reviewId,
+      );
+      const previousStatus = cachedBefore?.status ?? null;
+      const nowIso = new Date().toISOString();
+      if (variables.bookId) {
+        const key = queryKeys.reviews.book(variables.bookId);
+        await queryClient.cancelQueries({ queryKey: key });
+        const previous = queryClient.getQueryData(key);
         queryClient.setQueryData(
           key,
-          previous.map((r) =>
-            r.id === variables.reviewId
-              ? {
-                  ...r,
-                  rating: variables.rating,
-                  comment: variables.comment,
-                  updatedAt: new Date(),
-                }
-              : r,
-          ),
+          (
+            old:
+              | Array<{
+                  id: string;
+                  rating: number;
+                  comment: string;
+                  updatedAt: Date | null;
+                  status?: ReviewStatusValue;
+                }>
+              | undefined,
+          ) =>
+            old?.map((r) =>
+              r.id === variables.reviewId
+                ? {
+                    ...r,
+                    rating: variables.rating,
+                    comment: variables.comment,
+                    updatedAt: new Date(),
+                    // Match server re-queue rule for moderated rows.
+                    status:
+                      r.status && r.status !== "PENDING"
+                        ? "PENDING"
+                        : r.status,
+                  }
+                : r,
+            ),
         );
+        // My Reviews / admin lists — field patch only; pending bump deferred.
+        queryClient.setQueriesData<AdminBookReviewItem[]>(
+          { queryKey: queryKeys.reviews.userReviewsRoot },
+          (old) =>
+            old?.map((r) =>
+              r.id === variables.reviewId
+                ? {
+                    ...r,
+                    rating: variables.rating,
+                    comment: variables.comment,
+                    updatedAt: nowIso,
+                    status:
+                      r.status !== "PENDING" ? "PENDING" : r.status,
+                    reviewedBy:
+                      r.status !== "PENDING" ? null : r.reviewedBy,
+                    reviewedByName:
+                      r.status !== "PENDING" ? null : r.reviewedByName,
+                    reviewedByEmail:
+                      r.status !== "PENDING" ? null : r.reviewedByEmail,
+                    reviewedByUniversityCard:
+                      r.status !== "PENDING"
+                        ? null
+                        : r.reviewedByUniversityCard,
+                    reviewedAt:
+                      r.status !== "PENDING" ? null : r.reviewedAt,
+                  }
+                : r,
+            ),
+        );
+        queryClient.setQueriesData<AdminBookReviewItem[]>(
+          { queryKey: queryKeys.reviews.adminRoot },
+          (old) =>
+            old?.map((r) =>
+              r.id === variables.reviewId
+                ? {
+                    ...r,
+                    rating: variables.rating,
+                    comment: variables.comment,
+                    updatedAt: nowIso,
+                    status:
+                      r.status !== "PENDING" ? "PENDING" : r.status,
+                    reviewedBy:
+                      r.status !== "PENDING" ? null : r.reviewedBy,
+                    reviewedByName:
+                      r.status !== "PENDING" ? null : r.reviewedByName,
+                    reviewedByEmail:
+                      r.status !== "PENDING" ? null : r.reviewedByEmail,
+                    reviewedByUniversityCard:
+                      r.status !== "PENDING"
+                        ? null
+                        : r.reviewedByUniversityCard,
+                    reviewedAt:
+                      r.status !== "PENDING" ? null : r.reviewedAt,
+                  }
+                : r,
+            ),
+        );
+        return { previous, key, baselines, previousStatus };
       }
-      return { previous, key };
+      return { baselines, previousStatus };
     },
-    onSuccess: (_data, variables) => {
-      invalidateMutation(queryClient, "review.write");
+    onSuccess: async (data, variables, context) => {
+      const baselines =
+        context?.baselines ?? snapshotReviewListBaselines(queryClient);
+      const previousStatus = context?.previousStatus ?? null;
+      await invalidateMutation(queryClient, "review.write");
+      const nextStatus = data.status ?? previousStatus ?? undefined;
+      patchReviewCachesOnUpdate(
+        queryClient,
+        {
+          id: variables.reviewId,
+          rating: data.rating ?? variables.rating,
+          comment: data.comment ?? variables.comment,
+          updatedAt: new Date().toISOString(),
+          status: nextStatus,
+          // Re-queue clears moderator attribution server-side.
+          ...(nextStatus === "PENDING" && previousStatus !== "PENDING"
+            ? {
+                reviewedBy: null,
+                reviewedByName: null,
+                reviewedByEmail: null,
+                reviewedByUniversityCard: null,
+                reviewedAt: null,
+              }
+            : {}),
+          bookId: variables.bookId,
+          userId: variables.userId ?? data.userId,
+        },
+        baselines,
+        previousStatus,
+      );
       const cached = variables.bookId
         ? queryClient.getQueryData<{ title?: string }>(
             queryKeys.books.detail(variables.bookId),
@@ -1299,24 +1667,65 @@ export const useDeleteReview = () => {
       reviewId: string;
       bookId?: string;
       bookTitle?: string;
+      userId?: string;
     }) => {
       return deleteReview(reviewId);
     },
     onMutate: async (variables) => {
-      if (!variables.bookId) return {};
-      const key = queryKeys.reviews.book(variables.bookId);
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<Array<{ id: string }>>(key);
-      if (previous) {
+      // Optimistic list remove only — pending-count bump runs once in onSuccess
+      // (ticket densify pattern; avoids double-decrement of sidebar badge).
+      const cached = findCachedAdminReview(queryClient, variables.reviewId);
+      const previousMeta = {
+        status: cached?.status,
+        userId: variables.userId ?? cached?.userId,
+        bookId: variables.bookId ?? cached?.bookId,
+      };
+      const baselines = snapshotReviewListBaselines(queryClient);
+      let previousBookList: unknown;
+      let bookKey: ReturnType<typeof queryKeys.reviews.book> | undefined;
+
+      if (previousMeta.bookId) {
+        bookKey = queryKeys.reviews.book(previousMeta.bookId);
+        await queryClient.cancelQueries({ queryKey: bookKey });
+        previousBookList = queryClient.getQueryData(bookKey);
         queryClient.setQueryData(
-          key,
-          previous.filter((r) => r.id !== variables.reviewId),
+          bookKey,
+          (old: Array<{ id: string }> | undefined) =>
+            old?.filter((r) => r.id !== variables.reviewId),
         );
       }
-      return { previous, key };
+      queryClient.setQueriesData<AdminBookReviewItem[]>(
+        { queryKey: queryKeys.reviews.userReviewsRoot },
+        (old) => old?.filter((r) => r.id !== variables.reviewId),
+      );
+      queryClient.setQueriesData<AdminBookReviewItem[]>(
+        { queryKey: queryKeys.reviews.adminRoot },
+        (old) => old?.filter((r) => r.id !== variables.reviewId),
+      );
+      return {
+        previous: previousBookList,
+        key: bookKey,
+        previousMeta,
+        baselines,
+      };
     },
-    onSuccess: (_data, variables) => {
-      invalidateMutation(queryClient, "review.write");
+    onSuccess: async (_data, variables, context) => {
+      const baselines =
+        context?.baselines ?? snapshotReviewListBaselines(queryClient);
+      const previousMeta = context?.previousMeta;
+      await invalidateMutation(queryClient, "review.write");
+      patchReviewCachesOnDelete(
+        queryClient,
+        variables.reviewId,
+        previousMeta?.status
+          ? {
+              status: previousMeta.status,
+              userId: previousMeta.userId ?? variables.userId ?? null,
+              bookId: previousMeta.bookId ?? variables.bookId ?? null,
+            }
+          : null,
+        baselines,
+      );
       const cached = variables.bookId
         ? queryClient.getQueryData<{ title?: string }>(
             queryKeys.books.detail(variables.bookId),
@@ -1349,13 +1758,13 @@ export const useDeleteReview = () => {
 };
 
 /**
- * Admin approve/reject decision on a book review. Patches the admin queue
- * list + detail cache instantly, then invalidates review.write so the
- * public book page (viewer's PENDING → hidden/visible) and My Reviews stay
- * in sync across every open tab. Parent: CR-0003 / REQ-0034
+ * Admin approve/reject decision on a book review. Densifies admin queue,
+ * detail, My Reviews, and public book lists via patchReviewCaches (await
+ * invalidate then re-patch). Parent: CR-0003 / REQ-0035 polish
  */
 export const useModerateReview = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1365,25 +1774,51 @@ export const useModerateReview = () => {
       reviewId: string;
       status: "APPROVED" | "REJECTED";
       bookTitle?: string;
+      /** Preferred SSR/session actor — avoids “unknown moderator” flash. */
+      decisionActor?: {
+        id?: string | null;
+        fullName: string;
+        email: string;
+        universityCard: string | null;
+      };
     }) => moderateReview(reviewId, status),
-    onSuccess: (data, variables) => {
-      queryClient.setQueriesData<AdminBookReviewItem[]>(
-        { queryKey: queryKeys.reviews.adminRoot },
-        (previous) =>
-          previous?.map((r) =>
-            r.id === variables.reviewId
-              ? { ...r, status: data.status, reviewedAt: data.reviewedAt }
-              : r,
-          ),
+    onSuccess: async (data, variables) => {
+      const baselines = snapshotReviewListBaselines(queryClient);
+      const cached = findCachedAdminReview(queryClient, variables.reviewId);
+      const previousStatus = cached?.status;
+      const actor = variables.decisionActor;
+      const sessionUser = session?.user;
+
+      await invalidateMutation(queryClient, "review.write");
+      patchReviewCachesOnModerate(
+        queryClient,
+        {
+          id: variables.reviewId,
+          status: data.status,
+          reviewedAt:
+            (typeof data.reviewedAt === "string"
+              ? data.reviewedAt
+              : data.reviewedAt
+                ? new Date(data.reviewedAt).toISOString()
+                : null) ?? new Date().toISOString(),
+          reviewedBy: actor?.id ?? sessionUser?.id ?? null,
+          reviewedByName:
+            actor?.fullName ?? sessionUser?.name ?? "an admin",
+          reviewedByEmail: actor?.email ?? sessionUser?.email ?? null,
+          reviewedByUniversityCard:
+            actor?.universityCard ??
+            (sessionUser as { universityCard?: string | null } | undefined)
+              ?.universityCard ??
+            null,
+          bookId: cached?.bookId,
+          userId: cached?.userId,
+        },
+        previousStatus,
+        baselines,
+        // Pre-invalidate admin row — upserts public book list when admin never
+        // had the author's PENDING review in ["book-reviews", bookId].
+        cached,
       );
-      queryClient.setQueryData<AdminBookReviewItem>(
-        queryKeys.reviews.adminDetail(variables.reviewId),
-        (previous) =>
-          previous
-            ? { ...previous, status: data.status, reviewedAt: data.reviewedAt }
-            : previous,
-      );
-      invalidateMutation(queryClient, "review.write");
       showToast.success(
         variables.status === "APPROVED" ? "Review approved" : "Review rejected",
         `The review for "${resolveActionBookTitle(variables.bookTitle)}" was ${variables.status.toLowerCase()}.`,
@@ -1476,11 +1911,19 @@ export const useCancelMyAdminRequest = () => {
  */
 export const useApproveAdminRequest = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ requestId }: {
       requestId: string;
       userName?: string; // Optional, for toast message
+      /** SSR/admin actor — preferred; useSession is often null in admin client trees. */
+      decisionActor?: {
+        id?: string | null;
+        fullName: string;
+        email: string;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await approveAdminRequest(requestId);
       if (!result.success) {
@@ -1488,8 +1931,42 @@ export const useApproveAdminRequest = () => {
       }
       return result.data;
     },
+    onMutate: async ({ requestId, userName, decisionActor: actorFromCaller }) => {
+      const su = session?.user as SessionUser | undefined;
+      const fromSession =
+        su?.email && (su.name || su.email)
+          ? {
+              id: su.id ?? null,
+              fullName: su.name?.trim() || "Admin",
+              email: su.email,
+              universityCard: null as string | null,
+            }
+          : null;
+      const reviewer = actorFromCaller
+        ? {
+            id: actorFromCaller.id ?? null,
+            fullName: actorFromCaller.fullName,
+            email: actorFromCaller.email,
+            universityCard: actorFromCaller.universityCard ?? null,
+          }
+        : fromSession;
+      return applyOptimisticAdminRequestDecision(queryClient, {
+        requestId,
+        status: "APPROVED",
+        userName,
+        reviewer,
+      });
+    },
+    onError: (error: Error, variables, context) => {
+      rollbackOptimisticAdminRequestDecision(queryClient, context);
+      const userName = variables.userName || "User";
+      showToast.error(
+        "Approval Failed",
+        error.message ||
+          `Unable to approve admin request for ${userName}. ${error.message.includes("already been processed") ? "This request has already been processed." : "Please try again."}`
+      );
+    },
     onSuccess: async (data, variables) => {
-      // Await so dialogs stay open until pending + recent lists refetch
       await invalidateMutation(queryClient, "admin-request.write");
 
       // Show success toast
@@ -1497,15 +1974,6 @@ export const useApproveAdminRequest = () => {
       showToast.success(
         "Admin Request Approved",
         `${userName} has been granted admin privileges.`
-      );
-    },
-    onError: (error: Error, variables) => {
-      // Show error toast
-      const userName = variables.userName || "User";
-      showToast.error(
-        "Approval Failed",
-        error.message ||
-          `Unable to approve admin request for ${userName}. ${error.message.includes("already been processed") ? "This request has already been processed." : "Please try again."}`
       );
     },
   });
@@ -1532,6 +2000,7 @@ export const useApproveAdminRequest = () => {
  */
 export const useRejectAdminRequest = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1541,12 +2010,60 @@ export const useRejectAdminRequest = () => {
       requestId: string;
       rejectionReason?: string; // Optional rejection reason
       userName?: string; // Optional, for toast message
+      /** SSR/admin actor — preferred; useSession is often null in admin client trees. */
+      decisionActor?: {
+        id?: string | null;
+        fullName: string;
+        email: string;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await rejectAdminRequest(requestId, rejectionReason);
       if (!result.success) {
         throw new Error(result.error || "Failed to reject admin request");
       }
       return result.data;
+    },
+    onMutate: async ({
+      requestId,
+      userName,
+      rejectionReason,
+      decisionActor: actorFromCaller,
+    }) => {
+      const su = session?.user as SessionUser | undefined;
+      const fromSession =
+        su?.email && (su.name || su.email)
+          ? {
+              id: su.id ?? null,
+              fullName: su.name?.trim() || "Admin",
+              email: su.email,
+              universityCard: null as string | null,
+            }
+          : null;
+      const reviewer = actorFromCaller
+        ? {
+            id: actorFromCaller.id ?? null,
+            fullName: actorFromCaller.fullName,
+            email: actorFromCaller.email,
+            universityCard: actorFromCaller.universityCard ?? null,
+          }
+        : fromSession;
+      return applyOptimisticAdminRequestDecision(queryClient, {
+        requestId,
+        status: "REJECTED",
+        userName,
+        rejectionReason,
+        reviewer,
+      });
+    },
+    onError: (error: Error, variables, context) => {
+      rollbackOptimisticAdminRequestDecision(queryClient, context);
+      const userName = variables.userName || "User";
+      showToast.error(
+        "Rejection Failed",
+        error.message ||
+          `Unable to reject admin request for ${userName}. ${error.message.includes("already been processed") ? "This request has already been processed." : "Please try again."}`
+      );
     },
     onSuccess: async (data, variables) => {
       await invalidateMutation(queryClient, "admin-request.write");
@@ -1556,15 +2073,6 @@ export const useRejectAdminRequest = () => {
       showToast.success(
         "Admin Request Rejected",
         `Admin request from ${userName} has been rejected.`
-      );
-    },
-    onError: (error: Error, variables) => {
-      // Show error toast
-      const userName = variables.userName || "User";
-      showToast.error(
-        "Rejection Failed",
-        error.message ||
-          `Unable to reject admin request for ${userName}. ${error.message.includes("already been processed") ? "This request has already been processed." : "Please try again."}`
       );
     },
   });

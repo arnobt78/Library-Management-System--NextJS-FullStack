@@ -126,7 +126,7 @@ export default function NotificationDropdown({
                   )}
                   aria-hidden
                 />
-                <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="min-w-0 flex-1 ">
                   <p className="truncate text-xs font-semibold sm:text-sm">
                     {notification.title}
                   </p>
