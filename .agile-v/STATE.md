@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove complete (local) for densify + review UI; independent nonlocal/production Verify still outstanding
 - SCOPE-V phase: Verify (densify + review UI Prove PASS)
-- Status: ACTIVE - densify/review UI batch ready to commit; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - densify + review UI committed (`d61a058`); C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `8d1630a` (CR-0003 tickets/reviews/activity/bell + detail polish)
-- Latest HEAD: `1b1cc2f` (docs bind tip to `8d1630a`; `main` == `origin/main`)
+- Latest implementation tip: `d61a058` (densify Waves A–C + review UI + approve upsert)
+- Latest HEAD: `d61a058`
 - Started: 2026-08-01
-- Last updated: 2026-08-06 (docs sync; densify+review Prove 120; commit pending)
+- Last updated: 2026-08-06 (tip bind `d61a058`)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
