@@ -8,9 +8,9 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `d61a058` (densify Waves A–C + review UI + approve upsert)
-- Latest HEAD: `d61a058`
+- Latest HEAD: `e08d351` (docs bind tip to `d61a058`; `main` == `origin/main`)
 - Started: 2026-08-01
-- Last updated: 2026-08-06 (tip bind `d61a058`)
+- Last updated: 2026-08-06 (tip bind `d61a058` / HEAD `e08d351`)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
