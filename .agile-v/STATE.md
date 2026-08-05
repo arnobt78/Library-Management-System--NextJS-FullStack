@@ -7,8 +7,8 @@
 - Status: ACTIVE - CR-0003 (REQ-0034–0037) implemented + UX polish Prove PASS; owner authorized commit/push; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: see HEAD after CR-0003 commit (tickets/reviews/activity/bell + detail polish)
-- Latest HEAD: update after push (was dirty on `3552e44` pre-commit)
+- Latest implementation tip: `8d1630a` (CR-0003 tickets/reviews/activity/bell + detail polish)
+- Latest HEAD: `8d1630a`
 - Started: 2026-08-01
 - Last updated: 2026-08-05 (CR-0003 polish Prove + docs write-through + commit)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
