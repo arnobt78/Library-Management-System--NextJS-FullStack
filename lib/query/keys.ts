@@ -58,6 +58,45 @@ export const queryKeys = {
     book: (bookId: string) => ["book-reviews", bookId] as const,
     eligibilityRoot: ["review-eligibility"] as const,
     eligibility: (bookId: string) => ["review-eligibility", bookId] as const,
+    /** Admin moderation queue (all statuses, all books) */
+    adminRoot: ["admin-reviews"] as const,
+    adminList: <TFilters>(filters: TFilters) =>
+      ["admin-reviews", filters] as const,
+    /** Signed-in user's own reviews (any status) — My Reviews tab */
+    userReviewsRoot: ["user-reviews"] as const,
+    userReviews: (userId: string) => ["user-reviews", userId] as const,
+    adminDetailRoot: ["admin-review"] as const,
+    adminDetail: (reviewId: string) => ["admin-review", reviewId] as const,
+    /** Admin sidebar badge — PENDING moderation count */
+    pendingCountRoot: ["book-review-pending-count"] as const,
+    pendingCount: ["book-review-pending-count"] as const,
+  },
+  tickets: {
+    root: ["support-tickets"] as const,
+    adminRoot: ["admin-support-tickets"] as const,
+    adminList: <TFilters>(filters: TFilters) =>
+      ["admin-support-tickets", filters] as const,
+    userRoot: ["user-support-tickets"] as const,
+    userList: <TFilters>(userId: string, filters: TFilters) =>
+      ["user-support-tickets", userId, filters] as const,
+    detailRoot: ["support-ticket"] as const,
+    // Replies are embedded in the ticket detail payload (`detail(ticketId)`)
+    // — there is no separate replies query/cache to avoid a duplicate fetch
+    // of the same data on every ticket.write invalidation.
+    detail: (ticketId: string) => ["support-ticket", ticketId] as const,
+    /** Admin sidebar badge — OPEN + IN_PROGRESS count */
+    openCountRoot: ["support-ticket-open-count"] as const,
+    openCount: ["support-ticket-open-count"] as const,
+  },
+  notifications: {
+    root: ["notifications"] as const,
+    list: (limit?: number) => ["notifications", limit ?? 20] as const,
+    unreadCountRoot: ["notifications-unread-count"] as const,
+    unreadCount: ["notifications-unread-count"] as const,
+  },
+  activityLog: {
+    root: ["activity-logs"] as const,
+    list: <TFilters>(filters: TFilters) => ["activity-logs", filters] as const,
   },
   admin: {
     root: ["admin"] as const,

@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/drizzle";
-import { bookReviews, users, borrowRecords } from "@/database/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { bookReviews, books, users, borrowRecords } from "@/database/schema";
+import { eq, and, desc, or } from "drizzle-orm";
 import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
+import { auth } from "@/auth";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { logActivity } from "@/lib/admin/activityLog";
+import {
+  createInAppNotificationForUsers,
+  getAllAdminUsers,
+} from "@/lib/notifications/inApp";
+import { notifyReviewSubmitted } from "@/lib/email/reviewEmails";
+import { reviewContentSchema } from "@/lib/validations/review";
 
 export const runtime = "nodejs";
 
@@ -44,6 +52,22 @@ export async function GET(
       );
     }
 
+    // Public book pages only ever show APPROVED reviews, except the viewer's
+    // own review (shown instantly at PENDING so authors see their submission —
+    // this is display-only; moderation status is unchanged until an admin acts).
+    const session = await auth();
+    const viewerId = session?.user?.id;
+    const visibilityCondition = viewerId
+      ? or(
+          eq(bookReviews.status, "APPROVED"),
+          and(eq(bookReviews.status, "PENDING"), eq(bookReviews.userId, viewerId)),
+        )
+      : eq(bookReviews.status, "APPROVED");
+
+    // No `userEmail` here — this is a public endpoint (anonymous visitors can
+    // read it), and returning other users' emails would leak PII to every
+    // book-page visitor. `userId` (opaque, non-PII) is enough for the client
+    // to compute review ownership and a stable avatar seed.
     const reviews = await db
       .select({
         id: bookReviews.id,
@@ -51,13 +75,14 @@ export async function GET(
         comment: bookReviews.comment,
         createdAt: bookReviews.createdAt,
         updatedAt: bookReviews.updatedAt,
+        status: bookReviews.status,
+        userId: bookReviews.userId,
         userFullName: users.fullName,
-        userEmail: users.email,
         universityCard: users.universityCard,
       })
       .from(bookReviews)
       .innerJoin(users, eq(bookReviews.userId, users.id))
-      .where(eq(bookReviews.bookId, bookId))
+      .where(and(eq(bookReviews.bookId, bookId), visibilityCondition))
       .orderBy(desc(bookReviews.createdAt));
 
     return NextResponse.json({
@@ -114,22 +139,18 @@ export async function POST(
       );
     }
 
-    const { rating, comment } = await request.json();
-
-    // Validate input
-    if (!rating || rating < 1 || rating > 5) {
+    const body = await request.json();
+    const parsed = reviewContentSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Rating must be between 1 and 5" },
+        {
+          success: false,
+          error: parsed.error.issues[0]?.message ?? "Invalid review data",
+        },
         { status: 400 },
       );
     }
-
-    if (!comment || comment.trim().length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Comment is required" },
-        { status: 400 },
-      );
-    }
+    const { rating, comment } = parsed.data;
 
     // Check if user has borrowed this book before (for eligibility)
     const userBorrows = await db
@@ -170,7 +191,16 @@ export async function POST(
       );
     }
 
-    // Create the review
+    // Book title for admin notifications (fetched once, best-effort).
+    const [bookRow] = await db
+      .select({ title: books.title })
+      .from(books)
+      .where(eq(books.id, bookId))
+      .limit(1);
+
+    // Create the review — explicitly PENDING; the reviewer sees it immediately
+    // via the visibility rule in GET above, but it awaits admin moderation
+    // before appearing to other readers.
     const [newReview] = await db
       .insert(bookReviews)
       .values({
@@ -178,15 +208,48 @@ export async function POST(
         userId: actor.id,
         rating,
         comment: comment.trim(),
+        status: "PENDING",
       })
       .returning({
         id: bookReviews.id,
         rating: bookReviews.rating,
         comment: bookReviews.comment,
+        status: bookReviews.status,
         createdAt: bookReviews.createdAt,
       });
 
     revalidateMutationPaths("review.write");
+
+    void logActivity({
+      actorId: actor.id,
+      action: "CREATE",
+      entityType: "review",
+      entityId: newReview.id,
+      details: { bookTitle: bookRow?.title, rating },
+    });
+
+    // Fan out to admins for moderation — fire-and-forget, never blocks the response.
+    void (async () => {
+      const admins = await getAllAdminUsers(actor.id);
+      if (admins.length === 0) return;
+
+      await createInAppNotificationForUsers(
+        admins.map((admin) => admin.id),
+        {
+          type: "REVIEW_SUBMITTED",
+          title: "New book review awaiting moderation",
+          message: `${actor.name} reviewed "${bookRow?.title ?? "a book"}"`,
+          link: `/admin/book-reviews/${newReview.id}`,
+        },
+      );
+
+      await notifyReviewSubmitted({
+        recipients: admins.map((admin) => admin.email),
+        reviewerName: actor.name,
+        bookTitle: bookRow?.title ?? "a book",
+      });
+    })();
+
     return NextResponse.json({
       success: true,
       review: newReview,

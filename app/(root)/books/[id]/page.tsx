@@ -1,7 +1,7 @@
 import React from "react";
 import { db } from "@/database/drizzle";
 import { books, bookReviews, users, borrowRecords } from "@/database/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import BookOverview from "@/components/BookOverview";
@@ -100,7 +100,21 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
     });
   }
 
-  // Fetch reviews for this book
+  // Fetch reviews for this book — only APPROVED, except the viewer's own
+  // review (shown instantly at PENDING so they see their submission).
+  // Parent: CR-0003 / REQ-0034 — Book Review moderation
+  const reviewVisibility = session?.user?.id
+    ? or(
+        eq(bookReviews.status, "APPROVED"),
+        and(eq(bookReviews.status, "PENDING"), eq(bookReviews.userId, session.user.id)),
+      )
+    : eq(bookReviews.status, "APPROVED");
+
+  // No `userEmail` here — this data flows to a public page (anonymous
+  // visitors can view it), and returning other users' emails would leak PII
+  // to every visitor. `userId` (opaque, non-PII) is enough for the client to
+  // compute review ownership and a stable avatar seed. Mirrors the GET
+  // handler at `app/api/reviews/[bookId]/route.ts`.
   const reviews = await db
     .select({
       id: bookReviews.id,
@@ -108,13 +122,14 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
       comment: bookReviews.comment,
       createdAt: bookReviews.createdAt,
       updatedAt: bookReviews.updatedAt,
+      status: bookReviews.status,
+      userId: bookReviews.userId,
       userFullName: users.fullName,
-      userEmail: users.email,
       universityCard: users.universityCard,
     })
     .from(bookReviews)
     .innerJoin(users, eq(bookReviews.userId, users.id))
-    .where(eq(bookReviews.bookId, id))
+    .where(and(eq(bookReviews.bookId, id), reviewVisibility))
     .orderBy(desc(bookReviews.createdAt));
 
   // Fetch review eligibility for SSR (if user is logged in)
@@ -199,7 +214,6 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
       <BookDetailContent
         bookId={id}
         userId={session?.user?.id}
-        userEmail={session?.user?.email || undefined}
         initialBook={bookDetails}
         initialReviews={reviews}
       />

@@ -332,6 +332,50 @@ These new requirements implement `CR-0002`. Gate 0 approved the bounded library 
 - **Verification criteria:** Desktop/mobile route discovery, two-interaction bound, keyboard/focus/name, active/close behavior, reduced-motion, media fallback, CLS/INP and route regression tests pass at 320, 768, 1024 and 1440 CSS-pixel widths.
 - **Done criteria:** Primary navigation contains library tasks only; all utilities remain accessible; no duplicate utility-link list or media/motion implementation remains in modified scope; visual behavior stays within REQ-0028 budgets.
 
+### REQ-0034 - Support Tickets (dual-surface, admin + personal)
+
+- **Status:** approved [C2] (`GATE-0007`); implemented; local Prove PASS
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - eligibility, authorship, and delivery constraints are testable
+- **Lineage:** CR-0003; `.cursor/plans/admin_suite_parity_expansion_4ad9aa3f.plan.md`; stock-inventory architecture-reuse audit
+- **Requirement:** APPROVED users shall create support tickets and reply on a personal `/support-tickets` surface; admins shall triage all tickets (status/priority/assignee/internal notes) on `/admin/support-tickets`, with both surfaces sharing one detail-page reply thread. Ticket creation and status/reassignment changes shall notify the affected party by email and in-app notification.
+- **Constraints:** Server derives `userId`/`assignedToId` from the authenticated actor only; only admin, ticket creator, or assignee may mutate a ticket; status/reassignment writes are admin-only; actor never self-notifies their own action.
+- **Verification criteria:** `requireAuthenticatedActor`/`requireAdminActor` gate tests; ticket CRUD + reply API tests; `ticket.write` mutation-domain contract test; manual two-tab smoke confirms sidebar badge, KPI cards, and list update immediately in an idle tab after the other tab creates a ticket, with no self-notification to the sole admin actor.
+- **Done criteria:** Both surfaces render with SSR `initialData`; emails send via `sendEmailWithFallback`; `logActivity` records create/update; cross-tab `BroadcastChannel` invalidation verified live in-browser.
+
+### REQ-0035 - Book Review moderation (PENDING/APPROVED/REJECTED)
+
+- **Status:** approved [C2] (`GATE-0007`); implemented; local Prove PASS
+- **Risk:** R2
+- **Logic validation:** PASS [C2] - visibility rule is testable and additive to existing rows
+- **Lineage:** CR-0003; owner-confirmed decision: "reviewer sees their own review immediately; public/admin queue treats it as PENDING until moderated"
+- **Requirement:** New reviews shall be written `status = PENDING`; the API shall still return the author's own review to the author immediately; the public book page and admin queue shall only surface a PENDING review to its author, never to other viewers, until an admin sets `APPROVED`/`REJECTED`. Pre-existing reviews shall default to `APPROVED` so no historical review disappears. Admins shall moderate from `/admin/book-reviews` with a detail page; the reviewer's own history is visible on a new "My Reviews" profile tab regardless of status.
+- **Constraints:** `status`/`reviewedBy`/`reviewedAt` are additive columns with a DB default preserving existing visibility; moderation notifies the reviewer by email and in-app notification; `logActivity` records create/approve/reject/delete.
+- **Verification criteria:** GET filter test (`status = APPROVED OR (status = PENDING AND userId = viewer)`); moderation PUT test; "My Reviews" tab renders all own-status reviews; `review.write` mutation-domain contract test extended for `notifications`/`activityLog`.
+- **Done criteria:** No existing review changes visibility; new review author sees it immediately; other users never see a PENDING review; admin queue KPI (pending count) matches DB.
+
+### REQ-0036 - Activity History audit log + in-app notification bell
+
+- **Status:** approved [C2] (`GATE-0007`); implemented; local Prove PASS
+- **Risk:** R1
+- **Logic validation:** PASS [C2] - retention and fan-out rules are testable
+- **Lineage:** CR-0003; stock-inventory `createAuditLog`/`NotificationBell` architecture reuse
+- **Requirement:** Every book/borrow/user/review/admin-request/ticket mutation call site shall fire-and-forget `logActivity()`, retaining the latest 50 rows (FIFO) surfaced on `/admin/activity-history` with period filtering (today/7-days/month) and entity deep-links. A recipient-scoped `notifications` table and bell UI (unread count, mark-read, mark-all-read, delete) shall be wired into both the root and admin `Header`.
+- **Constraints:** No Redis business-data caching (existing constraint); `activity_logs.actorId` is `SET NULL` on actor deletion so history survives account removal; notification writes never block the mutating request (fired after the DB write, awaited only for the response-blocking domains already required by REQ-0027's cache-coherence boundary).
+- **Verification criteria:** `logActivity` call-site audit (grep confirms coverage across all listed domains); FIFO retention test; notification unread-count/mark-read/delete API tests; `notification.write` mutation-domain contract test asserting zero RSC paths (bell-only, client-cache invalidation).
+- **Done criteria:** Activity History renders live data with search/period filter; bell shows correct unread count across tabs via existing `BroadcastChannel` sync; no dead code left from the old non-audited call sites.
+
+### REQ-0037 - Admin Suite KPI rollout, shared data-table/search/filter primitives, Library Overview
+
+- **Status:** approved [C2] (`GATE-0007`); implemented; local Prove PASS
+- **Risk:** R1
+- **Logic validation:** PASS [C2] - visual/behavioral parity is testable against the stock-inventory reference architecture
+- **Lineage:** CR-0003; stock-inventory `StatisticsCard`/`data-table.tsx`/`FilterDropdown` architecture reuse
+- **Requirement:** Every admin page shall display a top-of-page `StatCard` KPI row using real SSR/live data (no placeholder numbers); every existing and new admin list shall share one generic sortable/paginated `components/ui/data-table.tsx`, one debounced `SearchInput`, and one `MultiSelectFilter` where multi-value filtering applies; the sidebar's "Home" entry shall be renamed "Library Overview" (route unchanged) and its dashboard shall gain reservation/ticket/review KPI cards additive to its existing sections; every list row's primary identifier shall be a clickable link to its detail/edit page.
+- **Constraints:** No new dependency beyond `@tanstack/react-table`; existing single-value `FilterSelect` dropdowns that already work correctly are not force-migrated to `MultiSelectFilter`; no deletion of existing working card-based layouts where a table is not a UX improvement (documented per-page in Wave 5 decisions).
+- **Verification criteria:** Per-page KPI presence audit; `data-table.tsx` sorting/pagination unit coverage; clickable-title audit across `AdminUsersList`, `AdminBooksList`, `AdminBookRequestsList`, `AccountRequestsClient`; zero-warning ESLint (including the documented `react-hooks/incompatible-library` scoped exception for `@tanstack/react-table`'s non-memoizable instance API).
+- **Done criteria:** `npm run typecheck && npm run lint && npm test && npm run build` all PASS; manual two-tab smoke confirms every retrofitted and new admin page reflects live KPI/list state without a page refresh.
+
 ## C2 Corrective Implementation Evidence - 2026-08-02
 
 - **REQ-0027:** All browser mutation hooks/consumers use `MUTATION_DOMAIN_REGISTRY`; successful server actions and write routes use `MUTATION_RSC_PATH_REGISTRY` through one `revalidateMutationPaths` boundary. The matrix includes user-360 consumers for circulation, review and fine changes.

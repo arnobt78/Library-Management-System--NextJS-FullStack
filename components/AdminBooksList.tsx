@@ -17,8 +17,9 @@
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import {
   genreFilterOptions,
   availabilityFilterOptions,
@@ -31,12 +32,16 @@ import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
 import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
 import type { BookFilters } from "@/lib/services/books";
 import {
-  Search,
   FilterX,
   Plus,
   Eye,
   Pencil,
+  BookMarked,
+  Layers,
+  BookOpenCheck,
+  BookX,
 } from "lucide-react";
+import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 
 interface AdminBooksListProps {
   /**
@@ -229,33 +234,51 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     );
   }
 
+  // KPI counts for the top-of-page StatCard row (Wave 4 rollout)
+  const totalCopies = allBooks.reduce((sum, b) => sum + b.totalCopies, 0);
+  const availableCopies = allBooks.reduce((sum, b) => sum + b.availableCopies, 0);
+  const activeBookCount = allBooks.filter((b) => b.isActive).length;
+
   return (
     <section className="admin-panel">
+      {/* KPI Statistics Cards */}
+      <StatCardGrid className="mb-4 sm:mb-6">
+        <StatCard title="Total Books" value={allBooks.length} icon={BookMarked} hue="blue" />
+        <StatCard title="Total Copies" value={totalCopies} icon={Layers} hue="slate" />
+        <StatCard
+          title="Available Copies"
+          value={availableCopies}
+          icon={BookOpenCheck}
+          hue="emerald"
+        />
+        <StatCard
+          title="Borrowed Copies"
+          value={totalCopies - availableCopies}
+          icon={BookX}
+          hue="amber"
+        />
+        <StatCard
+          title="Active Titles"
+          value={activeBookCount}
+          icon={BookMarked}
+          hue="violet"
+          badges={[{ label: `${allBooks.length - activeBookCount} inactive`, hue: "rose" }]}
+        />
+      </StatCardGrid>
+
       <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
           All Books ({allBooks.length})
         </h2>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          {/* Search Input */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const trimmedSearch = localSearch.trim();
-              updateSearchParams({ search: trimmedSearch });
-            }}
+          {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
+          <SearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            placeholder="Search books..."
+            debounceMs={0}
             className="flex-1 sm:min-w-[250px]"
-          >
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search books..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
-              />
-            </div>
-          </form>
+          />
           {/* Filter Dropdowns */}
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
             <FilterSelect
@@ -277,6 +300,45 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           </div>
         </div>
       </div>
+
+      <DismissibleFilterChips
+        variant="light"
+        groups={[
+          ...(currentGenre !== "all"
+            ? [
+                {
+                  label: "Genre",
+                  values: [currentGenre],
+                  onClear: () => handleFilterChange("genre", "all"),
+                  renderBadge: (value: string) => (
+                    <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                      {value}
+                    </span>
+                  ),
+                },
+              ]
+            : []),
+          ...(currentAvailability !== "all"
+            ? [
+                {
+                  label: "Availability",
+                  values: [currentAvailability],
+                  onClear: () => handleFilterChange("availability", "all"),
+                  renderBadge: (value: string) => (
+                    <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                      {value === "available"
+                        ? "Available"
+                        : value === "unavailable"
+                          ? "Unavailable"
+                          : value}
+                    </span>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+        onReset={clearFilters}
+      />
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button className="bg-primary-admin" asChild>
@@ -321,9 +383,13 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                   />
 
                   <div className="flex-1">
-                    <h3 className="line-clamp-2 text-base font-semibold sm:text-lg">
+                    <Link
+                      prefetch={false}
+                      href={`/books/${book.id}`}
+                      className="line-clamp-2 text-base font-semibold text-blue-700 hover:underline sm:text-lg"
+                    >
                       {book.title}
-                    </h3>
+                    </Link>
                     <p className="text-sm text-gray-600">by {book.author}</p>
                     <p className="mt-1 text-xs text-gray-500">{book.genre}</p>
 

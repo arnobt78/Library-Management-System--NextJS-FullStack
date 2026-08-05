@@ -32,6 +32,7 @@ import type {
 } from "@/lib/admin/adminRequestTypes";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { isProtectedDemoAccount } from "@/constants";
+import { logActivity } from "@/lib/admin/activityLog";
 
 /** Non-blocking applicant email after approve/reject (failures never fail the action). */
 function scheduleAdminRequestDecisionEmail(
@@ -402,6 +403,13 @@ export async function approveAdminRequest(
     if (result.success) {
       revalidateMutationPaths("admin-request.write");
       scheduleAdminRequestDecisionEmail(result.data);
+      void logActivity({
+        actorId: actor.id,
+        action: "UPDATE",
+        entityType: "admin-request",
+        entityId: safeRequestId,
+        details: { status: "APPROVED" },
+      });
     }
     return result;
   } catch (error) {
@@ -465,6 +473,13 @@ export async function rejectAdminRequest(
     if (result.success) {
       revalidateMutationPaths("admin-request.write");
       scheduleAdminRequestDecisionEmail(result.data);
+      void logActivity({
+        actorId: actor.id,
+        action: "UPDATE",
+        entityType: "admin-request",
+        entityId: safeRequestId,
+        details: { status: "REJECTED" },
+      });
     }
     return result;
   } catch (error) {

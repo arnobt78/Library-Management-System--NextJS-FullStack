@@ -172,57 +172,6 @@ export async function getUsersList(
 }
 
 /**
- * Get a single user by ID
- *
- * @param userId - User ID (UUID)
- * @returns Promise with user data
- * @throws {ApiError} Error with message and status code (404 if not found)
- *
- * @example
- * ```typescript
- * const user = await getUser("123e4567-e89b-12d3-a456-426614174000");
- * ```
- */
-export async function getUser(userId: string): Promise<User> {
-  if (!userId) {
-    throw new ApiError("User ID is required", 400);
-  }
-
-  const response = await fetch(`/api/users/${userId}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    let errorMessage = response.statusText;
-    try {
-      const errorData = await response.json();
-      errorMessage =
-        errorData.message || errorData.error || response.statusText;
-    } catch {
-      errorMessage = response.statusText;
-    }
-    throw new ApiError(errorMessage, response.status);
-  }
-
-  const data = await response.json();
-
-  // Handle different response formats
-  if (data.user) {
-    return data.user;
-  }
-
-  if (data.id) {
-    // If response is the user object directly
-    return data;
-  }
-
-  throw new ApiError("Invalid response format from user API", 500);
-}
-
-/**
  * Get current authenticated user profile
  *
  * Fetches the profile of the currently authenticated user from the session.

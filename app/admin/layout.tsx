@@ -10,6 +10,9 @@ import { borrowRecords, users } from "@/database/schema";
 import { count, eq } from "drizzle-orm";
 import { getPendingAdminRequests } from "@/lib/admin/actions/admin-requests";
 import type { AdminRequest } from "@/lib/services/users";
+import { getOpenTicketCount } from "@/lib/server/supportTicketData";
+import { getPendingReviewCount } from "@/lib/server/reviewData";
+import { getUnreadNotificationCount } from "@/lib/notifications/inApp";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   const session = await auth();
@@ -27,8 +30,15 @@ const Layout = async ({ children }: { children: ReactNode }) => {
     redirect("/");
   }
 
-  // SSR seeds for sidebar badges (live updates via user.write / borrow.lifecycle / admin-request.write)
-  const [pendingResult, pendingSignUpRow, pendingBorrowRow] = await Promise.all([
+  // SSR seeds for sidebar badges (live updates via user.write / borrow.lifecycle / admin-request.write / ticket.write / review.write)
+  const [
+    pendingResult,
+    pendingSignUpRow,
+    pendingBorrowRow,
+    openTicketCount,
+    pendingReviewCount,
+    initialUnreadCount,
+  ] = await Promise.all([
     getPendingAdminRequests(),
     db
       .select({ value: count() })
@@ -38,6 +48,9 @@ const Layout = async ({ children }: { children: ReactNode }) => {
       .select({ value: count() })
       .from(borrowRecords)
       .where(eq(borrowRecords.status, "PENDING")),
+    getOpenTicketCount(),
+    getPendingReviewCount(),
+    getUnreadNotificationCount(session.user.id),
   ]);
 
   const initialPendingAdminRequests: AdminRequest[] = pendingResult.success
@@ -53,10 +66,12 @@ const Layout = async ({ children }: { children: ReactNode }) => {
         initialPendingAdminRequests={initialPendingAdminRequests}
         initialPendingSignUpCount={initialPendingSignUpCount}
         initialPendingBorrowCount={initialPendingBorrowCount}
+        initialOpenTicketCount={openTicketCount}
+        initialPendingReviewCount={pendingReviewCount}
       />
 
       <div className="admin-container">
-        <Header session={session} />
+        <Header session={session} initialUnreadCount={initialUnreadCount} />
         {children}
       </div>
     </main>

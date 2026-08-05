@@ -16,7 +16,10 @@ import { useState } from "react";
 import { Clock, Loader2, RotateCcw, User, XCircle } from "lucide-react";
 
 export type RegistrationNoticeStatus = "PENDING" | "REJECTED";
-export type RegistrationNoticeContext = "make-admin" | "profile";
+export type RegistrationNoticeContext =
+  | "make-admin"
+  | "profile"
+  | "support-tickets";
 
 const COPY: Record<
   RegistrationNoticeContext,
@@ -39,6 +42,16 @@ const COPY: Record<
     },
     REJECTED: {
       title: "Borrowing is unavailable",
+      body: "Your registration was not approved. You may request approval again so a librarian can review your account.",
+    },
+  },
+  "support-tickets": {
+    PENDING: {
+      title: "Support tickets are unavailable until approval",
+      body: "An admin must approve your registration before you can open a support ticket. Check back after approval.",
+    },
+    REJECTED: {
+      title: "Support tickets are unavailable",
       body: "Your registration was not approved. You may request approval again so a librarian can review your account.",
     },
   },

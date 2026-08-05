@@ -8,9 +8,10 @@
  */
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,6 +50,8 @@ import DateMetaLine from "@/components/DateMetaLine";
 import type { User as UserType } from "@/lib/services/users";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import { UserPlus } from "lucide-react";
 
 interface AccountRequestsClientProps {
   /**
@@ -166,23 +169,6 @@ const AccountRequestsClient = ({
   // usePendingUsers returns User[] directly (not wrapped in UsersListResponse)
   const users: UserType[] = ((usersData ?? initialUsers) || []) as UserType[];
 
-  // Update search params in URL and trigger refetch
-  const updateSearchParams = (newParams: Record<string, string>) => {
-    const params = new URLSearchParams(searchParamsHook.toString());
-
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value && value !== "all") {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-    });
-
-    router.replace(`/admin/account-requests?${params.toString()}`, {
-      scroll: false,
-    });
-  };
-
   const clearFilters = () => {
     setLocalSearch("");
     router.push("/admin/account-requests");
@@ -290,23 +276,14 @@ const AccountRequestsClient = ({
               </p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-              {/* Search Input */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const trimmedSearch = localSearch.trim();
-                  updateSearchParams({ search: trimmedSearch });
-                }}
+              {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
+              <SearchInput
+                value={localSearch}
+                onChange={setLocalSearch}
+                placeholder="Search by name, email, ID..."
+                debounceMs={0}
                 className="flex-1 sm:min-w-[250px]"
-              >
-                <Input
-                  type="text"
-                  placeholder="Search by name, email, ID..."
-                  value={localSearch}
-                  onChange={(e) => setLocalSearch(e.target.value)}
-                  className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-900 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300 sm:px-3 sm:py-2 sm:text-sm"
-                />
-              </form>
+              />
               <div className="flex w-full items-center justify-start sm:w-auto sm:justify-center">
                 <div className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 sm:px-3">
                   <span className="whitespace-nowrap text-xs font-medium text-orange-800 sm:text-sm">
@@ -317,6 +294,29 @@ const AccountRequestsClient = ({
             </div>
           </div>
         </div>
+
+        {/* KPI Statistics Cards */}
+        <StatCardGrid className="mb-4 sm:mb-6">
+          <StatCard title="Pending Requests" value={users.length} icon={UserPlus} hue="amber" />
+          <StatCard
+            title="Recent Approved"
+            value={recentDecisions.filter((d) => d.status === "APPROVED").length}
+            icon={CheckCircle}
+            hue="emerald"
+          />
+          <StatCard
+            title="Recent Rejected"
+            value={recentDecisions.filter((d) => d.status === "REJECTED").length}
+            icon={XCircle}
+            hue="rose"
+          />
+          <StatCard
+            title="Total Decisions"
+            value={recentDecisions.length}
+            icon={Shield}
+            hue="slate"
+          />
+        </StatCardGrid>
 
         {/* Success/Error Messages */}
         {successMessage && (
@@ -536,9 +536,13 @@ const AccountRequestCard = ({
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <h3 className="break-words text-base font-semibold text-gray-900 sm:text-lg">
+              <Link
+                prefetch={false}
+                href={`/admin/users/${user.id}`}
+                className="break-words text-base font-semibold text-blue-700 hover:underline sm:text-lg"
+              >
                 {user.fullName}
-              </h3>
+              </Link>
               <div className="flex items-center gap-1 text-xs text-gray-500 sm:space-x-1 sm:text-sm">
                 <Mail className="size-2.5 shrink-0 sm:size-3" />
                 <span className="break-all">{user.email}</span>

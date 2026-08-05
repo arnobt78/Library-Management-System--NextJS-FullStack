@@ -24,7 +24,10 @@ import {
   useCancelMyAdminRequest,
   useCreateAdminRequest,
 } from "@/hooks/useMutations";
-import { ADMIN_REQUEST_REVOKED_REASON, ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
+import {
+  ADMIN_REQUEST_REVOKED_REASON,
+  ADMIN_REQUEST_WITHDRAWN_REASON,
+} from "@/lib/admin/adminRequestConstants";
 import type {
   AdminRequestReviewer,
   SignupApprovalInfo,
@@ -103,7 +106,9 @@ type MakeAdminRequestFormProps = {
   signupApproval?: SignupApprovalInfo | null;
 };
 
-function formatRequestWhen(value: Date | string | null | undefined): string | null {
+function formatRequestWhen(
+  value: Date | string | null | undefined,
+): string | null {
   if (value == null) return null;
   return formatBorrowDateTime(value) ?? null;
 }
@@ -133,8 +138,7 @@ function RequestStatusBadge({
   rejectionReason: string | null;
 }) {
   const withdrawn =
-    status === "REJECTED" &&
-    rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
+    status === "REJECTED" && rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
 
   if (status === "PENDING") {
     return (
@@ -197,9 +201,7 @@ export default function MakeAdminRequestForm({
   const [status, setStatus] = useState<MyAdminRequestStatus | null>(
     initialStatus,
   );
-  const [requestId, setRequestId] = useState<string | null>(
-    initialRequestId,
-  );
+  const [requestId, setRequestId] = useState<string | null>(initialRequestId);
   const [rejectionReason, setRejectionReason] = useState<string | null>(
     initialRejectionReason,
   );
@@ -229,11 +231,9 @@ export default function MakeAdminRequestForm({
   const hasText = reason.trim().length > 0;
   const reasonOk = reason.trim().length >= 10;
   const withdrawn =
-    status === "REJECTED" &&
-    rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
+    status === "REJECTED" && rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
   const revoked =
-    status === "REJECTED" &&
-    rejectionReason === ADMIN_REQUEST_REVOKED_REASON;
+    status === "REJECTED" && rejectionReason === ADMIN_REQUEST_REVOKED_REASON;
   const isShowcaseDemo =
     userRole === "USER" && isProtectedDemoAccount({ email: userEmail });
 
@@ -297,10 +297,7 @@ export default function MakeAdminRequestForm({
           </p>
           <RoleBadge role={userRole} />
         </div>
-        <RequestStatusBadge
-          status={status}
-          rejectionReason={rejectionReason}
-        />
+        <RequestStatusBadge status={status} rejectionReason={rejectionReason} />
       </div>
 
       {signupApproval ? (
@@ -323,9 +320,7 @@ export default function MakeAdminRequestForm({
             </p>
           ) : null}
           <AdminRequestReviewerAttribution
-            reviewer={
-              signupApproval.decisionActor ?? signupApproval.approver
-            }
+            reviewer={signupApproval.decisionActor ?? signupApproval.approver}
             prefix="Approved by"
             size={28}
             className="text-light-200"
@@ -336,7 +331,7 @@ export default function MakeAdminRequestForm({
 
       {isShowcaseDemo ? (
         <p className="flex items-start gap-2 text-xs leading-snug text-light-200 sm:text-sm">
-          <Info className="mt-0.5 size-3.5 shrink-0 sm:size-4" aria-hidden />
+          <Info className="size-3.5 shrink-0 sm:size-4" aria-hidden />
           <span>
             Showcase account: you can submit or cancel requests for demo, but
             admins cannot approve a role change for this account.
@@ -351,9 +346,7 @@ export default function MakeAdminRequestForm({
             while it is still pending.
           </p>
           {submittedLabel ? (
-            <p className="text-amber-200/80">
-              Submitted on {submittedLabel}
-            </p>
+            <p className="text-amber-200/80">Submitted on {submittedLabel}</p>
           ) : null}
         </div>
       )}
@@ -365,10 +358,7 @@ export default function MakeAdminRequestForm({
           ) : rejectedQuote ? (
             <p>
               Based on your request{" "}
-              <span
-                className="font-medium text-red-100"
-                title={rejectedQuote}
-              >
+              <span className="font-medium text-red-100" title={rejectedQuote}>
                 &ldquo;{truncateQuote(rejectedQuote)}&rdquo;
               </span>
             </p>
@@ -383,9 +373,7 @@ export default function MakeAdminRequestForm({
             className="text-red-200/90"
           />
           {rejectionReason ? (
-            <p className="text-red-200/90">
-              Reason: {rejectionReason}
-            </p>
+            <p className="text-red-200/90">Reason: {rejectionReason}</p>
           ) : null}
           {(submittedLabel || reviewedLabel) && (
             <p className="text-red-200/80">
@@ -398,9 +386,7 @@ export default function MakeAdminRequestForm({
                 : null}
             </p>
           )}
-          <p className="text-red-200/80">
-            You may submit a new request below.
-          </p>
+          <p className="text-red-200/80">You may submit a new request below.</p>
         </div>
       )}
 
@@ -566,7 +552,10 @@ export default function MakeAdminRequestForm({
               key={label}
               className={`inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-dark-300/60 px-2.5 py-1.5 text-[11px] font-medium text-light-100 backdrop-blur-sm sm:text-xs ${glow}`}
             >
-              <Icon className="size-3.5 shrink-0 text-primary sm:size-4" aria-hidden />
+              <Icon
+                className="size-3.5 shrink-0 text-primary sm:size-4"
+                aria-hidden
+              />
               {label}
             </span>
           ))}

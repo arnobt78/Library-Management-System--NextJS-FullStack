@@ -7,14 +7,18 @@ import AdminDropdown from "@/components/AdminDropdown";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import MobileMenu from "@/components/MobileMenu";
 import RootHeaderShell from "@/components/RootHeaderShell";
+import NotificationBell from "@/components/NotificationBell";
+import { getUnreadNotificationCount } from "@/lib/notifications/inApp";
 
 interface HeaderProps {
   session: Session;
 }
 
 const Header = async ({ session }: HeaderProps) => {
+  const sessionUserId = session?.user?.id;
+
   // Fetch user data including role and profile info
-  const userData = session?.user?.id
+  const userData = sessionUserId
     ? await db
         .select({
           role: users.role,
@@ -24,12 +28,17 @@ const Header = async ({ session }: HeaderProps) => {
           universityCard: users.universityCard,
         })
         .from(users)
-        .where(eq(users.id, session.user.id))
+        .where(eq(users.id, sessionUserId))
         .limit(1)
         .then((res) => res[0])
     : null;
 
   const isAdmin = userData?.role === "ADMIN";
+
+  // SSR-seed the bell badge so it paints immediately (no client fetch flash).
+  const initialUnreadCount = sessionUserId
+    ? await getUnreadNotificationCount(sessionUserId)
+    : undefined;
 
   // RSC data + client RootHeaderShell (transparent at top, blur-sm when scrolled).
   return (
@@ -65,6 +74,16 @@ const Header = async ({ session }: HeaderProps) => {
           </li>
         )}
 
+        {/* In-app notification bell */}
+        {userData && (
+          <li>
+            <NotificationBell
+              variant="dark"
+              initialUnreadCount={initialUnreadCount}
+            />
+          </li>
+        )}
+
         {/* Profile dropdown with user image */}
         {userData && (
           <li>
@@ -81,7 +100,11 @@ const Header = async ({ session }: HeaderProps) => {
 
       {/* Mobile Menu - Visible only on mobile and sm screens */}
       {userData && (
-        <div className="md:hidden">
+        <div className="flex items-center gap-1 md:hidden">
+          <NotificationBell
+            variant="dark"
+            initialUnreadCount={initialUnreadCount}
+          />
           <MobileMenu
             fullName={userData.fullName}
             email={userData.email}

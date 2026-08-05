@@ -43,3 +43,18 @@ After Gate 1, Build Agent JS and Test Designer operate independently from `REQUI
 ## Session resume note (2026-08-03)
 
 No PENDING durable interrupt. New owner instructions map as follows: feature/extension → Stage 1 CR; bug with unchanged REQ → Stage 3; Wave 5 evidence collection → Stage 4 Prove/Verify without new product synthesis unless a gap requires Stage 3 code.
+
+## Session resume note (2026-08-04)
+
+Repo reconciled: HEAD `3552e44`, implementation tip `85ae1b3`, `main` == `origin/main`, no PENDING interrupt. Owner invoked Agile V core/pipeline resume without naming a product ask. **Human-Decision:** pick Wave 5 evidence (BL-0017), a concrete REQ-0033 polish list (BL-0018 / CR-0002), a new Stage 1 CR, or another named scope before any coding.
+
+## CR-0003 Backlog — Admin Suite Parity Expansion
+
+| BL ID | Story | REQ | Priority | Planned wave | Status |
+|---|---|---|---|---|---|
+| BL-0019 | Dual-surface Support Tickets with reply thread, admin triage, and email/notification fan-out | REQ-0034 | High | CR-0003 Wave 2 | Implemented; local Prove PASS; manual two-tab smoke PASS |
+| BL-0020 | Book review moderation gate (PENDING/APPROVED/REJECTED) with instant author self-view and "My Reviews" profile tab | REQ-0035 | High | CR-0003 Wave 3 | Implemented; local Prove PASS |
+| BL-0021 | Activity History audit log (FIFO-50) and in-app notification bell across root + admin headers | REQ-0036 | Medium | CR-0003 Wave 1 | Implemented; local Prove PASS |
+| BL-0022 | KPI `StatCard` rollout on every admin page, shared `data-table`/`SearchInput`/`MultiSelectFilter` primitives, Library Overview rename, existing-list retrofit | REQ-0037 | Medium | CR-0003 Waves 4–5 | Implemented; local Prove PASS |
+
+**CR-0003 status (2026-08-05):** all 4 backlog items implemented; regression Prove PASS (typecheck/lint/110 tests/build/audit + manual multi-tab smoke). Nonlocal/production evidence (deployed email receipt, browser a11y/CWV, load) intentionally not attempted this session — same evidence class already blocking the pre-existing C2 EvalGate (`ER-C2-FINAL-CORRECTIVE-5`). Nothing committed; awaiting owner review.

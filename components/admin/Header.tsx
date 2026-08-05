@@ -1,6 +1,13 @@
 import { Session } from "next-auth";
+import NotificationBell from "@/components/NotificationBell";
 
-const Header = ({ session }: { session: Session }) => {
+interface AdminHeaderProps {
+  session: Session;
+  /** SSR-seeded unread count — paints the badge on first byte, no fetch flash. */
+  initialUnreadCount?: number;
+}
+
+const Header = ({ session, initialUnreadCount }: AdminHeaderProps) => {
   return (
     <header className="admin-header">
       <div className="space-y-1 sm:space-y-2">
@@ -12,7 +19,7 @@ const Header = ({ session }: { session: Session }) => {
         </p>
       </div>
 
-      {/*<p>Search</p>*/}
+      <NotificationBell variant="light" initialUnreadCount={initialUnreadCount} />
     </header>
   );
 };

@@ -17,9 +17,11 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { SearchInput } from "@/components/ui/SearchInput";
+import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import { borrowStatusFilterOptions } from "@/lib/ui/filterOptionStyles";
 import BookCover from "@/components/BookCover";
 import BorrowSkeleton from "@/components/skeletons/BorrowSkeleton";
@@ -31,14 +33,17 @@ import {
 } from "@/hooks/useMutations";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 import {
-  Search,
   FilterX,
   CheckCircle,
   XCircle,
   Undo2,
   Loader2,
+  Hourglass,
+  BookOpen,
+  RotateCcw,
 } from "lucide-react";
 import type { BorrowStatus } from "@/lib/services/borrows";
+import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 
 interface AdminBookRequestsListProps {
   /**
@@ -263,8 +268,23 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     );
   }
 
+  // KPI counts for the top-of-page StatCard row (Wave 4 rollout)
+  const pendingCount = requests.filter((r) => r.status === "PENDING").length;
+  const borrowedCount = requests.filter((r) => r.status === "BORROWED").length;
+  const returnedCount = requests.filter((r) => r.status === "RETURNED").length;
+  const cancelledCount = requests.filter((r) => r.status === "CANCELLED").length;
+
   return (
     <section className="admin-panel">
+      {/* KPI Statistics Cards */}
+      <StatCardGrid className="mb-4 sm:mb-6">
+        <StatCard title="Total Requests" value={requests.length} icon={BookOpen} hue="blue" />
+        <StatCard title="Pending" value={pendingCount} icon={Hourglass} hue="amber" />
+        <StatCard title="Borrowed" value={borrowedCount} icon={CheckCircle} hue="violet" />
+        <StatCard title="Returned" value={returnedCount} icon={RotateCcw} hue="emerald" />
+        <StatCard title="Cancelled" value={cancelledCount} icon={XCircle} hue="rose" />
+      </StatCardGrid>
+
       {/* Success/Error Messages */}
       {successMessage && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
@@ -326,26 +346,14 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
           Borrow Requests ({requests.length})
         </h2>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          {/* Search Input */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const trimmedSearch = localSearch.trim();
-              updateSearchParams({ search: trimmedSearch });
-            }}
+          {/* Instant debounced search — this component already debounces the URL push itself (see effect above), so debounceMs=0 avoids stacking two delays */}
+          <SearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            placeholder="Search by book, author, user..."
+            debounceMs={0}
             className="flex-1 sm:min-w-[250px]"
-          >
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search by book, author, user..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
-              />
-            </div>
-          </form>
+          />
           <FilterSelect
             label="Status"
             variant="light"
@@ -356,6 +364,32 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
           />
         </div>
       </div>
+
+      <DismissibleFilterChips
+        variant="light"
+        groups={
+          currentStatus !== "all"
+            ? [
+                {
+                  label: "Status",
+                  values: [currentStatus],
+                  onClear: () => handleFilterChange("status", "all"),
+                  renderBadge: (value: string) => {
+                    const opt = borrowStatusFilterOptions().find(
+                      (o) => o.value === value,
+                    );
+                    return (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                        {opt?.label ?? value}
+                      </span>
+                    );
+                  },
+                },
+              ]
+            : []
+        }
+        onReset={clearFilters}
+      />
 
       <div className="mt-4 w-full overflow-hidden sm:mt-7">
         <div className="space-y-3 sm:space-y-4">
@@ -397,9 +431,13 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                   <div className="flex-1">
                     <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                       <div>
-                        <h3 className="text-base font-semibold sm:text-lg">
+                        <Link
+                          prefetch={false}
+                          href={`/admin/books/${request.bookId}/edit`}
+                          className="text-base font-semibold text-blue-700 hover:underline sm:text-lg"
+                        >
                           {request.bookTitle}
-                        </h3>
+                        </Link>
                         <p className="text-gray-600">by {request.bookAuthor}</p>
                         <p className="text-sm text-gray-500">
                           {request.bookGenre}
@@ -408,7 +446,13 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
 
                       <div>
                         <h4 className="font-medium">Borrower Details</h4>
-                        <p className="text-sm">{request.userName}</p>
+                        <Link
+                          prefetch={false}
+                          href={`/admin/users/${request.userId}`}
+                          className="text-sm text-blue-700 hover:underline"
+                        >
+                          {request.userName}
+                        </Link>
                         <p className="text-sm text-gray-600">
                           {request.userEmail}
                         </p>

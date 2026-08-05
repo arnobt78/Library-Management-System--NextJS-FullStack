@@ -19,8 +19,13 @@ export type AdminSidebarIconKey =
   | "bookmark"
   | "userPlus"
   | "chart"
-  | "wand";
+  | "wand"
+  | "ticket"
+  | "star"
+  | "history";
 
+// Parent: CR-0003 / REQ-0034 — "Home" renamed to "Library Overview"; Support
+// Tickets / Book Reviews / Activity History added for the admin suite expansion.
 export const adminSideBarLinks: {
   icon: AdminSidebarIconKey;
   route: string;
@@ -29,7 +34,7 @@ export const adminSideBarLinks: {
   {
     icon: "home",
     route: "/admin",
-    text: "Home",
+    text: "Library Overview",
   },
   {
     icon: "users",
@@ -52,9 +57,24 @@ export const adminSideBarLinks: {
     text: "Sign-up Requests",
   },
   {
+    icon: "ticket",
+    route: "/admin/support-tickets",
+    text: "Support Tickets",
+  },
+  {
+    icon: "star",
+    route: "/admin/book-reviews",
+    text: "Book Reviews",
+  },
+  {
     icon: "chart",
     route: "/admin/business-insights",
     text: "Analytics",
+  },
+  {
+    icon: "history",
+    route: "/admin/activity-history",
+    text: "Activity History",
   },
   {
     icon: "wand",

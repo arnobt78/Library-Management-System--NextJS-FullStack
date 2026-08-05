@@ -14,9 +14,18 @@
  */
 
 import React from "react";
+import {
+  BookMarked,
+  BookOpenCheck,
+  ShieldCheck,
+  Star,
+  Ticket,
+  Users,
+} from "lucide-react";
 import AdminStatsSkeleton from "@/components/skeletons/AdminStatsSkeleton";
-import { useAdminStats } from "@/hooks/useQueries";
+import { useAdminStats, useOpenTicketCount, usePendingReviewCount } from "@/hooks/useQueries";
 import type { AdminStats } from "@/lib/services/admin";
+import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import Link from "next/link";
 
 interface AdminDashboardContentProps {
@@ -56,6 +65,10 @@ interface AdminDashboardContentProps {
     booksWithISBN?: number;
     booksWithPublisher?: number;
     averagePageCount?: number;
+    /** Cross-domain KPI counts (Wave 4 rollout) */
+    reservationsWaiting?: number;
+    openTicketCount?: number;
+    pendingReviewCount?: number;
   };
   /**
    * Success message from URL params
@@ -74,6 +87,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     isError,
     error,
   } = useAdminStats(initialStats);
+  const { data: openTicketCount, isLoading: ticketCountLoading } =
+    useOpenTicketCount(initialStats?.openTicketCount);
+  const { data: pendingReviewCount, isLoading: reviewCountLoading } =
+    usePendingReviewCount(initialStats?.pendingReviewCount);
 
   // Show skeleton while loading (only if no initial data)
   if (isLoading && !initialStats) {
@@ -143,6 +160,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   const booksWithISBN = (statsData.booksWithISBN as number) || 0;
   const booksWithPublisher = (statsData.booksWithPublisher as number) || 0;
   const averagePageCount = (statsData.averagePageCount as number) || 0;
+  const reservationsWaiting = (statsData.reservationsWaiting as number) || 0;
 
   // Extract arrays with proper type assertions
   type RecentBorrow = {
@@ -213,66 +231,65 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         </div>
       )}
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="stat">
-          <div className="stat-info">
-            <h3 className="stat-label">Total Users</h3>
-            <p className="text-xl font-semibold text-blue-600 sm:text-xl">
-              {totalUsers}
-            </p>
-          </div>
-          <div className="text-sm text-gray-500">
-            {approvedUsers} approved, {pendingUsers} pending
-          </div>
-        </div>
-
-        <div className="stat">
-          <div className="stat-info">
-            <h3 className="stat-label">Total Books</h3>
-            <p className="text-xl font-semibold text-green-600 sm:text-xl">
-              {totalBooks}
-            </p>
-          </div>
-          <div className="text-sm text-gray-500">
-            {totalCopies} total copies
-          </div>
-        </div>
-
-        <div className="stat">
-          <div className="stat-info">
-            <h3 className="stat-label">Active Borrows</h3>
-            <p className="text-xl font-semibold text-purple-600 sm:text-xl">
-              {activeBorrows}
-            </p>
-          </div>
-          <div className="text-sm text-gray-500">
-            {pendingBorrows} pending, {returnedBooks} returned
-          </div>
-        </div>
-
-        <div className="stat">
-          <div className="stat-info">
-            <h3 className="stat-label">Admins</h3>
-            <p className="text-xl font-semibold text-orange-600 sm:text-xl">
-              {adminUsers}
-            </p>
-          </div>
-          <div className="text-sm text-gray-500">System administrators</div>
-        </div>
-
-        <div className="stat">
-          <div className="stat-info">
-            <h3 className="stat-label">Book Status</h3>
-            <p className="text-xl font-semibold text-indigo-600 sm:text-xl">
-              {activeBooks}
-            </p>
-          </div>
-          <div className="text-sm text-gray-500">
-            {activeBooks} active, {inactiveBooks} inactive
-          </div>
-        </div>
-      </div>
+      {/* KPI Statistics Cards — shared StatCard grid (Wave 4 rollout) */}
+      <StatCardGrid>
+        <StatCard
+          title="Total Users"
+          value={totalUsers}
+          icon={Users}
+          hue="blue"
+          badges={[
+            { label: `${approvedUsers} approved`, hue: "emerald" },
+            { label: `${pendingUsers} pending`, hue: "amber" },
+          ]}
+        />
+        <StatCard
+          title="Total Books"
+          value={totalBooks}
+          icon={BookMarked}
+          hue="emerald"
+          badges={[{ label: `${totalCopies} copies`, hue: "slate" }]}
+        />
+        <StatCard
+          title="Active Borrows"
+          value={activeBorrows}
+          icon={BookOpenCheck}
+          hue="violet"
+          badges={[
+            { label: `${pendingBorrows} pending`, hue: "amber" },
+            { label: `${returnedBooks} returned`, hue: "emerald" },
+          ]}
+        />
+        <StatCard
+          title="Admins"
+          value={adminUsers}
+          icon={ShieldCheck}
+          hue="slate"
+          badges={[
+            { label: `${activeBooks} active books`, hue: "slate" },
+            { label: `${inactiveBooks} inactive`, hue: "rose" },
+          ]}
+        />
+        <StatCard
+          title="Open Tickets"
+          value={openTicketCount ?? initialStats?.openTicketCount ?? 0}
+          valueLoading={ticketCountLoading && openTicketCount === undefined}
+          icon={Ticket}
+          hue="rose"
+          badges={
+            reservationsWaiting > 0
+              ? [{ label: `${reservationsWaiting} reservations waiting`, hue: "blue" }]
+              : undefined
+          }
+        />
+        <StatCard
+          title="Pending Reviews"
+          value={pendingReviewCount ?? initialStats?.pendingReviewCount ?? 0}
+          valueLoading={reviewCountLoading && pendingReviewCount === undefined}
+          icon={Star}
+          hue="amber"
+        />
+      </StatCardGrid>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">

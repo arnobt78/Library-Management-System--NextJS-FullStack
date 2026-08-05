@@ -35,6 +35,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import {
   userStatusFilterOptions,
   userRoleFilterOptions,
@@ -72,8 +73,16 @@ import {
   Loader2,
   CalendarPlus,
   CalendarCheck,
+  Users as UsersIcon,
+  UserCheck,
+  Hourglass,
+  UserCog,
 } from "lucide-react";
 import { isProtectedDemoAccount } from "@/constants";
+import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/ui/data-table";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 
 const DECISION_REASON_MAX = 120;
 
@@ -486,9 +495,186 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     );
   }
 
+  // KPI counts for the top-of-page StatCard row (Wave 4 rollout)
+  const approvedUserCount = users.filter((u) => u.status === "APPROVED").length;
+  const pendingUserCount = users.filter((u) => u.status === "PENDING").length;
+  const rejectedUserCount = users.filter((u) => u.status === "REJECTED").length;
+  const adminUserCount = users.filter((u) => u.role === "ADMIN").length;
+
+  // Table column defs — same cell content/handlers as the previous plain <table>,
+  // now with asc/desc sorting + pagination via the shared DataTable (Wave 5 retrofit).
+  const userColumns: ColumnDef<User>[] = [
+    {
+      accessorKey: "fullName",
+      header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
+      cell: ({ row }) => (
+        <Link
+          prefetch={false}
+          href={`/admin/users/${row.original.id}`}
+          className="font-medium text-blue-700 hover:underline"
+        >
+          {row.original.fullName}
+        </Link>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: ({ column }) => <SortableHeader column={column}>Email</SortableHeader>,
+      cell: ({ row }) => row.original.email,
+    },
+    {
+      accessorKey: "universityId",
+      header: ({ column }) => <SortableHeader column={column}>University ID</SortableHeader>,
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => (
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
+            row.original.role === "ADMIN"
+              ? "bg-purple-100 text-purple-800"
+              : "bg-blue-100 text-blue-800"
+          }`}
+        >
+          {row.original.role}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+      cell: ({ row }) => (
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
+            row.original.status === "APPROVED"
+              ? "bg-green-100 text-green-800"
+              : row.original.status === "PENDING"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+          }`}
+        >
+          {row.original.status}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "createdAt",
+      header: ({ column }) => <SortableHeader column={column}>Joined</SortableHeader>,
+      cell: ({ row }) =>
+        row.original.createdAt
+          ? new Date(row.original.createdAt).toLocaleDateString()
+          : "N/A",
+      sortingFn: (a, b) =>
+        (a.original.createdAt ? new Date(a.original.createdAt).getTime() : 0) -
+        (b.original.createdAt ? new Date(b.original.createdAt).getTime() : 0),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+            {isProtectedDemoAccount(user) ? (
+              <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
+                <Lock className="size-3.5 shrink-0" aria-hidden />
+                Demo account
+              </span>
+            ) : user.status === "PENDING" ? (
+              <>
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => handleUpdateUserStatus(user.id, "APPROVED")}
+                  disabled={updateUserStatusMutation.isPending}
+                >
+                  <CheckCircle className="size-4" />
+                  Approve Student
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => handleUpdateUserStatus(user.id, "REJECTED")}
+                  disabled={updateUserStatusMutation.isPending}
+                >
+                  <XCircle className="size-4" />
+                  Reject
+                </Button>
+              </>
+            ) : (
+              <>
+                {user.role === "ADMIN" &&
+                  user.id !== (currentUserId || session?.user?.id) && (
+                    <Button
+                      size="sm"
+                      className="bg-red-600 text-white hover:bg-red-700"
+                      onClick={() => openRemoveAdminConfirm(user)}
+                      disabled={removeAdminPrivilegesMutation.isPending}
+                    >
+                      <ShieldOff className="size-4" />
+                      Remove Admin
+                    </Button>
+                  )}
+                {user.role === "USER" && user.status === "APPROVED" && (
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 text-white hover:bg-purple-700"
+                    onClick={() => openMakeAdminConfirm(user)}
+                    disabled={updateUserRoleMutation.isPending}
+                  >
+                    <Shield className="size-4" />
+                    Make Admin
+                  </Button>
+                )}
+                {user.role === "ADMIN" &&
+                  user.id === (currentUserId || session?.user?.id) && (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
+                      <Shield className="size-3.5 shrink-0" aria-hidden />
+                      You
+                    </span>
+                  )}
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <>
     <section className="admin-panel">
+      {/* KPI Statistics Cards */}
+      <StatCardGrid className="mb-4 sm:mb-6">
+        <StatCard title="Total Users" value={users.length} icon={UsersIcon} hue="blue" />
+        <StatCard
+          title="Approved"
+          value={approvedUserCount}
+          icon={UserCheck}
+          hue="emerald"
+        />
+        <StatCard
+          title="Pending"
+          value={pendingUserCount}
+          icon={Hourglass}
+          hue="amber"
+        />
+        <StatCard
+          title="Rejected"
+          value={rejectedUserCount}
+          icon={XCircle}
+          hue="rose"
+        />
+        <StatCard title="Admins" value={adminUserCount} icon={UserCog} hue="violet" />
+        <StatCard
+          title="Make Admin Requests"
+          value={adminRequests.length}
+          icon={Shield}
+          hue="slate"
+        />
+      </StatCardGrid>
+
       {/* Success/Error Messages */}
       {successMessage && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
@@ -590,6 +776,51 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           </div>
         </div>
       </div>
+
+      <DismissibleFilterChips
+        variant="light"
+        groups={[
+          ...(currentStatus !== "all"
+            ? [
+                {
+                  label: "Status",
+                  values: [currentStatus],
+                  onClear: () => handleFilterChange("status", "all"),
+                  renderBadge: (value: string) => {
+                    const opt = userStatusFilterOptions().find(
+                      (o) => o.value === value,
+                    );
+                    return (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        {opt?.label ?? value}
+                      </span>
+                    );
+                  },
+                },
+              ]
+            : []),
+          ...(currentRole !== "all"
+            ? [
+                {
+                  label: "Role",
+                  values: [currentRole],
+                  onClear: () => handleFilterChange("role", "all"),
+                  renderBadge: (value: string) => {
+                    const opt = userRoleFilterOptions().find(
+                      (o) => o.value === value,
+                    );
+                    return (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                        {opt?.label ?? value}
+                      </span>
+                    );
+                  },
+                },
+              ]
+            : []),
+        ]}
+        onReset={clearFilters}
+      />
 
       {/* Admin Requests Section - Only shows PENDING requests */}
       {adminRequests.length > 0 && (
@@ -794,199 +1025,24 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       )}
 
       <div className="mt-4 w-full overflow-hidden sm:mt-7">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-200">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
-                  Name
-                </th>
-                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
-                  Email
-                </th>
-                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
-                  University ID
-                </th>
-                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
-                  Role
-                </th>
-                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
-                  Status
-                </th>
-                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
-                  Joined
-                </th>
-                <th className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="border border-gray-200 px-2 py-6 sm:px-4 sm:py-8"
-                  >
-                    <div className="flex flex-col items-center justify-center text-center">
-                      <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
-                        No users found matching your criteria.
-                      </p>
-                      {hasActiveFilters && (
-                        <Button
-                          variant="outline"
-                          onClick={clearFilters}
-                          className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
-                        >
-                          <FilterX className="size-4" />
-                          Clear All Filters
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
-                      <Link
-                        prefetch={false}
-                        href={`/admin/users/${user.id}`}
-                        className="font-medium text-blue-700 hover:underline"
-                      >
-                        {user.fullName}
-                      </Link>
-                    </td>
-                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
-                      {user.email}
-                    </td>
-                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
-                      {user.universityId}
-                    </td>
-                    <td className="border border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
-                          user.role === "ADMIN"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="border border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
-                          user.status === "APPROVED"
-                            ? "bg-green-100 text-green-800"
-                            : user.status === "PENDING"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="border border-gray-200 px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm">
-                      {user.createdAt
-                        ? new Date(user.createdAt).toLocaleDateString()
-                        : "N/A"}
-                    </td>
-                    <td className="border border-gray-200 px-2 py-1.5 sm:px-4 sm:py-2">
-                      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                        {isProtectedDemoAccount(user) ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
-                            <Lock className="size-3.5 shrink-0" aria-hidden />
-                            Demo account
-                          </span>
-                        ) : (
-                          <>
-                            {/* Pending signup: approve/reject student first — never Make Admin. */}
-                            {user.status === "PENDING" ? (
-                              <>
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
-                                  onClick={() =>
-                                    handleUpdateUserStatus(user.id, "APPROVED")
-                                  }
-                                  disabled={updateUserStatusMutation.isPending}
-                                >
-                                  <CheckCircle className="size-4" />
-                                  Approve Student
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="bg-red-600 hover:bg-red-700"
-                                  onClick={() =>
-                                    handleUpdateUserStatus(user.id, "REJECTED")
-                                  }
-                                  disabled={updateUserStatusMutation.isPending}
-                                >
-                                  <XCircle className="size-4" />
-                                  Reject
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                {/* Approved admins (not self): demote */}
-                                {user.role === "ADMIN" &&
-                                  user.id !==
-                                    (currentUserId || session?.user?.id) && (
-                                    <Button
-                                      size="sm"
-                                      className="bg-red-600 text-white hover:bg-red-700"
-                                      onClick={() =>
-                                        openRemoveAdminConfirm(user)
-                                      }
-                                      disabled={
-                                        removeAdminPrivilegesMutation.isPending
-                                      }
-                                    >
-                                      <ShieldOff className="size-4" />
-                                      Remove Admin
-                                    </Button>
-                                  )}
-
-                                {/* Approved students: promote */}
-                                {user.role === "USER" &&
-                                  user.status === "APPROVED" && (
-                                    <Button
-                                      size="sm"
-                                      className="bg-purple-600 text-white hover:bg-purple-700"
-                                      onClick={() =>
-                                        openMakeAdminConfirm(user)
-                                      }
-                                      disabled={
-                                        updateUserRoleMutation.isPending
-                                      }
-                                    >
-                                      <Shield className="size-4" />
-                                      Make Admin
-                                    </Button>
-                                  )}
-
-                                {/* Self-admin row: no demote (avoids lockout) */}
-                                {user.role === "ADMIN" &&
-                                  user.id ===
-                                    (currentUserId || session?.user?.id) && (
-                                    <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
-                                      <Shield className="size-3.5 shrink-0" aria-hidden />
-                                      You
-                                    </span>
-                                  )}
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={userColumns}
+          data={users}
+          emptyMessage="No users found matching your criteria."
+          initialPageSize={20}
+        />
+        {users.length === 0 && hasActiveFilters && (
+          <div className="mt-3 flex justify-center">
+            <Button
+              variant="outline"
+              onClick={clearFilters}
+              className="border-gray-300 text-dark-400 hover:bg-gray-100"
+            >
+              <FilterX className="size-4" />
+              Clear All Filters
+            </Button>
+          </div>
+        )}
       </div>
     </section>
 

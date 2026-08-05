@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002 | Updated: 2026-08-03 | Status: C2 Stage 4; corrective local Prove passed; Gate 2 blocked
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-05 | Status: C2 Stage 4; CR-0003 local Prove passed; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -157,6 +157,15 @@ Independent Verify records all 27 C1-approved cases PASS. C2 implements versione
 The 2026-08-02 correction added retry-safe READY delivery: workers claim rows with `SKIP LOCKED`; PostgreSQL time and in-transaction payload reads remove host-clock and claim/delete windows; a five-minute dispatch lease and 10-second provider timeout prevent stale transition races without holding database locks across network calls; delivery concurrency is capped at five; the stable Resend key, receipts/retries, eight-attempt dead-lettering, exact/scheduled expiry, `after()` dispatch and authenticated cron provide recovery. Server auth Zod, rolling upload authorization, bounded profile inputs, selective prefetch/server shells and sanitized review errors passed final review. All browser mutations and server writes share the typed mutation/RSC registries, including user-360 dependencies. Cross-device push remains excluded; deployed provider/browser/load/alert/SLO/restore evidence is absent. Redis remains rate limiting only.
 
 Accepted implementation commit: `d9b9fd9`. Agile V cycle C1 is complete and frozen under `.agile-v/cycles/C1/`.
+
+## CR-0003 Admin suite + ticket polish (2026-08-05)
+
+- Domains: Support Tickets (user `/support-tickets` + admin `/admin/support-tickets`), book-review moderation, Activity History (`/admin/activity-history`), notification bell (root + admin).
+- Schema: migration `0014_admin_suite_expansion.sql` (`support_tickets`, replies, `notifications`, `activity_logs`, review status fields).
+- Freshness: `ticket.write` in `queryInvalidation` + RSC paths; after invalidate, `lib/utils/patchTicketCaches.ts` densifies lists/detail/KPIs; cross-tab via BroadcastChannel; back uses `useBackWithRefresh` without a second wipe.
+- UI hubs: `TicketDetailKpiGrid`, `TicketSectionHeader`, `TicketDateMeta`, `TicketActivityTimeline`, `PersonAttribution` stack, `LIGHT_GLASS_CTA`, `CARD_PAD` / `.admin-panel` = `p-2 sm:p-4`, Tailwind `content` includes `./lib/**`.
+- Security: server actors; Zod on ticket/review bodies; assign-to must be ADMIN.
+- Prove: typecheck, lint, 110 tests, Next 16.2.12 build. Gate 2 still needs nonlocal production evidence.
 
 ## Known boundaries
 

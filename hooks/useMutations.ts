@@ -44,6 +44,7 @@ import {
   createReview,
   updateReview,
   deleteReview,
+  moderateReview,
   type CreateReviewInput,
   type UpdateReviewInput,
 } from "@/lib/services/reviews";
@@ -56,10 +57,33 @@ import {
   updateTrendingBooks,
   refreshRecommendationCache,
 } from "@/lib/services/admin";
+import {
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+  type NotificationItem,
+} from "@/lib/services/notifications";
+import {
+  createSupportTicket,
+  updateSupportTicket,
+  deleteSupportTicket,
+  createSupportTicketReply,
+  type CreateTicketInput,
+  type UpdateTicketInput,
+} from "@/lib/services/supportTickets";
 import { resolveActionBookTitle, showToast } from "@/lib/toast";
 import {
   invalidateMutation,
+  invalidateNotificationsQueries,
 } from "@/lib/utils/queryInvalidation";
+import {
+  findCachedTicketStatus,
+  patchTicketCachesOnCreate,
+  patchTicketCachesOnDelete,
+  patchTicketCachesOnReply,
+  patchTicketCachesOnUpdate,
+  snapshotTicketListBaselines,
+} from "@/lib/utils/patchTicketCaches";
 import {
   applyOptimisticSignupDecision,
   rollbackOptimisticSignupDecision,
@@ -1325,6 +1349,56 @@ export const useDeleteReview = () => {
 };
 
 /**
+ * Admin approve/reject decision on a book review. Patches the admin queue
+ * list + detail cache instantly, then invalidates review.write so the
+ * public book page (viewer's PENDING → hidden/visible) and My Reviews stay
+ * in sync across every open tab. Parent: CR-0003 / REQ-0034
+ */
+export const useModerateReview = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      reviewId,
+      status,
+    }: {
+      reviewId: string;
+      status: "APPROVED" | "REJECTED";
+      bookTitle?: string;
+    }) => moderateReview(reviewId, status),
+    onSuccess: (data, variables) => {
+      queryClient.setQueriesData<AdminBookReviewItem[]>(
+        { queryKey: queryKeys.reviews.adminRoot },
+        (previous) =>
+          previous?.map((r) =>
+            r.id === variables.reviewId
+              ? { ...r, status: data.status, reviewedAt: data.reviewedAt }
+              : r,
+          ),
+      );
+      queryClient.setQueryData<AdminBookReviewItem>(
+        queryKeys.reviews.adminDetail(variables.reviewId),
+        (previous) =>
+          previous
+            ? { ...previous, status: data.status, reviewedAt: data.reviewedAt }
+            : previous,
+      );
+      invalidateMutation(queryClient, "review.write");
+      showToast.success(
+        variables.status === "APPROVED" ? "Review approved" : "Review rejected",
+        `The review for "${resolveActionBookTitle(variables.bookTitle)}" was ${variables.status.toLowerCase()}.`,
+      );
+    },
+    onError: (error: Error) => {
+      showToast.error(
+        "Moderation failed",
+        error.message || "Unable to update review status. Please try again.",
+      );
+    },
+  });
+};
+
+/**
  * Hook for a signed-in user to submit an admin-access request.
  * Invalidates admin-request.write and shows dynamic success/error toasts.
  */
@@ -1860,6 +1934,311 @@ export const useRefreshRecommendationCache = () => {
         error.message ||
           "Unable to refresh recommendation cache. Please try again."
       );
+    },
+  });
+};
+
+// Notifications (bell) mutations
+/**
+ * Marks a single notification as read. Optimistically patches every cached
+ * notifications list + decrements the unread badge count immediately.
+ */
+export const useMarkNotificationRead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      await markNotificationRead(id);
+      return { id };
+    },
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.root });
+      const previousLists = queryClient.getQueriesData<NotificationItem[]>({
+        queryKey: queryKeys.notifications.root,
+      });
+      const previousCount = queryClient.getQueryData<number>(
+        queryKeys.notifications.unreadCount,
+      );
+
+      let wasUnread = false;
+      queryClient.setQueriesData<NotificationItem[]>(
+        { queryKey: queryKeys.notifications.root },
+        (old) =>
+          old?.map((n) => {
+            if (n.id !== id) return n;
+            wasUnread = !n.isRead;
+            return { ...n, isRead: true, readAt: new Date().toISOString() };
+          }),
+      );
+      if (wasUnread) {
+        queryClient.setQueryData<number>(
+          queryKeys.notifications.unreadCount,
+          (old) => Math.max(0, (old ?? 1) - 1),
+        );
+      }
+
+      return { previousLists, previousCount };
+    },
+    onError: (_error, _variables, context) => {
+      context?.previousLists?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+      if (context?.previousCount !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.notifications.unreadCount,
+          context.previousCount,
+        );
+      }
+    },
+    onSuccess: () => {
+      invalidateNotificationsQueries(queryClient);
+    },
+  });
+};
+
+/**
+ * Marks every notification for the signed-in user as read ("Mark all read").
+ */
+export const useMarkAllNotificationsRead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      await markAllNotificationsRead();
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.root });
+      const previousLists = queryClient.getQueriesData<NotificationItem[]>({
+        queryKey: queryKeys.notifications.root,
+      });
+      const previousCount = queryClient.getQueryData<number>(
+        queryKeys.notifications.unreadCount,
+      );
+
+      queryClient.setQueriesData<NotificationItem[]>(
+        { queryKey: queryKeys.notifications.root },
+        (old) =>
+          old?.map((n) =>
+            n.isRead ? n : { ...n, isRead: true, readAt: new Date().toISOString() },
+          ),
+      );
+      queryClient.setQueryData<number>(queryKeys.notifications.unreadCount, 0);
+
+      return { previousLists, previousCount };
+    },
+    onError: (error: Error, _variables, context) => {
+      context?.previousLists?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+      if (context?.previousCount !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.notifications.unreadCount,
+          context.previousCount,
+        );
+      }
+      showToast.error(
+        "Update Failed",
+        error.message || "Unable to mark all notifications as read.",
+      );
+    },
+    onSuccess: () => {
+      invalidateNotificationsQueries(queryClient);
+    },
+  });
+};
+
+// Support Ticket mutations
+/** Creates a ticket (APPROVED actor only — enforced server-side). */
+export const useCreateSupportTicket = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateTicketInput) => createSupportTicket(input),
+    onSuccess: async (ticket) => {
+      // Snapshot BEFORE invalidate — removeQueries would otherwise leave densify
+      // with only the new row and sibling tickets flash in after refetch.
+      const baselines = snapshotTicketListBaselines(queryClient);
+      await invalidateMutation(queryClient, "ticket.write");
+      patchTicketCachesOnCreate(queryClient, ticket, baselines);
+      showToast.success(
+        "Ticket Submitted",
+        "Your support ticket has been submitted. We'll get back to you soon.",
+      );
+    },
+    onError: (error: Error) => {
+      showToast.error(
+        "Submission Failed",
+        error.message || "Unable to submit your ticket. Please try again.",
+      );
+    },
+  });
+};
+
+/**
+ * Updates a ticket (content, status/priority/assignment/notes — server enforces
+ * who may change which fields). Densifies detail + list rows before invalidate
+ * so badges/KPIs update instantly.
+ */
+export const useUpdateSupportTicket = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      ticketId,
+      ...input
+    }: { ticketId: string } & UpdateTicketInput) =>
+      updateSupportTicket(ticketId, input),
+    onMutate: async ({ ticketId, ...input }) => {
+      const key = queryKeys.tickets.detail(ticketId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<SupportTicketDetail>(key);
+      if (previous) {
+        queryClient.setQueryData<SupportTicketDetail>(key, {
+          ...previous,
+          ...input,
+        });
+      }
+      return { previous, key, previousStatus: previous?.status };
+    },
+    onSuccess: async (data, _variables, context) => {
+      const previousStatus =
+        context?.previousStatus ?? findCachedTicketStatus(queryClient, data.id);
+      const baselines = snapshotTicketListBaselines(queryClient);
+      await invalidateMutation(queryClient, "ticket.write");
+      patchTicketCachesOnUpdate(queryClient, data, previousStatus, baselines);
+      showToast.success("Ticket Updated", "The ticket has been updated.");
+    },
+    onError: (error: Error, _variables, context) => {
+      if (context?.previous && context.key) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+      showToast.error(
+        "Update Failed",
+        error.message || "Unable to update the ticket. Please try again.",
+      );
+    },
+  });
+};
+
+/** Deletes a ticket (admin any time; creator while OPEN or IN_PROGRESS). */
+export const useDeleteSupportTicket = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ticketId }: { ticketId: string }) => {
+      const previousStatus = findCachedTicketStatus(queryClient, ticketId);
+      const detail = queryClient.getQueryData<SupportTicketDetail>(
+        queryKeys.tickets.detail(ticketId),
+      );
+      await deleteSupportTicket(ticketId);
+      return { ticketId, previousStatus, userId: detail?.userId ?? null };
+    },
+    onSuccess: async ({ ticketId, previousStatus, userId }) => {
+      const baselines = snapshotTicketListBaselines(queryClient);
+      await invalidateMutation(queryClient, "ticket.write");
+      patchTicketCachesOnDelete(
+        queryClient,
+        ticketId,
+        previousStatus,
+        userId,
+        baselines,
+      );
+      showToast.success("Ticket Deleted", "The ticket has been deleted.");
+    },
+    onError: (error: Error) => {
+      showToast.error(
+        "Deletion Failed",
+        error.message || "Unable to delete the ticket. Please try again.",
+      );
+    },
+  });
+};
+
+/** Posts a reply and densifies the thread + list replyCount after invalidate. */
+export const useCreateSupportTicketReply = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ticketId, body }: { ticketId: string; body: string }) =>
+      createSupportTicketReply(ticketId, body),
+    onSuccess: async (replies, variables) => {
+      const detail = queryClient.getQueryData<SupportTicketDetail>(
+        queryKeys.tickets.detail(variables.ticketId),
+      );
+      const baselines = snapshotTicketListBaselines(queryClient);
+      await invalidateMutation(queryClient, "ticket.write");
+      patchTicketCachesOnReply(
+        queryClient,
+        variables.ticketId,
+        replies,
+        detail?.userId ?? null,
+        baselines,
+      );
+    },
+    onError: (error: Error) => {
+      showToast.error(
+        "Reply Failed",
+        error.message || "Unable to send your reply. Please try again.",
+      );
+    },
+  });
+};
+
+/**
+ * Removes a notification from the bell list.
+ */
+export const useDeleteNotification = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      await deleteNotification(id);
+      return { id };
+    },
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.root });
+      const previousLists = queryClient.getQueriesData<NotificationItem[]>({
+        queryKey: queryKeys.notifications.root,
+      });
+      const previousCount = queryClient.getQueryData<number>(
+        queryKeys.notifications.unreadCount,
+      );
+
+      let wasUnread = false;
+      queryClient.setQueriesData<NotificationItem[]>(
+        { queryKey: queryKeys.notifications.root },
+        (old) => {
+          const removed = old?.find((n) => n.id === id);
+          if (removed && !removed.isRead) wasUnread = true;
+          return old?.filter((n) => n.id !== id);
+        },
+      );
+      if (wasUnread) {
+        queryClient.setQueryData<number>(
+          queryKeys.notifications.unreadCount,
+          (old) => Math.max(0, (old ?? 1) - 1),
+        );
+      }
+
+      return { previousLists, previousCount };
+    },
+    onError: (error: Error, _variables, context) => {
+      context?.previousLists?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+      if (context?.previousCount !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.notifications.unreadCount,
+          context.previousCount,
+        );
+      }
+      showToast.error(
+        "Deletion Failed",
+        error.message || "Unable to delete notification.",
+      );
+    },
+    onSuccess: () => {
+      invalidateNotificationsQueries(queryClient);
     },
   });
 };

@@ -32,6 +32,7 @@ import {
 import { parseEntityId } from "@/lib/actionInputs";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { scheduleReservationOutboxDelivery } from "@/lib/circulation/scheduleOutbox";
+import { logActivity } from "@/lib/admin/activityLog";
 
 /**
  * Fetch all borrow requests with user and book details
@@ -96,7 +97,16 @@ export const updateBorrowStatus = async (
     const safeRecordId = parseEntityId(recordId);
     if (status === "BORROWED") {
       const result = await approveBorrowRecord(safeRecordId, actor);
-      if (result.success) revalidateMutationPaths("borrow.lifecycle");
+      if (result.success) {
+        revalidateMutationPaths("borrow.lifecycle");
+        void logActivity({
+          actorId: actor.id,
+          action: "UPDATE",
+          entityType: "borrow",
+          entityId: safeRecordId,
+          details: { status: "BORROWED" },
+        });
+      }
       return result;
     }
     if (status === "RETURNED") {
@@ -109,6 +119,13 @@ export const updateBorrowStatus = async (
       if (result.success) {
         scheduleReservationOutboxDelivery();
         revalidateMutationPaths("borrow.lifecycle");
+        void logActivity({
+          actorId: actor.id,
+          action: "UPDATE",
+          entityType: "borrow",
+          entityId: safeRecordId,
+          details: { status: "RETURNED" },
+        });
       }
       return result;
     }
@@ -148,8 +165,18 @@ export const updateBorrowStatus = async (
 export const approveBorrowRequest = async (recordId: string) => {
   try {
     const actor = await requireAdminActor();
-    const result = await approveBorrowRecord(parseEntityId(recordId), actor);
-    if (result.success) revalidateMutationPaths("borrow.lifecycle");
+    const safeRecordId = parseEntityId(recordId);
+    const result = await approveBorrowRecord(safeRecordId, actor);
+    if (result.success) {
+      revalidateMutationPaths("borrow.lifecycle");
+      void logActivity({
+        actorId: actor.id,
+        action: "UPDATE",
+        entityType: "borrow",
+        entityId: safeRecordId,
+        details: { status: "BORROWED" },
+      });
+    }
     return result;
   } catch (error) {
     console.error("Error approving borrow request:", error);
@@ -163,11 +190,18 @@ export const approveBorrowRequest = async (recordId: string) => {
 export const rejectBorrowRequest = async (recordId: string) => {
   try {
     const actor = await requireAdminActor();
-    const result = await rejectBorrowRecord(
-      parseEntityId(recordId),
-      actor.email,
-    );
-    if (result.success) revalidateMutationPaths("borrow.lifecycle");
+    const safeRecordId = parseEntityId(recordId);
+    const result = await rejectBorrowRecord(safeRecordId, actor.email);
+    if (result.success) {
+      revalidateMutationPaths("borrow.lifecycle");
+      void logActivity({
+        actorId: actor.id,
+        action: "UPDATE",
+        entityType: "borrow",
+        entityId: safeRecordId,
+        details: { status: "CANCELLED" },
+      });
+    }
     return result;
   } catch (error) {
     console.error("Error rejecting borrow request:", error);

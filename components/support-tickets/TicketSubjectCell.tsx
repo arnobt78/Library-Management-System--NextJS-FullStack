@@ -1,0 +1,64 @@
+/**
+ * Subject link + truncated description (+ optional Created/Updated) for ticket lists.
+ * Dates live under the subject so narrow (14") screens can drop a Date column.
+ * Parent: CR-0003 / REQ-0034 — list densify UI
+ */
+"use client";
+
+import Link from "next/link";
+import { TicketCreatedUpdatedCell } from "@/components/support-tickets/TicketCreatedUpdatedCell";
+import { SKY_LINK_DARK, SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
+import { cn } from "@/lib/utils";
+
+export function TicketSubjectCell({
+  href,
+  subject,
+  description,
+  variant = "light",
+  createdAt,
+  updatedAt,
+  showDates = false,
+}: {
+  href: string;
+  subject: string;
+  description?: string | null;
+  /** light = admin sky link; dark = user glass primary/light link */
+  variant?: "light" | "dark";
+  createdAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+  /** When true, append Created/Updated under description (replaces Date column). */
+  showDates?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 max-w-[320px] flex-col gap-1">
+      <Link
+        href={href}
+        prefetch={false}
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "line-clamp-1 text-sm font-medium",
+          variant === "dark" ? SKY_LINK_DARK : SKY_LINK_LIGHT,
+        )}
+      >
+        {subject}
+      </Link>
+      {description?.trim() ? (
+        <p
+          className={cn(
+            "line-clamp-1 text-xs",
+            variant === "dark" ? "text-light-200/80" : "text-gray-500",
+          )}
+        >
+          {description.trim()}
+        </p>
+      ) : null}
+      {showDates ? (
+        <TicketCreatedUpdatedCell
+          variant={variant}
+          createdAt={createdAt}
+          updatedAt={updatedAt}
+        />
+      ) : null}
+    </div>
+  );
+}

@@ -13,6 +13,7 @@ import CountdownTimer from "@/components/CountdownTimer";
 import BorrowSkeleton from "@/components/skeletons/BorrowSkeleton";
 import AccountRegistrationNotice from "@/components/AccountRegistrationNotice";
 import GlassSectionHeader from "@/components/GlassSectionHeader";
+import MyReviewsTab from "@/components/MyReviewsTab";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import {
   formatBorrowDate,
@@ -48,7 +49,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useUserBorrows } from "@/hooks/useQueries";
+import { useUserBorrows, useUserBookReviews } from "@/hooks/useQueries";
 import { useReturnBook } from "@/hooks/useMutations";
 import type { BorrowRecordFull } from "@/lib/services/borrows";
 import { useQueryClient } from "@tanstack/react-query";
@@ -146,9 +147,12 @@ interface MyProfileTabsProps {
    */
   initialBorrowHistory?: BorrowRecordWithBook[];
   /**
-   * Total reviews count
+   * SSR-fetched own reviews (any status) — hydrates the "My Reviews" tab so
+   * it paints instantly with no client-fetch loading flash on first visit.
+   * The live count (KPI card + tab badge) is derived from this same query
+   * so it can never drift from the list after a create/delete/moderation.
    */
-  totalReviews: number;
+  initialReviews?: AdminBookReviewItem[];
   /**
    * Legacy props for backward compatibility (deprecated, use initial* props instead)
    */
@@ -169,7 +173,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   initialActiveBorrows: _initialActiveBorrows,
   initialPendingRequests: _initialPendingRequests,
   initialBorrowHistory,
-  totalReviews,
+  initialReviews,
   // Legacy props kept for external callers — allBorrows memo is the authoritative source.
   activeBorrows: _legacyActiveBorrows,
   pendingRequests: _legacyPendingRequests,
@@ -246,6 +250,15 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     ssrInitialData ? ssrTimestamp : undefined,
     accountStatus,
   );
+
+  // Same queryKey as MyReviewsTab's own hook call below — TanStack Query
+  // dedupes to one request/cache entry, so the KPI card + tab badge here stay
+  // in sync with create/delete/moderation mutations without a second fetch.
+  const { data: liveReviews = initialReviews ?? [] } = useUserBookReviews(
+    userId,
+    initialReviews,
+  );
+  const liveTotalReviews = liveReviews.length;
 
   const registrationLocked =
     accountStatus === "PENDING" || accountStatus === "REJECTED";
@@ -368,8 +381,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   }, [searchParams, router]);
 
   const borrowStats = React.useMemo(
-    () => computeBorrowStats(allBorrows, totalReviews),
-    [allBorrows, totalReviews],
+    () => computeBorrowStats(allBorrows, liveTotalReviews),
+    [allBorrows, liveTotalReviews],
   );
 
   const sortedHistory = React.useMemo(
@@ -428,7 +441,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         key: "reviews",
         title: "Reviews Written",
         hint: "Your published ratings",
-        value: totalReviews,
+        value: liveTotalReviews,
         icon: <MessageSquareText className="size-4 shrink-0" />,
         tone: "from-indigo-500/25 via-indigo-500/10 to-indigo-500/5 border-indigo-400/30 text-indigo-100 shadow-[0_10px_30px_rgba(99,102,241,0.2)]",
       },
@@ -604,13 +617,23 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             >
               History
             </TabsTrigger>
+            <TabsTrigger
+              value="my-reviews"
+              className="profile-tab-trigger profile-tab-history"
+            >
+              My Reviews
+            </TabsTrigger>
           </TabsList>
           <TabsContent value={activeTabValue} className="mt-4 sm:mt-6">
-            <div className="space-y-3 sm:space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <BorrowSkeleton key={`sk-${i}`} variant="profile" />
-              ))}
-            </div>
+            {activeTabValue === "my-reviews" ? (
+              <MyReviewsTab userId={userId} initialReviews={initialReviews} />
+            ) : (
+              <div className="space-y-3 sm:space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <BorrowSkeleton key={`sk-${i}`} variant="profile" />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -1294,6 +1317,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       subtitle: "Completed returns and past loans",
       icon: <History className="size-5 text-violet-300" />,
     },
+    "my-reviews": {
+      title: "My reviews",
+      subtitle: "Every review you've submitted, including pending moderation",
+      icon: <MessageSquareText className="size-5 text-indigo-300" />,
+    },
   };
 
   return (
@@ -1366,6 +1394,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           >
             <History className="size-4 shrink-0" />
             <span>Borrow History ({borrowHistory.length})</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="my-reviews"
+            className="profile-tab-trigger profile-tab-history"
+          >
+            <MessageSquareText className="size-4 shrink-0" />
+            <span>My Reviews ({liveTotalReviews})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1444,6 +1479,17 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 <BorrowCard key={record.id} record={record} />
               ))
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="my-reviews" className="mt-0">
+          <div className="space-y-3 sm:space-y-4">
+            <GlassSectionHeader
+              icon={sectionMeta["my-reviews"].icon}
+              title={sectionMeta["my-reviews"].title}
+              subtitle={sectionMeta["my-reviews"].subtitle}
+            />
+            <MyReviewsTab userId={userId} initialReviews={initialReviews} />
           </div>
         </TabsContent>
       </Tabs>

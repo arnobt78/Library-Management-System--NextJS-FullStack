@@ -14,7 +14,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Session } from "next-auth";
 import {
   useBorrowRequests,
+  useOpenTicketCount,
   usePendingAdminRequests,
+  usePendingReviewCount,
   usePendingUsers,
 } from "@/hooks/useQueries";
 import type { AdminRequest } from "@/lib/services/users";
@@ -22,8 +24,11 @@ import {
   BarChart3,
   BookOpen,
   Bookmark,
+  History,
   Home,
   type LucideIcon,
+  Star,
+  Ticket,
   UserPlus,
   Users,
   Wand2,
@@ -37,6 +42,9 @@ const ADMIN_SIDEBAR_ICONS: Record<AdminSidebarIconKey, LucideIcon> = {
   userPlus: UserPlus,
   chart: BarChart3,
   wand: Wand2,
+  ticket: Ticket,
+  star: Star,
+  history: History,
 };
 
 function formatBadgeCount(count: number): string {
@@ -48,6 +56,8 @@ const Sidebar = ({
   initialPendingAdminRequests = [],
   initialPendingSignUpCount = 0,
   initialPendingBorrowCount = 0,
+  initialOpenTicketCount = 0,
+  initialPendingReviewCount = 0,
 }: {
   session: Session;
   /** SSR seed for pending make-admin requests (All Users badge) */
@@ -56,6 +66,10 @@ const Sidebar = ({
   initialPendingSignUpCount?: number;
   /** SSR count for Borrow Requests badge */
   initialPendingBorrowCount?: number;
+  /** SSR count for Support Tickets badge (OPEN + IN_PROGRESS) */
+  initialOpenTicketCount?: number;
+  /** SSR count for Book Reviews badge (PENDING moderation) */
+  initialPendingReviewCount?: number;
 }) => {
   const pathname = usePathname();
   const { data: pendingAdminRequests } = usePendingAdminRequests(
@@ -63,6 +77,10 @@ const Sidebar = ({
   );
   const { data: pendingSignUps } = usePendingUsers();
   const { data: pendingBorrows } = useBorrowRequests({ status: "PENDING" });
+  const { data: openTicketCount } = useOpenTicketCount(initialOpenTicketCount);
+  const { data: pendingReviewCount } = usePendingReviewCount(
+    initialPendingReviewCount,
+  );
 
   const pendingAdminCount = (
     pendingAdminRequests ?? initialPendingAdminRequests
@@ -71,6 +89,8 @@ const Sidebar = ({
     pendingSignUps?.length ?? initialPendingSignUpCount;
   const pendingBorrowCount =
     pendingBorrows?.length ?? initialPendingBorrowCount;
+  const ticketBadgeCount = openTicketCount ?? initialOpenTicketCount ?? 0;
+  const reviewBadgeCount = pendingReviewCount ?? initialPendingReviewCount ?? 0;
 
   return (
     <div className="admin-sidebar">
@@ -111,6 +131,18 @@ const Sidebar = ({
             ) {
               badgeCount = pendingBorrowCount;
               badgeLabel = `${pendingBorrowCount} pending borrow requests`;
+            } else if (
+              link.route === "/admin/support-tickets" &&
+              ticketBadgeCount > 0
+            ) {
+              badgeCount = ticketBadgeCount;
+              badgeLabel = `${ticketBadgeCount} open support tickets`;
+            } else if (
+              link.route === "/admin/book-reviews" &&
+              reviewBadgeCount > 0
+            ) {
+              badgeCount = reviewBadgeCount;
+              badgeLabel = `${reviewBadgeCount} reviews awaiting moderation`;
             }
 
             const Icon = ADMIN_SIDEBAR_ICONS[link.icon];

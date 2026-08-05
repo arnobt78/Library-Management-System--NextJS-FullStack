@@ -1,6 +1,8 @@
 /**
  * Robohash URL for empty/broken university_card avatars.
- * Seeded by email so the same user always gets the same robot.
+ * Seeded by a stable per-user identifier (email, or a non-PII id such as
+ * userId on public payloads that must not expose real email addresses) so
+ * the same user always gets the same robot.
  */
 
 export function robohashUrl(email: string, size = 80): string {

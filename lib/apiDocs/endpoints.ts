@@ -29,6 +29,9 @@ export type ApiEndpointCategoryId =
   | "books"
   | "borrows"
   | "reviews"
+  | "supportTickets"
+  | "notifications"
+  | "activityLog"
   | "users"
   | "admin"
   | "export"
@@ -237,16 +240,6 @@ export const API_ENDPOINT_CATEGORIES: ApiEndpointCategory[] = [
         },
       },
       {
-        method: "DELETE",
-        path: "/api/reviews/delete/{reviewId}",
-        description: "Delete a review",
-        auth: true,
-        response: {
-          success: true,
-          message: "string",
-        },
-      },
-      {
         method: "GET",
         path: "/api/reviews/eligibility/{bookId}",
         description: "Check if the current user can review a book",
@@ -256,6 +249,241 @@ export const API_ENDPOINT_CATEGORIES: ApiEndpointCategory[] = [
           canReview: "boolean",
           hasExistingReview: "boolean",
           reason: "string",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/reviews/mine",
+        description:
+          "The signed-in user's own reviews at any status (My Reviews tab)",
+        auth: true,
+        response: {
+          success: true,
+          reviews: "Review[]",
+        },
+      },
+      {
+        method: "DELETE",
+        path: "/api/reviews/delete/{reviewId}",
+        description: "Delete a review — owner (any status) or admin (any review)",
+        auth: true,
+        response: {
+          success: true,
+          message: "string",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/reviews/admin",
+        description:
+          "Moderation queue: all reviews across all books (?status=, ?search=)",
+        auth: true,
+        adminOnly: true,
+        response: {
+          success: true,
+          reviews: "Review[]",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/reviews/admin/{id}",
+        description: "Single review detail for the moderation queue",
+        auth: true,
+        adminOnly: true,
+        response: {
+          success: true,
+          review: "Review",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/reviews/pending-count",
+        description: "PENDING review count for the admin sidebar badge",
+        auth: true,
+        adminOnly: true,
+        response: {
+          success: true,
+          count: "number",
+        },
+      },
+    ],
+  },
+  {
+    id: "supportTickets",
+    category: "Support Tickets",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/support-tickets",
+        description:
+          "List tickets — ?scope=mine (default, own tickets) or ?scope=admin (all, admin-only); ?status=, ?priority=, ?search=",
+        auth: true,
+        response: {
+          success: true,
+          tickets: "SupportTicket[]",
+        },
+      },
+      {
+        method: "POST",
+        path: "/api/support-tickets",
+        description:
+          "Create a ticket (APPROVED users only) — fans out an in-app notification + email to admins",
+        auth: true,
+        requestBody: {
+          subject: "string",
+          description: "string",
+          priority: "LOW | MEDIUM | HIGH | URGENT (default MEDIUM)",
+          relatedBookId: "string (optional)",
+        },
+        response: {
+          success: true,
+          ticket: "SupportTicketDetail",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/support-tickets/{id}",
+        description: "Ticket detail including the full reply thread",
+        auth: true,
+        response: {
+          success: true,
+          ticket: "SupportTicketDetail",
+        },
+      },
+      {
+        method: "PUT",
+        path: "/api/support-tickets/{id}",
+        description:
+          "Creator edits subject/description while OPEN; admin edits status/priority/assignedToId/notes",
+        auth: true,
+        requestBody: {
+          subject: "string (optional)",
+          description: "string (optional)",
+          status: "OPEN | IN_PROGRESS | RESOLVED | CLOSED (admin only)",
+          priority: "LOW | MEDIUM | HIGH | URGENT (admin only)",
+          assignedToId: "string — must reference an ADMIN user (admin only)",
+          notes: "string (admin only)",
+        },
+        response: {
+          success: true,
+          ticket: "SupportTicketDetail",
+        },
+      },
+      {
+        method: "DELETE",
+        path: "/api/support-tickets/{id}",
+        description: "Admin any time; creator only while the ticket is OPEN",
+        auth: true,
+        response: {
+          success: true,
+          id: "string",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/support-tickets/{id}/replies",
+        description: "Reply thread for a ticket",
+        auth: true,
+        response: {
+          success: true,
+          replies: "SupportTicketReply[]",
+        },
+      },
+      {
+        method: "POST",
+        path: "/api/support-tickets/{id}/replies",
+        description:
+          "Add a reply — notifies (in-app + email) the other party in the conversation",
+        auth: true,
+        requestBody: {
+          body: "string",
+        },
+        response: {
+          success: true,
+          replies: "SupportTicketReply[]",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/support-tickets/count",
+        description: "OPEN + IN_PROGRESS ticket count for the admin sidebar badge",
+        auth: true,
+        adminOnly: true,
+        response: {
+          success: true,
+          count: "number",
+        },
+      },
+    ],
+  },
+  {
+    id: "notifications",
+    category: "Notifications",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/notifications",
+        description:
+          "Recent in-app notifications for the signed-in user (?limit=, default 20, max 100)",
+        auth: true,
+        response: {
+          success: true,
+          notifications: "Notification[]",
+        },
+      },
+      {
+        method: "GET",
+        path: "/api/notifications/unread-count",
+        description: "Unread notification count for the bell badge",
+        auth: true,
+        response: {
+          success: true,
+          count: "number",
+        },
+      },
+      {
+        method: "PATCH",
+        path: "/api/notifications/{id}",
+        description: "Mark a single notification as read (scoped to the caller)",
+        auth: true,
+        response: {
+          success: true,
+        },
+      },
+      {
+        method: "DELETE",
+        path: "/api/notifications/{id}",
+        description: "Remove a notification from the bell list (scoped to the caller)",
+        auth: true,
+        response: {
+          success: true,
+        },
+      },
+      {
+        method: "POST",
+        path: "/api/notifications/mark-all-read",
+        description: "Bulk mark-as-read — powers the bell's \"Mark all read\" action",
+        auth: true,
+        response: {
+          success: true,
+        },
+      },
+    ],
+  },
+  {
+    id: "activityLog",
+    category: "Activity Log",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/activity-logs",
+        description:
+          "Admin audit feed of create/update/delete actions (?period=today|7days|30days|all, ?search=); FIFO-retained to the latest 50 rows",
+        auth: true,
+        adminOnly: true,
+        response: {
+          success: true,
+          logs: "ActivityLog[]",
         },
       },
     ],

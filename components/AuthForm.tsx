@@ -187,7 +187,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
               >
                 <SelectTrigger className="form-input h-auto min-h-14 border-gray-600 bg-transparent py-2 font-sans text-white">
                   {selectedAccount ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
                       <UserAvatar
                         universityCard={selectedAccount.image}
                         fullName={selectedAccount.fullName}
@@ -218,7 +218,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
                       value={account.id}
                       className="cursor-pointer py-2.5 text-white focus:bg-gray-700 focus:text-white"
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2">
                         <UserAvatar
                           universityCard={account.image}
                           fullName={account.fullName}

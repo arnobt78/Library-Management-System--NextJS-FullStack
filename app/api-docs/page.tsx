@@ -24,6 +24,9 @@ import {
   Activity,
   Library,
   Bug,
+  Ticket,
+  Bell,
+  ScrollText,
 } from "lucide-react";
 import ApiEndpointCard from "@/components/ApiEndpointCard";
 import { CopyButton } from "@/components/CopyButton";
@@ -42,6 +45,9 @@ const CATEGORY_ICONS: Record<ApiEndpointCategoryId, React.ReactNode> = {
   books: <BookOpen className="size-4 sm:size-5" />,
   borrows: <Library className="size-4 sm:size-5" />,
   reviews: <Star className="size-4 sm:size-5" />,
+  supportTickets: <Ticket className="size-4 sm:size-5" />,
+  notifications: <Bell className="size-4 sm:size-5" />,
+  activityLog: <ScrollText className="size-4 sm:size-5" />,
   users: <Users className="size-4 sm:size-5" />,
   admin: <Settings className="size-4 sm:size-5" />,
   export: <Download className="size-4 sm:size-5" />,

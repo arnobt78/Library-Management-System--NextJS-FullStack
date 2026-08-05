@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { queryKeys } from "@/lib/query/keys";
 import { useQueryPerformance } from "@/hooks/usePerformance";
@@ -16,7 +16,6 @@ import {
   type BookBorrowStats,
 } from "@/lib/services/books";
 import {
-  getUser,
   getUsersList,
   getPendingUsers,
   getPendingAdminRequests,
@@ -29,14 +28,11 @@ import {
 import { getRecentSignupStatusDecisions } from "@/lib/admin/signupStatusDecisions";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import {
-  getBorrowsList,
   getBorrowRequests,
   getUserBorrows,
-  type BorrowFilters,
   type BorrowStatus,
   type BorrowRecordFull,
   type BorrowRecordWithDetails,
-  type BorrowsListResponse,
 } from "@/lib/services/borrows";
 import {
   getAdminStats,
@@ -62,80 +58,37 @@ import { getFineConfig, type FineConfig } from "@/lib/services/admin";
 import {
   getBookReviews,
   getReviewEligibility,
+  getAdminBookReviews,
+  getUserBookReviews,
+  getAdminReviewDetail,
+  getPendingReviewCount,
   type Review,
   type ReviewEligibility,
+  type AdminReviewFilters,
 } from "@/lib/services/reviews";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  type NotificationItem,
+} from "@/lib/services/notifications";
+import {
+  getActivityLogs,
+  type ActivityLogFilters,
+  type ActivityLogItem,
+} from "@/lib/services/activityLogs";
+import {
+  getAdminSupportTickets,
+  getOpenTicketCount,
+  getSupportTicketDetail,
+  getUserSupportTickets,
+  type AdminTicketListFilters,
+  type UserTicketListFilters,
+} from "@/lib/services/supportTickets";
 import { useSearchParams } from "next/navigation";
 
 // Books queries
 /**
- * Hook to fetch books with optional search and filter parameters.
- * Supports URL search params for search, genre, availability, rating, sort, page, and limit.
- * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
- *
- * @param filters - Optional filters object (overrides URL params if provided)
- * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
- * @returns React Query result with books list, pagination, and loading/error states
- *
- * @example
- * ```tsx
- * // Use URL params: /books?search=react&genre=Technology
- * const { data, isLoading } = useBooks();
- *
- * // Override with custom filters
- * const { data } = useBooks({ search: "react", genre: "Technology" });
- *
- * // With SSR initial data
- * const { data } = useBooks(undefined, serverBooksData);
- * ```
- */
-export const useBooks = (
-  filters?: BookFilters,
-  initialData?: BooksListResponse
-) => {
-  const { trackQuery } = useQueryPerformance();
-  const searchParams = useSearchParams();
-
-  // Get filters from URL params if not provided
-  const urlFilters: BookFilters = filters || {
-    search: searchParams.get("search") || undefined,
-    genre: searchParams.get("genre") || undefined,
-    availability:
-      (searchParams.get("availability") as BookFilters["availability"]) ||
-      undefined,
-    rating: searchParams.get("rating")
-      ? Number(searchParams.get("rating"))
-      : undefined,
-    sort: (searchParams.get("sort") as BookFilters["sort"]) || undefined,
-    page: searchParams.get("page")
-      ? Number(searchParams.get("page"))
-      : undefined,
-    limit: searchParams.get("limit")
-      ? Number(searchParams.get("limit"))
-      : undefined,
-  };
-
-  // Build query key from filters for proper caching
-  const queryKey = queryKeys.books.list(urlFilters);
-
-  return useQuery({
-    queryKey,
-    queryFn: () =>
-      trackQuery("books", async () => {
-        return getBooksList(urlFilters);
-      }),
-    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
-    // Keep prior page visible while the new filter/search query key loads
-    placeholderData: keepPreviousData,
-  });
-};
-
-/**
  * Hook to fetch all books with search and filter parameters (for all-books page).
- * This is an alias for useBooks() but with a specific query key for the all-books page.
  * Supports URL search params for search, genre, availability, rating, sort, page, and limit.
  * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
@@ -372,40 +325,6 @@ export const useFeaturedBooks = (limit: number = 10, initialData?: Book[]) => {
 
 // User queries
 /**
- * Hook to fetch a single user profile by ID.
- * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
- *
- * @param userId - User ID (UUID)
- * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
- * @returns React Query result with user data and loading/error states
- *
- * @example
- * ```tsx
- * // Client-side only
- * const { data, isLoading } = useUserProfile(userId);
- *
- * // With SSR initial data
- * const { data } = useUserProfile(userId, serverUserData);
- * ```
- */
-export const useUserProfile = (userId: string, initialData?: User) => {
-  const { trackQuery } = useQueryPerformance();
-
-  return useQuery({
-    queryKey: queryKeys.users.detail(userId),
-    queryFn: () =>
-      trackQuery(`user-${userId}`, async () => {
-        return getUser(userId);
-      }),
-    enabled: !!userId,
-    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
-  });
-};
-
-/**
  * Hook to fetch all users with search and filter parameters (for admin users page).
  * Supports URL search params for search, status, role, sort, page, and limit.
  * Supports initialData for SSR hydration to prevent duplicate requests.
@@ -533,90 +452,6 @@ export const useSignupStatusDecisions = (
 };
 
 // Borrow records queries
-/**
- * Hook to fetch borrow records with optional filters and query parameters.
- * Supports URL search params for status, date range, overdue, sort, page, and limit.
- * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
- *
- * @param userId - User ID (required for user-specific borrows)
- * @param filters - Optional filters object (overrides URL params if provided)
- * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
- * @returns React Query result with borrow records list, pagination, and loading/error states
- *
- * @example
- * ```tsx
- * // Use URL params: /borrows?status=BORROWED&overdue=true
- * const { data, isLoading } = useBorrowRecords(userId);
- *
- * // Override with custom filters
- * const { data } = useBorrowRecords(userId, {
- *   status: "BORROWED",
- *   overdue: true,
- *   sort: "dueDate",
- * });
- *
- * // With SSR initial data
- * const { data } = useBorrowRecords(userId, undefined, serverBorrowsData);
- *
- * // Prefer explicit account status when session may omit it
- * const { data } = useBorrowRecords(userId, undefined, undefined, "APPROVED");
- * ```
- */
-export const useBorrowRecords = (
-  userId: string,
-  filters?: Omit<BorrowFilters, "userId">,
-  initialData?: BorrowsListResponse,
-  /**
-   * Prefer SSR/prop status when session JWT omits status (avoids PENDING 403 noise).
-   */
-  accountStatus?: string | null,
-) => {
-  const { trackQuery } = useQueryPerformance();
-  const searchParams = useSearchParams();
-  const { data: session } = useSession();
-  const sessionStatus = (session?.user as SessionUser | undefined)?.status;
-  // Privileged borrow APIs require APPROVED — never fetch until status is known APPROVED
-  const effectiveStatus = accountStatus ?? sessionStatus;
-  const canFetchBorrows = effectiveStatus === "APPROVED";
-
-  // Get filters from URL params if not provided
-  const urlFilters: BorrowFilters = {
-    userId, // Always include userId
-    ...(filters || {
-      status:
-        (searchParams.get("status") as BorrowFilters["status"]) || undefined,
-      dateFrom: searchParams.get("dateFrom") || undefined,
-      dateTo: searchParams.get("dateTo") || undefined,
-      overdue: searchParams.get("overdue")
-        ? searchParams.get("overdue") === "true"
-        : undefined,
-      sort: (searchParams.get("sort") as BorrowFilters["sort"]) || undefined,
-      page: searchParams.get("page")
-        ? Number(searchParams.get("page"))
-        : undefined,
-      limit: searchParams.get("limit")
-        ? Number(searchParams.get("limit"))
-        : undefined,
-    }),
-  };
-
-  // Build query key from filters for proper caching
-  const queryKey = queryKeys.borrows.list(urlFilters);
-
-  return useQuery({
-    queryKey,
-    queryFn: () =>
-      trackQuery(`borrow-records-${userId}`, async () => {
-        return getBorrowsList(urlFilters);
-      }),
-    enabled: !!userId && canFetchBorrows,
-    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
-  });
-};
-
 /**
  * Hook to fetch user-specific borrow records.
  * Supports URL search params for status filter.
@@ -908,40 +743,6 @@ export const useReviewEligibility = (
 };
 
 /**
- * Hook to fetch complete admin analytics data.
- * Fetches all analytics in parallel: borrowing trends, popular books/genres,
- * user activity, overdue analysis, monthly stats, and system health.
- * Supports initialData for SSR hydration to prevent duplicate requests.
- * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
- *
- * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
- * @returns React Query result with complete analytics data and loading/error states
- *
- * @example
- * ```tsx
- * // Client-side only
- * const { data, isLoading } = useAdminAnalytics();
- *
- * // With SSR initial data
- * const { data } = useAdminAnalytics(serverAnalyticsData);
- * ```
- */
-export const useAdminAnalytics = (initialData?: AnalyticsData) => {
-  const { trackQuery } = useQueryPerformance();
-
-  return useQuery({
-    queryKey: queryKeys.admin.analytics,
-    queryFn: () =>
-      trackQuery("admin-analytics", async () => {
-        return getCompleteAnalytics();
-      }),
-    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
-  });
-};
-
-/**
  * Hook to fetch business insights analytics data (for business-insights page).
  * Supports URL search params for period and metric filters.
  * Fetches all analytics in parallel: borrowing trends, popular books/genres,
@@ -1193,5 +994,270 @@ export const useExportStats = (initialData?: ExportStats) => {
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+  });
+};
+
+// Notifications (bell) queries
+/**
+ * Hook to fetch the signed-in user's most recent in-app notifications.
+ * Polls every 60s so the bell stays fresh across tabs even without an
+ * explicit mutation on this device (e.g. an admin action from another tab
+ * still reaches this one via the mutation's own invalidation broadcast;
+ * polling is a belt-and-suspenders fallback for long-idle tabs).
+ *
+ * @param enabled - Only fetch while the signed-in session is known (avoid 401 churn)
+ * @param limit - Max notifications to fetch (default 20)
+ */
+export const useNotifications = (enabled: boolean = true, limit = 20) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<NotificationItem[]>({
+    queryKey: queryKeys.notifications.list(limit),
+    queryFn: () =>
+      trackQuery("notifications", async () => getNotifications(limit)),
+    enabled,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    refetchInterval: 60 * 1000,
+  });
+};
+
+/**
+ * Hook to fetch the unread notification count (bell badge).
+ * Polls every 30s; also refreshed by invalidateNotificationsQueries after
+ * any mutation that creates a notification for this user.
+ */
+export const useUnreadNotificationCount = (
+  enabled: boolean = true,
+  initialData?: number,
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<number>({
+    queryKey: queryKeys.notifications.unreadCount,
+    queryFn: () =>
+      trackQuery("notifications-unread-count", async () =>
+        getUnreadNotificationCount(),
+      ),
+    enabled,
+    initialData,
+    staleTime: 15 * 1000,
+    refetchOnMount: true,
+    refetchInterval: 30 * 1000,
+  });
+};
+
+/**
+ * Hook to fetch the admin Activity History feed (period + client search).
+ * Invalidated by every mutation family that logs an activity row.
+ */
+export const useActivityLogs = (
+  filters: ActivityLogFilters,
+  initialData?: ActivityLogItem[],
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<ActivityLogItem[]>({
+    queryKey: queryKeys.activityLog.list(filters),
+    queryFn: () =>
+      trackQuery("activity-logs", async () => getActivityLogs(filters)),
+    initialData: filters.period === "7days" && !filters.search ? initialData : undefined,
+    // Keeps the previous period/search result on screen while the new one
+    // loads, instead of dropping to an empty table between queryKey changes.
+    placeholderData: keepPreviousData,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+  });
+};
+
+// Support Tickets queries
+/**
+ * Admin moderation queue — every ticket, filterable by status/priority/search.
+ * Supports URL search params so the toolbar filters drive the query key.
+ */
+export const useAdminSupportTickets = (
+  filters?: AdminTicketListFilters,
+  initialData?: SupportTicketListItem[],
+) => {
+  const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
+  const resolvedFilters: AdminTicketListFilters = filters || {
+    status: (searchParams.get("status") as TicketStatusValue | null) || undefined,
+    priority: (searchParams.get("priority") as TicketPriorityValue | null) || undefined,
+    search: searchParams.get("search") || undefined,
+  };
+
+  const queryKey = queryKeys.tickets.adminList(resolvedFilters);
+  const cached = queryClient.getQueryData<SupportTicketListItem[]>(queryKey);
+  const unfiltered =
+    !resolvedFilters.status &&
+    !resolvedFilters.priority &&
+    !resolvedFilters.search;
+  const seed =
+    cached && cached.length > 0
+      ? cached
+      : unfiltered && initialData && initialData.length > 0
+        ? initialData
+        : undefined;
+
+  return useQuery<SupportTicketListItem[]>({
+    queryKey,
+    queryFn: () =>
+      trackQuery("admin-support-tickets", async () =>
+        getAdminSupportTickets(resolvedFilters),
+      ),
+    staleTime: 0,
+    refetchOnMount: true,
+    placeholderData: keepPreviousData,
+    initialData: seed,
+  });
+};
+
+/** Signed-in user's own tickets — used on `/support-tickets` (admin-as-user too). */
+export const useUserSupportTickets = (
+  userId: string,
+  filters?: UserTicketListFilters,
+  initialData?: SupportTicketListItem[],
+) => {
+  const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
+  const resolvedFilters: UserTicketListFilters = filters || {
+    status: (searchParams.get("status") as TicketStatusValue | null) || undefined,
+    search: searchParams.get("search") || undefined,
+  };
+
+  const queryKey = queryKeys.tickets.userList(userId, resolvedFilters);
+  // Prefer densified TanStack cache over empty/stale SSR on soft-nav remount
+  // (Back after detail edit). Never seed `[]` as settled initialData — that
+  // paints the empty state before refetch when densify was wiped.
+  const cached = queryClient.getQueryData<SupportTicketListItem[]>(queryKey);
+  const unfiltered =
+    !resolvedFilters.status && !resolvedFilters.search;
+  const seed =
+    cached && cached.length > 0
+      ? cached
+      : unfiltered && initialData && initialData.length > 0
+        ? initialData
+        : undefined;
+
+  return useQuery<SupportTicketListItem[]>({
+    queryKey,
+    queryFn: () =>
+      trackQuery("user-support-tickets", async () =>
+        getUserSupportTickets(resolvedFilters),
+      ),
+    enabled: !!userId,
+    staleTime: 0,
+    refetchOnMount: true,
+    placeholderData: keepPreviousData,
+    initialData: seed,
+  });
+};
+
+export const useSupportTicket = (
+  ticketId: string,
+  initialData?: SupportTicketDetail,
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<SupportTicketDetail>({
+    queryKey: queryKeys.tickets.detail(ticketId),
+    queryFn: () =>
+      trackQuery(`support-ticket-${ticketId}`, async () =>
+        getSupportTicketDetail(ticketId),
+      ),
+    enabled: !!ticketId,
+    staleTime: 15 * 1000,
+    refetchOnMount: true,
+    initialData,
+  });
+};
+
+/** Admin sidebar badge — OPEN + IN_PROGRESS ticket count. */
+export const useOpenTicketCount = (initialData?: number) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<number>({
+    queryKey: queryKeys.tickets.openCount,
+    queryFn: () =>
+      trackQuery("support-ticket-open-count", async () => getOpenTicketCount()),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
+  });
+};
+
+// Book review moderation — admin queue + "My Reviews" tab.
+// Parent: CR-0003 / REQ-0034
+
+/** Admin moderation queue — every review, all statuses. */
+export const useAdminBookReviews = (
+  filters: AdminReviewFilters = {},
+  initialData?: AdminBookReviewItem[],
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<AdminBookReviewItem[]>({
+    queryKey: queryKeys.reviews.adminList(filters),
+    queryFn: () =>
+      trackQuery("admin-book-reviews", async () => getAdminBookReviews(filters)),
+    staleTime: 10 * 1000,
+    refetchOnMount: true,
+    placeholderData: keepPreviousData,
+    initialData,
+  });
+};
+
+/** Signed-in user's own reviews (any status) — My Reviews tab. */
+export const useUserBookReviews = (
+  userId: string,
+  initialData?: AdminBookReviewItem[],
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<AdminBookReviewItem[]>({
+    queryKey: queryKeys.reviews.userReviews(userId),
+    queryFn: () =>
+      trackQuery("user-book-reviews", async () => getUserBookReviews()),
+    enabled: !!userId,
+    staleTime: 10 * 1000,
+    refetchOnMount: true,
+    initialData,
+  });
+};
+
+/** Single review detail — admin moderation detail page. */
+export const useAdminReviewDetail = (
+  reviewId: string,
+  initialData?: AdminBookReviewItem,
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<AdminBookReviewItem>({
+    queryKey: queryKeys.reviews.adminDetail(reviewId),
+    queryFn: () =>
+      trackQuery("admin-review-detail", async () => getAdminReviewDetail(reviewId)),
+    enabled: !!reviewId,
+    staleTime: 10 * 1000,
+    refetchOnMount: true,
+    initialData,
+  });
+};
+
+/** Admin sidebar badge — reviews awaiting moderation. */
+export const usePendingReviewCount = (initialData?: number) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<number>({
+    queryKey: queryKeys.reviews.pendingCount,
+    queryFn: () =>
+      trackQuery("book-review-pending-count", async () => getPendingReviewCount()),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
   });
 };

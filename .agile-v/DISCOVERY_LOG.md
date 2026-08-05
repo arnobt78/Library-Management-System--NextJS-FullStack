@@ -98,3 +98,13 @@ Insight INS-0005 (OBS-0010, OBS-0011): Documentation and process scaffold may la
 - Never auto-enable credentials from `docs/personal-dev-info.txt`; use only approved server-side environment variables and provider contracts.
 - Demo avatars: local `/images/profile-img*.png` in `universityCard` + `resolveUniversityCard`; seed via `npm run seed:test-profiles`. Not ImageKit-required for demo accounts.
 - Shared-DB ops: never leave production on a pre-scrypt build while writing `$scrypt$` hashes; always apply `0009` before code that selects `users.updated_at`/`updated_by`.
+
+## Session reconcile - Infinity Loop resume (2026-08-04)
+
+| ID | Observation | Source | Confidence | Status |
+|---|---|---|---|---|
+| OBS-0027 | Recorded tip `85ae1b3` matches implementation; HEAD is docs-bind `3552e44` on `origin/main` | `git rev-parse` / `git log` / `git status` | High | Reconciled in STATE |
+| OBS-0028 | Untracked `AGENTS.md` and `docs/AGILE_V_PROTOCOL.md` exist; not part of app runtime | `git status` | High | Owner decide commit vs keep local |
+| OBS-0029 | CLAUDE.md cites 84 default tests; CHANGE_LOG post-polish cites up to 108 — memory stale until next Prove recount | CLAUDE.md vs CHANGE_LOG | High | Open drift; do not invent count |
+| OBS-0030 | Owner message requested Agile V resume/plan only; no feature/bug/Wave-5 package named → Halt Condition (unclear Done) | Session query | High | Human-Decision pending |
+| OBS-0031 | Wave 5 / BL-0017 remains first incomplete Gate 2 path; EvalGate FAIL on nonlocal evidence only | BACKLOG, EVAL_RESULTS `ER-C2-FINAL-CORRECTIVE-5` | High | Default incomplete wave |

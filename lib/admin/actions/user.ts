@@ -18,6 +18,7 @@ import { notifyAdminRequestDecision } from "@/lib/admin/adminRequestEmails";
 import { removeAdminPrivileges } from "@/lib/admin/actions/admin-requests";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { isProtectedDemoAccount } from "@/constants";
+import { logActivity } from "@/lib/admin/activityLog";
 
 const DEMO_ACCOUNT_LOCKED =
   "Demo showcase accounts cannot change role or status";
@@ -90,6 +91,13 @@ export const updateUserRole = async (
     });
 
     revalidateMutationPaths("admin-request.write");
+    void logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "user",
+      entityId: safeUserId,
+      details: { role: "ADMIN" },
+    });
 
     const target = existing[0];
     after(async () => {
@@ -189,6 +197,13 @@ export const updateUserStatus = async (
 
 
     revalidateMutationPaths("user.write");
+    void logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "user",
+      entityId: safeUserId,
+      details: { status },
+    });
 
     // Notify on APPROVED/REJECTED transitions only (not PENDING, not no-ops).
     if (

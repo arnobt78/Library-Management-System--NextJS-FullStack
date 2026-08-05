@@ -26,12 +26,19 @@ export interface Review {
   createdAt: Date | null;
   updatedAt: Date | null;
   userFullName: string;
-  userEmail: string;
+  /**
+   * Not returned by the public book-reviews endpoint (would leak other
+   * users' emails to anonymous visitors) — only present on admin-scoped
+   * review payloads (`AdminBookReviewItem`).
+   */
+  userEmail?: string;
   /** Student ID / seed / ImageKit path for UserAvatar */
   universityCard?: string | null;
-  // Optional fields that may be included
-  userId?: string;
+  /** Opaque, non-PII — used for ownership checks + avatar seed on public payloads. */
+  userId: string;
   bookId?: string;
+  /** PENDING = awaiting moderation (only ever included for the review's own author) */
+  status?: ReviewStatusValue;
 }
 
 /**
@@ -59,23 +66,6 @@ export interface CreateReviewInput {
 export interface UpdateReviewInput {
   rating: number; // 1-5
   comment: string;
-}
-
-/**
- * Response type for review list queries
- */
-export interface ReviewsListResponse {
-  success: boolean;
-  reviews: Review[];
-}
-
-/**
- * Response type for single review operations
- */
-export interface ReviewResponse {
-  success: boolean;
-  review: Review;
-  message?: string;
 }
 
 /**
@@ -391,36 +381,118 @@ export async function deleteReview(reviewId: string): Promise<void> {
   }
 }
 
-/**
- * Get average rating for a book
- *
- * Calculates the average rating from all reviews for a book.
- *
- * @param bookId - Book ID (UUID)
- * @returns Promise with average rating (0-5) and total review count
- * @throws {ApiError} Error with message and status code
- *
- * @example
- * ```typescript
- * const stats = await getBookRatingStats(bookId);
- * console.log(`Average: ${stats.average}, Total: ${stats.count}`);
- * ```
- */
-export async function getBookRatingStats(bookId: string): Promise<{
-  average: number;
-  count: number;
-}> {
-  const reviews = await getBookReviews(bookId);
+// ---------------------------------------------------------------------------
+// Book Review moderation — admin queue + "My Reviews" tab.
+// Parent: CR-0003 / REQ-0034
+// ---------------------------------------------------------------------------
 
-  if (reviews.length === 0) {
-    return { average: 0, count: 0 };
+export interface AdminReviewFilters {
+  status?: ReviewStatusValue;
+  search?: string;
+}
+
+async function parseReviewsResponse(
+  response: Response,
+  fallbackMessage: string,
+): Promise<AdminBookReviewItem[]> {
+  if (!response.ok) {
+    let message = fallbackMessage;
+    try {
+      const data = await response.json();
+      message = data.error || data.message || fallbackMessage;
+    } catch {
+      // Non-JSON error body — keep the fallback message.
+    }
+    throw new ApiError(message, response.status);
+  }
+  const data = await response.json();
+  if (data.success && Array.isArray(data.reviews)) return data.reviews;
+  throw new ApiError(fallbackMessage, 500);
+}
+
+/** Admin moderation queue — every review, all statuses. */
+export async function getAdminBookReviews(
+  filters: AdminReviewFilters = {},
+): Promise<AdminBookReviewItem[]> {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.search) params.set("search", filters.search);
+  const query = params.toString();
+
+  const response = await fetch(`/api/reviews/admin${query ? `?${query}` : ""}`, {
+    method: "GET",
+  });
+  return parseReviewsResponse(response, "Failed to fetch reviews");
+}
+
+/** Signed-in user's own reviews (any status) — My Reviews tab. */
+export async function getUserBookReviews(): Promise<AdminBookReviewItem[]> {
+  const response = await fetch("/api/reviews/mine", { method: "GET" });
+  return parseReviewsResponse(response, "Failed to fetch your reviews");
+}
+
+/** Single review detail — admin moderation detail page refetch. */
+export async function getAdminReviewDetail(
+  reviewId: string,
+): Promise<AdminBookReviewItem> {
+  const response = await fetch(`/api/reviews/admin/${reviewId}`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    let message = "Failed to fetch review";
+    try {
+      const data = await response.json();
+      message = data.error || data.message || message;
+    } catch {
+      // Non-JSON error body — keep the fallback message.
+    }
+    throw new ApiError(message, response.status);
+  }
+  const data = await response.json();
+  if (data.success && data.review) return data.review;
+  throw new ApiError("Invalid response format from review detail API", 500);
+}
+
+/** Admin approve/reject decision. */
+export async function moderateReview(
+  reviewId: string,
+  status: "APPROVED" | "REJECTED",
+): Promise<{ id: string; status: ReviewStatusValue; reviewedAt: string | null }> {
+  const response = await fetch(`/api/reviews/edit/${reviewId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    let message = "Failed to moderate review";
+    try {
+      const data = await response.json();
+      message = data.error || data.message || message;
+    } catch {
+      // Non-JSON error body — keep the fallback message.
+    }
+    throw new ApiError(message, response.status);
   }
 
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-  const average = totalRating / reviews.length;
+  const data = await response.json();
+  if (data.success && data.review) return data.review;
+  throw new ApiError("Invalid response format from moderate review API", 500);
+}
 
-  return {
-    average: Math.round(average * 10) / 10, // Round to 1 decimal place
-    count: reviews.length,
-  };
+/** Admin sidebar badge — reviews awaiting moderation. */
+export async function getPendingReviewCount(): Promise<number> {
+  const response = await fetch("/api/reviews/pending-count", { method: "GET" });
+  if (!response.ok) {
+    let message = "Failed to fetch pending review count";
+    try {
+      const data = await response.json();
+      message = data.error || data.message || message;
+    } catch {
+      // Non-JSON error body — keep the fallback message.
+    }
+    throw new ApiError(message, response.status);
+  }
+  const data = await response.json();
+  return data.count ?? 0;
 }

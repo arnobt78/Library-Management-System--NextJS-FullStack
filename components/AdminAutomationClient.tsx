@@ -35,13 +35,16 @@ import { showToast } from "@/lib/toast";
 import FineManagement from "@/components/FineManagement";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   BarChart3,
   Check,
   CheckCircle,
+  Clock,
   Download,
   Mail,
   Pencil,
   RefreshCw,
+  Send,
   Shield,
   ShieldOff,
   Sparkles,
@@ -50,6 +53,7 @@ import {
   UserX,
   X,
 } from "lucide-react";
+import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 
 // Types for reminder and export stats
 interface ReminderStats {
@@ -622,66 +626,41 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
         </p>
       </div>
 
-      {/* Automation Overview Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-blue-600">
-              Due Soon
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-semibold text-blue-900 sm:text-xl">
-              {reminderStats?.dueSoon || 0}
-            </div>
-            <p className="text-xs text-blue-600">Books due in 2 days</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-red-600">
-              Overdue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-semibold text-red-900 sm:text-xl">
-              {reminderStats?.overdue || 0}
-            </div>
-            <p className="text-xs text-red-600">Books past due date</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-green-600">
-              Reminders Sent
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-semibold text-green-900 sm:text-xl">
-              {reminderStats?.remindersSentToday || 0}
-            </div>
-            <p className="text-xs text-green-600">Today&apos;s reminders</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-200 bg-purple-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-purple-600">
-              Total Records
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-semibold text-purple-900 sm:text-xl">
-              {(exportStats?.totalBooks || 0) +
-                (exportStats?.totalUsers || 0) +
-                (exportStats?.totalBorrows || 0)}
-            </div>
-            <p className="text-xs text-purple-600">Books + Users + Borrows</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Automation Overview Cards — shared StatCard grid (Wave 4 rollout) */}
+      <StatCardGrid>
+        <StatCard
+          title="Due Soon"
+          value={reminderStats?.dueSoon || 0}
+          icon={Clock}
+          hue="blue"
+          badges={[{ label: "due in 2 days", hue: "blue" }]}
+        />
+        <StatCard
+          title="Overdue"
+          value={reminderStats?.overdue || 0}
+          icon={AlertTriangle}
+          hue="rose"
+          badges={[{ label: "past due date", hue: "rose" }]}
+        />
+        <StatCard
+          title="Reminders Sent"
+          value={reminderStats?.remindersSentToday || 0}
+          icon={Send}
+          hue="emerald"
+          badges={[{ label: "today", hue: "emerald" }]}
+        />
+        <StatCard
+          title="Total Records"
+          value={
+            (exportStats?.totalBooks || 0) +
+            (exportStats?.totalUsers || 0) +
+            (exportStats?.totalBorrows || 0)
+          }
+          icon={BarChart3}
+          hue="violet"
+          badges={[{ label: "books + users + borrows", hue: "violet" }]}
+        />
+      </StatCardGrid>
 
       {/* Auto-Reminders Section */}
       <Card>

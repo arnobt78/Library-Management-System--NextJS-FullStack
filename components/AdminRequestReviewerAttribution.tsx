@@ -39,6 +39,7 @@ export default function AdminRequestReviewerAttribution({
       emptyLabel="an admin"
       href={href}
       linkClassName={linkClassName}
+      layout="inline"
     />
   );
 }

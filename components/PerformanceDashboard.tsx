@@ -127,19 +127,19 @@ const PerformanceDashboard = ({
                   </div>
                   <ul className="space-y-1.5 text-xs text-light-200 sm:text-sm">
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+                      <Check className="size-3.5 shrink-0 text-emerald-400" />
                       Faster initial page loads
                     </li>
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+                      <Check className="size-3.5 shrink-0 text-emerald-400" />
                       Better SEO
                     </li>
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+                      <Check className="size-3.5 shrink-0 text-emerald-400" />
                       Reduced client-side JavaScript
                     </li>
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+                      <Check className="size-3.5 shrink-0 text-emerald-400" />
                       Works without JavaScript
                     </li>
                   </ul>
@@ -153,19 +153,19 @@ const PerformanceDashboard = ({
                   </div>
                   <ul className="space-y-1.5 text-xs text-light-200 sm:text-sm">
                     <li className="flex items-start gap-2">
-                      <Zap className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
+                      <Zap className="size-3.5 shrink-0 text-amber-400" />
                       Rich caching with React Query
                     </li>
                     <li className="flex items-start gap-2">
-                      <Zap className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
+                      <Zap className="size-3.5 shrink-0 text-amber-400" />
                       Real-time data updates
                     </li>
                     <li className="flex items-start gap-2">
-                      <Zap className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
+                      <Zap className="size-3.5 shrink-0 text-amber-400" />
                       Better user interactions
                     </li>
                     <li className="flex items-start gap-2">
-                      <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-orange-400" />
+                      <AlertTriangle className="size-3.5 shrink-0 text-orange-400" />
                       Slower initial loads
                     </li>
                   </ul>
@@ -178,8 +178,8 @@ const PerformanceDashboard = ({
                   </strong>{" "}
                   SSR fetches on the server before HTML reaches the browser, so
                   many loads never hit client-side API monitoring. Terminal
-                  server timings (often 200–400ms) remain the source of truth for
-                  those requests.
+                  server timings (often 200–400ms) remain the source of truth
+                  for those requests.
                 </p>
               </div>
             </CardContent>
@@ -385,9 +385,9 @@ const PerformanceDashboard = ({
                       No client-side API calls detected
                     </p>
                     <div className="rounded-lg border border-white/10 bg-dark-300/50 p-2.5 text-xs text-light-200 sm:p-3 sm:text-sm">
-                      <strong className="text-light-100">Why?</strong> SSR
-                      often fetches on the server before HTML reaches the
-                      browser, so those calls do not appear here.
+                      <strong className="text-light-100">Why?</strong> SSR often
+                      fetches on the server before HTML reaches the browser, so
+                      those calls do not appear here.
                     </div>
                   </div>
                 )}

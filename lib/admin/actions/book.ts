@@ -18,6 +18,7 @@ import {
 import { bookSchema, bookUpdateSchema } from "@/lib/validations";
 import { assertPersistedMediaUrl } from "@/lib/media/serverValidation";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { logActivity } from "@/lib/admin/activityLog";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -70,6 +71,13 @@ export const createBook = async (params: BookParams) => {
     });
 
     revalidateMutationPaths("book.write");
+    void logActivity({
+      actorId: actor.id,
+      action: "CREATE",
+      entityType: "book",
+      entityId: newBook.id,
+      details: { title: newBook.title, author: newBook.author },
+    });
     return {
       success: true,
       data: JSON.parse(JSON.stringify(newBook)),
@@ -185,6 +193,13 @@ export const updateBook = async (
     });
 
     revalidateMutationPaths("book.write");
+    void logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "book",
+      entityId: updatedBook.id,
+      details: { title: updatedBook.title },
+    });
     return {
       success: true,
       data: JSON.parse(JSON.stringify(updatedBook)),

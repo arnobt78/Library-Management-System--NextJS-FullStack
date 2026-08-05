@@ -58,6 +58,19 @@ export const RESERVATION_STATUS_ENUM = pgEnum("reservation_status", [
   "CANCELLED",
   "EXPIRED",
 ]);
+// Parent: CR-0003 / REQ-0034 (Admin Suite Parity Expansion)
+export const TICKET_STATUS_ENUM = pgEnum("ticket_status", [
+  "OPEN",
+  "IN_PROGRESS",
+  "RESOLVED",
+  "CLOSED",
+]);
+export const TICKET_PRIORITY_ENUM = pgEnum("ticket_priority", [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "URGENT",
+]);
 
 /**
  * Users Table
@@ -306,6 +319,13 @@ export const bookReviews = pgTable("book_reviews", {
   comment: text("comment").notNull(), // Review text content
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(), // When review was posted
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(), // When review was last edited
+  // Parent: CR-0003 / REQ-0034 — moderation gate. Default APPROVED so pre-existing
+  // rows stay publicly visible; API explicitly writes PENDING for new reviews.
+  status: STATUS_ENUM("status").default("APPROVED").notNull(),
+  reviewedBy: uuid("reviewed_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
 });
 
 /**
@@ -336,4 +356,108 @@ export const adminRequests = pgTable("admin_requests", {
   rejectionReason: text("rejection_reason"), // Reason for rejection if applicable
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(), // When request was submitted
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(), // Last modification
+});
+
+/**
+ * Support Tickets Table
+ *
+ * Parent: CR-0003 / REQ-0034 (Admin Suite Parity Expansion)
+ *
+ * User-raised issues resolved by admins. Creator must be an APPROVED actor
+ * (same gate as borrowing/reviewing). assignedToId is nullable until an admin
+ * claims the ticket; unassigned OPEN tickets are visible to every admin.
+ */
+export const supportTickets = pgTable("support_tickets", {
+  id: uuid("id").notNull().primaryKey().defaultRandom().unique(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  status: TICKET_STATUS_ENUM("status").default("OPEN").notNull(),
+  priority: TICKET_PRIORITY_ENUM("priority").default("MEDIUM").notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(), // Creator
+  assignedToId: uuid("assigned_to_id").references(() => users.id, {
+    onDelete: "set null",
+  }), // Admin owner (nullable = unassigned)
+  relatedBookId: uuid("related_book_id").references(() => books.id, {
+    onDelete: "set null",
+  }),
+  notes: text("notes"), // Admin-only internal notes
+  updatedBy: uuid("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Support Ticket Replies Table
+ *
+ * Threaded conversation between the creator and admins on a ticket.
+ * Cascades on ticket delete (replies have no independent lifecycle).
+ */
+export const supportTicketReplies = pgTable("support_ticket_replies", {
+  id: uuid("id").notNull().primaryKey().defaultRandom().unique(),
+  ticketId: uuid("ticket_id")
+    .references(() => supportTickets.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Notifications Table (in-app bell)
+ *
+ * Parent: CR-0003 / REQ-0034
+ *
+ * Fire-and-forget recipient-scoped notifications created alongside domain
+ * mutations (ticket/review/admin-request/borrow events). `link` is an
+ * app-relative path the client navigates to on click.
+ */
+export const notifications = pgTable("notifications", {
+  id: uuid("id").notNull().primaryKey().defaultRandom().unique(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(), // Recipient
+  type: varchar("type", { length: 60 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  link: text("link"),
+  isRead: boolean("is_read").notNull().default(false),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Activity Logs Table
+ *
+ * Parent: CR-0003 / REQ-0034
+ *
+ * FIFO-retained (latest 50) audit trail of create/update/delete actions
+ * across every mutation domain. actorId is nullable (SET NULL) so deleting
+ * a user account never blocks on log history.
+ */
+export const activityLogs = pgTable("activity_logs", {
+  id: uuid("id").notNull().primaryKey().defaultRandom().unique(),
+  actorId: uuid("actor_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  action: varchar("action", { length: 20 }).notNull(), // CREATE | UPDATE | DELETE
+  entityType: varchar("entity_type", { length: 40 }).notNull(),
+  entityId: uuid("entity_id"),
+  details: jsonb("details"), // Optional structured context (titles, before/after, etc.)
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });

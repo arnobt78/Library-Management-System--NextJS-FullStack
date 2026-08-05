@@ -6,10 +6,13 @@
  */
 
 import React from "react";
+import { eq } from "drizzle-orm";
 import { getAllUsers } from "@/lib/admin/actions/user";
 import { getAllBorrowRequests } from "@/lib/admin/actions/borrow";
 import { db } from "@/database/drizzle";
-import { books } from "@/database/schema";
+import { books, reservations } from "@/database/schema";
+import { getOpenTicketCount } from "@/lib/server/supportTicketData";
+import { getPendingReviewCount } from "@/lib/server/reviewData";
 import AdminDashboardContent from "@/components/AdminDashboardContent";
 
 export const runtime = "nodejs";
@@ -20,12 +23,26 @@ const Page = async ({
   searchParams: Promise<{ success?: string }>;
 }) => {
   const params = await searchParams;
-  // Fetch all data for dashboard
-  const [usersResult, borrowResult, booksResult] = await Promise.all([
+  // Fetch all data for dashboard, including cross-domain KPI counts (Wave 4 rollout)
+  const [
+    usersResult,
+    borrowResult,
+    booksResult,
+    reservationsWaitingRows,
+    openTicketCount,
+    pendingReviewCount,
+  ] = await Promise.all([
     getAllUsers(),
     getAllBorrowRequests(),
     db.select().from(books),
+    db
+      .select({ id: reservations.id })
+      .from(reservations)
+      .where(eq(reservations.status, "WAITING")),
+    getOpenTicketCount(),
+    getPendingReviewCount(),
   ]);
+  const reservationsWaiting = reservationsWaitingRows.length;
 
   const users = usersResult.success ? usersResult.data : [];
   const borrowRequests = borrowResult.success ? borrowResult.data : [];
@@ -210,6 +227,10 @@ const Page = async ({
     booksByYear: sortedBooksByYear,
     booksByLanguage: sortedBooksByLanguage,
     topRatedBooks,
+    // Cross-domain KPI counts (Wave 4 rollout)
+    reservationsWaiting,
+    openTicketCount,
+    pendingReviewCount,
   };
 
   return (

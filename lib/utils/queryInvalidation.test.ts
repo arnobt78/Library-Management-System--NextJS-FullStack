@@ -214,20 +214,25 @@ describe("query invalidation contract", () => {
   });
 
   it("exports the exact mutation-to-domain contract", () => {
+    // Parent: CR-0003 / REQ-0034 — tickets/notifications/activityLog domains
+    // extend book/borrow/user/review/admin-request families so the bell,
+    // Activity History, and the two new admin surfaces stay in sync too.
     expect(MUTATION_DOMAIN_REGISTRY).toEqual({
-      "book.write": ["books", "users", "borrows", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
-      "user.write": ["users", "borrows", "reviews", "admin", "analytics", "operations", "circulation"],
-      "borrow.lifecycle": ["borrows", "books", "users", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
+      "book.write": ["books", "users", "borrows", "reviews", "admin", "analytics", "recommendations", "operations", "circulation", "activityLog"],
+      "user.write": ["users", "borrows", "reviews", "admin", "analytics", "operations", "circulation", "notifications", "activityLog"],
+      "borrow.lifecycle": ["borrows", "books", "users", "reviews", "admin", "analytics", "recommendations", "operations", "circulation", "notifications", "activityLog"],
       "reservation.lifecycle": ["circulation", "borrows", "books", "users", "admin", "analytics", "recommendations"],
       "renewal.write": ["circulation", "borrows", "books", "users", "admin", "analytics"],
-      "review.write": ["reviews", "books", "users", "analytics"],
-      "admin-request.write": ["admin", "users", "analytics", "operations"],
+      "review.write": ["reviews", "books", "users", "analytics", "notifications", "activityLog"],
+      "admin-request.write": ["admin", "users", "analytics", "operations", "notifications", "activityLog"],
       "fine.write": ["borrows", "users", "admin", "analytics", "operations"],
       "recommendation.write": ["recommendations", "books", "admin", "analytics"],
       "operations.write": ["borrows", "admin", "analytics", "operations"],
+      "ticket.write": ["tickets", "notifications", "activityLog", "admin"],
+      "notification.write": ["notifications"],
     });
     expect(MUTATION_RSC_PATH_REGISTRY).toEqual({
-      "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights"],
+      "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
       "user.write": [
         "/my-profile",
         "/make-admin",
@@ -235,25 +240,41 @@ describe("query invalidation contract", () => {
         "/admin/users",
         "/admin/users/[id]",
         "/admin/business-insights",
+        "/admin/activity-history",
       ],
-      "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+      "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
       "reservation.lifecycle": ["/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
       "renewal.write": ["/books/[id]", "/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
-      "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights"],
+      "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights", "/admin/book-reviews", "/admin/book-reviews/[id]", "/admin/activity-history"],
       "admin-request.write": [
         "/make-admin",
         "/admin/users",
         "/admin/users/[id]",
         "/admin/business-insights",
+        "/admin/activity-history",
       ],
       "fine.write": ["/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
       "recommendation.write": ["/", "/all-books", "/admin/automation", "/admin/business-insights"],
       "operations.write": ["/my-profile", "/api-status", "/admin", "/admin/book-requests", "/admin/automation", "/admin/business-insights"],
+      "ticket.write": [
+        "/admin/support-tickets",
+        "/admin/support-tickets/[id]",
+        "/support-tickets",
+        "/support-tickets/[id]",
+        "/admin",
+        "/admin/activity-history",
+      ],
+      "notification.write": [],
     });
     expect(Object.keys(MUTATION_RSC_PATH_REGISTRY).sort()).toEqual(Object.keys(MUTATION_DOMAIN_REGISTRY).sort());
     for (const mutation of Object.keys(MUTATION_DOMAIN_REGISTRY) as (keyof typeof MUTATION_DOMAIN_REGISTRY)[]) {
       expect(MUTATION_DOMAIN_REGISTRY[mutation].length).toBeGreaterThan(0);
-      expect(MUTATION_RSC_PATH_REGISTRY[mutation].length).toBeGreaterThan(0);
+      // notification.write is bell-only (mark read/delete) — no RSC page depends on it.
+      if (mutation === "notification.write") {
+        expect(MUTATION_RSC_PATH_REGISTRY[mutation].length).toBe(0);
+      } else {
+        expect(MUTATION_RSC_PATH_REGISTRY[mutation].length).toBeGreaterThan(0);
+      }
     }
   });
 });

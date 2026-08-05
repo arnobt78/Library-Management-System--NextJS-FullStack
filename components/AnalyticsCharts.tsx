@@ -34,6 +34,8 @@ import type { AnalyticsData } from "@/lib/services/analytics";
 import ChartSkeleton from "@/components/skeletons/ChartSkeleton";
 import GenericCardSkeleton from "@/components/skeletons/GenericCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import { AlertTriangle, BookOpen, BookOpenCheck, Users } from "lucide-react";
 
 interface AnalyticsChartsProps {
   /**
@@ -184,72 +186,33 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
   return (
     <div className="w-full max-w-full space-y-4 overflow-x-hidden sm:space-y-6">
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 sm:p-6">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <div className="text-xl sm:text-xl">📚</div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <div className="text-xs font-medium text-blue-600 sm:text-sm">
-                Total Books
-              </div>
-              <div className="text-xl font-semibold text-blue-900 sm:text-xl">
-                {data.systemHealth?.totalBooks || 0}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 sm:p-6">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <div className="text-xl sm:text-xl">👥</div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <div className="text-xs font-medium text-green-600 sm:text-sm">
-                Total Users
-              </div>
-              <div className="text-xl font-semibold text-green-900 sm:text-xl">
-                {data.systemHealth?.totalUsers || 0}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 sm:p-6">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <div className="text-xl sm:text-xl">📖</div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <div className="text-xs font-medium text-purple-600 sm:text-sm">
-                Active Borrows
-              </div>
-              <div className="text-xl font-semibold text-purple-900 sm:text-xl">
-                {data.systemHealth?.activeBorrows || 0}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 sm:p-6">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <div className="text-xl sm:text-xl">⚠️</div>
-            </div>
-            <div className="ml-3 sm:ml-4">
-              <div className="text-xs font-medium text-orange-600 sm:text-sm">
-                Overdue Books
-              </div>
-              <div className="text-xl font-semibold text-orange-900 sm:text-xl">
-                {data.systemHealth?.overdueBooks || 0}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Key Metrics Cards — shared StatCard grid (Wave 4 rollout) */}
+      <StatCardGrid>
+        <StatCard
+          title="Total Books"
+          value={data.systemHealth?.totalBooks || 0}
+          icon={BookOpen}
+          hue="blue"
+        />
+        <StatCard
+          title="Total Users"
+          value={data.systemHealth?.totalUsers || 0}
+          icon={Users}
+          hue="emerald"
+        />
+        <StatCard
+          title="Active Borrows"
+          value={data.systemHealth?.activeBorrows || 0}
+          icon={BookOpenCheck}
+          hue="violet"
+        />
+        <StatCard
+          title="Overdue Books"
+          value={data.systemHealth?.overdueBooks || 0}
+          icon={AlertTriangle}
+          hue="amber"
+        />
+      </StatCardGrid>
 
       <section
         className="rounded-lg border bg-white p-4 shadow-sm sm:p-6"

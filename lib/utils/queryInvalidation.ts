@@ -11,7 +11,10 @@ export type QueryDomain =
   | "analytics"
   | "recommendations"
   | "operations"
-  | "circulation";
+  | "circulation"
+  | "tickets"
+  | "notifications"
+  | "activityLog";
 
 interface InvalidationMessage {
   version: 1;
@@ -26,20 +29,24 @@ const CHANNEL_NAME = "bookwise-query-invalidation-v1";
 let invalidationGeneration = 0;
 
 export const MUTATION_DOMAIN_REGISTRY = {
-  "book.write": ["books", "users", "borrows", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
-  "user.write": ["users", "borrows", "reviews", "admin", "analytics", "operations", "circulation"],
-  "borrow.lifecycle": ["borrows", "books", "users", "reviews", "admin", "analytics", "recommendations", "operations", "circulation"],
+  "book.write": ["books", "users", "borrows", "reviews", "admin", "analytics", "recommendations", "operations", "circulation", "activityLog"],
+  "user.write": ["users", "borrows", "reviews", "admin", "analytics", "operations", "circulation", "notifications", "activityLog"],
+  "borrow.lifecycle": ["borrows", "books", "users", "reviews", "admin", "analytics", "recommendations", "operations", "circulation", "notifications", "activityLog"],
   "reservation.lifecycle": ["circulation", "borrows", "books", "users", "admin", "analytics", "recommendations"],
   "renewal.write": ["circulation", "borrows", "books", "users", "admin", "analytics"],
-  "review.write": ["reviews", "books", "users", "analytics"],
-  "admin-request.write": ["admin", "users", "analytics", "operations"],
+  "review.write": ["reviews", "books", "users", "analytics", "notifications", "activityLog"],
+  "admin-request.write": ["admin", "users", "analytics", "operations", "notifications", "activityLog"],
   "fine.write": ["borrows", "users", "admin", "analytics", "operations"],
   "recommendation.write": ["recommendations", "books", "admin", "analytics"],
   "operations.write": ["borrows", "admin", "analytics", "operations"],
+  // Parent: CR-0003 / REQ-0034 — support ticket create/update/reassign
+  "ticket.write": ["tickets", "notifications", "activityLog", "admin"],
+  // Read-only mark-as-read/delete — bell list + unread badge only (no RSC paths)
+  "notification.write": ["notifications"],
 } as const satisfies Record<string, readonly QueryDomain[]>;
 
 export const MUTATION_RSC_PATH_REGISTRY = {
-  "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights"],
+  "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
   "user.write": [
     "/my-profile",
     "/make-admin",
@@ -47,21 +54,32 @@ export const MUTATION_RSC_PATH_REGISTRY = {
     "/admin/users",
     "/admin/users/[id]",
     "/admin/business-insights",
+    "/admin/activity-history",
   ],
-  "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+  "borrow.lifecycle": ["/", "/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
   "reservation.lifecycle": ["/all-books", "/books/[id]", "/my-profile", "/admin", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "renewal.write": ["/books/[id]", "/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
-  "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights"],
+  "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights", "/admin/book-reviews", "/admin/book-reviews/[id]", "/admin/activity-history"],
   // Make-admin decisions land on /make-admin + All Users (+ user 360); signup queue is user.write
   "admin-request.write": [
     "/make-admin",
     "/admin/users",
     "/admin/users/[id]",
     "/admin/business-insights",
+    "/admin/activity-history",
   ],
   "fine.write": ["/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
   "recommendation.write": ["/", "/all-books", "/admin/automation", "/admin/business-insights"],
   "operations.write": ["/my-profile", "/api-status", "/admin", "/admin/book-requests", "/admin/automation", "/admin/business-insights"],
+  "ticket.write": [
+    "/admin/support-tickets",
+    "/admin/support-tickets/[id]",
+    "/support-tickets",
+    "/support-tickets/[id]",
+    "/admin",
+    "/admin/activity-history",
+  ],
+  "notification.write": [],
 } as const satisfies Record<keyof typeof MUTATION_DOMAIN_REGISTRY, readonly string[]>;
 
 export type MutationDomainName = keyof typeof MUTATION_DOMAIN_REGISTRY;
@@ -94,6 +112,10 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.reviews.legacyRoot,
     queryKeys.reviews.bookRoot,
     queryKeys.reviews.eligibilityRoot,
+    queryKeys.reviews.adminRoot,
+    queryKeys.reviews.userReviewsRoot,
+    queryKeys.reviews.adminDetailRoot,
+    queryKeys.reviews.pendingCountRoot,
   ],
   admin: [
     queryKeys.admin.root,
@@ -123,6 +145,18 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.circulation.root,
     queryKeys.circulation.reservationsRoot,
   ],
+  tickets: [
+    queryKeys.tickets.root,
+    queryKeys.tickets.adminRoot,
+    queryKeys.tickets.userRoot,
+    queryKeys.tickets.detailRoot,
+    queryKeys.tickets.openCountRoot,
+  ],
+  notifications: [
+    queryKeys.notifications.root,
+    queryKeys.notifications.unreadCountRoot,
+  ],
+  activityLog: [queryKeys.activityLog.root],
 };
 
 const ALL_DOMAINS = Object.freeze(
@@ -270,6 +304,12 @@ export const invalidateAfterRecommendationChange = (
   queryClient: QueryClient
 ) =>
   invalidateMutation(queryClient, "recommendation.write");
+
+export const invalidateAfterTicketChange = (queryClient: QueryClient) =>
+  invalidateMutation(queryClient, "ticket.write");
+
+export const invalidateNotificationsQueries = (queryClient: QueryClient) =>
+  invalidateMutation(queryClient, "notification.write");
 
 export const invalidateDashboardQueries = (queryClient: QueryClient) =>
   invalidateDomains(queryClient, ["admin", "analytics", "operations"]);

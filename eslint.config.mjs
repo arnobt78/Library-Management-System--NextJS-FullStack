@@ -21,5 +21,15 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // @tanstack/react-table's useReactTable() intentionally returns fresh
+    // instance methods every render (its documented API contract), which the
+    // React Compiler cannot verify as memoizable. This is expected upstream
+    // library behavior, not a bug in this file — scoped off here only.
+    files: ["components/ui/data-table.tsx"],
+    rules: {
+      "react-hooks/incompatible-library": "off",
+    },
+  },
   globalIgnores([".next/**", "coverage/**"]),
 ]);

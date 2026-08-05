@@ -1,7 +1,7 @@
 import React from "react";
 import { auth } from "@/auth";
 import { db } from "@/database/drizzle";
-import { borrowRecords, books, bookReviews, users } from "@/database/schema";
+import { borrowRecords, books, users } from "@/database/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import MyProfileTabs from "@/components/MyProfileTabs";
@@ -9,6 +9,7 @@ import ReservationsPanel, {
   type ReservationSummary,
 } from "@/components/ReservationsPanel";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { getUserBookReviews } from "@/lib/server/reviewData";
 
 const signupDecisionUsers = alias(users, "signup_decision_actor");
 
@@ -57,13 +58,11 @@ const Page = async () => {
         }
       : null;
 
-  // Fetch user's reviews count
-  const userReviews = await db
-    .select()
-    .from(bookReviews)
-    .where(eq(bookReviews.userId, session.user.id));
-
-  const totalReviews = userReviews.length;
+  // SSR-hydrate the "My Reviews" tab (any status) — same shape the tab's
+  // React Query hook fetches client-side, so first paint never shows a
+  // loading skeleton and count/list can never drift apart. MyProfileTabs
+  // derives the live count from this same query, so no separate count prop.
+  const userReviews = await getUserBookReviews(session.user.id);
 
   // Fetch all borrow records for the current user with book details
   const allBorrowRecords = await db
@@ -223,7 +222,7 @@ const Page = async () => {
         initialActiveBorrows={activeBorrows}
         initialPendingRequests={pendingRequests}
         initialBorrowHistory={borrowHistory}
-        totalReviews={totalReviews}
+        initialReviews={userReviews}
       />
     </>
   );

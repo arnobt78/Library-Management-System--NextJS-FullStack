@@ -64,12 +64,15 @@ const UserAvatar = ({
   const useParentSize = className?.includes("size-full");
   const sizeStyle = useParentSize ? undefined : { width: size, height: size };
   const sizesAttr = `${size}px`;
+  // Only apply size-10 when using the default 40px — custom sizes use inline style only
+  // (size-10 + style={28} fought and mis-aligned name/email stacks vs login Select).
+  const defaultSizeClass = !useParentSize && size === 40 ? "size-10" : undefined;
 
   return (
     <div
       className={cn(
         "relative shrink-0 overflow-hidden rounded-full bg-light-100",
-        !useParentSize && "size-10",
+        defaultSizeClass,
         className,
       )}
       style={sizeStyle}

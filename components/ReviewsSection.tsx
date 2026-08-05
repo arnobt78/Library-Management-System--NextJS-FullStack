@@ -12,13 +12,13 @@ import {
   Loader2,
   MoreVertical,
   Pencil,
-  Star,
   Trash2,
   X,
 } from "lucide-react";
 import { useDeleteReview } from "@/hooks/useMutations";
 import UserAvatar from "@/components/UserAvatar";
 import ReviewFormDialog from "@/components/ReviewFormDialog";
+import StarRow from "@/components/ui/StarRow";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,23 +37,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { resolveActionBookTitle } from "@/lib/toast";
-
-interface Review {
-  id: string;
-  rating: number;
-  comment: string;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-  userFullName: string;
-  userEmail: string;
-  universityCard?: string | null;
-}
+import { GLASS_ALERT, GLASS_MENU } from "@/lib/ui/glassActionChrome";
+import type { Review } from "@/lib/services/reviews";
 
 interface ReviewCardProps {
   review: Review;
   bookId: string;
   bookTitle: string;
-  currentUserEmail?: string;
+  currentUserId?: string;
   onEdit: (review: Review) => void;
   onDeleteLocal: (reviewId: string) => void;
   onDeleteRollback: (reviewId: string) => void;
@@ -65,35 +56,11 @@ function truncateComment(comment: string, max = 120): string {
   return `${trimmed.slice(0, max - 1)}…`;
 }
 
-function StarRow({
-  rating,
-  size = "sm",
-}: {
-  rating: number;
-  size?: "sm" | "md";
-}) {
-  const cls = size === "md" ? "size-4" : "size-3 sm:size-4";
-  return (
-    <div className="flex items-center gap-0.5 sm:space-x-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`${cls} ${
-            star <= rating
-              ? "fill-yellow-400 text-yellow-400"
-              : "fill-gray-300 text-gray-300"
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
-
 function ReviewCard({
   review,
   bookId,
   bookTitle,
-  currentUserEmail,
+  currentUserId,
   onEdit,
   onDeleteLocal,
   onDeleteRollback,
@@ -102,7 +69,7 @@ function ReviewCard({
   const deleteReviewMutation = useDeleteReview();
   const isDeleting = deleteReviewMutation.isPending;
 
-  const isOwner = currentUserEmail === review.userEmail;
+  const isOwner = Boolean(currentUserId) && currentUserId === review.userId;
   const isEdited =
     review.createdAt &&
     review.updatedAt &&
@@ -137,11 +104,11 @@ function ReviewCard({
       <div className="flex flex-row items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex min-w-0 items-center gap-2">
               <UserAvatar
                 universityCard={review.universityCard}
                 fullName={review.userFullName}
-                email={review.userEmail}
+                email={review.userId}
                 size={36}
                 alt={`${review.userFullName} avatar`}
               />
@@ -149,7 +116,13 @@ function ReviewCard({
                 {review.userFullName}
               </h4>
             </div>
-            <StarRow rating={review.rating} />
+            <StarRow
+              rating={review.rating}
+              starClassName="size-3 sm:size-4"
+              filledClassName="fill-yellow-400 text-yellow-400"
+              emptyClassName="fill-gray-300 text-gray-300"
+              className="flex items-center gap-0.5 sm:space-x-1"
+            />
           </div>
 
           <p className="mt-2 text-sm text-light-200 sm:text-base">
@@ -183,31 +156,28 @@ function ReviewCard({
                 <button
                   type="button"
                   aria-label="Review actions"
-                  className="focus:ring-primary/40 shrink-0 rounded-full p-1 text-light-200/60 hover:bg-gray-700/50 hover:text-light-100 focus:outline-none focus:ring-2"
+                  className={GLASS_MENU.trigger}
                 >
                   <MoreVertical className="size-4 sm:size-5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="z-50 w-36 border-gray-600 bg-gray-800 text-light-100 sm:w-40"
-              >
+              <DropdownMenuContent align="end" className={GLASS_MENU.content}>
                 <DropdownMenuItem
-                  className="cursor-pointer gap-2 text-xs text-light-100 focus:bg-gray-700 focus:text-light-100 sm:text-sm"
+                  className={GLASS_MENU.item}
                   onSelect={() => onEdit(review)}
                 >
                   <Pencil className="size-3.5 sm:size-4" />
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="cursor-pointer gap-2 text-xs text-red-400 focus:bg-gray-700 focus:text-red-400 sm:text-sm"
+                  className={GLASS_MENU.itemDestructive}
                   onSelect={() => setDeleteOpen(true)}
                 >
                   <Trash2 className="size-3.5 sm:size-4" />
                   Delete
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-600" />
-                <DropdownMenuItem className="cursor-pointer gap-2 text-xs text-light-100 focus:bg-gray-700 focus:text-light-100 sm:text-sm">
+                <DropdownMenuSeparator className={GLASS_MENU.separator} />
+                <DropdownMenuItem className={GLASS_MENU.item}>
                   <X className="size-3.5 sm:size-4" />
                   Cancel
                 </DropdownMenuItem>
@@ -221,19 +191,25 @@ function ReviewCard({
                 setDeleteOpen(open);
               }}
             >
-              <AlertDialogContent className="border-gray-600 bg-gray-800/95">
+              <AlertDialogContent className={GLASS_ALERT.content}>
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-base text-light-100 sm:text-lg">
+                  <AlertDialogTitle className={GLASS_ALERT.title}>
                     Delete review for &ldquo;{titleLabel}&rdquo;?
                   </AlertDialogTitle>
                   <AlertDialogDescription asChild>
-                    <div className="space-y-2 text-xs text-light-200 sm:text-sm">
+                    <div className={`space-y-2 ${GLASS_ALERT.description}`}>
                       <p>
                         This permanently removes your review. This action cannot
                         be undone.
                       </p>
-                      <div className="rounded-md border border-gray-600 bg-gray-900/40 p-2.5">
-                        <StarRow rating={review.rating} size="md" />
+                      <div className={GLASS_ALERT.preview}>
+                        <StarRow
+                          rating={review.rating}
+                          starClassName="size-4"
+                          filledClassName="fill-yellow-400 text-yellow-400"
+                          emptyClassName="fill-gray-300 text-gray-300"
+                          className="flex items-center gap-0.5 sm:space-x-1"
+                        />
                         <p className="mt-1.5 text-light-100">
                           {truncateComment(review.comment)}
                         </p>
@@ -241,17 +217,17 @@ function ReviewCard({
                     </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+                <AlertDialogFooter className={GLASS_ALERT.footer}>
                   <AlertDialogCancel
                     disabled={isDeleting}
-                    className="w-full border-gray-500 bg-gray-600 text-xs text-white hover:bg-gray-500 hover:text-white sm:w-auto sm:text-sm"
+                    className={GLASS_ALERT.cancel}
                   >
                     Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDeleteConfirm}
                     disabled={isDeleting}
-                    className="w-full gap-1.5 bg-red-600 text-xs text-white hover:bg-red-700 sm:w-auto sm:text-sm"
+                    className={GLASS_ALERT.destructive}
                   >
                     {isDeleting ? (
                       <Loader2 className="size-3.5 animate-spin sm:size-4" />
@@ -274,14 +250,14 @@ interface ReviewsSectionProps {
   bookId: string;
   bookTitle: string;
   reviews: Review[];
-  currentUserEmail?: string | null;
+  currentUserId?: string | null;
 }
 
 export default function ReviewsSection({
   bookId,
   bookTitle,
   reviews,
-  currentUserEmail,
+  currentUserId,
 }: ReviewsSectionProps) {
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   // Optimistic patches merged over props — avoids stale-text flash without sync effect
@@ -359,7 +335,7 @@ export default function ReviewsSection({
               review={review}
               bookId={bookId}
               bookTitle={bookTitle}
-              currentUserEmail={currentUserEmail || undefined}
+              currentUserId={currentUserId || undefined}
               onEdit={handleReviewEdit}
               onDeleteLocal={handleReviewDeleteLocal}
               onDeleteRollback={handleReviewDeleteRollback}

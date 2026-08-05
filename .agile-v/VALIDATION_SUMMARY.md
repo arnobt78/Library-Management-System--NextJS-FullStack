@@ -97,3 +97,36 @@ EvalGate: status=FAIL | eval_run_id=ER-C2-CORRECTIVE-PROVE-3 | rationale=Correct
 - Project Owner explicitly authorized a local checkpoint commit on 2026-08-02; this does not approve push, deployment, release or C2 Gate 2.
 
 EvalGate: status=FAIL | eval_run_id=ER-C2-FINAL-CORRECTIVE-5 | policy_version_ref=1.0.0 | eval_results_path=.agile-v/EVAL_RESULTS.md
+
+## CR-0003 Admin Suite Parity Expansion - Local Prove - 2026-08-05
+
+Scope: [built/verified] REQ-0034 (Support Tickets), REQ-0035 (Book review moderation), REQ-0036 (Activity History + notification bell), REQ-0037 (KPI/data-table/search/filter rollout + Library Overview rename + existing-list retrofit).
+
+Traceability: REQ-0034, REQ-0035, REQ-0036, REQ-0037 — approved under `GATE-0007`; plan file `admin_suite_parity_expansion_4ad9aa3f.plan.md`; all 10 plan todos completed.
+
+Findings:
+
+- Migration `0014_admin_suite_expansion.sql` + `.down.sql` add `support_tickets`, `support_ticket_replies`, `notifications`, `activity_logs`, and additive `book_reviews.status`/`reviewedBy`/`reviewedAt` (default `APPROVED` — verified no existing review row changes visibility).
+- `ticket.write`/`notification.write` mutation-domain families registered in `MUTATION_DOMAIN_REGISTRY`/`MUTATION_RSC_PATH_REGISTRY`/`lib/query/keys.ts`; `review.write`/`admin-request.write`/`book.write`/`user.write`/`borrow.lifecycle` extended to include `notifications`/`activityLog`; contract test in `queryInvalidation.test.ts` updated and PASS.
+- `logActivity()` call-site audit: confirmed present at book CRUD, borrow lifecycle, user role/status changes, admin-request decisions, ticket create/update, review create/moderate.
+- Server-derived actor enforcement confirmed on all new write paths (`requireAuthenticatedActor`/`requireAdminActor`); no client-supplied `userId`/`assignedToId` accepted.
+- **Manual two-browser-tab smoke** (both signed in as `test@admin.com`): tab B created a ticket via `/support-tickets`; tab A, left idle on `/admin/support-tickets`, updated its sidebar badge, KPI `StatCard`s, and `data-table` row live with zero refresh/navigation — confirms `BroadcastChannel`/TanStack cross-tab invalidation holds for the two new mutation-domain families. Bell correctly showed "You're all caught up" (self-notification suppressed for the sole admin acting on their own ticket) — verified intentional via `getAllAdminUsers(actor.id)` excluding the actor. Test ticket deleted via UI afterward; all counts returned to 0. Dev-server log reviewed for the session: zero real runtime errors/5xx; only a cosmetic `data-cursor-ref` attribute hydration warning that is an artifact of the browser-automation tool's own DOM instrumentation (reproduced identically across three unrelated components — `StatCard`, `MobileMenu`, `Sidebar` — confirming tooling noise, not an app defect).
+
+Commands: `npm run typecheck` PASS | `npm run lint` PASS (zero warnings; 1 documented scoped rule exception for `data-table.tsx`) | `npm test` — **110 passed, 11 skipped (121 total, 36 files)** | `npm run build` PASS | `npm audit --audit-level=low` — 1 pre-existing high finding in `eslint`'s own `brace-expansion` devDependency, unrelated to this change, no production code path, out of scope.
+
+EvalGate: status=PASS (local) | eval_run_id=ER-C2-CR0003-LOCAL-1 | policy_version_ref=1.0.0 | scope=local_code_and_manual_browser_smoke_only | outstanding=deployed_email_receipt, browser_a11y_cwv_measurement, load_evidence (same nonlocal-evidence class already blocking `ER-C2-FINAL-CORRECTIVE-5`; not attempted this session; does not block owner review of the implementation itself)
+
+## CR-0003 Ticket UX polish - Local Prove - 2026-08-05
+
+Scope: [built/verified] REQ-0034 detail/list densify + admin light CTA contrast + CARD_PAD standardization + activity toggle + instrumentation cleanup.
+
+Findings:
+
+- Admin Edit invisible root cause: Tailwind did not scan `lib/` → `bg-sky-*` never emitted; fixed with theme `bg-primary-admin` + `content: ./lib/**`.
+- Pad root cause: `.admin-panel` was `sm:p-7` (28px); now `p-2 sm:p-4` aligned with `.surface-card` / `CARD_PAD_CLASS`.
+- `ticket.write` + `patchTicketCaches*` + back-nav without re-invalidate remain the freshness path; Redis still rate-limit only.
+- Debug ingest instrumentation removed after owner confirm.
+
+Commands: `npm run typecheck` PASS | eslint (touched CR-0003 surfaces) PASS 0 warnings | `npm test` 110 passed / 11 skipped | `npm run build` PASS (Next 16.2.12; routes include `/support-tickets`, `/admin/support-tickets`, notifications, activity-logs) | audit: same pre-existing eslint `brace-expansion` high (devDep only).
+
+EvalGate: status=PASS (local polish) | eval_run_id=ER-C2-CR0003-POLISH-1 | outstanding=same nonlocal class as CR-0003 local-1 / `ER-C2-FINAL-CORRECTIVE-5`
