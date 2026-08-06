@@ -319,6 +319,50 @@ Every create/update/delete (and any side-effecting action) MUST update UX immedi
 - Benefit: one user update reflects in every post/card referencing that user; smaller memory; integrity.
 - Do not add normalization mid-feature without an explicit need.
 
+### 8.5 Client Mutation Cache Gateway (MUST for list CRUD)
+
+Invalidate-only is **not** enough when soft-nav / Back remounts with SSR `initialData` or a thin cache. Every list-shaped mutation domain SHOULD go through one gateway:
+
+1. **Snapshot** related list baselines from `QueryClient` (sibling rows survive races).
+2. **`await` invalidate** — mark domains stale; prefer `invalidateQueries` / `refetchType: "active"`. SHOULD NOT blank inactive lists with `removeQueries` unless densify immediately reseeds them.
+3. **Densify** — `setQueryData` / `setQueriesData` on list, detail, badge, and related entity keys (active **and** inactive).
+
+Navigation stays instant: densify is in-memory; no login-time fetch-all waterfall; no Redis business-data cache required. Example names in mature repos: `commitMutationCache`, a densify adapter registry per mutation domain. Cross-tab: BroadcastChannel / SSE for invalidation events (no claiming cross-device realtime without WS/SSE infra).
+
+See also: portable RQ deep-dive in [`REACT_QUERY_SETUP_GUIDE.md`](./REACT_QUERY_SETUP_GUIDE.md) §4.6.
+
+### 8.6 Densify failure modes (battle card)
+
+| Symptom | Likely root cause | Fix |
+|---|---|---|
+| Soft-nav empty list / badge 0 after delete or last-item approve | Densify wrote `[]` or never seeded; remount shows thin cache | Densify related keys after invalidate; upsert into public/detail lists when actor never had the row |
+| Empty list then SSR re-fills deleted rows | RQ ignores later `initialData` wrongly **or** unmarked `[]` healed from stale RSC | Mark intentional densify-empty; prefer marked `[]` over stale SSR; heal unmarked poison with non-empty SSR |
+| Soft-nav still shows old row after edit | Update densify only mapped mounted keys; admin/queue never mounted | Seed queue from detail/public cache + book/resource meta when list baseline missing |
+| Correct data → flash wrong → correct again | Active refetch paints join; then densify stomps with weak actor | Prefer post-invalidate / mutation response fields over session placeholders |
+| Approver / “by X” shows emptyLabel forever | Densify wrote UI placeholder (`"an admin"`, `"Unknown"`) into cache | NEVER persist emptyLabels; see §8.7 |
+| Prefetch then soft-nav shows pre-write queue | Prefetch `staleTime` 30s treats densified/stale data as fresh | Use `staleTime: 0` on write-hot queues; warm after invalidate |
+| Mutation OK but attribution missing until refresh | API returns ids/status only | Return joined actor name/email/avatar on mutation response |
+| Debug log empty while bug reproduces | CSP `connect-src 'self'` blocks browser→`127.0.0.1` ingest | Curl ingest or temporary same-origin relay; empty log ≠ no bug |
+
+### 8.7 Attribution / actor densify (MUST)
+
+When UI shows “Approved by / Reviewed by / Decided by”:
+
+1. NEVER write PersonAttribution (or similar) **emptyLabel** strings into TanStack cache.
+2. Resolve actor for densify in this order: SSR DB actor (`currentAdmin` / decisionActor) → mutation response join fields → post-invalidate joined row → session name/email/card.
+3. Session often lacks avatar/card and can be briefly `null` (incognito / SessionProvider lag) — treat as weak, not authoritative.
+4. EmptyLabel remains **display-only** when person is truly null.
+
+### 8.8 Prefetch + soft-nav (SHOULD)
+
+1. Intent-prefetch on hover/focus for list routes (fire-and-forget `prefetchQuery`).
+2. Entity title links that densify owns: `prefetch={false}` on Next `<Link>` when RSC prefetch would race stale shells; warm RQ yourself.
+3. After write-heavy domains, hot queue prefetches SHOULD use `staleTime: 0`.
+4. Soft-nav to a resource detail: warm **detail + related lists** together (e.g. resource + its comments/reviews).
+5. Preserve SSR `initialData` / `initialDataUpdatedAt` patterns; densify must not invent empty success data that blinds later SSR.
+
+*Lessons distilled from university-library densify closeout (2026-08); portable to any Next/Vite + TanStack Query app.*
+
 ---
 
 ## 9. Realtime (SSE / WebSocket)
@@ -572,6 +616,11 @@ Every non-trivial change MUST verify as applicable:
 | Prefetch (Next) | `await Promise.all` + dehydrate; never `void` + dehydrate |
 | Prefetch (Vite) | Parallel `useQuery` / intent `prefetchQuery`; no dehydrate copy-paste |
 | CRUD | Optimistic + invalidate all related keys + SSE/tabs; no full refresh |
+| Gateway densify | Snapshot → await invalidate → setQueryData related keys (active+inactive) |
+| Densify-empty | Mark intentional `[]`; do not let stale SSR reseed deletes |
+| Actor densify | Never cache UI emptyLabels; prefer SSR/API join over session |
+| Prefetch after write | Hot queues `staleTime: 0`; warm detail + related lists |
+| Debug ingest | CSP may block browser→localhost; empty log ≠ no bug |
 | Cache | RQ → (SSR hydrate if Next) → optional Redis → DB |
 | Secrets | Never put service keys in the SPA bundle |
 | Types | Strict; no `any`; prefer generated DTOs |

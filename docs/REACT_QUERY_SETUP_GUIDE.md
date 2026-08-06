@@ -1176,6 +1176,84 @@ onSuccess: async (data, variables) => {
 
 ---
 
+## 4️⃣.6️⃣ Gateway densify + soft-nav (lessons for every project)
+
+> Portable companion to Engineering Playbook [§8.5–8.8](./PROJECT_ENGINEERING_PLAYBOOK.md). Applies to Next.js App Router **and** Vite SPAs with TanStack Query. Entity names below are generic (resources, moderated entities, queues).
+
+### Why invalidate-only is not enough
+
+Soft-nav / Back often remounts a page with:
+
+1. Cached RQ data (possibly empty after densify, or stale before densify), and/or
+2. SSR `initialData` that still reflects the **pre-mutation** server snapshot for that request.
+
+`invalidateQueries` alone marks keys stale and refetches **active** observers. Inactive list keys stay thin until remount — then a flash of empty/stale UI, or SSR reseeds deleted rows. **Densify** (`setQueryData` after await invalidate) keeps related lists coherent in memory so soft-nav never waits on a fetch waterfall.
+
+### Gateway recipe
+
+```typescript
+// Pseudocode — adapt names to your repo
+async function commitMutationCache(queryClient, {
+  snapshotKeys,
+  invalidate, // () => Promise — mark domains stale
+  densify,    // (baselines) => void — setQueryData related keys
+}) {
+  const baselines = snapshotKeys.map((key) => queryClient.getQueryData(key));
+  await invalidate();
+  densify(baselines);
+}
+```
+
+**Adapter registry idea:** every mutation domain (`resource.write`, `moderation.write`, `queue.write`, …) registers one densify function. Mutations call the gateway once; they do not hand-roll invalidate + scatter `setQueryData`.
+
+Prefer `invalidateQueries` / `refetchType: "active"` over blanking inactive lists with `removeQueries` unless densify immediately reseeds those keys.
+
+### Densify-empty marks vs SSR seed heal
+
+| Case | Behavior |
+|---|---|
+| Intentional empty after delete / last approve | Mark the cache entry as densify-empty so remount prefers `[]` over stale SSR |
+| Unmarked empty (poison / race) | Non-empty SSR MAY heal the thin cache |
+| Never invent empty “success” data that blinds later SSR | Preserve `initialData` / `initialDataUpdatedAt` contracts |
+
+Example pattern: store a side-channel of query hashes that densify intentionally emptied; seed helpers skip SSR overwrite for those hashes until the next real fetch.
+
+### Actor / moderator attribution
+
+When lists show “Approved by / Reviewed by”:
+
+1. **Never** write UI emptyLabels (`"an admin"`, `"Unknown user"`) into TanStack cache.
+2. Prefer: SSR DB actor → **mutation API join fields** (name, email, avatar) → post-invalidate joined row → session.
+3. Session can lag (`null` briefly) or lack avatar/card — do not stomp a good joined name with a weak densify.
+4. EmptyLabel is display-only when person is truly null.
+
+### Pending / loading toasts (optional UX)
+
+For moderate / approve / reject actions, show a pending toast until success or error settles. Do **not** add artificial `setTimeout` delays as a “fix” for cache races — fix densify instead.
+
+### Prefetch contracts after writes
+
+1. Hot admin/queue lists: prefetch with `staleTime: 0` so densified or invalidated data is not treated as fresh for 30s.
+2. Soft-nav to resource detail: warm **detail + related lists** in one intent prefetch (e.g. resource + comments).
+3. Title links whose freshness densify owns: consider Next `prefetch={false}` and warm RQ yourself to avoid RSC racing stale shells.
+
+### Checklist (paste before claiming CRUD “instant everywhere”)
+
+- [ ] Mutation success path goes through gateway: snapshot → await invalidate → densify
+- [ ] Related **inactive** list/detail/badge keys densified (not only the mounted page)
+- [ ] Intentional empty lists marked; SSR cannot resurrect deleted rows on soft-nav
+- [ ] Actor fields never densified as emptyLabel strings; mutation API returns joins when UI needs them
+- [ ] Update densify can seed never-mounted queue rows from detail/public cache + resource meta
+- [ ] Write-hot queue PrefetchLinks use `staleTime: 0`
+- [ ] Soft-nav Back / forward / sibling routes show correct lists without full refresh
+- [ ] Active refetch cannot be stomped by a weaker densify actor than the joined row
+
+### Debug tip: CSP vs localhost ingest
+
+Browsers under `Content-Security-Policy: connect-src 'self'` **silently block** `fetch`/`sendBeacon` to `http://127.0.0.1:<port>`. An empty debug log does **not** mean the bug did not reproduce. Use curl ingest, temporary same-origin relay, or server logs while investigating.
+
+---
+
 ## 5️⃣ Cache Invalidation Utilities
 
 ### Pattern: Centralized invalidation functions for related queries
@@ -2680,6 +2758,6 @@ export default async function ResourcesPage({
 
 ---
 
-**Last Updated:** 2025-12-02  
-**Version:** 2.0.0  
+**Last Updated:** 2026-08-06  
+**Version:** 2.1.0 (+ densify gateway lessons §4.6)  
 **Status:** Universal/Generic Guide - Supports React, TypeScript, Next.js, SSR, Node.js
