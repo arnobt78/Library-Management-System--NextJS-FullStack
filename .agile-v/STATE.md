@@ -4,11 +4,11 @@
 - Cycle: C2
 - Stage: 4 - Prove complete (local) densify closeout + Approver/table polish; nonlocal Verify still outstanding
 - SCOPE-V phase: Verify (densify + Approver/table Prove PASS locally)
-- Status: ACTIVE - densify/Approver/table polish committing; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - densify/Approver/table polish at tip `c8faf16`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: (update after push)
-- Latest HEAD: (update after push)
+- Latest implementation tip: `c8faf16` (densify closeout + Approver densify + table typography)
+- Latest HEAD: `c8faf16` (docs bind with tip; push next)
 - Started: 2026-08-01
 - Last updated: 2026-08-06 (densify closeout + Approver densify + table typography)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -152,4 +152,4 @@ Admin book-reviews table polish + StatCardGrid auto-fit + attribution batch Prov
 - Approver densify: never cache `"an admin"`; use mutation moderator + post-invalidate join + SSR `currentAdmin`.
 - Table polish: `tableCellStyles` + PrefetchLink book-detail; Book Reviews title→`/books/[id]`, comment→review detail.
 - Local Prove this batch: typecheck/lint; **146** default tests PASS (Gate 2 still blocked by EvalGate nonlocal).
-- Tip/HEAD: update after push of densify + Approver/table polish commit.
+- Tip/HEAD: `c8faf16` (densify closeout + Approver densify + table typography).
