@@ -8,7 +8,7 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `29aaa59` (admin review detail ticket shells + moderate confirm)
-- Latest HEAD: `29aaa59` (`main` ahead of origin until push)
+- Latest HEAD: `934f985` (`main` == `origin/main`; docs bind after tip)
 - Started: 2026-08-01
 - Last updated: 2026-08-06 (admin review detail ticket shells + moderate confirm)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
