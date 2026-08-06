@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) review-detail redesign + densify closeout; nonlocal Verify still outstanding
-- SCOPE-V phase: Verify (review-detail + densify Prove PASS locally)
-- Status: ACTIVE - review-detail redesign at tip `29aaa59`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove complete (local) admin Stockly shell + nav-count densify; nonlocal Verify still outstanding
+- SCOPE-V phase: Verify (shell + densify Prove PASS locally)
+- Status: ACTIVE - admin shell densify at tip `06ca476`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `29aaa59` (admin review detail ticket shells + moderate confirm)
-- Latest HEAD: `934f985` (`main` == `origin/main`; docs bind after tip)
+- Latest implementation tip: `06ca476` (Stockly admin chrome + patchAdminNavCounts)
+- Latest HEAD: pending docs bind after tip
 - Started: 2026-08-01
-- Last updated: 2026-08-06 (admin review detail ticket shells + moderate confirm)
+- Last updated: 2026-08-07 (admin Stockly shell + nav-count densify)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,7 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (attribution + SSR fix)
+- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (admin shell densify)
 
 ## Resume Protocol
 
@@ -118,7 +118,7 @@ Owner requested a deep audit of the CR-0003 diff before commit. A dedicated suba
 
 ### Next Action
 
-Owner smoke soft-nav on `/admin/book-reviews/[id]` Approve/Reject (confirm + single spinner). Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
+Hard-refresh admin smoke (avatar center, logo, densify badge path). Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
 
 ### Admin review detail redesign (2026-08-06)
 
@@ -160,3 +160,9 @@ Owner smoke soft-nav on `/admin/book-reviews/[id]` Approve/Reject (confirm + sin
 - Table polish: `tableCellStyles` + PrefetchLink book-detail; Book Reviews title→`/books/[id]`, comment→review detail.
 - Local Prove this batch: typecheck/lint; **146** default tests PASS (Gate 2 still blocked by EvalGate nonlocal).
 - Tip/HEAD: tip `c8faf16` / HEAD `bbebc50` (docs bind).
+
+## Agent notes (2026-08-07)
+
+- Admin Stockly shell: shared Header `tone="light"`; full-bleed frosted chrome; `py-2` navbar; `CARD_PAD` admin-container; dead `.borrowed-book*` removed.
+- Nav densify: `patchAdminNavCounts` absolute; `/api/admin/nav-counts` admin-auth; dual Tailwind base kept.
+- Local Prove: type/lint/**151** tests + build PASS. Tip `06ca476`. Gate 2 still EvalGate FAIL.

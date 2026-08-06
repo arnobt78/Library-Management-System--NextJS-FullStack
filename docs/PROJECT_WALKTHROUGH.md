@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-06 | Status: C2 Stage 4; review-detail redesign + densify local Prove; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-07 | Status: C2 Stage 4; admin Stockly shell + nav-count densify local Prove; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -29,6 +29,13 @@ Browser
 - PrefetchLink warms list/detail keys (incl. `/books/<uuid>` detail+reviews, `staleTime: 0` where densify races).
 - Admin Book Reviews: title → book detail; comment → review detail; table headers `font-medium`, cell titles/names `font-normal`, emails `text-xs` under names.
 - Admin review detail: ticket-shaped Back/KPI/About|Description; borrow meta; `ModerateReviewAlertDialog`; per-action Approve/Reject spinner; densify path unchanged (`review.write`).
+- Admin nav badges: absolute `patchAdminNavCounts` after domain densify; SSR `getAdminNavCounts` + GET `/api/admin/nav-counts` (admin-authorized).
+
+## Admin Stockly chrome (2026-08-07)
+
+- Layout: full-bleed `admin-shell` (no `max-w-9xl`); shared public `Header` with `tone="light"`; frosted `.root-header--light` + `.admin-sidebar`; orphan `components/admin/Header` removed.
+- Pad: `CARD_PAD` / `.admin-panel` / `.admin-container` / api-docs|status|performance cards = `p-2 sm:p-4`; navbar `.root-header` `py-2`.
+- Residual: dual `@tailwind base` in `styles/admin.css` kept; Admin/Profile menu panels stay dark (triggers follow tone).
 
 ## Main directories
 
