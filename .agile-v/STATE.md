@@ -8,7 +8,7 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `06ca476` (Stockly admin chrome + patchAdminNavCounts)
-- Latest HEAD: pending docs bind after tip
+- Latest HEAD: `14646c1` (`main` ahead of origin; docs bind after tip)
 - Started: 2026-08-01
 - Last updated: 2026-08-07 (admin Stockly shell + nav-count densify)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
