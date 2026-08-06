@@ -17,7 +17,7 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const book = result.data;
 
   return (
-    <div className="p-3 sm:p-6">
+    <div className="p-2 sm:p-4">
       <div className="mb-6 flex flex-wrap items-center gap-3 sm:mb-10">
         <Button asChild className="back-btn">
           <Link href="/admin/books">Go Back</Link>

@@ -33,7 +33,7 @@ const Page = async ({
 
   if (!result.success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-2 sm:p-4">
         <div className="w-full">
           <div className="py-6 text-center sm:py-8">
             <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
