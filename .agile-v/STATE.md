@@ -4,11 +4,11 @@
 - Cycle: C2
 - Stage: 4 - Prove complete (local) review-detail redesign + densify closeout; nonlocal Verify still outstanding
 - SCOPE-V phase: Verify (review-detail + densify Prove PASS locally)
-- Status: ACTIVE - review-detail redesign uncommitted→commit this session; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - review-detail redesign at tip `29aaa59`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: pending (review-detail redesign; see post-commit HEAD)
-- Latest HEAD: `bbebc50` pre-commit (`main` == `origin/main`)
+- Latest implementation tip: `29aaa59` (admin review detail ticket shells + moderate confirm)
+- Latest HEAD: `29aaa59` (`main` ahead of origin until push)
 - Started: 2026-08-01
 - Last updated: 2026-08-06 (admin review detail ticket shells + moderate confirm)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
