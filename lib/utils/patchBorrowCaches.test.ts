@@ -18,6 +18,10 @@ import {
   patchBorrowCachesOnStatusChange,
   snapshotBorrowCacheBaselines,
 } from "@/lib/utils/patchBorrowCaches";
+import {
+  isDensifiedEmpty,
+  seedFromSsrIfEmpty,
+} from "@/lib/utils/queryCacheLists";
 
 function makeUserBorrow(
   overrides: Partial<BorrowRecordFull> & Pick<BorrowRecordFull, "id">,
@@ -208,6 +212,33 @@ describe("patchBorrowCaches", () => {
     expect(stats?.returnedBorrows).toBe(4);
   });
 
+  it("patchBookInventory also densifies /all-books list availableCopies", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      availableCopies: 1,
+      totalCopies: 3,
+    });
+    client.setQueryData(queryKeys.books.adminList({}), {
+      books: [
+        { id: "book-1", title: "A", availableCopies: 1 },
+        { id: "book-2", title: "B", availableCopies: 4 },
+      ],
+      total: 2,
+      page: 1,
+      totalPages: 1,
+      limit: 10,
+    });
+
+    patchBookInventory(client, "book-1", { availableDelta: 1 });
+
+    const list = client.getQueryData<{
+      books: Array<{ id: string; availableCopies: number }>;
+    }>(queryKeys.books.adminList({}));
+    expect(list?.books.find((b) => b.id === "book-1")?.availableCopies).toBe(2);
+    expect(list?.books.find((b) => b.id === "book-2")?.availableCopies).toBe(4);
+  });
+
   it("findCachedBorrowMeta reads user and request caches", () => {
     const client = new QueryClient();
     client.setQueryData(queryKeys.borrows.user("user-1"), [
@@ -218,5 +249,40 @@ describe("patchBorrowCaches", () => {
       bookId: "book-9",
       status: "BORROWED",
     });
+  });
+
+  it("marks densify-empty when PENDING requests list becomes empty", () => {
+    const client = new QueryClient();
+    const pendingKey = queryKeys.borrows.requests({
+      status: "PENDING",
+      search: undefined,
+    });
+    client.setQueryData(pendingKey, [
+      makeRequest({ id: "b-only", status: "PENDING" }),
+    ]);
+    client.setQueryData(
+      queryKeys.borrows.requests({ status: undefined, search: undefined }),
+      [makeRequest({ id: "b-only", status: "PENDING" })],
+    );
+
+    const baselines = snapshotBorrowCacheBaselines(client);
+    patchBorrowCachesOnStatusChange(
+      client,
+      {
+        recordId: "b-only",
+        patch: { status: "CANCELLED" },
+        userId: "user-1",
+        bookId: "book-1",
+      },
+      baselines,
+    );
+
+    expect(client.getQueryData(pendingKey)).toEqual([]);
+    expect(isDensifiedEmpty(pendingKey)).toBe(true);
+    expect(
+      seedFromSsrIfEmpty(client, pendingKey, [
+        makeRequest({ id: "b-only", status: "PENDING" }),
+      ]),
+    ).toEqual([]);
   });
 });

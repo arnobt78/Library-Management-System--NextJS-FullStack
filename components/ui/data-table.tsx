@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { TABLE_HEADER_LABEL } from "@/lib/ui/tableCellStyles";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -129,7 +130,27 @@ export function DataTable<TData, TValue>({
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : (() => {
+                          const rendered = flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          );
+                          // Plain string headers (Comment, Status, …) get the
+                          // same font-medium label weight as SortableHeader.
+                          if (typeof rendered === "string") {
+                            return (
+                              <span
+                                className={cn(
+                                  TABLE_HEADER_LABEL,
+                                  isDark && "text-light-200",
+                                )}
+                              >
+                                {rendered}
+                              </span>
+                            );
+                          }
+                          return rendered;
+                        })()}
                   </TableHead>
                 ))}
               </TableRow>

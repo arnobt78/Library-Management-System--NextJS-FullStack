@@ -11,6 +11,10 @@ import {
   applyOptimisticAdminRequestDecision,
   rollbackOptimisticAdminRequestDecision,
 } from "@/lib/query/optimisticAdminRequestDecision";
+import {
+  isDensifiedEmpty,
+  seedFromSsrIfEmpty,
+} from "@/lib/utils/queryCacheLists";
 
 function makeRequest(
   overrides: Partial<AdminRequest> & Pick<AdminRequest, "id">,
@@ -73,5 +77,27 @@ describe("optimisticAdminRequestDecision", () => {
       client.getQueryData<AdminRequest[]>(queryKeys.admin.pendingRequests)?.[0]
         ?.id,
     ).toBe("req-1");
+  });
+
+  it("marks densify-empty on last pending so SSR cannot reseed", async () => {
+    const client = new QueryClient();
+    const pending = makeRequest({ id: "req-1" });
+    client.setQueryData(queryKeys.admin.pendingRequests, [pending]);
+
+    await applyOptimisticAdminRequestDecision(client, {
+      requestId: "req-1",
+      status: "REJECTED",
+      reviewer: {
+        id: "admin-1",
+        fullName: "Librarian",
+        email: "lib@uni.edu",
+        universityCard: null,
+      },
+    });
+
+    const key = queryKeys.admin.pendingRequests;
+    expect(client.getQueryData(key)).toEqual([]);
+    expect(isDensifiedEmpty(key)).toBe(true);
+    expect(seedFromSsrIfEmpty(client, key, [pending])).toEqual([]);
   });
 });

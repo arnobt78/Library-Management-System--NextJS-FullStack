@@ -40,6 +40,7 @@ import ReviewDateMeta from "@/components/reviews/ReviewDateMeta";
 import { SafeImage } from "@/components/ui/safe-image";
 import { Image as ImageKitImage } from "@imagekit/next";
 import config from "@/lib/config";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
 function AdminCircleCover({
   coverUrl,
@@ -84,8 +85,11 @@ function AdminCircleCover({
 
 export default function AdminBookReviewDetailContent({
   initialReview,
+  currentAdmin = null,
 }: {
   initialReview: AdminBookReviewItem;
+  /** SSR DB actor for Approver densify (preferred over useSession). */
+  currentAdmin?: AdminRequestReviewer | null;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -97,16 +101,23 @@ export default function AdminBookReviewDetailContent({
   const moderateMutation = useModerateReview();
   const deleteMutation = useDeleteReview();
 
-  const decisionActor = session?.user
+  const decisionActor: AdminRequestReviewer | undefined = currentAdmin
     ? {
-        id: session.user.id,
-        fullName: session.user.name || "an admin",
-        email: session.user.email || "",
-        universityCard:
-          (session.user as { universityCard?: string | null }).universityCard ??
-          null,
+        id: currentAdmin.id,
+        fullName: currentAdmin.fullName,
+        email: currentAdmin.email,
+        universityCard: currentAdmin.universityCard,
       }
-    : undefined;
+    : session?.user
+      ? {
+          id: session.user.id,
+          fullName: session.user.name || "",
+          email: session.user.email || "",
+          universityCard:
+            (session.user as { universityCard?: string | null })
+              .universityCard ?? null,
+        }
+      : undefined;
 
   const handleModerate = (status: "APPROVED" | "REJECTED") => {
     moderateMutation.mutate({
@@ -169,6 +180,7 @@ export default function AdminBookReviewDetailContent({
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={`/books/${review.bookId}`}
+                  prefetch={false}
                   className="text-lg font-semibold text-dark-400 hover:text-primary-admin hover:underline sm:text-xl"
                 >
                   {review.bookTitle}
@@ -194,6 +206,7 @@ export default function AdminBookReviewDetailContent({
               />
               <Link
                 href={`/books/${review.bookId}`}
+                prefetch={false}
                 className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-admin hover:underline"
               >
                 <BookOpen className="size-3.5" aria-hidden />

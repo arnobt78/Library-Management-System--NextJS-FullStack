@@ -3,6 +3,7 @@
 /**
  * Compact reviewer line for admin-request / signup decisions.
  * Thin wrapper around PersonAttribution (avatar + Name · email + optional profile link).
+ * Pass variant="dark" on root/profile glass; default light for admin white panels.
  */
 
 import PersonAttribution from "@/components/PersonAttribution";
@@ -18,6 +19,8 @@ type AdminRequestReviewerAttributionProps = {
   /** Explicit /admin/users/[id] — admin surfaces only. */
   href?: string | null;
   linkClassName?: string;
+  /** dark = root/profile glass; light = admin white (default). */
+  variant?: "light" | "dark";
 };
 
 export default function AdminRequestReviewerAttribution({
@@ -28,6 +31,7 @@ export default function AdminRequestReviewerAttribution({
   textClassName,
   href = null,
   linkClassName,
+  variant = "light",
 }: AdminRequestReviewerAttributionProps) {
   return (
     <PersonAttribution
@@ -40,6 +44,7 @@ export default function AdminRequestReviewerAttribution({
       href={href}
       linkClassName={linkClassName}
       layout="inline"
+      variant={variant}
     />
   );
 }

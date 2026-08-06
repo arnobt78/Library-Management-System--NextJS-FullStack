@@ -469,7 +469,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
                     <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
                       <Button size="sm" asChild>
-                        <Link href={`/books/${book.id}`} className="inline-flex items-center gap-2 text-white">
+                        <Link href={`/books/${book.id}`} prefetch={false} className="inline-flex items-center gap-2 text-white">
                           <Eye className="size-4" />
                           View Details
                         </Link>

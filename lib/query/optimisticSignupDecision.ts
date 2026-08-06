@@ -4,6 +4,7 @@
  * Server ledger + await invalidateMutation("user.write") remains source of truth.
  *
  * decisionActor MUST come from the logged-in admin session — null would flash “an admin”.
+ * Last-item empty pending lists are densify-empty-marked so soft-nav cannot SSR-reseed.
  */
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import { queryKeys } from "@/lib/query/keys";
 import type { User } from "@/lib/services/users";
+import { markDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 
 const SIGNUP_DECISIONS_CAP = 25;
 
@@ -80,6 +82,15 @@ export async function applyOptimisticSignupDecision(
     (old) => (old ? old.filter((u) => u.id !== args.userId) : old),
   );
 
+  // Last pending approve/reject → mark intentional [] (soft-nav SSR reseed guard).
+  for (const [key, rows] of queryClient.getQueriesData<User[]>({
+    queryKey: queryKeys.users.pendingRoot,
+  })) {
+    if (Array.isArray(rows) && rows.length === 0) {
+      markDensifiedEmpty(key);
+    }
+  }
+
   queryClient.setQueriesData<SignupStatusDecision[]>(
     { queryKey: queryKeys.users.signupDecisionsRoot },
     (old) => {
@@ -87,7 +98,6 @@ export async function applyOptimisticSignupDecision(
       return next.slice(0, SIGNUP_DECISIONS_CAP);
     },
   );
-
 
   return { previousPending, previousDecisions };
 }

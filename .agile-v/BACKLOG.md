@@ -80,3 +80,17 @@ Owner approved plan `densify_invalidation_audit_map_b23e23e5` (Waves A+B+C). Del
 ## Approve review densify upsert (2026-08-06)
 
 Owner approved plan `approve_review_densify_upsert_b5f2bc1d`. `patchReviewCachesOnModerate` upserts public `book-reviews` on APPROVED (admin soft-nav). Review card UI polish + dialog identity. Prove 120 tests.
+
+## Session resume note (2026-08-06)
+
+Repo reconciled: HEAD `df0d0e8`, implementation tip `d61a058`, `main` == `origin/main`, clean tree, no PENDING interrupt. Densify Waves A–C + review create/approve densify + UI polish are committed (not awaiting commit). Owner invoked Agile V core/pipeline resume without naming a product ask. **Human-Decision:** pick one before coding:
+
+1. **Wave 5 / BL-0017** — collect nonlocal REQ-0032 evidence toward EvalGate / C2 Gate 2  
+2. **REQ-0033 polish (BL-0018)** — concrete UX list under existing polish backlog  
+3. **New Stage 1 CR** — name the feature/extension for REQ drafting  
+4. **Bug fix** — name symptom + expected behavior (Stage 3 if REQs unchanged)  
+5. **Other named scope** — explicit path/files/outcome
+
+## Attribution + book SSR fix (2026-08-06)
+
+Owner approved plan `review_attribution_densify_28a6e928`. Delivered: href-gated sky links; dark-glass static names; `/books/[id]` SSR moderator parity; densify attribution asserts. Prove 120 tests. Awaiting owner commit.

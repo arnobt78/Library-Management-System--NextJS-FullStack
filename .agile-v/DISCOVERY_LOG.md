@@ -108,3 +108,14 @@ Insight INS-0005 (OBS-0010, OBS-0011): Documentation and process scaffold may la
 | OBS-0029 | CLAUDE.md cites 84 default tests; CHANGE_LOG post-polish cites up to 108 — memory stale until next Prove recount | CLAUDE.md vs CHANGE_LOG | High | Open drift; do not invent count |
 | OBS-0030 | Owner message requested Agile V resume/plan only; no feature/bug/Wave-5 package named → Halt Condition (unclear Done) | Session query | High | Human-Decision pending |
 | OBS-0031 | Wave 5 / BL-0017 remains first incomplete Gate 2 path; EvalGate FAIL on nonlocal evidence only | BACKLOG, EVAL_RESULTS `ER-C2-FINAL-CORRECTIVE-5` | High | Default incomplete wave |
+
+## Session reconcile - Infinity Loop resume (2026-08-06)
+
+| ID | Observation | Source | Confidence | Status |
+|---|---|---|---|---|
+| OBS-0032 | HEAD is docs-bind `df0d0e8` on `origin/main`; implementation tip `d61a058` is pushed; working tree clean | `git status` / `git rev-parse` / `git log` | High | Reconciled in STATE |
+| OBS-0033 | STATE “Next Action” still claimed densify/create harden uncommitted — false after tip `d61a058` | STATE vs `git log` | High | Corrected this session |
+| OBS-0034 | Owner message requested Agile V resume/plan only; no feature/bug/Wave-5 package named → Halt Condition (unclear Done) | Session query | High | Human-Decision pending |
+| OBS-0035 | Wave 5 / BL-0017 + EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`) remains default incomplete Gate 2 path | BACKLOG, EVAL_RESULTS | High | Unchanged |
+| OBS-0036 | Approver flash: densify wrote “an admin” after invalidate painted Test Admin (session/actor null); fixed via resolveReviewModeratorForDensify | debug logs session df08e5 | High | Fixed; instrumentation removed |
+| OBS-0037 | CSP connect-src self blocks browser debug ingest to 127.0.0.1:7290 | empty debug log + next.config CSP | High | Documented in CLAUDE/STATE |

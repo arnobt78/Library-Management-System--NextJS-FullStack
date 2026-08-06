@@ -323,8 +323,9 @@ export default function MakeAdminRequestForm({
             reviewer={signupApproval.decisionActor ?? signupApproval.approver}
             prefix="Approved by"
             size={28}
+            variant="dark"
             className="text-light-200"
-            textClassName="text-light-100"
+            textClassName="text-xs sm:text-sm text-light-100"
           />
         </div>
       ) : null}
@@ -369,7 +370,8 @@ export default function MakeAdminRequestForm({
             reviewer={reviewer}
             prefix={revoked ? "Removed by" : "Rejected by"}
             size={28}
-            textClassName="text-red-100"
+            variant="dark"
+            textClassName="text-xs sm:text-sm text-red-100"
             className="text-red-200/90"
           />
           {rejectionReason ? (
@@ -410,7 +412,8 @@ export default function MakeAdminRequestForm({
             reviewer={reviewer}
             prefix="Approved by"
             size={28}
-            textClassName="text-green-100"
+            variant="dark"
+            textClassName="text-xs sm:text-sm text-green-100"
             className="text-green-200/90"
           />
           {(submittedLabel || reviewedLabel) && (

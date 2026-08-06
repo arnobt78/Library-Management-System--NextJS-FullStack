@@ -77,8 +77,9 @@ function SignupHistoryStrip({
             reviewer={actor}
             prefix="Rejected by"
             size={28}
+            variant="dark"
             className="text-light-200"
-            textClassName="text-light-100"
+            textClassName="text-xs sm:text-sm text-light-100"
           />
         </>
       ) : null}
@@ -90,8 +91,9 @@ function SignupHistoryStrip({
           reviewer={actor}
           prefix="Approved by"
           size={28}
+          variant="dark"
           className="text-light-200"
-          textClassName="text-light-100"
+          textClassName="text-xs sm:text-sm text-light-100"
         />
       ) : null}
     </div>
@@ -129,7 +131,7 @@ const Page = async () => {
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-light-200 sm:text-sm">
-                <span className="text-light-100/70">Current user: </span>
+                <span className="text-light-100/80">Current user: </span>
                 <span className="text-light-100">{email}</span>
               </p>
               <Badge variant="glassReturned">

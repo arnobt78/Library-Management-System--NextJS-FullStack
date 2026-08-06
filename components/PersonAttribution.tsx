@@ -6,6 +6,7 @@
  * - layout="stack" (default): avatar | name / email — tables + detail densify
  * - layout="inline": avatar · name · email on one wrapping row (attribution strips)
  * Profile Link only when `href` is explicitly passed (admin surfaces only).
+ * Sky link colors apply only when linked; static names use attributionStyles.
  */
 
 import { useState } from "react";
@@ -13,6 +14,17 @@ import Link from "next/link";
 import { Check, Copy } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import {
+  ATTRIBUTION_EMAIL_SIZE,
+  ATTRIBUTION_EMAIL_TONE,
+  ATTRIBUTION_META_SIZE,
+  ATTRIBUTION_META_TONE_DARK,
+  ATTRIBUTION_META_TONE_LIGHT,
+  ATTRIBUTION_NAME_STATIC_DARK,
+  ATTRIBUTION_NAME_STATIC_LIGHT,
+  ATTRIBUTION_NAME_WEIGHT,
+  ATTRIBUTION_PERSON_SIZE,
+} from "@/lib/ui/attributionStyles";
 import { SKY_LINK_DARK, SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +37,10 @@ type PersonAttributionProps = {
   /** Default 36 — login / AuthForm Select parity */
   size?: number;
   className?: string;
+  /**
+   * Optional override for prefix (status-tinted cards / larger make-admin body).
+   * When omitted, prefix matches ReviewDateMeta chip tone + size.
+   */
   textClassName?: string;
   /** Fallback when person is null (reviewer unknown). */
   emptyLabel?: string;
@@ -33,14 +49,14 @@ type PersonAttributionProps = {
    */
   href?: string | null;
   /**
-   * Extra classes on the name control (defaults: sky name, no underline).
+   * Extra classes on the name control.
    */
   linkClassName?: string;
   /**
    * stack = two lines beside avatar (tables); inline = single wrapping row.
    */
   layout?: "stack" | "inline";
-  /** Email line tone for dark glass tables */
+  /** Email / name tone for dark glass vs light admin panels */
   variant?: "light" | "dark";
 };
 
@@ -70,15 +86,35 @@ export default function PersonAttribution({
     }
   };
 
-  // Admin light: sky-700 (readable on white). Dark glass: sky-400 → hover-300.
+  // Linked → sky affordance; static → no sky-link look (REQ-0033 polish).
+  // Names are font-normal; table headers keep font-medium centrally.
   const nameClass = cn(
-    "font-medium",
-    variant === "dark" ? SKY_LINK_DARK : SKY_LINK_LIGHT,
+    ATTRIBUTION_NAME_WEIGHT,
+    ATTRIBUTION_PERSON_SIZE,
+    linked
+      ? variant === "dark"
+        ? SKY_LINK_DARK
+        : SKY_LINK_LIGHT
+      : variant === "dark"
+        ? ATTRIBUTION_NAME_STATIC_DARK
+        : ATTRIBUTION_NAME_STATIC_LIGHT,
     linkClassName,
   );
 
-  const emailTone =
-    variant === "dark" ? "text-light-200/70" : "text-muted-foreground";
+  // Email + copy icon always muted-foreground (matches · separator; both variants).
+  const emailTone = ATTRIBUTION_EMAIL_TONE;
+  const emailSize = ATTRIBUTION_EMAIL_SIZE;
+
+  const prefixClass = cn(
+    "shrink-0",
+    textClassName ??
+      cn(
+        ATTRIBUTION_META_SIZE,
+        variant === "dark"
+          ? ATTRIBUTION_META_TONE_DARK
+          : ATTRIBUTION_META_TONE_LIGHT,
+      ),
+  );
 
   const copyBtn = person?.email ? (
     <button
@@ -107,10 +143,10 @@ export default function PersonAttribution({
   if (!person) {
     return (
       <div className={cn("flex flex-wrap items-center gap-2", className)}>
-        {prefix ? (
-          <span className={cn("text-inherit", textClassName)}>{prefix}</span>
-        ) : null}
-        <span className={cn("font-medium", textClassName)}>{emptyLabel}</span>
+        {prefix ? <span className={prefixClass}>{prefix}</span> : null}
+        <span className={cn(ATTRIBUTION_NAME_WEIGHT, ATTRIBUTION_PERSON_SIZE, textClassName)}>
+          {emptyLabel}
+        </span>
       </div>
     );
   }
@@ -143,21 +179,24 @@ export default function PersonAttribution({
           className,
         )}
       >
-        {prefix ? (
-          <span className={cn("shrink-0 text-inherit", textClassName)}>
-            {prefix}
-          </span>
-        ) : null}
+        {prefix ? <span className={prefixClass}>{prefix}</span> : null}
         {avatar}
         {/* Stock-inventory parity: tight flex-col, leading-none (no name↔email gap) */}
         <div className="flex min-w-0 flex-1 flex-col leading-none">
-          <div className="truncate text-sm font-medium leading-none">
+          <div
+            className={cn(
+              "truncate leading-none",
+              ATTRIBUTION_NAME_WEIGHT,
+              ATTRIBUTION_PERSON_SIZE,
+            )}
+          >
             {nameEl}
           </div>
           {person.email ? (
             <div
               className={cn(
-                "inline-flex min-w-0 max-w-full items-center gap-1 text-xs leading-none",
+                "inline-flex min-w-0 max-w-full items-center gap-1 leading-none",
+                emailSize,
                 emailTone,
               )}
             >
@@ -172,9 +211,7 @@ export default function PersonAttribution({
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      {prefix ? (
-        <span className={cn("text-inherit", textClassName)}>{prefix}</span>
-      ) : null}
+      {prefix ? <span className={prefixClass}>{prefix}</span> : null}
       {avatar}
       {nameEl}
       <span className="text-muted-foreground opacity-50" aria-hidden>
@@ -183,6 +220,7 @@ export default function PersonAttribution({
       <span
         className={cn(
           "inline-flex min-w-0 max-w-full items-center gap-1",
+          emailSize,
           emailTone,
         )}
       >

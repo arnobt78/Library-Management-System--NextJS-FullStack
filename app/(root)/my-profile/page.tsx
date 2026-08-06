@@ -186,7 +186,7 @@ const Page = async () => {
   });
 
   const reservationResult = await db.execute(sql`
-    SELECT r.id,
+    SELECT r.id, r.book_id,
       CASE WHEN r.status = 'READY' AND r.ready_expires_at <= CURRENT_TIMESTAMP
         THEN 'EXPIRED' ELSE r.status END AS status,
       r.ready_expires_at, b.title AS book_title,
@@ -201,6 +201,7 @@ const Page = async () => {
   `);
   const initialReservations = reservationResult.rows.map((row) => ({
     id: String(row.id),
+    bookId: String(row.book_id),
     status: String(row.status) as ReservationSummary["status"],
     bookTitle: String(row.book_title),
     queuePosition:
@@ -211,7 +212,10 @@ const Page = async () => {
 
   return (
     <>
-      <ReservationsPanel initialReservations={initialReservations} />
+      <ReservationsPanel
+        initialReservations={initialReservations}
+        userId={session.user.id}
+      />
       <MyProfileTabs
         userId={session.user.id}
         accountStatus={accountStatus}

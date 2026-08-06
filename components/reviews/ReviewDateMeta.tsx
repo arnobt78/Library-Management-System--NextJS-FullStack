@@ -13,6 +13,11 @@ import {
   CalendarX2,
   ShieldCheck,
 } from "lucide-react";
+import {
+  ATTRIBUTION_META_SIZE,
+  ATTRIBUTION_META_TONE_DARK,
+  ATTRIBUTION_META_TONE_LIGHT,
+} from "@/lib/ui/attributionStyles";
 import { cn } from "@/lib/utils";
 
 function formatWhen(value: string | Date | null | undefined): string {
@@ -45,7 +50,10 @@ export default function ReviewDateMeta({
     updatedAt &&
     new Date(createdAt).getTime() !== new Date(updatedAt).getTime();
 
-  const tone = variant === "dark" ? "text-light-100" : "text-gray-500";
+  const tone =
+    variant === "dark"
+      ? ATTRIBUTION_META_TONE_DARK
+      : ATTRIBUTION_META_TONE_LIGHT;
   const sep = variant === "dark" ? "text-light-200/40" : "text-gray-300";
 
   const chips: Array<{ key: string; icon: typeof CalendarCheck2; label: string }> =
@@ -82,7 +90,8 @@ export default function ReviewDateMeta({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] sm:text-xs",
+        "flex flex-wrap items-center gap-x-1.5 gap-y-1",
+        ATTRIBUTION_META_SIZE,
         tone,
         className,
       )}

@@ -69,7 +69,7 @@ afterEach(() => {
 });
 
 describe("query invalidation contract", () => {
-  it("removes known-stale inactive data before the helper settles", async () => {
+  it("marks inactive data stale without blanking cache (densify-safe)", async () => {
     const client = createQueryClient();
     const keys = [
       queryKeys.books.detail("book-1"),
@@ -83,23 +83,33 @@ describe("query invalidation contract", () => {
     ] as const;
 
     for (const key of keys) client.setQueryData(key, { ready: true });
-    const settled = invalidateAllQueries(client);
+    await invalidateAllQueries(client);
 
+    // Prefer invalidate over removeQueries: data stays for soft-nav paint;
+    // densify / active refetch reconcile truth without empty flash.
     for (const key of keys) {
-      expect(client.getQueryState(key)).toBeUndefined();
+      expect(client.getQueryData(key)).toEqual({ ready: true });
+      expect(client.getQueryState(key)?.isInvalidated).toBe(true);
     }
-    await settled;
   });
 
-  it("invalidates inactive related domains for later navigation", async () => {
+  it("keeps inactive related data visible while marking stale for later navigation", async () => {
     const client = createQueryClient();
     client.setQueryData(queryKeys.books.detail("book-1"), { id: "book-1" });
     client.setQueryData(queryKeys.admin.analytics, { total: 1 });
 
     await invalidateAfterBorrowChange(client);
 
-    expect(client.getQueryData(queryKeys.books.detail("book-1"))).toBeUndefined();
-    expect(client.getQueryData(queryKeys.admin.analytics)).toBeUndefined();
+    expect(client.getQueryData(queryKeys.books.detail("book-1"))).toEqual({
+      id: "book-1",
+    });
+    expect(client.getQueryState(queryKeys.books.detail("book-1"))?.isInvalidated).toBe(
+      true,
+    );
+    expect(client.getQueryData(queryKeys.admin.analytics)).toEqual({ total: 1 });
+    expect(client.getQueryState(queryKeys.admin.analytics)?.isInvalidated).toBe(
+      true,
+    );
 
     const queryFn = vi.fn().mockResolvedValue({ id: "book-1", fresh: true });
     const observer = new QueryObserver(client, {
@@ -117,7 +127,7 @@ describe("query invalidation contract", () => {
     unsubscribe();
   });
 
-  it("invalidates derived recommendation and export statistics after CRUD", async () => {
+  it("marks derived recommendation and export statistics stale after CRUD", async () => {
     const cases = [
       invalidateAfterBookChange,
       invalidateAfterBorrowChange,
@@ -131,9 +141,18 @@ describe("query invalidation contract", () => {
 
       await invalidate(client);
 
-      expect(client.getQueryState(queryKeys.admin.exportStats)).toBeUndefined();
+      expect(client.getQueryData(queryKeys.admin.exportStats)).toEqual({
+        total: 1,
+      });
+      expect(client.getQueryState(queryKeys.admin.exportStats)?.isInvalidated).toBe(
+        true,
+      );
       if (invalidate === invalidateAfterBorrowChange) {
-        expect(client.getQueryState(queryKeys.books.recommendations("user-1", 10))).toBeUndefined();
+        expect(
+          client.getQueryState(
+            queryKeys.books.recommendations("user-1", 10),
+          )?.isInvalidated,
+        ).toBe(true);
       }
     }
   });

@@ -72,7 +72,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Signup decision ledger `user_status_decisions` (migration `0012`): approve/reject append; re-apply keeps history; Recent decisions read ledger.
 - Approve/reject: optimistic pending remove + signup-decisions prepend with **session decisionActor** (no “an admin” flash) then `await invalidateMutation("user.write")`.
 - REJECTED→PENDING via `requestRegistrationReview` + notice CTA; welcome email on signup (`lib/email/welcomeSignup.ts`); Approve/Reject/Return spinners await `invalidateMutation` (no stale flash).
-- Shared `PersonAttribution` (avatar · Name · email); admin Recent cards link via explicit `href` to `/admin/users/[id]` (`text-blue-700 hover:underline`).
+- Shared `PersonAttribution` (avatar · Name · email); sky links only when `href`; static dark names `text-light-100 hover:text-sky-100/80`; admin Recent cards pass `/admin/users/[id]`.
 - Ops: `npm run admin-requests:purge -- <email>`; `npm run signup-decisions:purge` [email?] clears Sign-up Recent ledger.
 - Decision emails: unique subject (`ISO` + nonce) + text actor; no `<img>`. Bulk approve/reject stamps review fields + emails.
 - Admin nav badges: All Users (make-admin pending), Sign-up Requests, Borrow Requests (SSR counts + RQ).
@@ -88,8 +88,15 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin privilege ledger: All Users/bulk Make Admin → `adminPrivilegeLedger` (approve PENDING or insert `ADMIN_REQUEST_DIRECT_GRANT_REASON`); demote/`updateUserRole(USER)` → `removeAdminPrivileges` revoke. Invalidate `admin-request.write`.
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip/HEAD `d61a058`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `d61a058` / HEAD `df0d0e8`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
 - CR-0003 (REQ-0034–0037): tickets + review mod + activity FIFO-50 + bell + KPIs/tables; mig `0014`; `ticket.write` + `patchTicketCaches*`; Zod ticket/review; bell SSR unread; My Reviews SSR; reply thread single-source; Prove 110 tests.
 - Ticket UI polish: person stack; KPI/section/date/activity; `CARD_PAD` p-2/sm:p-4; `LIGHT_GLASS_CTA` primary-admin/red-800; Tailwind `./lib/**`; sky links; edit dialog; densify + back-nav. Instrumentation removed.
 - Densify Waves A–C + review CRUD: `patchBorrowCaches*`; `optimisticAdminRequestDecision`; await `book.write`; `patchReviewCaches*` (create/update/delete/moderate). Approve **upserts** public `book-reviews` (admin soft-nav). Gold: snapshot → await invalidate → re-patch. Prove 120 tests.
 - Review card UI: `StarRow` cn-merge; `ReviewBookIdentity`/`CircleBookCover`; My Reviews kebab+inner body; book-detail stars above comment; dialog identity (star+number).
+- Attribution + book SSR: `attributionStyles`; `/books/[id]` SSR moderator join; make-admin/notice `variant="dark"`.
+- Review Approver densify: `resolveReviewModeratorForDensify` + moderate API moderator fields + SSR `currentAdmin` (never cache `"an admin"`).
+- Moderate toast: `showToast.pending` until success/error; edit soft-nav seeds admin queue via `publicReviewToAdminItem`.
+- Table UI: `tableCellStyles` (header medium / cell titles normal); emails `text-xs` under names; Book Reviews title→`/books/[id]` PrefetchLink (`book-detail` warm), comment→review detail.
+- Seed wipe: `seed:reset` also clears tickets/replies/notifications/activity_logs.
+- Debug: CSP `connect-src 'self'` blocks browser→`127.0.0.1:7290` ingest (empty `.cursor/debug-*.log`); curl ingest or temporary same-origin relay only.
+- Mutation gateway: `commitMutationCache` + densify registry; PrefetchLink `"use client"`; Redis still rate-limit only.

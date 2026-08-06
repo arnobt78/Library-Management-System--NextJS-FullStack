@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-06 | Status: C2 Stage 4; densify + review UI local Prove passed; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-06 | Status: C2 Stage 4; densify + Approver/table polish local Prove; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -23,11 +23,11 @@ Browser
 
 ## Mutation densify (2026-08-06)
 
-- Gold: `snapshot baselines → await invalidateMutation(domain) → patch*Caches*(…, baselines)`. Inactive keys are `removeQueries`; without re-patch, soft-nav/Back can flash SSR/`initialData`.
-- Reviews (`review.write`): `patchReviewCaches*` create/update/delete/moderate. **Approve upserts** into public `book-reviews` (admins never cached another user’s PENDING). Reject removes public row.
-- Borrow (`borrow.lifecycle`): `patchBorrowCaches*` return/borrow/approve/reject + inventory restore.
-- Admin-request approve/reject: signup-style optimistic pending→Recent. `book.write`: await invalidate.
-- Tickets: `patchTicketCaches*` (gold). Redis = rate-limit only (no business densify).
+- Gold: `commitMutationCache` = snapshot → await `invalidateMutation` → densify `setQueryData` (active + inactive). Soft-nav/Back must not flash stale SSR.
+- Reviews (`review.write`): `patchReviewCaches*` + `resolveReviewModeratorForDensify`; approve upserts public `book-reviews`; edit can seed admin list from public row.
+- Borrow / admin-request / tickets / reservations / notifications / catalog: matching `patch*Caches*` families. Redis = rate-limit only.
+- PrefetchLink warms list/detail keys (incl. `/books/<uuid>` detail+reviews, `staleTime: 0` where densify races).
+- Admin Book Reviews: title → book detail; comment → review detail; table headers `font-medium`, cell titles/names `font-normal`, emails `text-xs` under names.
 
 ## Main directories
 

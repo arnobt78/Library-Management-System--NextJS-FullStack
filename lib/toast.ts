@@ -9,7 +9,50 @@ export function resolveActionBookTitle(
   return title && title.length > 0 ? title : "this book";
 }
 
+type PendingToastHandle = {
+  id: string;
+  dismiss: () => void;
+  success: (title: string, description: string) => void;
+  error: (title: string, description: string) => void;
+};
+
 export const showToast = {
+  /**
+   * Sticky loading toast — stays until `.success` / `.error` / `.dismiss`.
+   * Uses Radix `duration: Infinity` so network work is not cut off mid-flight.
+   */
+  pending: (title: string, description: string): PendingToastHandle => {
+    const handle = toast({
+      title: `⏳ ${title}`,
+      description,
+      duration: Infinity,
+    });
+    return {
+      id: handle.id,
+      dismiss: handle.dismiss,
+      success: (nextTitle, nextDescription) => {
+        handle.update({
+          id: handle.id,
+          title: `✅ ${nextTitle}`,
+          description: nextDescription,
+          variant: "default",
+          duration: 5_000,
+          open: true,
+        });
+      },
+      error: (nextTitle, nextDescription) => {
+        handle.update({
+          id: handle.id,
+          title: `❌ ${nextTitle}`,
+          description: nextDescription,
+          variant: "destructive",
+          duration: 5_000,
+          open: true,
+        });
+      },
+    };
+  },
+
   success: (title: string, description: string) => {
     toast({
       title: `✅ ${title}`,

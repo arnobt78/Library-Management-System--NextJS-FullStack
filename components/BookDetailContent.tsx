@@ -11,6 +11,8 @@
  * - Displays skeleton loaders while fetching
  * - Shows error state if fetch fails
  * - Integrates with BookOverview, BookVideo, and ReviewsSection components
+ * - Skips stale RSC initialReviews when densify marked book-reviews as empty
+ *   (delete soft-nav must not reseed the ghost review)
  */
 
 import React from "react";
@@ -18,6 +20,9 @@ import BookVideo from "@/components/BookVideo";
 import ReviewsSection from "@/components/ReviewsSection";
 import BookSkeleton from "@/components/skeletons/BookSkeleton";
 import { useBook, useBookReviews } from "@/hooks/useQueries";
+import { queryKeys } from "@/lib/query/keys";
+import type { Review } from "@/lib/services/reviews";
+import { isDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 
 interface BookDetailContentProps {
   /**
@@ -34,18 +39,9 @@ interface BookDetailContentProps {
    */
   initialBook?: Book;
   /**
-   * Initial reviews data from SSR (prevents duplicate fetch)
+   * Full public Review rows from SSR (includes status + moderator attribution).
    */
-  initialReviews?: Array<{
-    id: string;
-    rating: number;
-    comment: string;
-    createdAt: Date | null;
-    updatedAt: Date | null;
-    userFullName: string;
-    userId: string;
-    universityCard?: string | null;
-  }>;
+  initialReviews?: Review[];
 }
 
 const BookDetailContent: React.FC<BookDetailContentProps> = ({
@@ -54,6 +50,11 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
   initialBook,
   initialReviews,
 }) => {
+  const bookReviewsKey = queryKeys.reviews.book(bookId);
+  // Delete densify left intentional []; ignore stale Client/BFCache SSR rows.
+  const densifiedEmpty = isDensifiedEmpty(bookReviewsKey);
+  const reviewsInitial = densifiedEmpty ? undefined : initialReviews;
+
   // Use React Query hooks with SSR initial data
   const {
     data: book,
@@ -62,17 +63,24 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
     error: bookError,
   } = useBook(bookId, initialBook);
 
+  // Stable SSR freshness stamp (MyProfileTabs / useUserBorrows parity).
+  const [ssrTimestamp] = React.useState<number>(() => Date.now());
+
   const {
     data: reviews,
     isLoading: isLoadingReviews,
     isError: isErrorReviews,
     error: reviewsError,
-  } = useBookReviews(bookId, initialReviews);
+  } = useBookReviews(
+    bookId,
+    reviewsInitial,
+    reviewsInitial ? ssrTimestamp : undefined,
+  );
 
-  // Show skeleton while loading (only if no initial data)
+  // Show skeleton while loading (only if no initial data / densify empty)
   if (
     (isLoadingBook && !initialBook) ||
-    (isLoadingReviews && !initialReviews)
+    (isLoadingReviews && !reviewsInitial && !densifiedEmpty)
   ) {
     return <BookSkeleton showDetails={true} />;
   }

@@ -4,7 +4,7 @@
  * Server ledger + await invalidateMutation("admin-request.write") remains source of truth.
  *
  * reviewer MUST come from the logged-in admin session — null would flash “an admin”.
- * Parent: densify audit map — Wave B
+ * Last-item empty pending is densify-empty-marked so soft-nav cannot SSR-reseed.
  */
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { RECENT_ADMIN_REQUEST_DECISIONS_LIMIT } from "@/lib/admin/adminRequestConstants";
 import { queryKeys } from "@/lib/query/keys";
 import type { AdminRequest } from "@/lib/services/users";
+import { markDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 
 export type AdminRequestDecisionOptimisticContext = {
   previousPending: Array<[QueryKey, AdminRequest[] | undefined]>;
@@ -90,6 +91,13 @@ export async function applyOptimisticAdminRequestDecision(
     queryKeys.admin.pendingRequests,
     (old) => (old ? old.filter((r) => r.id !== args.requestId) : old),
   );
+
+  const nextPending = queryClient.getQueryData<AdminRequest[]>(
+    queryKeys.admin.pendingRequests,
+  );
+  if (Array.isArray(nextPending) && nextPending.length === 0) {
+    markDensifiedEmpty(queryKeys.admin.pendingRequests);
+  }
 
   queryClient.setQueryData<AdminRequest[]>(
     queryKeys.admin.recentRequestDecisions,

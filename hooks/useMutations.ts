@@ -64,6 +64,12 @@ import {
   deleteNotification,
   type NotificationItem,
 } from "@/lib/services/notifications";
+import type { AdminRequest } from "@/lib/services/users";
+import {
+  densifyNotificationDelete,
+  densifyNotificationMarkAllRead,
+  densifyNotificationMarkRead,
+} from "@/lib/utils/patchNotificationCaches";
 import {
   createSupportTicket,
   updateSupportTicket,
@@ -73,10 +79,17 @@ import {
   type UpdateTicketInput,
 } from "@/lib/services/supportTickets";
 import { resolveActionBookTitle, showToast } from "@/lib/toast";
+import { commitMutationCache } from "@/lib/query/mutationGateway";
 import {
-  invalidateMutation,
-  invalidateNotificationsQueries,
-} from "@/lib/utils/queryInvalidation";
+  densifyBookDelete,
+  densifyBookWrite,
+} from "@/lib/utils/patchBookCaches";
+import { densifyUserWrite, densifyUserRegistrationPending } from "@/lib/utils/patchUserCaches";
+import {
+  densifyAdminRequestCreate,
+  densifyAdminRequestDecision,
+  densifyAdminRequestRemovePending,
+} from "@/lib/utils/patchAdminRequestCaches";
 import {
   findCachedTicketStatus,
   patchTicketCachesOnCreate,
@@ -93,6 +106,11 @@ import {
   patchReviewCachesOnUpdate,
   snapshotReviewListBaselines,
 } from "@/lib/utils/patchReviewCaches";
+import { resolveReviewModeratorForDensify } from "@/lib/utils/resolveReviewModerator";
+import {
+  clearDensifiedEmpty,
+  markDensifiedEmpty,
+} from "@/lib/utils/queryCacheLists";
 import {
   applyOptimisticSignupDecision,
   rollbackOptimisticSignupDecision,
@@ -142,8 +160,11 @@ export const useCreateBook = () => {
       return result.data;
     },
     onSuccess: async (data, variables) => {
-      // Await so admin catalog / home do not soft-nav on stale SSR shells
-      await invalidateMutation(queryClient, "book.write");
+      // Gateway: invalidate domains then densify detail/admin list.
+      await commitMutationCache(queryClient, "book.write", {
+        snapshot: () => undefined,
+        densify: () => densifyBookWrite(queryClient, data ?? undefined),
+      });
 
       // Show success toast
       showToast.book.createSuccess(variables.title);
@@ -195,7 +216,15 @@ export const useUpdateBook = () => {
       return result.data;
     },
     onSuccess: async (data, variables) => {
-      await invalidateMutation(queryClient, "book.write");
+      await commitMutationCache(queryClient, "book.write", {
+        snapshot: () => undefined,
+        densify: () =>
+          densifyBookWrite(queryClient, {
+            id: variables.bookId,
+            ...(data && typeof data === "object" ? data : {}),
+            ...(variables.title ? { title: variables.title } : {}),
+          }),
+      });
 
       // Show success toast with updated title (or fallback to bookId)
       const bookTitle = variables.title || data?.title || "Book";
@@ -259,7 +288,10 @@ export const useDeleteBook = () => {
       return { bookIds, message: result.message };
     },
     onSuccess: async (data, variables) => {
-      await invalidateMutation(queryClient, "book.write");
+      await commitMutationCache(queryClient, "book.write", {
+        snapshot: () => undefined,
+        densify: () => densifyBookDelete(queryClient, data.bookIds),
+      });
 
       // Show success toast
       const count = data.bookIds.length;
@@ -326,8 +358,15 @@ export const useUpdateUserRole = () => {
       return { userId, role };
     },
     onSuccess: async (data, variables) => {
-      // Role + admin_requests ledger — same domain as approve/remove admin request
-      await invalidateMutation(queryClient, "admin-request.write");
+      // Role + admin_requests ledger — densify cached user detail role.
+      await commitMutationCache(queryClient, "admin-request.write", {
+        snapshot: () => undefined,
+        densify: () =>
+          densifyUserWrite(queryClient, {
+            userId: data.userId,
+            role: data.role,
+          }),
+      });
 
       // Show success toast
       const roleText = data.role === "ADMIN" ? "admin" : "regular user";
@@ -392,8 +431,14 @@ export const useUpdateUserStatus = () => {
       return { userId, status };
     },
     onSuccess: async (data, variables) => {
-      // Invalidate all related queries (users, borrows, reviews, analytics, admin)
-      await invalidateMutation(queryClient, "user.write");
+      await commitMutationCache(queryClient, "user.write", {
+        snapshot: () => undefined,
+        densify: () =>
+          densifyUserWrite(queryClient, {
+            userId: data.userId,
+            status: data.status,
+          }),
+      });
 
       // Show success toast
       const statusText =
@@ -497,8 +542,15 @@ export const useApproveUser = () => {
       );
     },
     onSuccess: async (_data, variables) => {
-      // Server ledger replaces optimistic row; await so spinners hold until sync
-      await invalidateMutation(queryClient, "user.write");
+      // Optimistic already painted; gateway invalidates + densify status APPROVED.
+      await commitMutationCache(queryClient, "user.write", {
+        snapshot: () => undefined,
+        densify: () =>
+          densifyUserWrite(queryClient, {
+            userId: variables.userId,
+            status: "APPROVED",
+          }),
+      });
       const userName = variables.userName || "User";
       showToast.success(
         "User Approved",
@@ -585,7 +637,14 @@ export const useRejectUser = () => {
       );
     },
     onSuccess: async (_data, variables) => {
-      await invalidateMutation(queryClient, "user.write");
+      await commitMutationCache(queryClient, "user.write", {
+        snapshot: () => undefined,
+        densify: () =>
+          densifyUserWrite(queryClient, {
+            userId: variables.userId,
+            status: "REJECTED",
+          }),
+      });
       const userName = variables.userName || "User";
       showToast.success(
         "User Rejected",
@@ -600,6 +659,7 @@ export const useRejectUser = () => {
  */
 export const useRequestRegistrationReview = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async () => {
@@ -610,7 +670,13 @@ export const useRequestRegistrationReview = () => {
       return result;
     },
     onSuccess: async () => {
-      await invalidateMutation(queryClient, "user.write");
+      const userId = (session?.user as SessionUser | undefined)?.id;
+      await commitMutationCache(queryClient, "user.write", {
+        snapshot: () => undefined,
+        densify: () => {
+          if (userId) densifyUserRegistrationPending(queryClient, userId);
+        },
+      });
       showToast.success(
         "Approval requested",
         "Your registration is waiting for librarian review again.",
@@ -831,21 +897,28 @@ export const useBorrowBook = () => {
     },
     onSuccess: async (data, variables, context) => {
       const tempId = context?.optimisticRecordId as string | undefined;
-      const baselines = snapshotBorrowListBaselines(queryClient);
-      await invalidateMutation(queryClient, "borrow.lifecycle");
-
       const serverRecord = Array.isArray(data) ? data[0] : data;
-      if (tempId && serverRecord && typeof serverRecord === "object" && "id" in serverRecord) {
-        patchBorrowCachesOnCreate(
-          queryClient,
-          {
-            userId: variables.userId,
-            tempId,
-            serverRecord: serverRecord as { id: string },
-          },
-          baselines,
-        );
-      }
+      await commitMutationCache(queryClient, "borrow.lifecycle", {
+        snapshot: snapshotBorrowListBaselines,
+        densify: (baselines) => {
+          if (
+            tempId &&
+            serverRecord &&
+            typeof serverRecord === "object" &&
+            "id" in serverRecord
+          ) {
+            patchBorrowCachesOnCreate(
+              queryClient,
+              {
+                userId: variables.userId,
+                tempId,
+                serverRecord: serverRecord as { id: string },
+              },
+              baselines,
+            );
+          }
+        },
+      });
 
       // Prefer mutate bookTitle, then book detail cache, else "this book"
       const cached = queryClient.getQueryData<{ title?: string }>(
@@ -995,23 +1068,26 @@ export const useApproveBorrow = () => {
           d.setDate(d.getDate() + 7);
           return d.toISOString().slice(0, 10);
         })();
-      const baselines = snapshotBorrowCacheBaselines(
-        queryClient,
-        meta?.bookId ? [meta.bookId] : [],
-      );
-      await invalidateMutation(queryClient, "borrow.lifecycle");
-
-      patchBorrowCachesOnStatusChange(
-        queryClient,
-        {
-          recordId: variables.recordId,
-          patch: { status: "BORROWED", dueDate },
-          userId: meta?.userId,
-          bookId: meta?.bookId,
-          restoreInventory: Boolean(meta?.bookId),
+      await commitMutationCache(queryClient, "borrow.lifecycle", {
+        snapshot: (qc) =>
+          snapshotBorrowCacheBaselines(
+            qc,
+            meta?.bookId ? [meta.bookId] : [],
+          ),
+        densify: (baselines) => {
+          patchBorrowCachesOnStatusChange(
+            queryClient,
+            {
+              recordId: variables.recordId,
+              patch: { status: "BORROWED", dueDate },
+              userId: meta?.userId,
+              bookId: meta?.bookId,
+              restoreInventory: Boolean(meta?.bookId),
+            },
+            baselines,
+          );
         },
-        baselines,
-      );
+      });
 
       // Show success toast
       const bookTitle = variables.bookTitle || "Book";
@@ -1110,22 +1186,25 @@ export const useRejectBorrow = () => {
     onSuccess: async (_data, variables, context) => {
       const meta =
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
-      const baselines = snapshotBorrowCacheBaselines(
-        queryClient,
-        meta?.bookId ? [meta.bookId] : [],
-      );
-      await invalidateMutation(queryClient, "borrow.lifecycle");
-
-      patchBorrowCachesOnStatusChange(
-        queryClient,
-        {
-          recordId: variables.recordId,
-          patch: { status: "CANCELLED" },
-          userId: meta?.userId,
-          bookId: meta?.bookId,
+      await commitMutationCache(queryClient, "borrow.lifecycle", {
+        snapshot: (qc) =>
+          snapshotBorrowCacheBaselines(
+            qc,
+            meta?.bookId ? [meta.bookId] : [],
+          ),
+        densify: (baselines) => {
+          patchBorrowCachesOnStatusChange(
+            queryClient,
+            {
+              recordId: variables.recordId,
+              patch: { status: "CANCELLED" },
+              userId: meta?.userId,
+              bookId: meta?.bookId,
+            },
+            baselines,
+          );
         },
-        baselines,
-      );
+      });
 
       const bookTitle = variables.bookTitle || "Book";
       const userName = variables.userName || "User";
@@ -1223,27 +1302,30 @@ export const useReturnBook = () => {
         data?.fineAmount !== undefined
           ? Number(data.fineAmount).toFixed(2)
           : undefined;
-      const baselines = snapshotBorrowCacheBaselines(
-        queryClient,
-        meta?.bookId ? [meta.bookId] : [],
-      );
-      await invalidateMutation(queryClient, "borrow.lifecycle");
-
-      patchBorrowCachesOnStatusChange(
-        queryClient,
-        {
-          recordId: variables.recordId,
-          patch: {
-            status: "RETURNED",
-            returnDate,
-            ...(fineAmount !== undefined ? { fineAmount } : {}),
-          },
-          userId: meta?.userId,
-          bookId: meta?.bookId,
-          restoreInventory: Boolean(meta?.bookId),
+      await commitMutationCache(queryClient, "borrow.lifecycle", {
+        snapshot: (qc) =>
+          snapshotBorrowCacheBaselines(
+            qc,
+            meta?.bookId ? [meta.bookId] : [],
+          ),
+        densify: (baselines) => {
+          patchBorrowCachesOnStatusChange(
+            queryClient,
+            {
+              recordId: variables.recordId,
+              patch: {
+                status: "RETURNED",
+                returnDate,
+                ...(fineAmount !== undefined ? { fineAmount } : {}),
+              },
+              userId: meta?.userId,
+              bookId: meta?.bookId,
+              restoreInventory: Boolean(meta?.bookId),
+            },
+            baselines,
+          );
         },
-        baselines,
-      );
+      });
 
       const bookTitle = resolveActionBookTitle(variables.bookTitle);
       if (
@@ -1332,7 +1414,6 @@ export const useCreateReview = () => {
     },
     onSuccess: async (data, variables) => {
       // Snapshot → await invalidate → re-patch (ticket densify order).
-      const baselines = snapshotReviewListBaselines(queryClient);
       const nowIso = new Date().toISOString();
       const bookCache = queryClient.getQueryData<{
         title?: string;
@@ -1404,20 +1485,23 @@ export const useCreateReview = () => {
         returnedAt: data.returnedAt ?? null,
       };
 
-      await invalidateMutation(queryClient, "review.write");
-      patchReviewCachesOnCreate(queryClient, densifyItem, baselines);
-
-      // Eligibility densify — ReviewButton flips without eligibility refetch flash.
-      queryClient.setQueryData(
-        queryKeys.reviews.eligibility(variables.bookId),
-        (prev: ReviewEligibility | undefined) => ({
-          success: true,
-          canReview: false,
-          hasExistingReview: true,
-          isCurrentlyBorrowed: prev?.isCurrentlyBorrowed ?? false,
-          reason: "You have already reviewed this book",
-        }),
-      );
+      await commitMutationCache(queryClient, "review.write", {
+        snapshot: snapshotReviewListBaselines,
+        densify: (baselines) => {
+          patchReviewCachesOnCreate(queryClient, densifyItem, baselines);
+          // Eligibility densify — ReviewButton flips without eligibility refetch flash.
+          queryClient.setQueryData(
+            queryKeys.reviews.eligibility(variables.bookId),
+            (prev: ReviewEligibility | undefined) => ({
+              success: true,
+              canReview: false,
+              hasExistingReview: true,
+              isCurrentlyBorrowed: prev?.isCurrentlyBorrowed ?? false,
+              reason: "You have already reviewed this book",
+            }),
+          );
+        },
+      });
 
       showToast.book.reviewSuccess(
         resolveActionBookTitle(variables.bookTitle, bookCache?.title),
@@ -1579,35 +1663,38 @@ export const useUpdateReview = () => {
       return { baselines, previousStatus };
     },
     onSuccess: async (data, variables, context) => {
-      const baselines =
-        context?.baselines ?? snapshotReviewListBaselines(queryClient);
       const previousStatus = context?.previousStatus ?? null;
-      await invalidateMutation(queryClient, "review.write");
       const nextStatus = data.status ?? previousStatus ?? undefined;
-      patchReviewCachesOnUpdate(
-        queryClient,
-        {
-          id: variables.reviewId,
-          rating: data.rating ?? variables.rating,
-          comment: data.comment ?? variables.comment,
-          updatedAt: new Date().toISOString(),
-          status: nextStatus,
-          // Re-queue clears moderator attribution server-side.
-          ...(nextStatus === "PENDING" && previousStatus !== "PENDING"
-            ? {
-                reviewedBy: null,
-                reviewedByName: null,
-                reviewedByEmail: null,
-                reviewedByUniversityCard: null,
-                reviewedAt: null,
-              }
-            : {}),
-          bookId: variables.bookId,
-          userId: variables.userId ?? data.userId,
+      await commitMutationCache(queryClient, "review.write", {
+        snapshot: () =>
+          context?.baselines ?? snapshotReviewListBaselines(queryClient),
+        densify: (baselines) => {
+          patchReviewCachesOnUpdate(
+            queryClient,
+            {
+              id: variables.reviewId,
+              rating: data.rating ?? variables.rating,
+              comment: data.comment ?? variables.comment,
+              updatedAt: new Date().toISOString(),
+              status: nextStatus,
+              // Re-queue clears moderator attribution server-side.
+              ...(nextStatus === "PENDING" && previousStatus !== "PENDING"
+                ? {
+                    reviewedBy: null,
+                    reviewedByName: null,
+                    reviewedByEmail: null,
+                    reviewedByUniversityCard: null,
+                    reviewedAt: null,
+                  }
+                : {}),
+              bookId: variables.bookId,
+              userId: variables.userId ?? data.userId,
+            },
+            baselines,
+            previousStatus,
+          );
         },
-        baselines,
-        previousStatus,
-      );
+      });
       const cached = variables.bookId
         ? queryClient.getQueryData<{ title?: string }>(
             queryKeys.books.detail(variables.bookId),
@@ -1693,6 +1780,11 @@ export const useDeleteReview = () => {
           (old: Array<{ id: string }> | undefined) =>
             old?.filter((r) => r.id !== variables.reviewId),
         );
+        // Mark intentional empty so soft-nav before onSuccess cannot SSR-reseed.
+        const nextBook = queryClient.getQueryData<unknown[]>(bookKey);
+        if (Array.isArray(nextBook) && nextBook.length === 0) {
+          markDensifiedEmpty(bookKey);
+        }
       }
       queryClient.setQueriesData<AdminBookReviewItem[]>(
         { queryKey: queryKeys.reviews.userReviewsRoot },
@@ -1710,22 +1802,39 @@ export const useDeleteReview = () => {
       };
     },
     onSuccess: async (_data, variables, context) => {
-      const baselines =
-        context?.baselines ?? snapshotReviewListBaselines(queryClient);
       const previousMeta = context?.previousMeta;
-      await invalidateMutation(queryClient, "review.write");
-      patchReviewCachesOnDelete(
-        queryClient,
-        variables.reviewId,
-        previousMeta?.status
-          ? {
-              status: previousMeta.status,
-              userId: previousMeta.userId ?? variables.userId ?? null,
-              bookId: previousMeta.bookId ?? variables.bookId ?? null,
-            }
-          : null,
-        baselines,
-      );
+      const densifyMeta = {
+        status: previousMeta?.status ?? null,
+        userId: previousMeta?.userId ?? variables.userId ?? null,
+        bookId: previousMeta?.bookId ?? variables.bookId ?? null,
+      };
+      await commitMutationCache(queryClient, "review.write", {
+        snapshot: () =>
+          context?.baselines ?? snapshotReviewListBaselines(queryClient),
+        densify: (baselines) => {
+          // Always pass bookId/userId — do not gate on status (status may be
+          // unknown when deleting from a surface that never cached admin rows).
+          patchReviewCachesOnDelete(
+            queryClient,
+            variables.reviewId,
+            densifyMeta,
+            baselines,
+          );
+          // Eligibility densify — ReviewButton can submit again without flash.
+          if (densifyMeta.bookId) {
+            queryClient.setQueryData(
+              queryKeys.reviews.eligibility(densifyMeta.bookId),
+              (prev: ReviewEligibility | undefined) => ({
+                success: true,
+                canReview: true,
+                hasExistingReview: false,
+                isCurrentlyBorrowed: prev?.isCurrentlyBorrowed ?? false,
+                reason: "You can review this book",
+              }),
+            );
+          }
+        },
+      });
       const cached = variables.bookId
         ? queryClient.getQueryData<{ title?: string }>(
             queryKeys.books.detail(variables.bookId),
@@ -1738,6 +1847,7 @@ export const useDeleteReview = () => {
     onError: (error: Error, variables, context) => {
       if (context?.previous && context.key) {
         queryClient.setQueryData(context.key, context.previous);
+        clearDensifiedEmpty(context.key);
       }
       const cached = variables.bookId
         ? queryClient.getQueryData<{ title?: string }>(
@@ -1782,50 +1892,87 @@ export const useModerateReview = () => {
         universityCard: string | null;
       };
     }) => moderateReview(reviewId, status),
-    onSuccess: async (data, variables) => {
-      const baselines = snapshotReviewListBaselines(queryClient);
+    onMutate: async (variables) => {
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
+      const pending = showToast.pending(
+        variables.status === "APPROVED"
+          ? "Approving review…"
+          : "Rejecting review…",
+        `Updating moderation for "${bookTitle}". Please wait…`,
+      );
+      return { pending };
+    },
+    onSuccess: async (data, variables, context) => {
       const cached = findCachedAdminReview(queryClient, variables.reviewId);
       const previousStatus = cached?.status;
       const actor = variables.decisionActor;
       const sessionUser = session?.user;
 
-      await invalidateMutation(queryClient, "review.write");
-      patchReviewCachesOnModerate(
-        queryClient,
-        {
-          id: variables.reviewId,
-          status: data.status,
-          reviewedAt:
-            (typeof data.reviewedAt === "string"
-              ? data.reviewedAt
-              : data.reviewedAt
-                ? new Date(data.reviewedAt).toISOString()
-                : null) ?? new Date().toISOString(),
-          reviewedBy: actor?.id ?? sessionUser?.id ?? null,
-          reviewedByName:
-            actor?.fullName ?? sessionUser?.name ?? "an admin",
-          reviewedByEmail: actor?.email ?? sessionUser?.email ?? null,
-          reviewedByUniversityCard:
-            actor?.universityCard ??
-            (sessionUser as { universityCard?: string | null } | undefined)
-              ?.universityCard ??
-            null,
-          bookId: cached?.bookId,
-          userId: cached?.userId,
+      await commitMutationCache(queryClient, "review.write", {
+        snapshot: snapshotReviewListBaselines,
+        densify: (baselines) => {
+          const postInvalidate = findCachedAdminReview(
+            queryClient,
+            variables.reviewId,
+          );
+          // Prefer mutation/API + post-invalidate join over weak session —
+          // never densify "an admin" into cache (stomps Test Admin + card).
+          const moderator = resolveReviewModeratorForDensify({
+            decisionActor: actor,
+            sessionUser: sessionUser
+              ? {
+                  id: sessionUser.id,
+                  name: sessionUser.name,
+                  email: sessionUser.email,
+                  universityCard:
+                    (
+                      sessionUser as {
+                        universityCard?: string | null;
+                      }
+                    ).universityCard ?? null,
+                }
+              : null,
+            fromMutation: {
+              reviewedBy: data.reviewedBy ?? null,
+              reviewedByName: data.reviewedByName ?? null,
+              reviewedByEmail: data.reviewedByEmail ?? null,
+              reviewedByUniversityCard:
+                data.reviewedByUniversityCard ?? null,
+            },
+            postInvalidate,
+            preInvalidate: cached,
+          });
+
+          patchReviewCachesOnModerate(
+            queryClient,
+            {
+              id: variables.reviewId,
+              status: data.status,
+              reviewedAt:
+                (typeof data.reviewedAt === "string"
+                  ? data.reviewedAt
+                  : data.reviewedAt
+                    ? new Date(data.reviewedAt).toISOString()
+                    : null) ?? new Date().toISOString(),
+              ...moderator,
+              bookId: cached?.bookId ?? postInvalidate?.bookId,
+              userId: cached?.userId ?? postInvalidate?.userId,
+            },
+            previousStatus,
+            baselines,
+            // Prefer post-invalidate row (has join) for public book upsert.
+            postInvalidate ?? cached,
+          );
         },
-        previousStatus,
-        baselines,
-        // Pre-invalidate admin row — upserts public book list when admin never
-        // had the author's PENDING review in ["book-reviews", bookId].
-        cached,
-      );
-      showToast.success(
+      });
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
+      context?.pending?.success(
         variables.status === "APPROVED" ? "Review approved" : "Review rejected",
-        `The review for "${resolveActionBookTitle(variables.bookTitle)}" was ${variables.status.toLowerCase()}.`,
+        `The review for "${bookTitle}" was ${variables.status.toLowerCase()}.`,
       );
     },
-    onError: (error: Error) => {
-      showToast.error(
+    onError: (error: Error, variables, context) => {
+      context?.pending?.error(
         "Moderation failed",
         error.message || "Unable to update review status. Please try again.",
       );
@@ -1854,7 +2001,15 @@ export const useCreateAdminRequest = () => {
       return result;
     },
     onSuccess: async (_data, variables) => {
-      await invalidateMutation(queryClient, "admin-request.write");
+      await commitMutationCache(queryClient, "admin-request.write", {
+        snapshot: () => undefined,
+        densify: () => {
+          // Server returns full AdminRequest on create — upsert pending queue.
+          if (_data?.data) {
+            densifyAdminRequestCreate(queryClient, _data.data as AdminRequest);
+          }
+        },
+      });
       showToast.admin.requestSubmitted(variables.userEmail);
     },
     onError: (error: Error) => {
@@ -1879,8 +2034,13 @@ export const useCancelMyAdminRequest = () => {
       }
       return result;
     },
-    onSuccess: async () => {
-      await invalidateMutation(queryClient, "admin-request.write");
+    onSuccess: async (_data, variables) => {
+      await commitMutationCache(queryClient, "admin-request.write", {
+        snapshot: () => undefined,
+        densify: () => {
+          densifyAdminRequestRemovePending(queryClient, variables.requestId);
+        },
+      });
       showToast.admin.requestCancelled();
     },
     onError: (error: Error) => {
@@ -1967,7 +2127,20 @@ export const useApproveAdminRequest = () => {
       );
     },
     onSuccess: async (data, variables) => {
-      await invalidateMutation(queryClient, "admin-request.write");
+      const promotedUserId =
+        (data as { userId?: string } | null | undefined)?.userId ??
+        (data as { user?: { id?: string } } | null | undefined)?.user?.id;
+      await commitMutationCache(queryClient, "admin-request.write", {
+        snapshot: () => undefined,
+        densify: () => {
+          if (data) densifyAdminRequestDecision(queryClient, data);
+          if (!promotedUserId) return;
+          densifyUserWrite(queryClient, {
+            userId: promotedUserId,
+            role: "ADMIN",
+          });
+        },
+      });
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -2066,7 +2239,12 @@ export const useRejectAdminRequest = () => {
       );
     },
     onSuccess: async (data, variables) => {
-      await invalidateMutation(queryClient, "admin-request.write");
+      await commitMutationCache(queryClient, "admin-request.write", {
+        snapshot: () => undefined,
+        densify: () => {
+          if (data) densifyAdminRequestDecision(queryClient, data);
+        },
+      });
 
       // Show success toast
       const userName = variables.userName || data?.userFullName || "User";
@@ -2111,7 +2289,14 @@ export const useRemoveAdminPrivileges = () => {
       return { userId };
     },
     onSuccess: async (data, variables) => {
-      await invalidateMutation(queryClient, "admin-request.write");
+      await commitMutationCache(queryClient, "admin-request.write", {
+        snapshot: () => undefined,
+        densify: () =>
+          densifyUserWrite(queryClient, {
+            userId: data.userId,
+            role: "USER",
+          }),
+      });
 
       // Show success toast
       const userName = variables.userName || "User";
@@ -2158,9 +2343,12 @@ export const useUpdateFineConfig = () => {
       const config = await updateFineConfig(fineAmount);
       return config;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       // Invalidate all related queries (admin stats, fine config, borrows)
-      invalidateMutation(queryClient, "fine.write");
+      await commitMutationCache(queryClient, "fine.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       // Show success toast
       showToast.success(
@@ -2202,9 +2390,12 @@ export const useSendDueReminders = () => {
       const result = await sendDueReminders();
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Invalidate all related queries (admin stats, borrows)
-      invalidateMutation(queryClient, "operations.write");
+      await commitMutationCache(queryClient, "operations.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -2246,9 +2437,12 @@ export const useSendOverdueReminders = () => {
       const result = await sendOverdueReminders();
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Invalidate all related queries (admin stats, borrows)
-      invalidateMutation(queryClient, "operations.write");
+      await commitMutationCache(queryClient, "operations.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -2299,9 +2493,12 @@ export const useUpdateOverdueFines = () => {
       const result = await updateOverdueFines(customFineAmount);
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Invalidate all related queries (admin stats, borrows, analytics)
-      invalidateMutation(queryClient, "fine.write");
+      await commitMutationCache(queryClient, "fine.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       // Show success toast
       const count = data.results?.length || 0;
@@ -2343,9 +2540,12 @@ export const useGenerateAllUserRecommendations = () => {
       const result = await generateAllUserRecommendations();
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
-      invalidateMutation(queryClient, "recommendation.write");
+      await commitMutationCache(queryClient, "recommendation.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       // Show success toast
       showToast.success(
@@ -2386,9 +2586,12 @@ export const useUpdateTrendingBooks = () => {
       const result = await updateTrendingBooks();
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
-      invalidateMutation(queryClient, "recommendation.write");
+      await commitMutationCache(queryClient, "recommendation.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       // Show success toast
       showToast.success(
@@ -2427,8 +2630,11 @@ export const useRefreshRecommendationCache = () => {
       const result = await refreshRecommendationCache();
       return result;
     },
-    onSuccess: (data) => {
-      invalidateMutation(queryClient, "recommendation.write");
+    onSuccess: async (data) => {
+      await commitMutationCache(queryClient, "recommendation.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       showToast.success(
         "Recommendations Refreshed",
@@ -2498,8 +2704,11 @@ export const useMarkNotificationRead = () => {
         );
       }
     },
-    onSuccess: () => {
-      invalidateNotificationsQueries(queryClient);
+    onSuccess: async (_data, variables) => {
+      await commitMutationCache(queryClient, "notification.write", {
+        snapshot: () => undefined,
+        densify: () => densifyNotificationMarkRead(queryClient, variables.id),
+      });
     },
   });
 };
@@ -2549,8 +2758,11 @@ export const useMarkAllNotificationsRead = () => {
         error.message || "Unable to mark all notifications as read.",
       );
     },
-    onSuccess: () => {
-      invalidateNotificationsQueries(queryClient);
+    onSuccess: async () => {
+      await commitMutationCache(queryClient, "notification.write", {
+        snapshot: () => undefined,
+        densify: () => densifyNotificationMarkAllRead(queryClient),
+      });
     },
   });
 };
@@ -2565,9 +2777,12 @@ export const useCreateSupportTicket = () => {
     onSuccess: async (ticket) => {
       // Snapshot BEFORE invalidate — removeQueries would otherwise leave densify
       // with only the new row and sibling tickets flash in after refetch.
-      const baselines = snapshotTicketListBaselines(queryClient);
-      await invalidateMutation(queryClient, "ticket.write");
-      patchTicketCachesOnCreate(queryClient, ticket, baselines);
+      await commitMutationCache(queryClient, "ticket.write", {
+        snapshot: snapshotTicketListBaselines,
+        densify: (baselines) => {
+          patchTicketCachesOnCreate(queryClient, ticket, baselines);
+        },
+      });
       showToast.success(
         "Ticket Submitted",
         "Your support ticket has been submitted. We'll get back to you soon.",
@@ -2611,9 +2826,17 @@ export const useUpdateSupportTicket = () => {
     onSuccess: async (data, _variables, context) => {
       const previousStatus =
         context?.previousStatus ?? findCachedTicketStatus(queryClient, data.id);
-      const baselines = snapshotTicketListBaselines(queryClient);
-      await invalidateMutation(queryClient, "ticket.write");
-      patchTicketCachesOnUpdate(queryClient, data, previousStatus, baselines);
+      await commitMutationCache(queryClient, "ticket.write", {
+        snapshot: snapshotTicketListBaselines,
+        densify: (baselines) => {
+          patchTicketCachesOnUpdate(
+            queryClient,
+            data,
+            previousStatus,
+            baselines,
+          );
+        },
+      });
       showToast.success("Ticket Updated", "The ticket has been updated.");
     },
     onError: (error: Error, _variables, context) => {
@@ -2642,15 +2865,18 @@ export const useDeleteSupportTicket = () => {
       return { ticketId, previousStatus, userId: detail?.userId ?? null };
     },
     onSuccess: async ({ ticketId, previousStatus, userId }) => {
-      const baselines = snapshotTicketListBaselines(queryClient);
-      await invalidateMutation(queryClient, "ticket.write");
-      patchTicketCachesOnDelete(
-        queryClient,
-        ticketId,
-        previousStatus,
-        userId,
-        baselines,
-      );
+      await commitMutationCache(queryClient, "ticket.write", {
+        snapshot: snapshotTicketListBaselines,
+        densify: (baselines) => {
+          patchTicketCachesOnDelete(
+            queryClient,
+            ticketId,
+            previousStatus,
+            userId,
+            baselines,
+          );
+        },
+      });
       showToast.success("Ticket Deleted", "The ticket has been deleted.");
     },
     onError: (error: Error) => {
@@ -2673,15 +2899,18 @@ export const useCreateSupportTicketReply = () => {
       const detail = queryClient.getQueryData<SupportTicketDetail>(
         queryKeys.tickets.detail(variables.ticketId),
       );
-      const baselines = snapshotTicketListBaselines(queryClient);
-      await invalidateMutation(queryClient, "ticket.write");
-      patchTicketCachesOnReply(
-        queryClient,
-        variables.ticketId,
-        replies,
-        detail?.userId ?? null,
-        baselines,
-      );
+      await commitMutationCache(queryClient, "ticket.write", {
+        snapshot: snapshotTicketListBaselines,
+        densify: (baselines) => {
+          patchTicketCachesOnReply(
+            queryClient,
+            variables.ticketId,
+            replies,
+            detail?.userId ?? null,
+            baselines,
+          );
+        },
+      });
     },
     onError: (error: Error) => {
       showToast.error(
@@ -2745,8 +2974,11 @@ export const useDeleteNotification = () => {
         error.message || "Unable to delete notification.",
       );
     },
-    onSuccess: () => {
-      invalidateNotificationsQueries(queryClient);
+    onSuccess: async (_data, variables) => {
+      await commitMutationCache(queryClient, "notification.write", {
+        snapshot: () => undefined,
+        densify: () => densifyNotificationDelete(queryClient, variables.id),
+      });
     },
   });
 };

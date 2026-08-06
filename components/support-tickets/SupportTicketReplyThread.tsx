@@ -10,11 +10,16 @@ import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import UserAvatar from "@/components/UserAvatar";
 import { useCreateSupportTicketReply } from "@/hooks/useMutations";
+import {
+  ATTRIBUTION_NAME_STATIC_DARK,
+  ATTRIBUTION_NAME_STATIC_LIGHT,
+  ATTRIBUTION_PERSON_SIZE,
+} from "@/lib/ui/attributionStyles";
 import { cn } from "@/lib/utils";
 import { Check, Copy, Loader2, Send, ShieldCheck } from "lucide-react";
 
 /** Compact email + clipboard for reply headers (matches PersonAttribution). */
-function ReplyEmailCopy({ email, isDark }: { email: string; isDark: boolean }) {
+function ReplyEmailCopy({ email }: { email: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -28,8 +33,8 @@ function ReplyEmailCopy({ email, isDark }: { email: string; isDark: boolean }) {
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 items-center gap-1 text-[11px] leading-none",
-        isDark ? "text-light-200/70" : "text-muted-foreground",
+        "inline-flex min-w-0 items-center gap-1 leading-none text-muted-foreground",
+        ATTRIBUTION_PERSON_SIZE,
       )}
     >
       <span className="truncate">{email}</span>
@@ -134,10 +139,14 @@ export default function SupportTicketReplyThread({
                   <div className="mb-1 flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
                     <div className="flex min-w-0 flex-col leading-none">
                       <div className="flex items-center gap-1.5">
+                        {/* Non-linked author — static attribution tokens (not SKY_LINK). */}
                         <span
                           className={cn(
-                            "text-xs font-semibold leading-none",
-                            isDark ? "text-sky-400" : "text-sky-700",
+                            "font-semibold leading-none",
+                            ATTRIBUTION_PERSON_SIZE,
+                            isDark
+                              ? ATTRIBUTION_NAME_STATIC_DARK
+                              : ATTRIBUTION_NAME_STATIC_LIGHT,
                           )}
                         >
                           {reply.userName}
@@ -153,10 +162,7 @@ export default function SupportTicketReplyThread({
                         ) : null}
                       </div>
                       {reply.userEmail ? (
-                        <ReplyEmailCopy
-                          email={reply.userEmail}
-                          isDark={isDark}
-                        />
+                        <ReplyEmailCopy email={reply.userEmail} />
                       ) : null}
                     </div>
                     <span

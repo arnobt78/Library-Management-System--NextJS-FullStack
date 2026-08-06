@@ -2,9 +2,10 @@
 
 /**
  * Admin Book Reviews — moderation queue. KPI row + search/status filters +
- * sortable TanStack table; every book title links to the review detail page.
- * Approve/reject/delete are also available inline for fast triage.
- * Parent: CR-0003 / REQ-0034 — Book Review moderation
+ * sortable TanStack table matching Support Tickets densify patterns:
+ * sky links (title/comment), PersonAttribution stacks, Approver column,
+ * no whole-row click (Actions → View Details).
+ * Parent: CR-0003 / REQ-0035 polish
  */
 
 import { useMemo, useState } from "react";
@@ -12,10 +13,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
+  CalendarPlus,
   CheckCircle2,
   Clock,
+  Eye,
+  Library,
   Loader2,
   MoreVertical,
+  ShieldCheck,
   Star,
   Trash2,
   X,
@@ -23,17 +28,23 @@ import {
 } from "lucide-react";
 import { useAdminBookReviews } from "@/hooks/useQueries";
 import { useDeleteReview, useModerateReview } from "@/hooks/useMutations";
+import PrefetchLink from "@/components/PrefetchLink";
+import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
+import { Badge } from "@/components/ui/badge";
 import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
-import { REVIEW_STATUS_FILTER_OPTIONS } from "@/lib/ui/reviewOptions";
+import {
+  reviewRatingTone,
+  reviewStatusFilterOptions,
+} from "@/lib/ui/reviewOptions";
 import StarRow from "@/components/ui/StarRow";
-import { PersonNameEmailCell } from "@/components/ui/PersonNameEmailCell";
-import { MediumDateCell } from "@/components/ui/MediumDateCell";
+import PersonAttribution from "@/components/PersonAttribution";
+import CircleBookCover from "@/components/reviews/CircleBookCover";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import {
   AlertDialog,
@@ -54,66 +65,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "next-auth/react";
 import { LIGHT_ALERT, LIGHT_MENU } from "@/lib/ui/glassActionChrome";
-import { SafeImage } from "@/components/ui/safe-image";
-import { Image as ImageKitImage } from "@imagekit/next";
-import config from "@/lib/config";
+import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
+import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
+import { cn } from "@/lib/utils";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
-function ListCircleCover({
-  coverUrl,
-  coverColor,
-  title,
+function ReviewRowActions({
+  review,
+  currentAdmin,
 }: {
-  coverUrl: string | null;
-  coverColor: string | null;
-  title: string;
+  review: AdminBookReviewItem;
+  /** SSR DB actor — preferred over useSession (card + name when session null). */
+  currentAdmin?: AdminRequestReviewer | null;
 }) {
-  const isRemote = Boolean(coverUrl?.startsWith("http"));
-  return (
-    <div
-      className="relative size-9 shrink-0 overflow-hidden rounded-full border border-gray-200"
-      style={{ backgroundColor: coverColor || "#f3f4f6" }}
-    >
-      {coverUrl && isRemote ? (
-        <SafeImage
-          src={coverUrl}
-          alt=""
-          width={36}
-          height={36}
-          className="size-full object-cover"
-        />
-      ) : coverUrl ? (
-        <ImageKitImage
-          src={coverUrl}
-          urlEndpoint={config.env.imagekit.urlEndpoint}
-          alt=""
-          width={36}
-          height={36}
-          className="size-full object-cover"
-        />
-      ) : (
-        <span className="flex size-full items-center justify-center text-[10px] font-medium text-gray-500">
-          {title.slice(0, 1).toUpperCase()}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function ReviewRowActions({ review }: { review: AdminBookReviewItem }) {
+  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const moderateMutation = useModerateReview();
   const deleteMutation = useDeleteReview();
   const { data: session } = useSession();
-  const decisionActor = session?.user
+  // Prefer SSR currentAdmin (full card); session fallback never invents "an admin"
+  // into densify — mutation resolver prefers post-invalidate join instead.
+  const decisionActor: AdminRequestReviewer | undefined = currentAdmin
     ? {
-        id: session.user.id,
-        fullName: session.user.name || "an admin",
-        email: session.user.email || "",
-        universityCard:
-          (session.user as { universityCard?: string | null }).universityCard ??
-          null,
+        id: currentAdmin.id,
+        fullName: currentAdmin.fullName,
+        email: currentAdmin.email,
+        universityCard: currentAdmin.universityCard,
       }
-    : undefined;
+    : session?.user
+      ? {
+          id: session.user.id,
+          fullName: session.user.name || "",
+          email: session.user.email || "",
+          universityCard:
+            (session.user as { universityCard?: string | null })
+              .universityCard ?? null,
+        }
+      : undefined;
+
+  const detailHref = `/admin/book-reviews/${review.id}`;
 
   return (
     <>
@@ -133,6 +123,14 @@ function ReviewRowActions({ review }: { review: AdminBookReviewItem }) {
           className={LIGHT_MENU.content}
           onClick={(e) => e.stopPropagation()}
         >
+          <DropdownMenuItem
+            className={LIGHT_MENU.item}
+            onSelect={() => router.push(detailHref)}
+          >
+            <Eye className="size-3.5" />
+            View Details
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className={LIGHT_MENU.separator} />
           {review.status !== "APPROVED" && (
             <DropdownMenuItem
               className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
@@ -245,17 +243,20 @@ function ReviewRowActions({ review }: { review: AdminBookReviewItem }) {
 
 export default function BookReviewList({
   initialReviews,
+  currentAdmin = null,
 }: {
   initialReviews: AdminBookReviewItem[];
+  /** SSR-signed-in admin for Approver densify (name/email/card). */
+  currentAdmin?: AdminRequestReviewer | null;
 }) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: allReviews = [], isPending } = useAdminBookReviews(
-    {},
-    initialReviews,
-  );
+  const {
+    data: allReviews = [],
+    isPending,
+    isFetching,
+  } = useAdminBookReviews({}, initialReviews);
 
   const reviews = useMemo(() => {
     return allReviews.filter((review) => {
@@ -264,6 +265,7 @@ export default function BookReviewList({
         const q = search.trim().toLowerCase();
         return (
           review.bookTitle.toLowerCase().includes(q) ||
+          review.bookAuthor.toLowerCase().includes(q) ||
           review.userName.toLowerCase().includes(q) ||
           review.userEmail.toLowerCase().includes(q) ||
           review.comment.toLowerCase().includes(q)
@@ -307,67 +309,219 @@ export default function BookReviewList({
     setStatusFilter("all");
   };
 
+  const statusFilterOptions = useMemo(
+    () => reviewStatusFilterOptions("light"),
+    [],
+  );
+
   const columns = useMemo<ColumnDef<AdminBookReviewItem>[]>(
     () => [
       {
         accessorKey: "bookTitle",
-        header: ({ column }) => <SortableHeader column={column}>Book</SortableHeader>,
+        size: 240,
+        minSize: 180,
+        header: ({ column }) => (
+          <SortableHeader column={column}>Book</SortableHeader>
+        ),
+        cell: ({ row }) => {
+          const r = row.original;
+          // Title → public book detail (PrefetchLink warms detail + reviews).
+          // Comment column keeps the admin review-detail link.
+          const bookHref = `/books/${r.bookId}`;
+          return (
+            <div className="flex min-w-0 items-center gap-2">
+              <CircleBookCover
+                coverUrl={r.bookCoverUrl}
+                coverColor={r.bookCoverColor}
+                title={r.bookTitle}
+                size={36}
+                className="size-9 border border-gray-200 sm:size-9"
+              />
+              {/* Kebab stack — no mt / space-y / gap between title→author→meta */}
+              <div className="flex min-w-0 flex-1 flex-col leading-none">
+                <PrefetchLink
+                  href={bookHref}
+                  prefetch={false}
+                  className={cn(TABLE_CELL_TITLE, "truncate", SKY_LINK_LIGHT)}
+                >
+                  {r.bookTitle}
+                </PrefetchLink>
+                {r.bookAuthor ? (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {r.bookAuthor}
+                  </span>
+                ) : null}
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  {r.bookGenre ? (
+                    <Badge
+                      variant="outline"
+                      className="gap-0.5 px-1.5 py-0 text-[10px] font-normal text-violet-700"
+                    >
+                      <Library className="size-2.5" aria-hidden />
+                      {r.bookGenre}
+                    </Badge>
+                  ) : null}
+                  {r.bookRating > 0 ? (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] tabular-nums text-amber-600">
+                      <Star
+                        className="size-2.5 fill-amber-400 text-amber-400"
+                        aria-hidden
+                      />
+                      {r.bookRating}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "userName",
+        size: 180,
+        minSize: 150,
+        header: ({ column }) => (
+          <SortableHeader column={column}>Reviewer</SortableHeader>
+        ),
+        cell: ({ row }) => {
+          const r = row.original;
+          return (
+            <div
+              className="flex min-w-0 flex-col leading-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PersonAttribution
+                layout="stack"
+                size={32}
+                href={`/admin/users/${r.userId}`}
+                person={{
+                  id: r.userId,
+                  fullName: r.userName,
+                  email: r.userEmail,
+                  universityCard: r.userUniversityCard,
+                }}
+              />
+              <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-700">
+                <CalendarPlus className="size-3 shrink-0 opacity-80" aria-hidden />
+                <span className="opacity-70">Submitted</span>{" "}
+                {formatMediumDateTime(r.createdAt)}
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "rating",
+        size: 72,
+        minSize: 64,
+        header: ({ column }) => (
+          <SortableHeader column={column}>Rating</SortableHeader>
+        ),
+        cell: ({ row }) => {
+          const rating = row.original.rating;
+          const tone = reviewRatingTone(rating);
+          return (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 text-sm font-normal tabular-nums",
+                tone,
+              )}
+            >
+              <Star className={cn("size-3.5 fill-current", tone)} aria-hidden />
+              {rating}/5
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: "comment",
+        size: 200,
+        minSize: 140,
+        header: "Comment",
         cell: ({ row }) => (
           <Link
             href={`/admin/book-reviews/${row.original.id}`}
-            className="flex max-w-64 items-center gap-2 text-sm font-medium text-primary-admin hover:underline"
-            onClick={(e) => e.stopPropagation()}
+            prefetch={false}
+            className={cn(TABLE_CELL_TITLE, "line-clamp-2", SKY_LINK_LIGHT)}
           >
-            <ListCircleCover
-              coverUrl={row.original.bookCoverUrl}
-              coverColor={row.original.bookCoverColor}
-              title={row.original.bookTitle}
-            />
-            <span className="line-clamp-1">{row.original.bookTitle}</span>
+            {row.original.comment}
           </Link>
         ),
       },
       {
-        accessorKey: "userName",
-        header: ({ column }) => <SortableHeader column={column}>Reviewer</SortableHeader>,
-        cell: ({ row }) => (
-          <PersonNameEmailCell
-            name={row.original.userName}
-            email={row.original.userEmail}
-          />
-        ),
-      },
-      {
-        accessorKey: "rating",
-        header: ({ column }) => <SortableHeader column={column}>Rating</SortableHeader>,
-        cell: ({ row }) => <StarRow rating={row.original.rating} />,
-      },
-      {
-        accessorKey: "comment",
-        header: "Comment",
-        cell: ({ row }) => (
-          <p className="line-clamp-2 max-w-64 text-sm text-gray-600">
-            {row.original.comment}
-          </p>
-        ),
-      },
-      {
         accessorKey: "status",
+        size: 118,
+        minSize: 110,
         header: "Status",
-        cell: ({ row }) => <ReviewStatusBadge status={row.original.status} />,
+        cell: ({ row }) => (
+          <div className="inline-flex">
+            <ReviewStatusBadge status={row.original.status} />
+          </div>
+        ),
       },
       {
-        accessorKey: "createdAt",
-        header: ({ column }) => <SortableHeader column={column}>Submitted</SortableHeader>,
-        cell: ({ row }) => <MediumDateCell value={row.original.createdAt} />,
+        id: "approver",
+        size: 180,
+        minSize: 150,
+        header: "Approver",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const r = row.original;
+          const hasApprover =
+            r.status !== "PENDING" &&
+            Boolean(r.reviewedByName || r.reviewedByEmail);
+          if (!hasApprover) {
+            return <span className="text-sm text-muted-foreground">—</span>;
+          }
+          return (
+            <div
+              className="flex min-w-0 flex-col leading-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PersonAttribution
+                layout="stack"
+                size={32}
+                href={r.reviewedBy ? `/admin/users/${r.reviewedBy}` : null}
+                person={{
+                  id: r.reviewedBy ?? "",
+                  fullName: r.reviewedByName || "an admin",
+                  email: r.reviewedByEmail || "",
+                  universityCard: r.reviewedByUniversityCard,
+                }}
+              />
+              {r.reviewedAt ? (
+                <p
+                  className={cn(
+                    "mt-0.5 inline-flex items-center gap-1 text-[10px]",
+                    r.status === "REJECTED"
+                      ? "text-rose-700"
+                      : "text-emerald-700",
+                  )}
+                >
+                  <ShieldCheck
+                    className="size-3 shrink-0 opacity-80"
+                    aria-hidden
+                  />
+                  <span className="opacity-70">
+                    {r.status === "REJECTED" ? "Rejected" : "Approved"}
+                  </span>{" "}
+                  {formatMediumDateTime(r.reviewedAt)}
+                </p>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         id: "actions",
-        header: "",
-        cell: ({ row }) => <ReviewRowActions review={row.original} />,
+        size: 64,
+        minSize: 56,
+        header: "Actions",
+        enableSorting: false,
+        cell: ({ row }) => <ReviewRowActions review={row.original} currentAdmin={currentAdmin} />,
       },
     ],
-    [],
+    [currentAdmin],
   );
 
   return (
@@ -375,8 +529,18 @@ export default function BookReviewList({
       <StatCardGrid>
         <StatCard title="Total Reviews" value={stats.total} icon={Star} hue="blue" />
         <StatCard title="Pending" value={stats.pending} icon={Clock} hue="amber" />
-        <StatCard title="Approved" value={stats.approved} icon={CheckCircle2} hue="emerald" />
-        <StatCard title="Rejected" value={stats.rejected} icon={XCircle} hue="rose" />
+        <StatCard
+          title="Approved"
+          value={stats.approved}
+          icon={CheckCircle2}
+          hue="emerald"
+        />
+        <StatCard
+          title="Rejected"
+          value={stats.rejected}
+          icon={XCircle}
+          hue="rose"
+        />
         <StatCard
           title="Avg Rating"
           value={stats.avgRating.toFixed(1)}
@@ -407,7 +571,7 @@ export default function BookReviewList({
             label="Status"
             value={statusFilter}
             onValueChange={setStatusFilter}
-            options={REVIEW_STATUS_FILTER_OPTIONS}
+            options={statusFilterOptions}
             labelLayout="inline"
             className="sm:min-w-[160px]"
           />
@@ -416,9 +580,8 @@ export default function BookReviewList({
         <DataTable
           columns={columns}
           data={reviews}
-          isLoading={isPending && reviews.length === 0}
+          isLoading={(isPending || isFetching) && reviews.length === 0}
           emptyMessage="No reviews match your filters."
-          onRowClick={(review) => router.push(`/admin/book-reviews/${review.id}`)}
           initialPageSize={10}
         />
       </div>

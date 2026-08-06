@@ -1,5 +1,6 @@
 "use client";
 
+import PrefetchLink from "@/components/PrefetchLink";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -14,12 +15,13 @@ const AdminDropdown = () => {
     >
       {/* Main Admin Dashboard Link with padding for better hover area */}
       <div className="px-1.5 py-1 sm:px-2">
-        <Link
+        <PrefetchLink
           href="/admin"
+          prefetchKind="admin-dashboard"
           className="text-sm text-light-100 transition-colors hover:text-light-200 sm:text-base"
         >
           Admin Dashboard
-        </Link>
+        </PrefetchLink>
       </div>
 
       {/* Dropdown Menu */}
@@ -28,36 +30,55 @@ const AdminDropdown = () => {
           {/* Add a small invisible bridge to prevent hover gap */}
           <div className="absolute inset-x-0 -top-1 h-1"></div>
           <div className="py-1.5 sm:py-2">
-            <Link
+            <PrefetchLink
               href="/admin"
+              prefetchKind="admin-dashboard"
               className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
             >
               Dashboard Overview
-            </Link>
-            <Link
+            </PrefetchLink>
+            <PrefetchLink
               href="/admin/users"
+              prefetchKind="admin-users"
               className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
             >
               Users
-            </Link>
-            <Link
+            </PrefetchLink>
+            <PrefetchLink
               href="/admin/books"
+              prefetchKind="admin-books"
               className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
             >
               Books
-            </Link>
-            <Link
+            </PrefetchLink>
+            <PrefetchLink
               href="/admin/book-requests"
+              prefetchKind="admin-book-requests"
               className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
             >
               Borrow Requests
-            </Link>
-            <Link
+            </PrefetchLink>
+            <PrefetchLink
               href="/admin/account-requests"
+              prefetchKind="admin-account-requests"
               className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
             >
               Sign-up Requests
-            </Link>
+            </PrefetchLink>
+            <PrefetchLink
+              href="/admin/book-reviews"
+              prefetchKind="admin-reviews"
+              className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              Book Reviews
+            </PrefetchLink>
+            <PrefetchLink
+              href="/admin/support-tickets"
+              prefetchKind="admin-tickets"
+              className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              Support Tickets
+            </PrefetchLink>
             <Link
               href="/admin/business-insights"
               className="block px-3 py-1.5 text-xs text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 sm:px-4 sm:py-2 sm:text-sm"

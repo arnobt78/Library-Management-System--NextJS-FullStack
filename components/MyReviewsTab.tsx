@@ -3,11 +3,14 @@
 /**
  * "My Reviews" — signed-in user's own book reviews (any moderation status).
  * Uses ReviewBookCard + review.write densify (patchReviewCaches) so CRUD
- * never flashes stale rows. Parent: CR-0003 / REQ-0035 polish
+ * never flashes stale rows. Skips stale SSR when densify marked user-reviews empty.
+ * Parent: CR-0003 / REQ-0035 polish
  */
 
 import { useUserBookReviews } from "@/hooks/useQueries";
 import ReviewBookCard from "@/components/reviews/ReviewBookCard";
+import { queryKeys } from "@/lib/query/keys";
+import { isDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 
 export default function MyReviewsTab({
   userId,
@@ -16,12 +19,17 @@ export default function MyReviewsTab({
   userId: string;
   initialReviews?: AdminBookReviewItem[];
 }) {
+  const densifiedEmpty = isDensifiedEmpty(
+    queryKeys.reviews.userReviews(userId),
+  );
+  const reviewsInitial = densifiedEmpty ? undefined : initialReviews;
+
   const { data: reviews = [], isLoading } = useUserBookReviews(
     userId,
-    initialReviews,
+    reviewsInitial,
   );
 
-  if (isLoading && reviews.length === 0) {
+  if (isLoading && reviews.length === 0 && !densifiedEmpty) {
     return (
       <div className="space-y-3 sm:space-y-4">
         {[...Array(2)].map((_, i) => (

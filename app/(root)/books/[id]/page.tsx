@@ -2,6 +2,7 @@ import React from "react";
 import { db } from "@/database/drizzle";
 import { books, bookReviews, users, borrowRecords } from "@/database/schema";
 import { eq, desc, and, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import BookOverview from "@/components/BookOverview";
@@ -110,11 +111,10 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
       )
     : eq(bookReviews.status, "APPROVED");
 
-  // No `userEmail` here — this data flows to a public page (anonymous
-  // visitors can view it), and returning other users' emails would leak PII
-  // to every visitor. `userId` (opaque, non-PII) is enough for the client to
-  // compute review ownership and a stable avatar seed. Mirrors the GET
-  // handler at `app/api/reviews/[bookId]/route.ts`.
+  // No author `userEmail` — public page; opaque userId is enough for ownership/
+  // avatar seed. Moderator join mirrors GET `/api/reviews/[bookId]` so first
+  // paint includes Approved date + Approved by (REQ-0035 densify/SSR parity).
+  const moderator = alias(users, "review_moderator_public");
   const reviews = await db
     .select({
       id: bookReviews.id,
@@ -126,9 +126,15 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
       userId: bookReviews.userId,
       userFullName: users.fullName,
       universityCard: users.universityCard,
+      reviewedBy: bookReviews.reviewedBy,
+      reviewedByName: moderator.fullName,
+      reviewedByEmail: moderator.email,
+      reviewedByUniversityCard: moderator.universityCard,
+      reviewedAt: bookReviews.reviewedAt,
     })
     .from(bookReviews)
     .innerJoin(users, eq(bookReviews.userId, users.id))
+    .leftJoin(moderator, eq(bookReviews.reviewedBy, moderator.id))
     .where(and(eq(bookReviews.bookId, id), reviewVisibility))
     .orderBy(desc(bookReviews.createdAt));
 

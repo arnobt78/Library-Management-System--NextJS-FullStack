@@ -1,6 +1,6 @@
 "use client";
 
-// Parent: REQ-0027, REQ-0030
+// Parent: REQ-0027, REQ-0030 — RQ-backed panel; densify keys stay live after CRUD
 import { useEffect, useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -9,24 +9,32 @@ import {
   borrowReservedBook,
   cancelBookReservation,
 } from "@/lib/actions/circulation";
-import { invalidateMutation } from "@/lib/utils/queryInvalidation";
+import { useUserReservations } from "@/hooks/useQueries";
+import { commitMutationCache } from "@/lib/query/mutationGateway";
+import {
+  densifyReservationStatus,
+  snapshotReservationBaselines,
+} from "@/lib/utils/patchReservationCaches";
+import type { UserReservationItem } from "@/lib/services/reservations";
 import { showToast } from "@/lib/toast";
 import { BookOpen, X } from "lucide-react";
 
-export interface ReservationSummary {
-  id: string;
-  status: "WAITING" | "READY" | "FULFILLED" | "CANCELLED" | "EXPIRED";
-  bookTitle: string;
-  queuePosition: number | null;
-  readyExpiresAt: string | null;
-}
+export type ReservationSummary = UserReservationItem;
 
 export default function ReservationsPanel({
   initialReservations,
+  userId,
 }: {
   initialReservations: ReservationSummary[];
+  /** Signed-in user — densify user reservation list after claim/cancel. */
+  userId?: string;
 }) {
-  const [items, setItems] = useState(initialReservations);
+  const [ssrTimestamp] = useState(() => Date.now());
+  const { data: items = [] } = useUserReservations(
+    userId,
+    initialReservations,
+    initialReservations.length > 0 ? ssrTimestamp : undefined,
+  );
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [clock, setClock] = useState<number | null>(null);
@@ -54,7 +62,7 @@ export default function ReservationsPanel({
     };
   }, [items]);
 
-  const run = (id: string, action: "claim" | "cancel") => {
+  const run = (id: string, action: "claim" | "cancel", bookId: string) => {
     setPendingId(id);
     startTransition(async () => {
       try {
@@ -64,17 +72,27 @@ export default function ReservationsPanel({
             : await cancelBookReservation(id);
         if (!result.success)
           return showToast.error("Reservation Update Failed", result.error);
-        setItems((current) =>
-          current.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  status: action === "claim" ? "FULFILLED" : "CANCELLED",
-                }
-              : item,
-          ),
-        );
-        await invalidateMutation(queryClient, "reservation.lifecycle");
+        const nextStatus = action === "claim" ? "FULFILLED" : "CANCELLED";
+        const resolvedBookId =
+          (result.data && "bookId" in result.data
+            ? result.data.bookId
+            : undefined) ?? bookId;
+        const baselines = snapshotReservationBaselines(queryClient);
+        await commitMutationCache(queryClient, "reservation.lifecycle", {
+          snapshot: () => baselines,
+          densify: (snap) => {
+            densifyReservationStatus(
+              queryClient,
+              {
+                id,
+                status: nextStatus,
+                bookId: resolvedBookId,
+                userId,
+              },
+              snap ?? undefined,
+            );
+          },
+        });
         showToast.success(
           "Reservation Updated",
           action === "claim"
@@ -119,7 +137,7 @@ export default function ReservationsPanel({
                 <Button
                   size="sm"
                   disabled={isPending}
-                  onClick={() => run(item.id, "claim")}
+                  onClick={() => run(item.id, "claim", item.bookId)}
                 >
                   <BookOpen className="size-4" />
                   {pendingId === item.id ? "Working…" : "Borrow now"}
@@ -129,7 +147,7 @@ export default function ReservationsPanel({
                 size="sm"
                 variant="outline"
                 disabled={isPending}
-                onClick={() => run(item.id, "cancel")}
+                onClick={() => run(item.id, "cancel", item.bookId)}
               >
                 <X className="size-4" />
                 Cancel

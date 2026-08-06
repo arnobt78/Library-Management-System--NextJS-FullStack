@@ -2,15 +2,19 @@
  * Instant densify for book-review list/detail/pendingCount caches.
  *
  * Call AFTER `await invalidateMutation("review.write")`, but always pass
- * `baselines` snapped BEFORE invalidate. Invalidation `removeQueries` wipes
- * inactive lists; upserting into `[]` would leave only the touched row and
- * sibling reviews would flash in late after refetch.
+ * `baselines` snapped BEFORE invalidate. Invalidate no longer
+ * `removeQueries`-wipes inactive lists; still pass baselines so densify can
+ * re-seed canonical keys when cache is thin or missing.
  * Parent: CR-0003 / REQ-0035 polish
  */
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
 import type { Review } from "@/lib/services/reviews";
+import {
+  writeDensifiedEmpty,
+  writeMappedList,
+} from "@/lib/utils/queryCacheLists";
 
 export type ReviewListBaselines = {
   /** Densest cached admin list (any filter key). */
@@ -108,11 +112,13 @@ function mapAdminLists(
   );
 
   const adminKey = queryKeys.reviews.adminList({});
-  const prevAdmin =
-    queryClient.getQueryData<AdminBookReviewItem[]>(adminKey) ??
-    baselines?.admin ??
-    [];
-  queryClient.setQueryData(adminKey, mapper(prevAdmin));
+  writeMappedList(
+    queryClient,
+    adminKey,
+    queryClient.getQueryData<AdminBookReviewItem[]>(adminKey),
+    baselines?.admin,
+    mapper,
+  );
 }
 
 function mapUserLists(
@@ -129,11 +135,13 @@ function mapUserLists(
   );
 
   const userKey = queryKeys.reviews.userReviews(userId);
-  const prevUser =
-    queryClient.getQueryData<AdminBookReviewItem[]>(userKey) ??
-    baselines?.users[userId] ??
-    [];
-  queryClient.setQueryData(userKey, mapper(prevUser));
+  writeMappedList(
+    queryClient,
+    userKey,
+    queryClient.getQueryData<AdminBookReviewItem[]>(userKey),
+    baselines?.users[userId],
+    mapper,
+  );
 }
 
 function mapBookLists(
@@ -145,11 +153,42 @@ function mapBookLists(
   if (!bookId) return;
 
   const bookKey = queryKeys.reviews.book(bookId);
-  const prevBook =
-    queryClient.getQueryData<Review[]>(bookKey) ??
-    baselines?.books[bookId] ??
-    [];
-  queryClient.setQueryData(bookKey, mapper(prevBook));
+  writeMappedList(
+    queryClient,
+    bookKey,
+    queryClient.getQueryData<Review[]>(bookKey),
+    baselines?.books[bookId],
+    mapper,
+  );
+}
+
+/** Prefer live cache, then pre-invalidate baselines (sibling rows survive removeQueries). */
+function findBaselineAdminReview(
+  baselines: ReviewListBaselines | undefined,
+  reviewId: string,
+  userId?: string | null,
+): AdminBookReviewItem | undefined {
+  if (!baselines) return undefined;
+  const fromAdmin = baselines.admin?.find((r) => r.id === reviewId);
+  if (fromAdmin) return fromAdmin;
+  if (userId) {
+    const fromUser = baselines.users[userId]?.find((r) => r.id === reviewId);
+    if (fromUser) return fromUser;
+  }
+  for (const rows of Object.values(baselines.users)) {
+    const hit = rows.find((r) => r.id === reviewId);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+function findBaselinePublicReview(
+  baselines: ReviewListBaselines | undefined,
+  bookId: string | null | undefined,
+  reviewId: string,
+): Review | undefined {
+  if (!baselines || !bookId) return undefined;
+  return baselines.books[bookId]?.find((r) => r.id === reviewId);
 }
 
 /** Build a minimal public Review row from an AdminBookReviewItem (densify create). */
@@ -170,6 +209,61 @@ export function adminItemToPublicReview(item: AdminBookReviewItem): Review {
     reviewedByEmail: item.reviewedByEmail,
     reviewedByUniversityCard: item.reviewedByUniversityCard,
     reviewedAt: item.reviewedAt,
+  };
+}
+
+/**
+ * Promote a public book-reviews row (+ optional book detail) into an admin
+ * queue item so content-edit densify can upsert `/admin/book-reviews` when
+ * the admin list was never mounted (soft-nav used to wait on refetch).
+ */
+export function publicReviewToAdminItem(
+  review: Review,
+  book?: {
+    title?: string | null;
+    coverUrl?: string | null;
+    coverColor?: string | null;
+    author?: string | null;
+    genre?: string | null;
+    rating?: number | null;
+  } | null,
+): AdminBookReviewItem {
+  const reviewedAt =
+    typeof review.reviewedAt === "string"
+      ? review.reviewedAt
+      : review.reviewedAt
+        ? new Date(review.reviewedAt).toISOString()
+        : null;
+  return {
+    id: review.id,
+    rating: review.rating,
+    comment: review.comment,
+    status: review.status ?? "PENDING",
+    bookId: review.bookId ?? "",
+    bookTitle: book?.title?.trim() || "Unknown Book",
+    bookCoverUrl: book?.coverUrl ?? null,
+    bookCoverColor: book?.coverColor ?? null,
+    bookAuthor: book?.author?.trim() || "Unknown Author",
+    bookGenre: book?.genre?.trim() || "General",
+    bookRating: book?.rating ?? 0,
+    userId: review.userId,
+    userName: review.userFullName || "Reader",
+    userEmail: review.userEmail ?? "",
+    userUniversityCard: review.universityCard ?? null,
+    reviewedBy: review.reviewedBy ?? null,
+    reviewedByName: review.reviewedByName ?? null,
+    reviewedByEmail: review.reviewedByEmail ?? null,
+    reviewedByUniversityCard: review.reviewedByUniversityCard ?? null,
+    reviewedAt,
+    createdAt: review.createdAt
+      ? new Date(review.createdAt).toISOString()
+      : null,
+    updatedAt: review.updatedAt
+      ? new Date(review.updatedAt).toISOString()
+      : null,
+    borrowedAt: null,
+    dueDate: null,
+    returnedAt: null,
   };
 }
 
@@ -225,7 +319,12 @@ export function patchReviewCachesOnCreate(
   if (item.status === "PENDING") bumpPendingCount(queryClient, 1);
 }
 
-/** After content edit — patch rating/comment/updatedAt (+ optional status reset). */
+/** After content edit — patch rating/comment/updatedAt (+ optional status reset).
+ *
+ * Prefer upsert over map-only for user/book lists: inactive My Reviews / book
+ * detail caches are removeQueries'd, and map-only into missing lists used to
+ * seed `[]` (badge 0 / Reviews empty until remount).
+ */
 export function patchReviewCachesOnUpdate(
   queryClient: QueryClient,
   patch: Partial<AdminBookReviewItem> & {
@@ -239,69 +338,155 @@ export function patchReviewCachesOnUpdate(
   const applyAdmin = (row: AdminBookReviewItem): AdminBookReviewItem =>
     row.id === patch.id ? { ...row, ...patch } : row;
 
+  const userId =
+    patch.userId ??
+    findCachedAdminReview(queryClient, patch.id)?.userId ??
+    findBaselineAdminReview(baselines, patch.id)?.userId ??
+    undefined;
+  const bookId =
+    patch.bookId ??
+    findCachedAdminReview(queryClient, patch.id)?.bookId ??
+    findBaselineAdminReview(baselines, patch.id, userId)?.bookId ??
+    undefined;
+
+  const sourceItem =
+    findCachedAdminReview(queryClient, patch.id) ??
+    findBaselineAdminReview(baselines, patch.id, userId) ??
+    (() => {
+      // Soft-nav from book detail: only public ["book-reviews", bookId] may exist.
+      const publicHit =
+        findBaselinePublicReview(baselines, bookId, patch.id) ??
+        (bookId
+          ? queryClient
+              .getQueryData<Review[]>(queryKeys.reviews.book(bookId))
+              ?.find((r) => r.id === patch.id)
+          : undefined);
+      if (!publicHit) return undefined;
+      const bookMeta = bookId
+        ? queryClient.getQueryData<{
+            title?: string;
+            coverUrl?: string;
+            coverColor?: string;
+            author?: string;
+            genre?: string;
+            rating?: number;
+          }>(queryKeys.books.detail(bookId))
+        : undefined;
+      return publicReviewToAdminItem(publicHit, bookMeta);
+    })();
+
+  const mergedAdmin: AdminBookReviewItem | undefined = sourceItem
+    ? { ...sourceItem, ...patch, id: patch.id }
+    : undefined;
+
   queryClient.setQueryData<AdminBookReviewItem | undefined>(
     queryKeys.reviews.adminDetail(patch.id),
-    (prev) => (prev ? { ...prev, ...patch } : prev),
+    (prev) =>
+      prev ? { ...prev, ...patch } : mergedAdmin ? mergedAdmin : prev,
   );
 
   mapAdminLists(
     queryClient,
-    (rows) => rows.map(applyAdmin),
+    (rows) => {
+      if (rows.some((r) => r.id === patch.id)) return rows.map(applyAdmin);
+      // Upsert into existing sibling lists; also seed canonical empty key from
+      // mergedAdmin so soft-nav to /admin/book-reviews paints instantly.
+      return mergedAdmin ? upsertAdminRow(rows, mergedAdmin) : rows;
+    },
     baselines,
   );
 
-  const userId =
-    patch.userId ??
-    findCachedAdminReview(queryClient, patch.id)?.userId ??
-    undefined;
   mapUserLists(
     queryClient,
     userId,
-    (rows) => rows.map(applyAdmin),
+    (rows) => {
+      if (rows.some((r) => r.id === patch.id)) return rows.map(applyAdmin);
+      return mergedAdmin ? upsertAdminRow(rows, mergedAdmin) : rows;
+    },
     baselines,
   );
 
-  const bookId =
-    patch.bookId ??
-    findCachedAdminReview(queryClient, patch.id)?.bookId ??
-    undefined;
+  const baselinePublic = findBaselinePublicReview(
+    baselines,
+    bookId,
+    patch.id,
+  );
+  const publicSource: Review | undefined = mergedAdmin
+    ? adminItemToPublicReview(mergedAdmin)
+    : baselinePublic
+      ? {
+          ...baselinePublic,
+          rating: patch.rating ?? baselinePublic.rating,
+          comment: patch.comment ?? baselinePublic.comment,
+          updatedAt: patch.updatedAt
+            ? new Date(patch.updatedAt)
+            : new Date(),
+          status: patch.status ?? baselinePublic.status,
+          reviewedBy:
+            patch.reviewedBy !== undefined
+              ? patch.reviewedBy
+              : baselinePublic.reviewedBy,
+          reviewedByName:
+            patch.reviewedByName !== undefined
+              ? patch.reviewedByName
+              : baselinePublic.reviewedByName,
+          reviewedByEmail:
+            patch.reviewedByEmail !== undefined
+              ? patch.reviewedByEmail
+              : baselinePublic.reviewedByEmail,
+          reviewedByUniversityCard:
+            patch.reviewedByUniversityCard !== undefined
+              ? patch.reviewedByUniversityCard
+              : baselinePublic.reviewedByUniversityCard,
+          reviewedAt:
+            patch.reviewedAt !== undefined
+              ? patch.reviewedAt
+              : baselinePublic.reviewedAt,
+        }
+      : undefined;
+
   mapBookLists(
     queryClient,
     bookId,
-    (rows) =>
-      rows.map((r) =>
-        r.id === patch.id
-          ? {
-              ...r,
-              rating: patch.rating ?? r.rating,
-              comment: patch.comment ?? r.comment,
-              updatedAt: patch.updatedAt
-                ? new Date(patch.updatedAt)
-                : new Date(),
-              status: patch.status ?? r.status,
-              reviewedBy:
-                patch.reviewedBy !== undefined
-                  ? patch.reviewedBy
-                  : r.reviewedBy,
-              reviewedByName:
-                patch.reviewedByName !== undefined
-                  ? patch.reviewedByName
-                  : r.reviewedByName,
-              reviewedByEmail:
-                patch.reviewedByEmail !== undefined
-                  ? patch.reviewedByEmail
-                  : r.reviewedByEmail,
-              reviewedByUniversityCard:
-                patch.reviewedByUniversityCard !== undefined
-                  ? patch.reviewedByUniversityCard
-                  : r.reviewedByUniversityCard,
-              reviewedAt:
-                patch.reviewedAt !== undefined
-                  ? patch.reviewedAt
-                  : r.reviewedAt,
-            }
-          : r,
-      ),
+    (rows) => {
+      const idx = rows.findIndex((r) => r.id === patch.id);
+      if (idx !== -1) {
+        return rows.map((r) =>
+          r.id === patch.id
+            ? {
+                ...r,
+                rating: patch.rating ?? r.rating,
+                comment: patch.comment ?? r.comment,
+                updatedAt: patch.updatedAt
+                  ? new Date(patch.updatedAt)
+                  : new Date(),
+                status: patch.status ?? r.status,
+                reviewedBy:
+                  patch.reviewedBy !== undefined
+                    ? patch.reviewedBy
+                    : r.reviewedBy,
+                reviewedByName:
+                  patch.reviewedByName !== undefined
+                    ? patch.reviewedByName
+                    : r.reviewedByName,
+                reviewedByEmail:
+                  patch.reviewedByEmail !== undefined
+                    ? patch.reviewedByEmail
+                    : r.reviewedByEmail,
+                reviewedByUniversityCard:
+                  patch.reviewedByUniversityCard !== undefined
+                    ? patch.reviewedByUniversityCard
+                    : r.reviewedByUniversityCard,
+                reviewedAt:
+                  patch.reviewedAt !== undefined
+                    ? patch.reviewedAt
+                    : r.reviewedAt,
+              }
+            : r,
+        );
+      }
+      return publicSource ? upsertPublicRow(rows, publicSource) : rows;
+    },
     baselines,
   );
 
@@ -319,7 +504,7 @@ export function patchReviewCachesOnDelete(
   queryClient: QueryClient,
   reviewId: string,
   previous?: {
-    status: ReviewStatusValue;
+    status?: ReviewStatusValue | null;
     userId?: string | null;
     bookId?: string | null;
   } | null,
@@ -346,6 +531,21 @@ export function patchReviewCachesOnDelete(
     (rows) => rows.filter((r) => r.id !== reviewId),
     baselines,
   );
+
+  // Delete before book/profile lists ever mounted: force densify-empty so
+  // soft-nav cannot reseed stale RSC rows via seedFromSsrIfEmpty.
+  if (previous?.bookId) {
+    const bookKey = queryKeys.reviews.book(previous.bookId);
+    if (queryClient.getQueryData(bookKey) === undefined) {
+      writeDensifiedEmpty(queryClient, bookKey);
+    }
+  }
+  if (previous?.userId) {
+    const userKey = queryKeys.reviews.userReviews(previous.userId);
+    if (queryClient.getQueryData(userKey) === undefined) {
+      writeDensifiedEmpty(queryClient, userKey);
+    }
+  }
 
   if (previous?.status === "PENDING") bumpPendingCount(queryClient, -1);
 }

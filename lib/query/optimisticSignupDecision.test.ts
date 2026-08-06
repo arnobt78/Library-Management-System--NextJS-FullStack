@@ -11,6 +11,10 @@ import {
 import { queryKeys } from "@/lib/query/keys";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { User } from "@/lib/services/users";
+import {
+  isDensifiedEmpty,
+  seedFromSsrIfEmpty,
+} from "@/lib/utils/queryCacheLists";
 
 const pendingUser: User = {
   id: "u-1",
@@ -70,5 +74,28 @@ describe("applyOptimisticSignupDecision", () => {
     rollbackOptimisticSignupDecision(client, ctx);
     expect(client.getQueryData(pendingKey)).toEqual([pendingUser]);
     expect(client.getQueryData(decisionsKey)).toEqual([priorDecision]);
+  });
+
+  it("marks densify-empty on last pending so SSR cannot reseed", async () => {
+    const client = new QueryClient();
+    const pendingKey = queryKeys.users.pending();
+    client.setQueryData(pendingKey, [pendingUser]);
+
+    await applyOptimisticSignupDecision(client, {
+      userId: "u-1",
+      status: "APPROVED",
+      decisionActor: {
+        id: "admin-1",
+        fullName: "Test Admin",
+        email: "test@admin.com",
+        universityCard: null,
+      },
+    });
+
+    expect(client.getQueryData(pendingKey)).toEqual([]);
+    expect(isDensifiedEmpty(pendingKey)).toBe(true);
+    expect(
+      seedFromSsrIfEmpty(client, pendingKey, [pendingUser]),
+    ).toEqual([]);
   });
 });

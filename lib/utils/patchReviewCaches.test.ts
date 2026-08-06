@@ -14,6 +14,7 @@ import {
   patchReviewCachesOnUpdate,
   snapshotReviewListBaselines,
 } from "@/lib/utils/patchReviewCaches";
+import { isDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 
 function makeItem(
   overrides: Partial<AdminBookReviewItem> & Pick<AdminBookReviewItem, "id">,
@@ -290,6 +291,204 @@ describe("patchReviewCaches", () => {
     expect(book?.[0]?.id).toBe("r-upsert");
     expect(book?.[0]?.status).toBe("APPROVED");
     expect(book?.[0]?.userFullName).toBe("Test User");
+    // Showcase attribution must densify into public book-reviews (soft-nav).
+    expect(book?.[0]?.reviewedAt).toBe("2026-08-06T01:00:00.000Z");
+    expect(book?.[0]?.reviewedBy).toBe("admin-1");
+    expect(book?.[0]?.reviewedByName).toBe("Admin");
+    expect(book?.[0]?.reviewedByEmail).toBe("test@admin.com");
     expect(client.getQueryData(queryKeys.reviews.pendingCount)).toBe(0);
+
+    // Admin list densify keeps moderator attribution for Approver column.
+    const adminList = client.getQueryData<AdminBookReviewItem[]>(
+      queryKeys.reviews.adminList({}),
+    );
+    expect(adminList?.[0]?.status).toBe("APPROVED");
+    expect(adminList?.[0]?.reviewedByName).toBe("Admin");
+    expect(adminList?.[0]?.reviewedByEmail).toBe("test@admin.com");
+    expect(adminList?.[0]?.reviewedAt).toBe("2026-08-06T01:00:00.000Z");
+  });
+
+  it("update upserts My Reviews from admin baseline without seeding empty []", () => {
+    const client = new QueryClient();
+    const pending = makeItem({ id: "r-profile", status: "PENDING" });
+    client.setQueryData(queryKeys.reviews.adminList({}), [pending]);
+    // Intentionally no userReviews cache (never opened My Reviews).
+    const baselines = snapshotReviewListBaselines(client);
+    client.removeQueries({ queryKey: queryKeys.reviews.adminRoot });
+    client.removeQueries({ queryKey: queryKeys.reviews.userReviewsRoot });
+
+    patchReviewCachesOnUpdate(
+      client,
+      {
+        id: "r-profile",
+        rating: 3,
+        comment: "Edited from book detail",
+        status: "PENDING",
+        bookId: "book-1",
+        userId: "user-1",
+        updatedAt: "2026-08-06T12:00:00.000Z",
+      },
+      baselines,
+      "PENDING",
+    );
+
+    const mine = client.getQueryData<AdminBookReviewItem[]>(
+      queryKeys.reviews.userReviews("user-1"),
+    );
+    expect(mine?.length).toBe(1);
+    expect(mine?.[0]?.id).toBe("r-profile");
+    expect(mine?.[0]?.rating).toBe(3);
+    expect(mine?.[0]?.comment).toBe("Edited from book detail");
+  });
+
+  it("update upserts public book list from admin baseline (admin→detail soft-nav)", () => {
+    const client = new QueryClient();
+    const pending = makeItem({ id: "r-book", status: "PENDING" });
+    client.setQueryData(queryKeys.reviews.adminList({}), [pending]);
+    // No book-reviews cache yet (detail never mounted).
+    const baselines = snapshotReviewListBaselines(client);
+    client.removeQueries({ queryKey: queryKeys.reviews.adminRoot });
+    client.removeQueries({ queryKey: queryKeys.reviews.bookRoot });
+
+    patchReviewCachesOnUpdate(
+      client,
+      {
+        id: "r-book",
+        rating: 4,
+        comment: "Edited on admin",
+        status: "PENDING",
+        bookId: "book-1",
+        userId: "user-1",
+      },
+      baselines,
+      "PENDING",
+    );
+
+    const book = client.getQueryData<Review[]>(
+      queryKeys.reviews.book("book-1"),
+    );
+    expect(book?.length).toBe(1);
+    expect(book?.[0]?.id).toBe("r-book");
+    expect(book?.[0]?.rating).toBe(4);
+    expect(book?.[0]?.comment).toBe("Edited on admin");
+  });
+
+  it("update without any source does not invent empty userReviews cache", () => {
+    const client = new QueryClient();
+    patchReviewCachesOnUpdate(
+      client,
+      {
+        id: "r-orphan",
+        rating: 2,
+        comment: "no baselines",
+        userId: "user-9",
+        bookId: "book-9",
+      },
+      undefined,
+      null,
+    );
+    expect(
+      client.getQueryData(queryKeys.reviews.userReviews("user-9")),
+    ).toBeUndefined();
+    expect(
+      client.getQueryData(queryKeys.reviews.book("book-9")),
+    ).toBeUndefined();
+  });
+
+  it("delete with bookId and no prior book cache forces densify-empty []", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.reviews.userReviews("user-1"), [
+      makeItem({ id: "r-gone", status: "PENDING" }),
+    ]);
+    const baselines = snapshotReviewListBaselines(client);
+
+    patchReviewCachesOnDelete(
+      client,
+      "r-gone",
+      { status: "PENDING", userId: "user-1", bookId: "book-1" },
+      baselines,
+    );
+
+    expect(client.getQueryData(queryKeys.reviews.book("book-1"))).toEqual([]);
+    expect(isDensifiedEmpty(queryKeys.reviews.book("book-1"))).toBe(true);
+    expect(
+      client.getQueryData(queryKeys.reviews.userReviews("user-1")),
+    ).toEqual([]);
+  });
+
+  it("delete without status still densifies book list when bookId known", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.reviews.book("book-1"), [
+      {
+        id: "r-nostatus",
+        rating: 4,
+        comment: "x",
+        createdAt: null,
+        updatedAt: null,
+        userFullName: "T",
+        userId: "user-1",
+        status: "PENDING",
+      },
+    ] as Review[]);
+
+    patchReviewCachesOnDelete(
+      client,
+      "r-nostatus",
+      { bookId: "book-1", userId: "user-1" },
+      snapshotReviewListBaselines(client),
+    );
+
+    expect(client.getQueryData(queryKeys.reviews.book("book-1"))).toEqual([]);
+    expect(isDensifiedEmpty(queryKeys.reviews.book("book-1"))).toBe(true);
+  });
+
+  it("update from public-only cache seeds admin queue (soft-nav after edit)", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.reviews.book("book-1"), [
+      {
+        id: "r-edit",
+        rating: 3,
+        comment: "old",
+        createdAt: null,
+        updatedAt: null,
+        userFullName: "Test User",
+        userId: "user-1",
+        bookId: "book-1",
+        status: "APPROVED",
+      },
+    ] as Review[]);
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      title: "Algorithms",
+      author: "Sedgewick",
+      genre: "CS",
+      rating: 5,
+      coverUrl: "/c.png",
+      coverColor: "#000",
+    });
+    const baselines = snapshotReviewListBaselines(client);
+
+    patchReviewCachesOnUpdate(
+      client,
+      {
+        id: "r-edit",
+        rating: 5,
+        comment: "new text",
+        status: "PENDING",
+        bookId: "book-1",
+        userId: "user-1",
+        reviewedBy: null,
+        reviewedByName: null,
+        reviewedAt: null,
+      },
+      baselines,
+      "APPROVED",
+    );
+
+    const admin = client.getQueryData<AdminBookReviewItem[]>(
+      queryKeys.reviews.adminList({}),
+    );
+    expect(admin?.[0]?.comment).toBe("new text");
+    expect(admin?.[0]?.status).toBe("PENDING");
+    expect(admin?.[0]?.bookTitle).toBe("Algorithms");
   });
 });

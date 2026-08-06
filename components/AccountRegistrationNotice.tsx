@@ -167,8 +167,9 @@ export default function AccountRegistrationNotice({
               reviewer={decisionActor}
               prefix="Rejected by"
               size={28}
+              variant="dark"
               className="text-light-200"
-              textClassName="text-light-100"
+              textClassName="text-xs sm:text-sm text-light-100"
             />
             <div className="pt-2">
               <button

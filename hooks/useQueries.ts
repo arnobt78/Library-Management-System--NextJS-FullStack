@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { queryKeys } from "@/lib/query/keys";
+import { seedFromSsrIfEmpty } from "@/lib/utils/queryCacheLists";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
   getBooksList,
@@ -34,6 +35,10 @@ import {
   type BorrowRecordFull,
   type BorrowRecordWithDetails,
 } from "@/lib/services/borrows";
+import {
+  getMyReservations,
+  type UserReservationItem,
+} from "@/lib/services/reservations";
 import {
   getAdminStats,
   getReminderStats,
@@ -285,17 +290,20 @@ export const useRelatedBooks = (
   limit: number = 6,
   initialData?: Book[]
 ) => {
+  const queryClient = useQueryClient();
   const { trackQuery } = useQueryPerformance();
+  const queryKey = queryKeys.books.related(bookId, limit);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
-    queryKey: queryKeys.books.related(bookId, limit),
+    queryKey,
     queryFn: () =>
       trackQuery(`book-related-${bookId}`, async () => {
         return getRelatedBooks(bookId, limit);
       }),
     staleTime: 30 * 1000,
     refetchOnMount: true,
-    initialData,
+    initialData: seed,
     enabled: Boolean(bookId),
   });
 };
@@ -309,17 +317,20 @@ export const useRelatedBooks = (
  * @param initialData - Optional SSR data (prevents duplicate fetch)
  */
 export const useFeaturedBooks = (limit: number = 10, initialData?: Book[]) => {
+  const queryClient = useQueryClient();
   const { trackQuery } = useQueryPerformance();
+  const queryKey = queryKeys.books.featured(limit);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
-    queryKey: queryKeys.books.featured(limit),
+    queryKey,
     queryFn: () =>
       trackQuery(`featured-books-${limit}`, async () => {
         return getFeaturedBooks(limit);
       }),
     staleTime: 30 * 1000,
     refetchOnMount: true,
-    initialData,
+    initialData: seed,
   });
 };
 
@@ -404,6 +415,7 @@ export const usePendingUsers = (
   search?: string
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
   // Get search from URL params if not provided
@@ -411,6 +423,14 @@ export const usePendingUsers = (
 
   // Build query key from search for proper caching
   const queryKey = queryKeys.users.pending(searchValue);
+  const unfiltered = !searchValue;
+  const seed = seedFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    unfiltered || (initialData && initialData.length > 0)
+      ? initialData
+      : undefined,
+  );
 
   return useQuery({
     queryKey,
@@ -418,9 +438,9 @@ export const usePendingUsers = (
       trackQuery("pending-users", async () => {
         return getPendingUsers(searchValue);
       }),
-    staleTime: 0, // Always refetch when query key changes (search changes)
-    refetchOnMount: true, // Refetch on mount
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    staleTime: 30 * 1000, // Badge + PrefetchLink warm; invalidate still forces refetch
+    refetchOnMount: true, // Refetch if stale (after invalidation)
+    initialData: seed,
   });
 };
 
@@ -433,7 +453,9 @@ export const useSignupStatusDecisions = (
   limit = 25,
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
   const queryKey = queryKeys.users.signupDecisions(limit);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
     queryKey,
@@ -447,7 +469,7 @@ export const useSignupStatusDecisions = (
       }),
     staleTime: 30 * 1000,
     refetchOnMount: true,
-    initialData,
+    initialData: seed,
   });
 };
 
@@ -506,6 +528,8 @@ export const useUserBorrows = (
 
   // Build query key from userId and status for proper caching
   const queryKey = queryKeys.borrows.user(userId, finalStatus);
+  const queryClient = useQueryClient();
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
     queryKey,
@@ -519,10 +543,38 @@ export const useUserBorrows = (
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    // TanStack Query applies initial data only when the key has no cached value.
-    initialData,
+    // Prefer non-empty cache; overwrite poisoned `[]` with non-empty SSR.
+    initialData: seed,
     // Marks the SSR snapshot as "just fetched", keeping it within staleTime so
     // no background refetch fires on mount and overwrites fresh book data.
+    initialDataUpdatedAt,
+  });
+};
+
+/**
+ * Profile reservations panel — densify writes `["reservations","user",userId]`.
+ * SSR seed + seedFromSsrIfEmpty so soft-nav keeps claim/cancel/create paints.
+ */
+export const useUserReservations = (
+  userId: string | undefined,
+  initialData?: UserReservationItem[],
+  initialDataUpdatedAt?: number,
+) => {
+  const queryClient = useQueryClient();
+  const { trackQuery } = useQueryPerformance();
+  const queryKey = userId
+    ? queryKeys.circulation.userReservations(userId)
+    : (["reservations", "user", "anon"] as const);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
+
+  return useQuery({
+    queryKey,
+    queryFn: () =>
+      trackQuery("user-reservations", async () => getMyReservations()),
+    enabled: Boolean(userId),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData: seed,
     initialDataUpdatedAt,
   });
 };
@@ -587,6 +639,7 @@ export const useBorrowRequests = (
   initialData?: BorrowRecordWithDetails[]
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
   // Get filters from URL params if not provided
@@ -599,6 +652,14 @@ export const useBorrowRequests = (
 
   // Build query key from filters for proper caching
   const queryKey = queryKeys.borrows.requests({ status, search });
+  const unfiltered = !status && !search;
+  const seed = seedFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    unfiltered || (initialData && initialData.length > 0)
+      ? initialData
+      : undefined,
+  );
 
   return useQuery({
     queryKey,
@@ -606,9 +667,9 @@ export const useBorrowRequests = (
       trackQuery("borrow-requests", async () => {
         return getBorrowRequests(status, search);
       }),
-    staleTime: 0, // Always refetch when query key changes (filters change)
-    refetchOnMount: true, // Refetch on mount
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    staleTime: 30 * 1000, // Badge + PrefetchLink warm; invalidate still forces refetch
+    refetchOnMount: true, // Refetch if stale (after invalidation)
+    initialData: seed,
   });
 };
 
@@ -631,16 +692,19 @@ export const useBorrowRequests = (
  */
 export const usePendingAdminRequests = (initialData?: AdminRequest[]) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.admin.pendingRequests;
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
-    queryKey: queryKeys.admin.pendingRequests,
+    queryKey,
     queryFn: () =>
       trackQuery("pending-admin-requests", async () => {
         return getPendingAdminRequests();
       }),
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    initialData: seed,
   });
 };
 
@@ -652,16 +716,19 @@ export const useRecentAdminRequestDecisions = (
   initialData?: AdminRequest[],
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.admin.recentRequestDecisions;
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
-    queryKey: queryKeys.admin.recentRequestDecisions,
+    queryKey,
     queryFn: () =>
       trackQuery("admin-request-decisions", async () => {
         return getRecentAdminRequestDecisions();
       }),
     staleTime: 30 * 1000,
     refetchOnMount: true,
-    initialData,
+    initialData: seed,
   });
 };
 
@@ -672,6 +739,7 @@ export const useRecentAdminRequestDecisions = (
  *
  * @param bookId - Book ID (UUID)
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
+ * @param initialDataUpdatedAt - SSR stamp so hydration freshness is explicit (profile borrows parity)
  * @returns React Query result with reviews array and loading/error states
  *
  * @example
@@ -680,14 +748,21 @@ export const useRecentAdminRequestDecisions = (
  * const { data, isLoading } = useBookReviews(bookId);
  *
  * // With SSR initial data
- * const { data } = useBookReviews(bookId, serverReviews);
+ * const { data } = useBookReviews(bookId, serverReviews, Date.now());
  * ```
  */
-export const useBookReviews = (bookId: string, initialData?: Review[]) => {
+export const useBookReviews = (
+  bookId: string,
+  initialData?: Review[],
+  initialDataUpdatedAt?: number,
+) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.reviews.book(bookId);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
-    queryKey: queryKeys.reviews.book(bookId),
+    queryKey,
     queryFn: () =>
       trackQuery(`book-reviews-${bookId}`, async () => {
         return getBookReviews(bookId);
@@ -695,7 +770,8 @@ export const useBookReviews = (bookId: string, initialData?: Review[]) => {
     enabled: !!bookId,
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    initialData: seed,
+    initialDataUpdatedAt,
   });
 };
 
@@ -1056,12 +1132,22 @@ export const useActivityLogs = (
   initialData?: ActivityLogItem[],
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.activityLog.list(filters);
+  const unfiltered = filters.period === "7days" && !filters.search;
+  const seed = seedFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    unfiltered || (initialData && initialData.length > 0)
+      ? initialData
+      : undefined,
+  );
 
   return useQuery<ActivityLogItem[]>({
-    queryKey: queryKeys.activityLog.list(filters),
+    queryKey,
     queryFn: () =>
       trackQuery("activity-logs", async () => getActivityLogs(filters)),
-    initialData: filters.period === "7days" && !filters.search ? initialData : undefined,
+    initialData: seed,
     // Keeps the previous period/search result on screen while the new one
     // loads, instead of dropping to an empty table between queryKey changes.
     placeholderData: keepPreviousData,
@@ -1090,17 +1176,17 @@ export const useAdminSupportTickets = (
   };
 
   const queryKey = queryKeys.tickets.adminList(resolvedFilters);
-  const cached = queryClient.getQueryData<SupportTicketListItem[]>(queryKey);
   const unfiltered =
     !resolvedFilters.status &&
     !resolvedFilters.priority &&
     !resolvedFilters.search;
-  const seed =
-    cached && cached.length > 0
-      ? cached
-      : unfiltered && initialData && initialData.length > 0
-        ? initialData
-        : undefined;
+  const seed = seedFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    unfiltered || (initialData && initialData.length > 0)
+      ? initialData
+      : undefined,
+  );
 
   return useQuery<SupportTicketListItem[]>({
     queryKey,
@@ -1131,18 +1217,15 @@ export const useUserSupportTickets = (
   };
 
   const queryKey = queryKeys.tickets.userList(userId, resolvedFilters);
-  // Prefer densified TanStack cache over empty/stale SSR on soft-nav remount
-  // (Back after detail edit). Never seed `[]` as settled initialData — that
-  // paints the empty state before refetch when densify was wiped.
-  const cached = queryClient.getQueryData<SupportTicketListItem[]>(queryKey);
   const unfiltered =
     !resolvedFilters.status && !resolvedFilters.search;
-  const seed =
-    cached && cached.length > 0
-      ? cached
-      : unfiltered && initialData && initialData.length > 0
-        ? initialData
-        : undefined;
+  const seed = seedFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    unfiltered || (initialData && initialData.length > 0)
+      ? initialData
+      : undefined,
+  );
 
   return useQuery<SupportTicketListItem[]>({
     queryKey,
@@ -1200,15 +1283,26 @@ export const useAdminBookReviews = (
   initialData?: AdminBookReviewItem[],
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+
+  const queryKey = queryKeys.reviews.adminList(filters);
+  const unfiltered = !filters.status && !filters.search;
+  const seed = seedFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    unfiltered || (initialData && initialData.length > 0)
+      ? initialData
+      : undefined,
+  );
 
   return useQuery<AdminBookReviewItem[]>({
-    queryKey: queryKeys.reviews.adminList(filters),
+    queryKey,
     queryFn: () =>
       trackQuery("admin-book-reviews", async () => getAdminBookReviews(filters)),
-    staleTime: 10 * 1000,
+    staleTime: 0,
     refetchOnMount: true,
     placeholderData: keepPreviousData,
-    initialData,
+    initialData: seed,
   });
 };
 
@@ -1218,15 +1312,18 @@ export const useUserBookReviews = (
   initialData?: AdminBookReviewItem[],
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.reviews.userReviews(userId);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery<AdminBookReviewItem[]>({
-    queryKey: queryKeys.reviews.userReviews(userId),
+    queryKey,
     queryFn: () =>
       trackQuery("user-book-reviews", async () => getUserBookReviews()),
     enabled: !!userId,
     staleTime: 10 * 1000,
     refetchOnMount: true,
-    initialData,
+    initialData: seed,
   });
 };
 

@@ -221,14 +221,10 @@ export function invalidateDomains(
     ...new Map(keys.map((queryKey) => [JSON.stringify(queryKey), queryKey])).values(),
   ];
 
-  // Never render known-stale inactive data after a confirmed mutation. The
-  // server shell remains visible while a newly mounted observer fetches truth.
-  for (const queryKey of uniqueKeys) {
-    queryClient.removeQueries({ queryKey, exact: false, type: "inactive" });
-  }
-
-  // Calling invalidateQueries marks inactive data stale immediately and starts
-  // bounded refetches only for currently observed queries.
+  // Prefer invalidate over removeQueries for list domains (playbook §8.3 /
+  // TanStack guidance). Blanking inactive caches caused soft-nav empty flash
+  // when densify later wrote `[]` and SSR initialData was ignored (df08e5).
+  // Densify after invalidate reseeds related keys in memory for instant paint.
   const invalidations = uniqueKeys.map((queryKey) =>
     queryClient.invalidateQueries({ queryKey, exact: false, refetchType: "active" })
   );

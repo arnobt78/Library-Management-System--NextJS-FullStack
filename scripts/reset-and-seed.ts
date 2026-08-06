@@ -77,6 +77,16 @@ async function main() {
   await db.execute(sql`DELETE FROM user_status_decisions`);
   console.log("  ✓ user_status_decisions cleared");
 
+  // CR-0003 / REQ-0034–0037 surfaces (must wipe before users)
+  await db.execute(sql`DELETE FROM support_ticket_replies`);
+  console.log("  ✓ support_ticket_replies cleared");
+  await db.execute(sql`DELETE FROM support_tickets`);
+  console.log("  ✓ support_tickets cleared");
+  await db.execute(sql`DELETE FROM notifications`);
+  console.log("  ✓ notifications cleared");
+  await db.execute(sql`DELETE FROM activity_logs`);
+  console.log("  ✓ activity_logs cleared");
+
   // books (all FK children already deleted)
   await db.execute(sql`DELETE FROM books`);
   console.log("  ✓ books cleared");

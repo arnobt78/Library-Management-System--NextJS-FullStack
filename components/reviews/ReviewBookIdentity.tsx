@@ -49,6 +49,7 @@ export default function ReviewBookIdentity({
   const titleNode = bookId ? (
     <Link
       href={`/books/${bookId}`}
+      prefetch={false}
       className={cn(
         "truncate text-base font-semibold text-light-100 transition-colors hover:text-light-100/70 sm:text-lg",
         titleClassName,

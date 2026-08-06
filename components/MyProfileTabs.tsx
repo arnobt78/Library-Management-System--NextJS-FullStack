@@ -55,7 +55,9 @@ import type { BorrowRecordFull } from "@/lib/services/borrows";
 import { useQueryClient } from "@tanstack/react-query";
 import { renewBorrowedBook } from "@/lib/actions/circulation";
 import { beginMutation, isLatestMutation } from "@/lib/utils/mutationOrdering";
-import { invalidateMutation } from "@/lib/utils/queryInvalidation";
+import { commitMutationCache } from "@/lib/query/mutationGateway";
+import { snapshotBorrowListBaselines } from "@/lib/utils/patchBorrowCaches";
+import { writeMappedList } from "@/lib/utils/queryCacheLists";
 import { showToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/query/keys";
 import { computeBorrowStats } from "@/lib/profile/borrowStats";
@@ -753,6 +755,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               showToast.book.renewError(result.error);
               return;
             }
+            // Gold: snapshot (after optional optimistic paint) → invalidate → densify.
             queryClient.setQueryData<BorrowRecordFull[]>(
               queryKeys.borrows.user(userId, undefined),
               (current) =>
@@ -766,7 +769,28 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     : item,
                 ),
             );
-            await invalidateMutation(queryClient, "renewal.write");
+            await commitMutationCache(queryClient, "renewal.write", {
+              snapshot: snapshotBorrowListBaselines,
+              densify: (baselines) => {
+                const key = queryKeys.borrows.user(userId);
+                writeMappedList(
+                  queryClient,
+                  key,
+                  queryClient.getQueryData<BorrowRecordFull[]>(key),
+                  baselines.users[userId],
+                  (rows) =>
+                    rows.map((item) =>
+                      item.id === record.id
+                        ? {
+                            ...item,
+                            dueDate: result.data.dueDate,
+                            renewalCount: result.data.renewalCount,
+                          }
+                        : item,
+                    ),
+                );
+              },
+            });
             showToast.book.renewSuccess(record.book.title, result.data.dueDate);
           } finally {
             setRenewingRecordId(null);
@@ -866,6 +890,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     <h3 className="text-base font-semibold sm:text-xl">
                       <Link
                         href={`/books/${record.book.id}`}
+                        prefetch={false}
                         className="text-light-100 transition-colors hover:text-light-100/70"
                       >
                         {record.book.title}

@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) for densify + review UI; independent nonlocal/production Verify still outstanding
-- SCOPE-V phase: Verify (densify + review UI Prove PASS)
-- Status: ACTIVE - densify + review UI committed (`d61a058`); C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove complete (local) densify closeout + Approver/table polish; nonlocal Verify still outstanding
+- SCOPE-V phase: Verify (densify + Approver/table Prove PASS locally)
+- Status: ACTIVE - densify/Approver/table polish committing; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `d61a058` (densify Waves A–C + review UI + approve upsert)
-- Latest HEAD: `3596745` (`main` == `origin/main`)
+- Latest implementation tip: (update after push)
+- Latest HEAD: (update after push)
 - Started: 2026-08-01
-- Last updated: 2026-08-06 (pushed; tip `d61a058`)
+- Last updated: 2026-08-06 (densify closeout + Approver densify + table typography)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,7 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (docs sync + commit)
+- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (attribution + SSR fix)
 
 ## Resume Protocol
 
@@ -41,21 +41,20 @@
 | INT-0006 | C2 Gate 1 | RESOLVED | `C2-G1-20260801-5d31a8c2` | GATE-0006 |
 | — | C2 Gate 2 | NOT OPENED | — | EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`) |
 
-## Reconciliation snapshot (2026-08-05, resume)
+## Reconciliation snapshot (2026-08-06, resume)
 
 Verified facts:
-- Working tree clean; branch `main` equals `origin/main` at `1b1cc2f`.
-- Implementation tip `8d1630a` present and pushed; docs bind commit `1b1cc2f` records tip.
-- Migrations on disk: `0010`–`0014` (+ downs). `0014` was schema-verified on the configured shared DB in the CR-0003 session; not re-probed this resume.
+- Working tree clean; branch `main` equals `origin/main` at `df0d0e8`.
+- Implementation tip `d61a058` present and pushed; docs bind commits `e08d351` → `a143f8f` → `3596745` → `df0d0e8` record tip after push.
+- Migrations on disk: `0010`–`0014` (+ downs). Not re-probed against live DB this resume.
 - Protocol path: `docs/AGILE_V_PROTOCOL.md` (not repo root). `AGENTS.md` + protocol are tracked.
 - No PENDING rows in `CHECKPOINTS.md`; INT-0005/INT-0006 tokens match `APPROVALS.md` / STATE checkpoint table.
 - EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); Wave 5 (BL-0017 / REQ-0032 remainder + nonlocal evidence) remains the Gate 2 path default.
-- CR-0003 (REQ-0034–0037 / BL-0019–0022) is committed + Prove-local PASS; not a Gate 2 unblocker.
+- CR-0003 + densify/review polish batch is committed at tip `d61a058`; last recorded Prove for that tip is **120 tests** (type/lint/build PASS per TRACE/CHANGE_LOG). Not a Gate 2 unblocker.
 
 Drift / workspace notes corrected this session:
-- BACKLOG CR-0003 footer previously said “Nothing committed; awaiting owner review” — stale vs tip `8d1630a` (fixed in BACKLOG).
-- CLAUDE.md tip/HEAD still may lag docs bind `1b1cc2f`; treat git HEAD as authority.
-- Default-test count: last recorded Prove is **110 passed / 11 skipped** — re-run before claiming a new number.
+- STATE “Next Action” previously said densify/create harden was uncommitted — stale vs tip `d61a058` + HEAD `df0d0e8` (corrected below).
+- CLAUDE.md tip/HEAD still lists tip only (`d61a058`); treat git HEAD `df0d0e8` as docs-bind authority.
 - This session’s owner message invoked Agile V resume/plan only; **no product feature, bug, or Wave 5 evidence package was named**.
 
 ## CR-0003 implementation summary (2026-08-05)
@@ -119,7 +118,17 @@ Owner requested a deep audit of the CR-0003 diff before commit. A dedicated suba
 
 ### Next Action
 
-Review densify polish + create harden uncommitted. Owner: review/commit. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
+Admin book-reviews table polish + StatCardGrid auto-fit + attribution batch Prove PASS (uncommitted). Owner: review/commit. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
+
+### Attribution + book SSR fix (2026-08-06)
+
+- `lib/ui/attributionStyles.ts` + `PersonAttribution`: sky links only when `href`; static dark/light name tones; prefix matches ReviewDateMeta; email muted + `text-xs sm:text-sm`.
+- `AdminRequestReviewerAttribution` forwards `variant`; dark-glass make-admin / notice / form callers pass `variant="dark"`.
+- `/books/[id]` SSR joins moderator like public API; `BookDetailContent`/`useBookReviews` use full `Review[]` + `initialDataUpdatedAt`.
+- Densify moderate upsert test asserts `reviewedAt` / `reviewedByName` / `reviewedByEmail`.
+- `SupportTicketReplyThread`: static attribution name/email size tokens (no hardcoded sky).
+- Admin book-reviews: SupportTickets-parity table (Approver, sky title/comment, View Details, no row-click); `StatCardGrid` auto-fit; `useAdminBookReviews` cache-prefer seed.
+- Prove: typecheck/lint/**120** tests PASS.
 
 ## Demo / UX notes (through 2026-08-04)
 
@@ -136,3 +145,11 @@ Review densify polish + create harden uncommitted. Owner: review/commit. Do **no
 - Fresh-test ops (2026-08-04): purged signup + settled admin decision ledgers; deleted `arnob_t78@yahoo.com` for re-signup.
 - CR-0003 (2026-08-05): migration `0014_admin_suite_expansion.sql` applied to the same single configured database referenced throughout this file (`DATABASE_URL` host `77.42.71.87:25432/university_library_db` — the one CLAUDE.md/STATE.md calls "the configured database" for `0009`–`0013`); schema-verified live by the manual smoke test (created and deleted a real `support_tickets` row through the running app). `0014_admin_suite_expansion.down.sql` is the rollback. Apply `0014` separately to any other environment before deploying this code there.
 - Sidebar "Home" is now "Library Overview" (`/admin` route unchanged); new sidebar entries: Support Tickets (open/unassigned badge), Book Reviews (pending badge), Activity History; profile dropdown gained "My Support Tickets".
+
+## Agent notes (2026-08-06)
+
+- CSP `connect-src 'self'` blocks browser POSTs to `127.0.0.1:7290` debug ingest (empty `.cursor/debug-*.log`); curl or temporary same-origin relay only.
+- Approver densify: never cache `"an admin"`; use mutation moderator + post-invalidate join + SSR `currentAdmin`.
+- Table polish: `tableCellStyles` + PrefetchLink book-detail; Book Reviews title→`/books/[id]`, comment→review detail.
+- Local Prove this batch: typecheck/lint; **146** default tests PASS (Gate 2 still blocked by EvalGate nonlocal).
+- Tip/HEAD: update after push of densify + Approver/table polish commit.

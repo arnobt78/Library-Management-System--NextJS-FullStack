@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { TicketCreatedUpdatedCell } from "@/components/support-tickets/TicketCreatedUpdatedCell";
 import { SKY_LINK_DARK, SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
+import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
 import { cn } from "@/lib/utils";
 
 export function TicketSubjectCell({
@@ -36,7 +37,8 @@ export function TicketSubjectCell({
         prefetch={false}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "line-clamp-1 text-sm font-medium",
+          TABLE_CELL_TITLE,
+          "line-clamp-1",
           variant === "dark" ? SKY_LINK_DARK : SKY_LINK_LIGHT,
         )}
       >

@@ -32,6 +32,8 @@ import {
   Shield,
 } from "lucide-react";
 import { useServiceHealth, useSystemMetrics } from "@/hooks/useQueries";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateDomains } from "@/lib/utils/queryInvalidation";
 import type { ServiceStatus } from "@/lib/services/health-monitor";
 import type { MetricsData } from "@/lib/services/metrics-monitor";
 import type { SystemMetric } from "@/lib/services/metrics-monitor";
@@ -92,6 +94,7 @@ const ApiStatusClient = ({
   initialMetrics,
   operatorMode = true,
 }: ApiStatusClientProps) => {
+  const queryClient = useQueryClient();
   const {
     data: servicesData,
     isLoading: servicesLoading,
@@ -294,6 +297,9 @@ const ApiStatusClient = ({
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
+      // Central invalidate so sibling ops/analytics observers stay coherent,
+      // then refetch the mounted health/metrics queries.
+      await invalidateDomains(queryClient, ["operations", "analytics"]);
       const results = await Promise.all([
         refetchServices(),
         ...(operatorMode ? [refetchMetrics()] : []),

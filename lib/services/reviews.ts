@@ -472,7 +472,15 @@ export async function getAdminReviewDetail(
 export async function moderateReview(
   reviewId: string,
   status: "APPROVED" | "REJECTED",
-): Promise<{ id: string; status: ReviewStatusValue; reviewedAt: string | null }> {
+): Promise<{
+  id: string;
+  status: ReviewStatusValue;
+  reviewedAt: string | null;
+  reviewedBy?: string | null;
+  reviewedByName?: string | null;
+  reviewedByEmail?: string | null;
+  reviewedByUniversityCard?: string | null;
+}> {
   const response = await fetch(`/api/reviews/edit/${reviewId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

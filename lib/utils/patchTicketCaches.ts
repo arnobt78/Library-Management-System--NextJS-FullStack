@@ -10,6 +10,10 @@
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
+import {
+  writeDensifiedEmpty,
+  writeMappedList,
+} from "@/lib/utils/queryCacheLists";
 
 function isActiveQueueStatus(status: string | undefined): boolean {
   return status === "OPEN" || status === "IN_PROGRESS";
@@ -121,19 +125,23 @@ function mapTicketLists(
   );
 
   const adminKey = queryKeys.tickets.adminList({});
-  const prevAdmin =
-    queryClient.getQueryData<SupportTicketListItem[]>(adminKey) ??
-    baselines?.admin ??
-    [];
-  queryClient.setQueryData(adminKey, mapper(prevAdmin));
+  writeMappedList(
+    queryClient,
+    adminKey,
+    queryClient.getQueryData<SupportTicketListItem[]>(adminKey),
+    baselines?.admin,
+    mapper,
+  );
 
   if (userId) {
     const userKey = queryKeys.tickets.userList(userId, {});
-    const prevUser =
-      queryClient.getQueryData<SupportTicketListItem[]>(userKey) ??
-      baselines?.users[userId] ??
-      [];
-    queryClient.setQueryData(userKey, mapper(prevUser));
+    writeMappedList(
+      queryClient,
+      userKey,
+      queryClient.getQueryData<SupportTicketListItem[]>(userKey),
+      baselines?.users[userId],
+      mapper,
+    );
   }
 }
 
@@ -203,7 +211,7 @@ export function patchTicketCachesOnUpdate(
   else if (!wasActive && isActive) bumpOpenCount(queryClient, 1);
 }
 
-/** After delete — drop detail + list rows. */
+/** After delete — drop detail + list rows; force densify-empty when never cached. */
 export function patchTicketCachesOnDelete(
   queryClient: QueryClient,
   ticketId: string,
@@ -218,6 +226,22 @@ export function patchTicketCachesOnDelete(
     userId,
     baselines,
   );
+
+  // Delete from detail before list ever mounted — soft-nav list must not SSR-reseed.
+  const adminKey = queryKeys.tickets.adminList({});
+  if (queryClient.getQueryData(adminKey) === undefined && !baselines?.admin) {
+    writeDensifiedEmpty(queryClient, adminKey);
+  }
+  if (userId) {
+    const userKey = queryKeys.tickets.userList(userId, {});
+    if (
+      queryClient.getQueryData(userKey) === undefined &&
+      !baselines?.users[userId]
+    ) {
+      writeDensifiedEmpty(queryClient, userKey);
+    }
+  }
+
   if (isActiveQueueStatus(previousStatus)) {
     bumpOpenCount(queryClient, -1);
   }

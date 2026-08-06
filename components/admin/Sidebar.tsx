@@ -3,11 +3,12 @@
 /**
  * Admin sidebar nav.
  * Badges: pending make-admin (All Users), pending sign-ups, pending borrows.
- * Nav icons are Lucide (constants icon keys) — brand logo stays a public SVG.
+ * PrefetchLink warms list caches; SSR seeds pending lists for densify (no cold fetch).
  */
 
 import { adminSideBarLinks, type AdminSidebarIconKey } from "@/constants";
 import Link from "next/link";
+import PrefetchLink, { type PrefetchKind } from "@/components/PrefetchLink";
 import { cn, getInitials } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,7 +20,8 @@ import {
   usePendingReviewCount,
   usePendingUsers,
 } from "@/hooks/useQueries";
-import type { AdminRequest } from "@/lib/services/users";
+import type { AdminRequest, User } from "@/lib/services/users";
+import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 import {
   BarChart3,
   BookOpen,
@@ -47,6 +49,16 @@ const ADMIN_SIDEBAR_ICONS: Record<AdminSidebarIconKey, LucideIcon> = {
   history: History,
 };
 
+const PREFETCH_KIND_BY_ROUTE: Partial<Record<string, PrefetchKind>> = {
+  "/admin": "admin-dashboard",
+  "/admin/users": "admin-users",
+  "/admin/books": "admin-books",
+  "/admin/book-requests": "admin-book-requests",
+  "/admin/account-requests": "admin-account-requests",
+  "/admin/book-reviews": "admin-reviews",
+  "/admin/support-tickets": "admin-tickets",
+};
+
 function formatBadgeCount(count: number): string {
   return count > 99 ? "99+" : String(count);
 }
@@ -54,7 +66,9 @@ function formatBadgeCount(count: number): string {
 const Sidebar = ({
   session,
   initialPendingAdminRequests = [],
+  initialPendingSignUps = [],
   initialPendingSignUpCount = 0,
+  initialPendingBorrows = [],
   initialPendingBorrowCount = 0,
   initialOpenTicketCount = 0,
   initialPendingReviewCount = 0,
@@ -62,9 +76,13 @@ const Sidebar = ({
   session: Session;
   /** SSR seed for pending make-admin requests (All Users badge) */
   initialPendingAdminRequests?: AdminRequest[];
-  /** SSR count for Sign-up Requests badge */
+  /** SSR seed for pending signup users (Sign-up badge densify) */
+  initialPendingSignUps?: User[];
+  /** SSR count fallback for Sign-up Requests badge */
   initialPendingSignUpCount?: number;
-  /** SSR count for Borrow Requests badge */
+  /** SSR seed for PENDING borrows (Borrow Requests badge densify) */
+  initialPendingBorrows?: BorrowRecordWithDetails[];
+  /** SSR count fallback for Borrow Requests badge */
   initialPendingBorrowCount?: number;
   /** SSR count for Support Tickets badge (OPEN + IN_PROGRESS) */
   initialOpenTicketCount?: number;
@@ -75,8 +93,11 @@ const Sidebar = ({
   const { data: pendingAdminRequests } = usePendingAdminRequests(
     initialPendingAdminRequests,
   );
-  const { data: pendingSignUps } = usePendingUsers();
-  const { data: pendingBorrows } = useBorrowRequests({ status: "PENDING" });
+  const { data: pendingSignUps } = usePendingUsers(initialPendingSignUps);
+  const { data: pendingBorrows } = useBorrowRequests(
+    { status: "PENDING" },
+    initialPendingBorrows,
+  );
   const { data: openTicketCount } = useOpenTicketCount(initialOpenTicketCount);
   const { data: pendingReviewCount } = usePendingReviewCount(
     initialPendingReviewCount,
@@ -146,9 +167,14 @@ const Sidebar = ({
             }
 
             const Icon = ADMIN_SIDEBAR_ICONS[link.icon];
+            const prefetchKind = PREFETCH_KIND_BY_ROUTE[link.route];
 
             return (
-              <Link href={link.route} key={link.route}>
+              <PrefetchLink
+                href={link.route}
+                key={link.route}
+                prefetchKind={prefetchKind}
+              >
                 <div
                   className={cn(
                     "link",
@@ -184,7 +210,7 @@ const Sidebar = ({
                     </span>
                   ) : null}
                 </div>
-              </Link>
+              </PrefetchLink>
             );
           })}
         </div>

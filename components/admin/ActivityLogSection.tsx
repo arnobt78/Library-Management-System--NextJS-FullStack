@@ -23,6 +23,12 @@ import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import { AuditActionBadge } from "@/lib/ui/semanticBadges";
 import { PersonNameEmailCell } from "@/components/ui/PersonNameEmailCell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
+import {
+  TABLE_CELL_STATIC,
+  TABLE_CELL_TITLE,
+} from "@/lib/ui/tableCellStyles";
+import { cn } from "@/lib/utils";
 
 const PERIOD_OPTIONS = [
   { value: "today", label: "Today" },
@@ -144,12 +150,13 @@ export default function ActivityLogSection({
           return href ? (
             <Link
               href={href}
-              className="text-sm font-medium text-primary-admin hover:underline"
+              prefetch={false}
+              className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
             >
               {label}
             </Link>
           ) : (
-            <span className="text-sm text-gray-700">{label}</span>
+            <span className={TABLE_CELL_STATIC}>{label}</span>
           );
         },
       },

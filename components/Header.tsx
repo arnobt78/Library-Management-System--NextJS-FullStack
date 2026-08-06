@@ -8,6 +8,7 @@ import ProfileDropdown from "@/components/ProfileDropdown";
 import MobileMenu from "@/components/MobileMenu";
 import RootHeaderShell from "@/components/RootHeaderShell";
 import NotificationBell from "@/components/NotificationBell";
+import PrefetchLink from "@/components/PrefetchLink";
 import { getUnreadNotificationCount } from "@/lib/notifications/inApp";
 
 interface HeaderProps {
@@ -62,10 +63,18 @@ const Header = async ({ session }: HeaderProps) => {
           <Link href="/">Home</Link>
         </li> */}
         <li className="hover:text-light-200">
-          <Link href="/all-books">All Books</Link>
+          <PrefetchLink href="/all-books" prefetchKind="all-books">
+            All Books
+          </PrefetchLink>
         </li>
         <li className="hover:text-light-200">
-          <Link href="/my-profile">Borrow History</Link>
+          <PrefetchLink
+            href="/my-profile"
+            prefetchKind="my-profile"
+            userId={sessionUserId}
+          >
+            Borrow History
+          </PrefetchLink>
         </li>
         {/* Admin-only navigation items */}
         {isAdmin && (

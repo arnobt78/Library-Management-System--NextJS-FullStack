@@ -115,7 +115,20 @@ export async function PUT(
           id: bookReviews.id,
           status: bookReviews.status,
           reviewedAt: bookReviews.reviewedAt,
+          reviewedBy: bookReviews.reviewedBy,
         });
+
+      // Moderator display fields for client densify (avoid "an admin" when
+      // useSession is null — e.g. cold SessionProvider / incognito lag).
+      const [moderator] = await db
+        .select({
+          fullName: users.fullName,
+          email: users.email,
+          universityCard: users.universityCard,
+        })
+        .from(users)
+        .where(eq(users.id, actor.id))
+        .limit(1);
 
       revalidateMutationPaths("review.write");
 
@@ -158,7 +171,15 @@ export async function PUT(
         }
       })();
 
-      return NextResponse.json({ success: true, review: updatedReview });
+      return NextResponse.json({
+        success: true,
+        review: {
+          ...updatedReview,
+          reviewedByName: moderator?.fullName ?? null,
+          reviewedByEmail: moderator?.email ?? null,
+          reviewedByUniversityCard: moderator?.universityCard ?? null,
+        },
+      });
     }
 
     // Author content-edit path — rating/comment, any current status.

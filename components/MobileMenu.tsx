@@ -9,6 +9,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import { usePathname } from "next/navigation";
 import { Menu, X, LogOut, Loader2 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -180,22 +181,24 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
           {/* Navigation Links */}
           <div className="flex-1 space-y-1 p-3 sm:p-4">
-            <Link
+            <PrefetchLink
               href="/all-books"
+              prefetchKind="all-books"
               onClick={closeMenu}
               className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
               aria-current={pathname === "/all-books" ? "page" : undefined}
             >
               All Books
-            </Link>
-            <Link
+            </PrefetchLink>
+            <PrefetchLink
               href="/my-profile"
+              prefetchKind="my-profile"
               onClick={closeMenu}
               className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
               aria-current={pathname === "/my-profile" ? "page" : undefined}
             >
               Borrow History
-            </Link>
+            </PrefetchLink>
             {UTILITY_NAVIGATION_ITEMS.filter(
               (item) => !item.adminOnly || isAdmin,
             ).map((item) => (
@@ -216,41 +219,54 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 <p className="px-2.5 py-1.5 text-[10px] font-semibold uppercase text-light-200/70 sm:px-3 sm:py-2 sm:text-xs">
                   Admin
                 </p>
-                <Link
+                <PrefetchLink
                   href="/admin"
+                  prefetchKind="admin-dashboard"
                   onClick={closeMenu}
                   className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Dashboard Overview
-                </Link>
-                <Link
+                </PrefetchLink>
+                <PrefetchLink
                   href="/admin/users"
+                  prefetchKind="admin-users"
                   onClick={closeMenu}
                   className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Users
-                </Link>
-                <Link
+                </PrefetchLink>
+                <PrefetchLink
                   href="/admin/books"
+                  prefetchKind="admin-books"
                   onClick={closeMenu}
                   className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Books
-                </Link>
-                <Link
+                </PrefetchLink>
+                <PrefetchLink
                   href="/admin/book-requests"
+                  prefetchKind="admin-book-requests"
                   onClick={closeMenu}
                   className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Borrow Requests
-                </Link>
-                <Link
+                </PrefetchLink>
+                <PrefetchLink
                   href="/admin/account-requests"
+                  prefetchKind="admin-account-requests"
                   onClick={closeMenu}
                   className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
                 >
                   Sign-up Requests
-                </Link>
+                </PrefetchLink>
+                <PrefetchLink
+                  href="/admin/book-reviews"
+                  prefetchKind="admin-reviews"
+                  onClick={closeMenu}
+                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
+                >
+                  Book Reviews
+                </PrefetchLink>
                 <Link
                   href="/admin/business-insights"
                   onClick={closeMenu}

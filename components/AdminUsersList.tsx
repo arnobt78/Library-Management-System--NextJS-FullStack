@@ -83,6 +83,9 @@ import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
+import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
+import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
+import { cn } from "@/lib/utils";
 
 const DECISION_REASON_MAX = 120;
 
@@ -511,7 +514,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         <Link
           prefetch={false}
           href={`/admin/users/${row.original.id}`}
-          className="font-medium text-blue-700 hover:underline"
+          className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
         >
           {row.original.fullName}
         </Link>
@@ -520,7 +523,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     {
       accessorKey: "email",
       header: ({ column }) => <SortableHeader column={column}>Email</SortableHeader>,
-      cell: ({ row }) => row.original.email,
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.email}</span>
+      ),
     },
     {
       accessorKey: "universityId",

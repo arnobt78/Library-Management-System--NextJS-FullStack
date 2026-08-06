@@ -106,7 +106,9 @@ export function StatCard({
   );
 }
 
-/** Responsive grid wrapper shared by every admin page's KPI row. */
+/** Responsive grid wrapper shared by every admin page's KPI row.
+ * auto-fit fills the row for 4–6 cards (no empty xl:grid-cols-5 track).
+ */
 export function StatCardGrid({
   children,
   className,
@@ -117,7 +119,7 @@ export function StatCardGrid({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5",
+        "grid w-full grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-[repeat(auto-fit,minmax(11.5rem,1fr))]",
         className,
       )}
     >

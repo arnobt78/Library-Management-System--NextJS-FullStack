@@ -17,6 +17,12 @@ import type {
   BorrowStatus,
 } from "@/lib/services/borrows";
 import type { BookBorrowStats } from "@/lib/services/books";
+import { patchAdminListAvailability } from "@/lib/utils/patchBookCaches";
+import {
+  clearDensifiedEmpty,
+  markDensifiedEmpty,
+  writeMappedList,
+} from "@/lib/utils/queryCacheLists";
 
 export type BorrowListBaselines = {
   /** userId → densest cached user-borrows list */
@@ -204,11 +210,13 @@ function mapUserBorrowLists(
 
   // Re-seed densest baseline onto the unfiltered profile key after wipe.
   const mainKey = queryKeys.borrows.user(userId);
-  const prev =
-    queryClient.getQueryData<BorrowRecordFull[]>(mainKey) ??
-    baselines?.users[userId] ??
-    [];
-  queryClient.setQueryData(mainKey, mapper(prev));
+  writeMappedList(
+    queryClient,
+    mainKey,
+    queryClient.getQueryData<BorrowRecordFull[]>(mainKey),
+    baselines?.users[userId],
+    mapper,
+  );
 }
 
 function mapRequestLists(
@@ -221,10 +229,12 @@ function mapRequestLists(
   >({ queryKey: queryKeys.borrows.requestsRoot })) {
     if (!rows) continue;
     const statusFilter = statusFilterFromRequestsKey(key);
-    queryClient.setQueryData(
-      key,
-      filterByStatusIfNeeded(mapper(rows), statusFilter),
-    );
+    const next = filterByStatusIfNeeded(mapper(rows), statusFilter);
+    queryClient.setQueryData(key, next);
+    // Last PENDING approve/reject → mark intentional [] (soft-nav SSR reseed).
+    if (Array.isArray(next) && next.length === 0) {
+      markDensifiedEmpty(key);
+    }
   }
 
   // Re-seed densest baseline into common observer keys after wipe.
@@ -237,15 +247,23 @@ function mapRequestLists(
     search: undefined,
   });
   queryClient.setQueryData(unfilteredKey, mapped);
+  if (mapped.length === 0) {
+    markDensifiedEmpty(unfilteredKey);
+  } else {
+    clearDensifiedEmpty(unfilteredKey);
+  }
 
   const pendingKey = queryKeys.borrows.requests({
     status: "PENDING",
     search: undefined,
   });
-  queryClient.setQueryData(
-    pendingKey,
-    mapped.filter((r) => r.status === "PENDING"),
-  );
+  const pendingOnly = mapped.filter((r) => r.status === "PENDING");
+  queryClient.setQueryData(pendingKey, pendingOnly);
+  if (pendingOnly.length === 0) {
+    markDensifiedEmpty(pendingKey);
+  } else {
+    clearDensifiedEmpty(pendingKey);
+  }
 }
 
 /** Patch availableCopies on book detail (+ optional borrowStats deltas). */
@@ -292,6 +310,18 @@ export function patchBookInventory(
           : next;
       return { ...row, availableCopies: capped };
     });
+
+    // Soft-nav /all-books must show the same availability as detail.
+    const detailAfter = queryClient.getQueryData<{ availableCopies?: number }>(
+      queryKeys.books.detail(bookId),
+    );
+    if (typeof detailAfter?.availableCopies === "number") {
+      patchAdminListAvailability(
+        queryClient,
+        bookId,
+        detailAfter.availableCopies,
+      );
+    }
   }
 
   const statsKey = queryKeys.books.borrowStats(bookId);
@@ -339,6 +369,7 @@ export function restoreBookInventoryFromBaselines(
       }
       return { ...(old as object), availableCopies: copies };
     });
+    patchAdminListAvailability(queryClient, bookId, copies);
   }
 
   const stats = baselines.stats[bookId];
