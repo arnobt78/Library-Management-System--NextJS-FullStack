@@ -13,6 +13,7 @@ import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import { queryKeys } from "@/lib/query/keys";
 import type { User } from "@/lib/services/users";
 import { markDensifiedEmpty } from "@/lib/utils/queryCacheLists";
+import { syncPendingSignUpsNav } from "@/lib/utils/patchUserCaches";
 
 const SIGNUP_DECISIONS_CAP = 25;
 
@@ -98,6 +99,9 @@ export async function applyOptimisticSignupDecision(
       return next.slice(0, SIGNUP_DECISIONS_CAP);
     },
   );
+
+  // Zero-lag Registration Queue pill before onSuccess densify.
+  syncPendingSignUpsNav(queryClient);
 
   return { previousPending, previousDecisions };
 }

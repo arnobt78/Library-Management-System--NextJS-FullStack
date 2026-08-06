@@ -97,7 +97,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
     return (
       <div className="w-full">
         <div className="empty-panel rounded-lg border border-red-500 bg-red-50">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
             Failed to load book
           </p>
           <p className="text-xs text-gray-500 sm:text-sm">
@@ -149,13 +149,13 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
         <div className="book-info mt-3 sm:mt-5">
           <p>
-            By <span className="font-semibold text-light-200">{author}</span>
+            By <span className="font-medium text-light-200">{author}</span>
           </p>
 
           <div className="flex flex-row flex-wrap items-center gap-2">
             <p className="break-words">
               Category{" "}
-              <span className="font-semibold text-light-200">{genre}</span>
+              <span className="font-medium text-light-200">{genre}</span>
             </p>
 
             <div className="flex shrink-0 flex-row items-center gap-1">
@@ -172,7 +172,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
       <div className="book-overview__body">
         <div className="book-overview__details">
           {/* Enhanced Book Information */}
-          <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
+          <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
             Book Details
           </div>
           <div className="book-info">
@@ -181,13 +181,13 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
                 <p>
                   ISBN{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {isbn || "N/A"}
                   </span>
                 </p>
                 <p>
                   Published{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {publicationYear || "N/A"}
                   </span>
                 </p>
@@ -197,13 +197,13 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
                 <p>
                   Publisher{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {publisher || "N/A"}
                   </span>
                 </p>
                 <p>
                   Language{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {language || "N/A"}
                   </span>
                 </p>
@@ -213,13 +213,13 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
                 <p>
                   Pages{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {pageCount || "N/A"}
                   </span>
                 </p>
                 <p>
                   Edition{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {edition || "N/A"}
                   </span>
                 </p>
@@ -230,20 +230,20 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
                   <p>
                     Total Books{" "}
-                    <span className="font-semibold text-light-200">
+                    <span className="font-medium text-light-200">
                       {totalCopies || "N/A"}
                     </span>
                   </p>
                   <p>
                     Available Books{" "}
-                    <span className="font-semibold text-light-200">
+                    <span className="font-medium text-light-200">
                       {availableCopies || "N/A"}
                     </span>
                   </p>
                 </div>
 
                 {!isActive && (
-                  <p className="mt-2 text-sm font-semibold text-red-400 sm:text-base">
+                  <p className="mt-2 text-sm font-medium text-red-400 sm:text-base">
                     ⚠️ This book is currently unavailable
                   </p>
                 )}
@@ -253,14 +253,14 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
           {/* Database Metadata — same row/grid classes as Borrow Statistics */}
           <div className="book-info">
-            <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
+            <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
               Library Database Information
             </div>
             <div className="w-full space-y-2 sm:space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
                 <p className="text-sm sm:text-base">
                   Added to Library{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {createdAt
                       ? new Date(createdAt).toLocaleDateString("en-US", {
                           year: "numeric",
@@ -272,7 +272,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                 </p>
                 <p className="text-sm sm:text-base">
                   Last Updated{" "}
-                  <span className="font-semibold text-light-200">
+                  <span className="font-medium text-light-200">
                     {updatedAt
                       ? new Date(updatedAt).toLocaleDateString("en-US", {
                           year: "numeric",

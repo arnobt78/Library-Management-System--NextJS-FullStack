@@ -1,3 +1,8 @@
+/**
+ * Shared BookWise navbar — public (dark) and admin (light) via `tone`.
+ * Brand → `/`; SSR-seeds notification unread for densify-safe first paint.
+ */
+
 import Link from "next/link";
 import { Session } from "next-auth";
 import { db } from "@/database/drizzle";
@@ -6,17 +11,22 @@ import { eq } from "drizzle-orm";
 import AdminDropdown from "@/components/AdminDropdown";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import MobileMenu from "@/components/MobileMenu";
-import RootHeaderShell from "@/components/RootHeaderShell";
+import RootHeaderShell, {
+  type HeaderTone,
+} from "@/components/RootHeaderShell";
 import NotificationBell from "@/components/NotificationBell";
 import PrefetchLink from "@/components/PrefetchLink";
 import { getUnreadNotificationCount } from "@/lib/notifications/inApp";
 
 interface HeaderProps {
   session: Session;
+  /** Admin layout passes "light"; root/api pages keep default "dark". */
+  tone?: HeaderTone;
 }
 
-const Header = async ({ session }: HeaderProps) => {
+const Header = async ({ session, tone = "dark" }: HeaderProps) => {
   const sessionUserId = session?.user?.id;
+  const isLight = tone === "light";
 
   // Fetch user data including role and profile info
   const userData = sessionUserId
@@ -41,33 +51,37 @@ const Header = async ({ session }: HeaderProps) => {
     ? await getUnreadNotificationCount(sessionUserId)
     : undefined;
 
-  // RSC data + client RootHeaderShell (transparent at top, blur-sm when scrolled).
+  const brandClass = isLight
+    ? "text-lg font-medium text-dark-400 sm:text-xl"
+    : "text-lg font-medium text-light-100 sm:text-xl";
+  const navClass = isLight
+    ? "hidden flex-row items-center gap-4 text-dark-400 sm:gap-6 md:flex md:gap-8"
+    : "hidden flex-row items-center gap-4 text-light-100 sm:gap-6 md:flex md:gap-8";
+  const linkHover = isLight
+    ? "flex items-center hover:text-gray-700"
+    : "flex items-center hover:text-light-200";
+
   return (
-    <RootHeaderShell>
-      <Link href="/" className="flex items-center gap-2 sm:gap-3">
+    <RootHeaderShell tone={tone}>
+      <Link href="/" className="flex shrink-0 items-center gap-2 sm:gap-3">
         <img
-          src="/icons/logo.svg"
+          src={isLight ? "/icons/admin/logo.svg" : "/icons/logo.svg"}
           alt="logo"
           width={40}
           height={40}
-          className="size-8 sm:size-10"
+          className="block size-8 sm:size-10"
         />
-        <span className="text-lg font-semibold text-light-100 sm:text-xl">
-          BookWise
-        </span>
+        <span className={brandClass}>BookWise</span>
       </Link>
 
       {/* Desktop Navigation - Hidden on mobile and sm screens */}
-      <ul className="hidden flex-row items-center gap-4 text-light-100 sm:gap-6 md:flex md:gap-8">
-        {/* <li>
-          <Link href="/">Home</Link>
-        </li> */}
-        <li className="hover:text-light-200">
+      <ul className={navClass}>
+        <li className={linkHover}>
           <PrefetchLink href="/all-books" prefetchKind="all-books">
             All Books
           </PrefetchLink>
         </li>
-        <li className="hover:text-light-200">
+        <li className={linkHover}>
           <PrefetchLink
             href="/my-profile"
             prefetchKind="my-profile"
@@ -76,32 +90,30 @@ const Header = async ({ session }: HeaderProps) => {
             Borrow History
           </PrefetchLink>
         </li>
-        {/* Admin-only navigation items */}
         {isAdmin && (
-          <li>
-            <AdminDropdown />
+          <li className="flex items-center">
+            <AdminDropdown tone={tone} />
           </li>
         )}
 
-        {/* In-app notification bell */}
         {userData && (
-          <li>
+          <li className="flex items-center">
             <NotificationBell
-              variant="dark"
+              variant={isLight ? "light" : "dark"}
               initialUnreadCount={initialUnreadCount}
             />
           </li>
         )}
 
-        {/* Profile dropdown with user image */}
         {userData && (
-          <li>
+          <li className="flex items-center">
             <ProfileDropdown
               fullName={userData.fullName}
               email={userData.email}
               universityId={userData.universityId}
               universityCard={userData.universityCard}
               isAdmin={isAdmin}
+              tone={tone}
             />
           </li>
         )}
@@ -111,7 +123,7 @@ const Header = async ({ session }: HeaderProps) => {
       {userData && (
         <div className="flex items-center gap-1 md:hidden">
           <NotificationBell
-            variant="dark"
+            variant={isLight ? "light" : "dark"}
             initialUnreadCount={initialUnreadCount}
           />
           <MobileMenu
@@ -120,6 +132,7 @@ const Header = async ({ session }: HeaderProps) => {
             universityId={userData.universityId}
             universityCard={userData.universityCard}
             isAdmin={isAdmin}
+            tone={tone}
           />
         </div>
       )}

@@ -44,7 +44,7 @@ interface BookBorrowStatsProps {
 /** Status label + Tailwind class from available/total copy counts */
 function getAvailabilityStatus(
   availableCopies: number,
-  totalCopies: number
+  totalCopies: number,
 ): { label: "Available" | "Low" | "Unavailable"; className: string } {
   if (availableCopies <= 0) {
     return { label: "Unavailable", className: "text-red-400" };
@@ -52,7 +52,8 @@ function getAvailabilityStatus(
 
   const lowByCount = availableCopies <= 2;
   const lowByShare =
-    totalCopies > 0 && availableCopies <= Math.max(1, Math.floor(totalCopies * 0.1));
+    totalCopies > 0 &&
+    availableCopies <= Math.max(1, Math.floor(totalCopies * 0.1));
 
   if (lowByCount || lowByShare) {
     return { label: "Low", className: "text-amber-300/90" };
@@ -68,10 +69,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   initialStats,
 }) => {
   // Use React Query hook to get book data (for availableCopies that updates immediately)
-  const {
-    data: book,
-    isLoading: bookLoading,
-  } = useBook(bookId, initialBook);
+  const { data: book, isLoading: bookLoading } = useBook(bookId, initialBook);
 
   // Use React Query hook with SSR initial data for borrow stats
   const {
@@ -93,8 +91,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
     propAvailableCopies ??
     0;
 
-  const totalCopies =
-    book?.totalCopies ?? initialBook?.totalCopies ?? 0;
+  const totalCopies = book?.totalCopies ?? initialBook?.totalCopies ?? 0;
 
   const isLoading = bookLoading || statsLoading;
 
@@ -102,7 +99,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   if (isLoading && !initialStats) {
     return (
       <div className="book-info">
-        <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
+        <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
           Borrow Statistics
         </div>
         <div className="w-full space-y-2 sm:space-y-3">
@@ -123,7 +120,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   if (isError && !initialStats) {
     return (
       <div className="book-info">
-        <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
+        <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
           Borrow Statistics
         </div>
         <div className="space-y-2 sm:space-y-3">
@@ -143,7 +140,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
 
   return (
     <div className="book-info">
-      <div className="pt-3 text-base font-semibold text-light-100 sm:pt-4 sm:text-lg">
+      <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
         Borrow Statistics
       </div>
       {/* Two-column rows — same grid pattern as Book Details above */}
@@ -151,13 +148,13 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
           <p className="text-sm sm:text-base">
             Total Times Borrowed{" "}
-            <span className="font-semibold text-light-200">
+            <span className="font-medium text-light-200">
               {statsData.totalBorrows || 0}
             </span>
           </p>
           <p className="text-sm sm:text-base">
             Currently Borrowed{" "}
-            <span className="font-semibold text-light-200">
+            <span className="font-medium text-light-200">
               {statsData.activeBorrows || 0}
             </span>
           </p>
@@ -165,13 +162,13 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
           <p className="text-sm sm:text-base">
             Availability Status{" "}
-            <span className={`font-semibold ${availability.className}`}>
+            <span className={`font-medium ${availability.className}`}>
               {availability.label}
             </span>
           </p>
           <p className="text-sm sm:text-base">
             Successfully Returned{" "}
-            <span className="font-semibold text-light-200">
+            <span className="font-medium text-light-200">
               {statsData.returnedBorrows || 0}
             </span>
           </p>

@@ -46,6 +46,7 @@ import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ModerateReviewAlertDialog } from "@/components/admin/ModerateReviewAlertDialog";
 import {
   AlertDialog,
@@ -539,6 +540,11 @@ export default function BookReviewList({
 
   return (
     <section className="space-y-4 sm:space-y-6">
+      <AdminPageHeader
+        title="Review Moderation"
+        description="Approve or reject pending book reviews"
+        icon={Star}
+      />
       <StatCardGrid>
         <StatCard title="Total Reviews" value={stats.total} icon={Star} hue="blue" />
         <StatCard title="Pending" value={stats.pending} icon={Clock} hue="amber" />
@@ -564,7 +570,7 @@ export default function BookReviewList({
 
       <div className="admin-panel">
         <AdminListToolbar
-          title="Book Reviews"
+          title="Review Moderation"
           count={reviews.length}
           chips={
             <DismissibleFilterChips

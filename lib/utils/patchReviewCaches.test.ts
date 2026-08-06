@@ -182,6 +182,15 @@ describe("patchReviewCaches", () => {
       },
     ] as Review[]);
     client.setQueryData(queryKeys.reviews.pendingCount, 1);
+    client.setQueryData(queryKeys.admin.navCounts, {
+      books: 0,
+      users: 0,
+      pendingAdminRequests: 0,
+      pendingSignUps: 0,
+      pendingBorrows: 0,
+      openTickets: 0,
+      pendingReviews: 1,
+    });
 
     const baselines = snapshotReviewListBaselines(client);
 
@@ -202,6 +211,9 @@ describe("patchReviewCaches", () => {
     );
 
     expect(client.getQueryData(queryKeys.reviews.pendingCount)).toBe(0);
+    expect(
+      client.getQueryData(queryKeys.admin.navCounts),
+    ).toMatchObject({ pendingReviews: 0 });
     expect(
       client.getQueryData<AdminBookReviewItem[]>(
         queryKeys.reviews.adminList({}),

@@ -13,8 +13,14 @@ import {
   UsersRound,
 } from "lucide-react";
 import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
-import { TicketPriorityBadge, TicketStatusBadge } from "@/lib/ui/semanticBadges";
-import type { TicketPriority, TicketStatus } from "@/lib/validations/supportTicket";
+import {
+  TicketPriorityBadge,
+  TicketStatusBadge,
+} from "@/lib/ui/semanticBadges";
+import type {
+  TicketPriority,
+  TicketStatus,
+} from "@/lib/validations/supportTicket";
 import { cn } from "@/lib/utils";
 
 export function TicketDetailKpiGrid({
@@ -69,7 +75,7 @@ export function TicketDetailKpiGrid({
       >
         <p
           className={cn(
-            "text-2xl font-semibold tabular-nums tracking-tight",
+            "text-2xl font-medium tabular-nums tracking-tight",
             variant === "dark" ? "text-light-100" : "text-dark-400",
           )}
         >

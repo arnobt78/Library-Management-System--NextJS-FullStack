@@ -2,9 +2,8 @@
  * Instant densify for support-ticket list/detail/openCount caches.
  *
  * Call AFTER `await invalidateMutation("ticket.write")`, but always pass
- * `baselines` snapped BEFORE invalidate. Invalidation `removeQueries` wipes
- * inactive lists; upserting into `[]` would leave only the touched row and
- * other tickets would flash in late after refetch.
+ * `baselines` snapped BEFORE invalidate. Invalidate marks inactive lists stale
+ * (no wipe); still pass baselines so densify can re-seed when cache is thin.
  * Parent: CR-0003 / REQ-0034
  */
 
@@ -14,6 +13,7 @@ import {
   writeDensifiedEmpty,
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
+import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
 
 function isActiveQueueStatus(status: string | undefined): boolean {
   return status === "OPEN" || status === "IN_PROGRESS";
@@ -47,6 +47,10 @@ function bumpOpenCount(queryClient: QueryClient, delta: number): void {
   queryClient.setQueryData<number>(queryKeys.tickets.openCount, (old) =>
     Math.max(0, (old ?? 0) + delta),
   );
+  // Absolute sync — overwrites active sidebar refetch (no double-delta).
+  const absolute =
+    queryClient.getQueryData<number>(queryKeys.tickets.openCount) ?? 0;
+  patchAdminNavCounts(queryClient, { openTickets: absolute });
 }
 
 /** Insert-or-replace a list row. */

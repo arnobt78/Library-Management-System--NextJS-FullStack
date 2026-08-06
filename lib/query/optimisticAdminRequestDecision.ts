@@ -13,6 +13,7 @@ import { RECENT_ADMIN_REQUEST_DECISIONS_LIMIT } from "@/lib/admin/adminRequestCo
 import { queryKeys } from "@/lib/query/keys";
 import type { AdminRequest } from "@/lib/services/users";
 import { markDensifiedEmpty } from "@/lib/utils/queryCacheLists";
+import { syncPendingAdminNav } from "@/lib/utils/patchAdminRequestCaches";
 
 export type AdminRequestDecisionOptimisticContext = {
   previousPending: Array<[QueryKey, AdminRequest[] | undefined]>;
@@ -109,6 +110,9 @@ export async function applyOptimisticAdminRequestDecision(
       );
     },
   );
+
+  // Zero-lag User Management pill before onSuccess densify.
+  syncPendingAdminNav(queryClient);
 
   return { previousPending, previousDecisions };
 }

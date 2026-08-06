@@ -142,7 +142,7 @@ export default function SupportTicketReplyThread({
                         {/* Non-linked author — static attribution tokens (not SKY_LINK). */}
                         <span
                           className={cn(
-                            "font-semibold leading-none",
+                            "font-medium leading-none",
                             ATTRIBUTION_PERSON_SIZE,
                             isDark
                               ? ATTRIBUTION_NAME_STATIC_DARK

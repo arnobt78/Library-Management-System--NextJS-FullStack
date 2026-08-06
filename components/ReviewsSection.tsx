@@ -137,7 +137,9 @@ function ReviewCard({
             ) : null}
           </div>
 
-          <p className="text-sm text-light-200 sm:text-base">{review.comment}</p>
+          <p className="text-sm text-light-200 sm:text-base">
+            {review.comment}
+          </p>
 
           <div className="space-y-1.5">
             <ReviewDateMeta
@@ -147,9 +149,7 @@ function ReviewCard({
               status={review.status}
               variant="dark"
             />
-            {moderator &&
-            review.status &&
-            review.status !== "PENDING" ? (
+            {moderator && review.status && review.status !== "PENDING" ? (
               <PersonAttribution
                 person={moderator}
                 prefix={
@@ -352,7 +352,7 @@ export default function ReviewsSection({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <h3 className="text-base font-semibold text-light-100 sm:text-lg">
+      <h3 className="text-base font-medium text-light-100 sm:text-lg">
         Reviews ({localReviews.length})
       </h3>
 

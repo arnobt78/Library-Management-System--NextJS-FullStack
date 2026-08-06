@@ -157,7 +157,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
     <div className="flex flex-col gap-3 sm:gap-4">
       {/* Tight title/sub stack (GlassSectionHeader pattern); gap only before form */}
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold leading-tight text-light-100 sm:text-xl">
+        <h1 className="text-xl font-medium leading-tight text-light-100 sm:text-xl">
           {isSignIn
             ? "Welcome back to BookWise"
             : "Create your library account"}
@@ -341,7 +341,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
 
         <Link
           href={isSignIn ? "/sign-up" : "/sign-in"}
-          className="font-semibold text-primary"
+          className="font-medium text-primary"
         >
           {isSignIn ? "Create an account" : "Sign in"}
         </Link>

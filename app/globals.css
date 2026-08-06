@@ -185,7 +185,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   .form-input {
-    @apply w-full min-h-14 border-none text-base font-semibold placeholder:font-normal text-white placeholder:text-light-100 focus-visible:ring-0 focus-visible:shadow-none bg-dark-300 !important;
+    @apply w-full min-h-14 border-none text-base font-medium placeholder:font-normal text-white placeholder:text-light-100 focus-visible:ring-0 focus-visible:shadow-none bg-dark-300 !important;
   }
 
   /* Book Card — centered cover, full-width meta, visible soft glow, hover tilt */
@@ -244,7 +244,7 @@ html:has(body[data-scroll-locked]) {
 
   /* Reserve 2-line slots so short titles do not misalign genre rows across the grid */
   .book-title {
-    @apply mt-2 line-clamp-2 min-h-[2.5rem] text-base font-semibold text-white xs:min-h-[3.25rem] xs:text-lg;
+    @apply mt-2 line-clamp-2 min-h-[2.5rem] text-base font-medium text-white xs:min-h-[3.25rem] xs:text-lg;
   }
 
   .book-author {
@@ -269,15 +269,6 @@ html:has(body[data-scroll-locked]) {
 
   .book-btn {
     @apply bg-dark-600 mt-3 min-h-14 w-full font-bebas-neue text-base text-primary;
-  }
-
-  /* Borrowed Book */
-  .borrowed-book {
-    @apply gradient-vertical p-5 rounded-2xl xs:w-min w-full relative;
-  }
-
-  .borrowed-book_cover {
-    @apply py-4 lg:px-16 px-10 flex justify-center items-center w-full rounded-lg;
   }
 
   /* Book Cover */
@@ -361,7 +352,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   .book-overview h1 {
-    @apply text-4xl font-semibold text-white sm:text-6xl;
+    @apply text-4xl font-medium text-white sm:text-6xl;
     @apply break-words;
   }
 
@@ -379,7 +370,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   .book-copies p span {
-    @apply ml-2 font-semibold text-primary;
+    @apply ml-2 font-medium text-primary;
   }
 
   .book-description {
@@ -405,7 +396,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   .progress {
-    @apply rounded-full bg-green-800 p-0.5 text-center font-bebas-neue text-[8px] font-semibold leading-none text-light-100;
+    @apply rounded-full bg-green-800 p-0.5 text-center font-bebas-neue text-[8px] font-medium leading-none text-light-100;
   }
 
   /* Search */
@@ -414,12 +405,12 @@ html:has(body[data-scroll-locked]) {
   }
 
   .search-input {
-    @apply w-full border-none font-semibold placeholder:font-normal text-white placeholder:text-light-100 focus-visible:ring-0 focus-visible:shadow-none !important;
+    @apply w-full border-none font-medium placeholder:font-normal text-white placeholder:text-light-100 focus-visible:ring-0 focus-visible:shadow-none !important;
   }
 
   /* Book Receipt */
   .book-receipt_admin-btn {
-    @apply bg-light-300 rounded-md text-primary-admin font-semibold hover:bg-light-300/80 !important;
+    @apply bg-light-300 rounded-md text-primary-admin font-medium hover:bg-light-300/80 !important;
   }
 
   /* Book Ticket */
@@ -436,7 +427,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   #book-ticket #book-details div p:last-child {
-    @apply text-sm font-semibold text-white;
+    @apply text-sm font-medium text-white;
   }
 
   #book-ticket #book-divider div:first-child {
@@ -457,7 +448,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   #not-found h4 {
-    @apply text-white mt-6 font-semibold text-xl;
+    @apply text-white mt-6 font-medium text-xl;
   }
 
   #not-found p {
@@ -486,7 +477,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   #pagination p {
-    @apply text-sm inline-flex items-center font-semibold px-4 py-1.5 rounded-md text-center;
+    @apply text-sm inline-flex items-center font-medium px-4 py-1.5 rounded-md text-center;
   }
 
   /* Sort */
@@ -553,15 +544,30 @@ html:has(body[data-scroll-locked]) {
   }
 
   /*
-   * Root public Header — sticky; transparent at top.
-   * .root-header--scrolled (client): light frosted blur so content under the bar stays readable.
+   * Root public Header — sticky; transparent at top (dark).
+   * .root-header--scrolled: frosted dark blur.
+   * .root-header--light: frosted white admin chrome (slate-50 shows through).
    */
   .root-header {
-    @apply sticky top-0 z-30 flex justify-between bg-transparent py-3 transition-[background-color,backdrop-filter,box-shadow] duration-200 sm:py-4;
+    /* items-center: brand + nav row share vertical middle (not top-edge) */
+    @apply sticky top-0 z-30 flex items-center justify-between bg-transparent py-2 transition-[background-color,backdrop-filter,box-shadow,color] duration-200;
   }
 
   .root-header--scrolled {
     @apply bg-dark-100/55 shadow-sm backdrop-blur-sm;
+  }
+
+  .root-header--light {
+    @apply z-50 border-b border-slate-200/80 bg-white/70 text-dark-400 shadow-sm backdrop-blur-md;
+  }
+
+  /* Nav chips (bell/avatar) center inside each li even if the row is text-tall */
+  .root-header ul {
+    @apply items-center;
+  }
+
+  .root-header li {
+    @apply flex list-none items-center;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -643,7 +649,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   .kpi-card__value {
-    @apply font-ibm-plex-sans text-xl font-semibold text-dark-400 sm:text-2xl;
+    @apply font-ibm-plex-sans text-xl font-medium text-dark-400 sm:text-2xl;
   }
 
   .kpi-card__title {
@@ -820,7 +826,7 @@ html:has(body[data-scroll-locked]) {
   }
 
   .book-details h3 {
-    @apply text-xl font-semibold text-primary;
+    @apply text-xl font-medium text-primary;
   }
 
   /* Library */
@@ -829,11 +835,11 @@ html:has(body[data-scroll-locked]) {
   }
 
   .library-subtitle {
-    @apply text-lg font-semibold uppercase text-light-100;
+    @apply text-lg font-medium uppercase text-light-100;
   }
 
   .library-title {
-    @apply mt-2 text-3xl font-semibold text-white xs:text-5xl;
+    @apply mt-2 text-3xl font-medium text-white xs:text-5xl;
   }
 }
 

@@ -460,7 +460,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     return (
       <div className="w-full">
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+          <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
             My Borrowing History
           </h1>
           <p className="text-sm text-light-200 sm:text-base">
@@ -481,7 +481,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="shrink-0 opacity-90">{item.icon}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold leading-tight sm:text-sm">
+                    <p className="text-xs font-medium leading-tight sm:text-sm">
                       {item.title}
                     </p>
                     <p className="text-[10px] leading-snug opacity-75 sm:text-xs">
@@ -489,7 +489,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     </p>
                   </div>
                 </div>
-                <p className="shrink-0 text-lg font-semibold leading-none sm:text-xl">
+                <p className="shrink-0 text-lg font-medium leading-none sm:text-xl">
                   {item.value}
                 </p>
               </div>
@@ -549,7 +549,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               },
             ] as const
           ).map((section) => (
-            <TabsContent key={section.value} value={section.value} className="mt-0">
+            <TabsContent
+              key={section.value}
+              value={section.value}
+              className="mt-0"
+            >
               <div className="space-y-3 sm:space-y-4">
                 <GlassSectionHeader
                   icon={section.icon}
@@ -587,7 +591,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     return (
       <div className="w-full">
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+          <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
             My Borrowing History
           </h1>
           <p className="text-sm text-light-200 sm:text-base">
@@ -647,7 +651,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     return (
       <div className="w-full">
         <div className="empty-panel profile-borrow-row" role="status">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
             Failed to load borrow records
           </p>
           <p className="text-xs text-light-200 sm:text-sm">
@@ -864,10 +868,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       const returnedOn = formatBorrowDate(record.returnDate);
 
       return (
-        <div
-          role="article"
-          className={cn("profile-borrow-row", rowAccent)}
-        >
+        <div role="article" className={cn("profile-borrow-row", rowAccent)}>
           <div className="p-2.5 text-light-100 sm:p-3">
             <div className="flex flex-col gap-3 sm:flex-row">
               {/* Full Height Book Cover */}
@@ -887,7 +888,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 {/* Header with Status Badge */}
                 <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-base font-semibold sm:text-xl">
+                    <h3 className="text-base font-medium sm:text-xl">
                       <Link
                         href={`/books/${record.book.id}`}
                         prefetch={false}
@@ -1066,10 +1067,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     <>
                       <button
                         type="button"
-                        onClick={withRippleClick(
-                          handleReturnBook,
-                          isReturning,
-                        )}
+                        onClick={withRippleClick(handleReturnBook, isReturning)}
                         disabled={isReturning}
                         className={`profile-action-btn ${
                           isOverdue
@@ -1353,7 +1351,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     <div className="w-full">
       {/* Match All Books hero: title + light-200 subtitle, single mb stack */}
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+        <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
           My Borrowing History
         </h1>
         <p className="text-sm text-light-200 sm:text-base">
@@ -1375,7 +1373,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <span className="shrink-0 opacity-90">{item.icon}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold leading-tight sm:text-sm">
+                  <p className="text-xs font-medium leading-tight sm:text-sm">
                     {item.title}
                   </p>
                   <p className="text-[10px] leading-snug opacity-75 sm:text-xs">
@@ -1383,7 +1381,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   </p>
                 </div>
               </div>
-              <p className="shrink-0 text-lg font-semibold leading-none sm:text-xl">
+              <p className="shrink-0 text-lg font-medium leading-none sm:text-xl">
                 {item.value}
               </p>
             </div>

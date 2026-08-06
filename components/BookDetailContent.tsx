@@ -90,7 +90,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
     return (
       <div className="w-full">
         <div className="empty-panel rounded-lg border border-red-500 bg-red-50">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
             Failed to load book
           </p>
           <p className="text-xs text-gray-500 sm:text-sm">
@@ -117,7 +117,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
       <div className="w-full min-w-0 max-w-full flex-[1.5] overflow-hidden">
         {/* Video Section */}
         <section className="flex flex-col gap-4 sm:gap-7">
-          <h3 className="text-base font-semibold text-primary sm:text-lg">
+          <h3 className="text-base font-medium text-primary sm:text-lg">
             Video
           </h3>
           <BookVideo videoUrl={bookData.videoUrl} />
@@ -125,7 +125,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
 
         {/* Summary Section */}
         <section className="mt-6 flex flex-col gap-4 sm:mt-10 sm:gap-7">
-          <h3 className="text-base font-semibold text-primary sm:text-lg">
+          <h3 className="text-base font-medium text-primary sm:text-lg">
             Summary
           </h3>
           <div className="space-y-3 break-words text-base text-light-100 sm:space-y-5 sm:text-xl">
@@ -156,7 +156,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
           {/* Show error message for reviews if failed but book loaded */}
           {isErrorReviews && (
             <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-3 text-yellow-800 sm:p-4">
-              <p className="text-sm font-semibold sm:text-base">
+              <p className="text-sm font-medium sm:text-base">
                 Failed to load reviews
               </p>
               <p className="text-xs sm:text-sm">

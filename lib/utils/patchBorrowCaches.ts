@@ -2,9 +2,8 @@
  * Instant densify for borrow list / book inventory caches.
  *
  * Call AFTER `await invalidateMutation("borrow.lifecycle")`, but always pass
- * `baselines` snapped BEFORE invalidate. Invalidation `removeQueries` wipes
- * inactive lists; upserting into `[]` would leave only the touched row and
- * siblings would flash in late after refetch.
+ * `baselines` snapped BEFORE invalidate. Invalidate marks inactive lists stale
+ * (no wipe); still pass baselines so densify can re-seed when cache is thin.
  *
  * Parent: densify audit map — Wave A (`borrow.lifecycle`)
  */
@@ -18,6 +17,7 @@ import type {
 } from "@/lib/services/borrows";
 import type { BookBorrowStats } from "@/lib/services/books";
 import { patchAdminListAvailability } from "@/lib/utils/patchBookCaches";
+import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
 import {
   clearDensifiedEmpty,
   markDensifiedEmpty,
@@ -30,6 +30,37 @@ export type BorrowListBaselines = {
   /** Densest cached admin borrow-requests list (any filter). */
   requests: BorrowRecordWithDetails[] | undefined;
 };
+
+/** Sync Borrow Queue pill from cached PENDING requests list when present. */
+function syncPendingBorrowsNav(queryClient: QueryClient): void {
+  const pendingKey = queryKeys.borrows.requests({
+    status: "PENDING",
+    search: undefined,
+  });
+  const pendingRows =
+    queryClient.getQueryData<BorrowRecordWithDetails[]>(pendingKey);
+  if (Array.isArray(pendingRows)) {
+    patchAdminNavCounts(queryClient, { pendingBorrows: pendingRows.length });
+    return;
+  }
+
+  // Fallback: densest unfiltered/admin list → count PENDING rows.
+  let found = false;
+  let densest = 0;
+  for (const [, rows] of queryClient.getQueriesData<
+    BorrowRecordWithDetails[]
+  >({ queryKey: queryKeys.borrows.requestsRoot })) {
+    if (!Array.isArray(rows)) continue;
+    found = true;
+    densest = Math.max(
+      densest,
+      rows.filter((r) => r.status === "PENDING").length,
+    );
+  }
+  if (found) {
+    patchAdminNavCounts(queryClient, { pendingBorrows: densest });
+  }
+}
 
 export type BookInventoryBaselines = {
   /** bookId → availableCopies from book detail cache */
@@ -85,7 +116,7 @@ function filterByStatusIfNeeded<T extends { status: string }>(
   return rows.filter((r) => r.status === statusFilter);
 }
 
-/** Pre-invalidate snapshots so sibling rows survive removeQueries. */
+/** Pre-invalidate snapshots so sibling rows survive a thin cache after invalidate. */
 export function snapshotBorrowListBaselines(
   queryClient: QueryClient,
 ): BorrowListBaselines {
@@ -446,6 +477,8 @@ export function patchBorrowCachesOnStatusChange(
       baselines?.inventory,
     );
   }
+
+  syncPendingBorrowsNav(queryClient);
 }
 
 /**
@@ -524,4 +557,6 @@ export function patchBorrowCachesOnCreate(
       ),
     baselines,
   );
+
+  syncPendingBorrowsNav(queryClient);
 }

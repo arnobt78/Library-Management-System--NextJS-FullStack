@@ -51,9 +51,11 @@ import {
   Trash2,
   TrendingUp,
   UserX,
+  Wand2,
   X,
 } from "lucide-react";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 
 // Types for reminder and export stats
 interface ReminderStats {
@@ -617,14 +619,11 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* All other success/error/coming-soon messages from the original file are preserved here */}
 
       {/* Page Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="break-words text-xl font-semibold text-gray-900 sm:text-3xl">
-          Smart Automation Dashboard
-        </h1>
-        <p className="break-words text-sm text-gray-600 sm:text-base">
-          Automated reminders, recommendations, bulk operations, and data export
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Automation"
+        description="Reminders, bulk jobs, and data export"
+        icon={Wand2}
+      />
 
       {/* Automation Overview Cards — shared StatCard grid (Wave 4 rollout) */}
       <StatCardGrid>
@@ -665,7 +664,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Auto-Reminders Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold sm:text-lg">
+          <CardTitle className="text-base font-medium sm:text-lg">
             📧 Auto-Reminders
           </CardTitle>
           <p className="text-xs text-gray-600 sm:text-sm">
@@ -814,7 +813,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Smart Recommendations Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold sm:text-lg">
+          <CardTitle className="text-base font-medium sm:text-lg">
             🎯 Smart Recommendations
           </CardTitle>
           <p className="text-xs text-gray-600 sm:text-sm">
@@ -1046,7 +1045,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Bulk Operations Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold sm:text-lg">
+          <CardTitle className="text-base font-medium sm:text-lg">
             ⚡ Bulk Operations
           </CardTitle>
           <p className="text-xs text-gray-600 sm:text-sm">
@@ -1232,7 +1231,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Data Export Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold sm:text-lg">
+          <CardTitle className="text-base font-medium sm:text-lg">
             📊 Data Export
           </CardTitle>
           <p className="text-xs text-gray-600 sm:text-sm">

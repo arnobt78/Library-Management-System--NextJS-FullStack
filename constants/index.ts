@@ -1,3 +1,11 @@
+import {
+  ADMIN_NAV_ITEMS,
+  type AdminNavItemConfig,
+  type AdminSidebarIconKey,
+} from "@/lib/navigation/admin-nav-config";
+
+export type { AdminSidebarIconKey };
+
 export const navigationLinks = [
   {
     href: "/library",
@@ -11,77 +19,19 @@ export const navigationLinks = [
   },
 ];
 
-/** Lucide icon keys for admin sidebar (rendered in Sidebar — not public SVGs). */
-export type AdminSidebarIconKey =
-  | "home"
-  | "users"
-  | "book"
-  | "bookmark"
-  | "userPlus"
-  | "chart"
-  | "wand"
-  | "ticket"
-  | "star"
-  | "history";
-
-// Parent: CR-0003 / REQ-0034 — "Home" renamed to "Library Overview"; Support
-// Tickets / Book Reviews / Activity History added for the admin suite expansion.
+/**
+ * Flat admin sidebar links — derived from Stockly-style grouped nav config.
+ * Prefer ADMIN_NAV_GROUPS for sectioned UI; this keeps legacy consumers working.
+ */
 export const adminSideBarLinks: {
   icon: AdminSidebarIconKey;
   route: string;
   text: string;
-}[] = [
-  {
-    icon: "home",
-    route: "/admin",
-    text: "Library Overview",
-  },
-  {
-    icon: "users",
-    route: "/admin/users",
-    text: "All Users",
-  },
-  {
-    icon: "book",
-    route: "/admin/books",
-    text: "All Books",
-  },
-  {
-    icon: "bookmark",
-    route: "/admin/book-requests",
-    text: "Borrow Requests",
-  },
-  {
-    icon: "userPlus",
-    route: "/admin/account-requests",
-    text: "Sign-up Requests",
-  },
-  {
-    icon: "ticket",
-    route: "/admin/support-tickets",
-    text: "Support Tickets",
-  },
-  {
-    icon: "star",
-    route: "/admin/book-reviews",
-    text: "Book Reviews",
-  },
-  {
-    icon: "chart",
-    route: "/admin/business-insights",
-    text: "Analytics",
-  },
-  {
-    icon: "history",
-    route: "/admin/activity-history",
-    text: "Activity History",
-  },
-  {
-    icon: "wand",
-    route: "/admin/automation",
-    text: "Automation",
-  },
-];
+}[] = ADMIN_NAV_ITEMS.map((item: AdminNavItemConfig) => ({
+  icon: item.icon,
+  route: item.route,
+  text: item.label,
+}));
 
 /**
  * Sign-in test accounts (dropdown + seed script).

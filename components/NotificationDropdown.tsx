@@ -55,7 +55,7 @@ export default function NotificationDropdown({
       )}
     >
       <div className="flex items-center justify-between px-3 py-2.5 sm:px-4">
-        <DropdownMenuLabel className="p-0 text-sm font-semibold">
+        <DropdownMenuLabel className="p-0 text-sm font-medium">
           Notifications
         </DropdownMenuLabel>
         {unreadCount > 0 ? (
@@ -127,7 +127,7 @@ export default function NotificationDropdown({
                   aria-hidden
                 />
                 <div className="min-w-0 flex-1 ">
-                  <p className="truncate text-xs font-semibold sm:text-sm">
+                  <p className="truncate text-xs font-medium sm:text-sm">
                     {notification.title}
                   </p>
                   <p

@@ -30,7 +30,7 @@ const Layout = async ({ children }: { children: ReactNode }) => {
               height={37}
               className="size-7 sm:size-[37px]"
             />
-            <h1 className="text-xl font-semibold text-white sm:text-xl">
+            <h1 className="text-xl font-medium text-white sm:text-xl">
               BookWise
             </h1>
           </div>

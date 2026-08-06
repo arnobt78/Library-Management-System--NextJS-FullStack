@@ -37,7 +37,7 @@ export default function GlassSectionHeader({
       <div className="min-w-0 flex-1">
         <Heading
           className={cn(
-            "text-base font-semibold leading-tight text-light-100 sm:text-lg",
+            "text-base font-medium leading-tight text-light-100 sm:text-lg",
             titleClassName,
           )}
         >

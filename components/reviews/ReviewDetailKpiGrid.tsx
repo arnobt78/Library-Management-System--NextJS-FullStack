@@ -58,7 +58,7 @@ export function ReviewDetailKpiGrid({
           />
           <span
             className={cn(
-              "text-lg font-semibold tabular-nums",
+              "text-lg font-medium tabular-nums",
               isDark ? "text-light-100" : "text-dark-400",
             )}
           >

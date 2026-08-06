@@ -60,11 +60,11 @@ async function AdminUserDetail({
         <div>
           <Link
             href="/admin/users"
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-blue-600 hover:text-blue-500"
           >
             ← All users
           </Link>
-          <h1 className="mt-2 text-xl font-semibold text-dark-400">
+          <h1 className="mt-2 text-xl font-medium text-dark-400">
             {data.user.fullName}
           </h1>
           <p className="text-sm text-gray-500">
@@ -81,14 +81,14 @@ async function AdminUserDetail({
         {stats.map(([label, value]) => (
           <div key={String(label)} className="stat">
             <p className="text-xs text-gray-500">{label}</p>
-            <p className="mt-1 text-xl font-semibold">{value}</p>
+            <p className="mt-1 text-xl font-medium">{value}</p>
           </div>
         ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
         <div className="rounded-2xl bg-white p-4 sm:p-6">
-          <h2 className="text-lg font-semibold">Borrowing history</h2>
+          <h2 className="text-lg font-medium">Borrowing history</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -107,7 +107,7 @@ async function AdminUserDetail({
                       <Link
                         prefetch={false}
                         href={`/books/${record.bookId}`}
-                        className="font-medium hover:underline"
+                        className="font-medium text-blue-700 hover:text-blue-600"
                       >
                         {record.bookTitle}
                       </Link>
@@ -136,7 +136,7 @@ async function AdminUserDetail({
         </div>
         <div className="space-y-6">
           <div className="rounded-2xl bg-white p-4">
-            <h2 className="font-semibold">Explainable insights</h2>
+            <h2 className="font-medium">Explainable insights</h2>
             <p className="mt-2 text-sm text-gray-600">
               Top genres:{" "}
               {data.topGenres
@@ -156,7 +156,7 @@ async function AdminUserDetail({
             </p>
           </div>
           <div className="rounded-2xl bg-white p-4">
-            <h2 className="font-semibold">Reservations</h2>
+            <h2 className="font-medium">Reservations</h2>
             {data.reservationHistory.map((item) => (
               <p key={item.id} className="mt-2 text-sm">
                 {item.bookTitle} · {item.status}
@@ -167,7 +167,7 @@ async function AdminUserDetail({
             ) : null}
           </div>
           <div className="rounded-2xl bg-white p-4">
-            <h2 className="font-semibold">Registration decision</h2>
+            <h2 className="font-medium">Registration decision</h2>
             {(data.user.status === "APPROVED" ||
               data.user.status === "REJECTED") &&
             data.user.statusReviewedAt ? (
@@ -195,7 +195,7 @@ async function AdminUserDetail({
             )}
           </div>
           <div className="rounded-2xl bg-white p-4">
-            <h2 className="font-semibold">Reviews and access requests</h2>
+            <h2 className="font-medium">Reviews and access requests</h2>
             <p className="mt-2 text-sm text-gray-600">
               {data.reviewHistory.length} recent reviews ·{" "}
               {data.requestHistory.length} access requests
@@ -242,7 +242,7 @@ async function AdminUserDetail({
             className={
               data.pagination.page <= 1
                 ? "pointer-events-none text-gray-400"
-                : "text-blue-600 hover:underline"
+                : "text-blue-700 hover:text-blue-600"
             }
             href={`?page=${Math.max(1, data.pagination.page - 1)}&size=${data.pagination.size}`}
           >
@@ -262,7 +262,7 @@ async function AdminUserDetail({
               data.pagination.page * data.pagination.size >=
               data.pagination.total
                 ? "pointer-events-none text-gray-400"
-                : "text-blue-600 hover:underline"
+                : "text-blue-700 hover:text-blue-600"
             }
             href={`?page=${data.pagination.page + 1}&size=${data.pagination.size}`}
           >
@@ -287,11 +287,11 @@ export default function AdminUserDetailPage(props: {
         >
           <Link
             href="/admin/users"
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-blue-700 hover:text-blue-600"
           >
             ← All users
           </Link>
-          <h1 className="text-xl font-semibold text-dark-400">User profile</h1>
+          <h1 className="text-xl font-medium text-dark-400">User profile</h1>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="h-20 animate-pulse rounded-xl bg-gray-100" />
             <div className="h-20 animate-pulse rounded-xl bg-gray-100" />

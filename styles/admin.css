@@ -3,8 +3,32 @@
 @tailwind utilities;
 
 @layer components {
+  /*
+   * Header content = py-2 + size-8 (3rem) / sm: size-10 (3.5rem).
+   * Sidebar sticks just below that so it tracks .root-header height.
+   */
+  .admin-shell {
+    --admin-header-offset: 3rem;
+  }
+
+  @media (min-width: 640px) {
+    .admin-shell {
+      --admin-header-offset: 3.5rem;
+    }
+  }
+
+  /* Full-bleed sticky ancestor — no page-shell max-w-9xl / gutters */
+  .admin-shell-inner {
+    @apply flex w-full max-w-none min-h-screen flex-col;
+  }
+
+  /* Modest pad on navbar content only (not a centered 96rem column) */
+  .admin-shell .root-header {
+    @apply px-3 sm:px-4;
+  }
+
   .admin-container {
-    @apply flex ml-[15%] w-[85%] flex-1 flex-col bg-light-300 p-2 sm:ml-0 sm:p-4 md:w-[calc(100%-264px)] xs:p-10;
+    @apply flex w-full min-w-0 flex-1 flex-col bg-transparent p-2 sm:p-4;
   }
 
   /* Shared white section shell — pad matches root CARD_PAD / .surface-card */
@@ -18,7 +42,7 @@
 
   /* Confirmation Dialog */
   .confirm-trigger {
-    @apply font-semibold text-sm shadow-none hover:bg-opacity-70 w-full !important;
+    @apply font-medium text-sm shadow-none hover:bg-opacity-70 w-full !important;
   }
 
   .confirm-approve {
@@ -42,12 +66,12 @@
   }
 
   .confirm-btn {
-    @apply w-full min-h-14 rounded-xl font-semibold text-base text-light-800 !important;
+    @apply w-full min-h-14 rounded-xl font-medium text-base text-light-800 !important;
   }
 
   /* Book Form */
   .book-form_input {
-    @apply min-h-14 border border-gray-100 bg-light-600 p-4 text-base font-semibold placeholder:font-normal placeholder:text-slate-500 !important;
+    @apply min-h-14 border border-gray-100 bg-light-600 p-4 text-base font-medium placeholder:font-normal placeholder:text-slate-500 !important;
   }
 
   .book-form_btn {
@@ -56,7 +80,7 @@
 
   /* Home Page */
   .view-btn {
-    @apply bg-light-300 rounded-md text-primary-admin font-semibold hover:bg-light-300/80 shadow-none !important;
+    @apply bg-light-300 rounded-md text-primary-admin font-medium hover:bg-light-300/80 shadow-none !important;
   }
 
   .add-new-book_btn {
@@ -68,7 +92,7 @@
   }
 
   .add-new-book_btn p:first-child {
-    @apply font-semibold text-lg text-dark-400;
+    @apply font-medium text-lg text-dark-400;
   }
 
   /* Statistics */
@@ -85,7 +109,7 @@
   }
 
   .stat-count {
-    @apply font-semibold text-3xl text-dark-400;
+    @apply font-medium text-3xl text-dark-400;
   }
 
   /* Book Stripe */
@@ -94,7 +118,7 @@
   }
 
   .book-stripe .title {
-    @apply font-semibold text-base text-dark-400 line-clamp-1;
+    @apply font-medium text-base text-dark-400 line-clamp-1;
   }
 
   .book-stripe .author {
@@ -135,7 +159,7 @@
 
   /* Color Picker */
   .color-picker {
-    @apply flex min-h-14 flex-row items-center gap-3 rounded-md border border-gray-100 bg-light-600 p-4 text-base font-semibold text-dark-400;
+    @apply flex min-h-14 flex-row items-center gap-3 rounded-md border border-gray-100 bg-light-600 p-4 text-base font-medium text-dark-400;
   }
 
   .hex-input {
@@ -152,12 +176,7 @@
   }
 
   .error-fallback h2 {
-    @apply text-lg font-semibold mb-2;
-  }
-
-  /* Header */
-  .admin-header {
-    @apply flex lg:items-end items-start justify-between lg:flex-row flex-col gap-5 sm:mb-10 mb-5;
+    @apply text-lg font-medium mb-2;
   }
 
   /* Search */
@@ -169,38 +188,22 @@
     @apply w-full border-0 shadow-none bg-transparent outline-none focus:outline-none focus:ring-0 focus:border-0 !important;
   }
 
-  /* Sidebar */
+  /* Sidebar — grouped nav scrolls inside rail; no logo/user chrome */
   .admin-sidebar {
-    @apply fixed left-0 top-0 z-50 flex h-screen w-[15%] flex-col justify-between overflow-y-auto bg-white px-0 pb-5 pt-10 sm:sticky sm:w-auto sm:px-5;
+    /* Flush left edge; frosted over slate-50; stick below sticky navbar */
+    @apply sticky z-40 flex h-auto w-14 shrink-0 flex-col overflow-hidden border-r border-slate-200/80 bg-white/60 backdrop-blur-md sm:w-56 sm:min-w-56 lg:w-64 lg:min-w-64;
+    top: var(--admin-header-offset);
+    max-height: calc(100dvh - var(--admin-header-offset));
+    min-height: calc(100dvh - var(--admin-header-offset));
   }
 
-  .admin-sidebar .logo {
-    @apply flex flex-row items-center justify-center gap-2 border-b border-dashed border-primary-admin/20 pb-10 transition-all duration-200 hover:opacity-80 cursor-pointer sm:justify-start;
-  }
-
-  .admin-sidebar .logo h1 {
-    @apply text-xl font-semibold text-primary-admin max-md:hidden;
-  }
-
-  .admin-sidebar .link {
-    @apply relative flex w-full flex-row items-center justify-center gap-2 rounded-lg px-2 py-3.5 sm:justify-start sm:px-5;
-  }
-
-  .admin-sidebar .link p {
-    @apply text-base font-medium max-md:hidden;
-  }
-
-  /* Pending make-admin count on All Users — hide at 0 in JSX */
+  /* Muted Stockly-style counters (hide at 0 in JSX) */
   .admin-sidebar-badge {
-    @apply ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white sm:text-xs;
+    @apply ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground sm:text-xs;
   }
 
   .admin-sidebar-badge--selected {
-    @apply bg-white text-primary-admin;
-  }
-
-  .admin-sidebar .user {
-    @apply my-8 flex w-full flex-row items-center justify-center gap-2 rounded-full border border-light-400 px-2 py-2 shadow-sm sm:justify-start sm:px-6;
+    @apply bg-primary-admin/15 text-primary-admin;
   }
 
   /* User Card */

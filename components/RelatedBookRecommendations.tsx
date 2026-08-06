@@ -53,7 +53,7 @@ const RelatedBookRecommendations: React.FC<RelatedBookRecommendationsProps> = ({
           Related Recommendations
         </h2>
         <div className="mt-3 rounded-lg border border-red-500 bg-red-50 p-3 text-red-800 sm:mt-4 sm:p-4">
-          <p className="text-sm font-semibold sm:text-base">
+          <p className="text-sm font-medium sm:text-base">
             Failed to load related books
           </p>
           <p className="text-xs sm:text-sm">

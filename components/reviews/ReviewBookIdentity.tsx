@@ -56,9 +56,9 @@ export default function ReviewBookIdentity({
       href={`/books/${bookId}`}
       prefetch={false}
       className={cn(
-        "truncate text-base font-semibold sm:text-lg",
+        "truncate text-base font-medium sm:text-lg",
         isLight
-          ? cn(SKY_LINK_LIGHT, "hover:underline")
+          ? cn(SKY_LINK_LIGHT)
           : "text-light-100 transition-colors hover:text-light-100/70",
         titleClassName,
       )}
@@ -68,7 +68,7 @@ export default function ReviewBookIdentity({
   ) : (
     <p
       className={cn(
-        "truncate text-base font-semibold sm:text-lg",
+        "truncate text-base font-medium sm:text-lg",
         isLight ? "text-dark-400" : "text-light-100",
         titleClassName,
       )}
@@ -83,11 +83,7 @@ export default function ReviewBookIdentity({
         coverUrl={coverUrl}
         coverColor={coverColor}
         title={title}
-        className={
-          isLight
-            ? "size-14 border-gray-200 sm:size-16"
-            : undefined
-        }
+        className={isLight ? "size-14 border-gray-200 sm:size-16" : undefined}
         size={isLight ? 64 : 56}
       />
       <div className="min-w-0 flex-1">

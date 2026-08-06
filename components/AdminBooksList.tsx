@@ -42,6 +42,7 @@ import {
   BookX,
 } from "lucide-react";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 
 interface AdminBooksListProps {
   /**
@@ -121,7 +122,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
       limit: 1000, // High limit to get all books
       page: 1,
     }),
-    [currentSearch, currentGenre, currentAvailability]
+    [currentSearch, currentGenre, currentAvailability],
   );
 
   // Check if any filters are active
@@ -184,7 +185,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold sm:text-xl">All Books</h2>
+          <h2 className="text-lg font-medium sm:text-xl">Book Catalog</h2>
           <Button className="bg-primary-admin" asChild>
             <Link href="/admin/books/new" className="text-white">
               <Plus className="size-4" />
@@ -209,7 +210,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold sm:text-xl">All Books</h2>
+          <h2 className="text-lg font-medium sm:text-xl">Book Catalog</h2>
           <Button className="bg-primary-admin" asChild>
             <Link href="/admin/books/new" className="text-white">
               <Plus className="size-4" />
@@ -220,7 +221,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
         <div className="mt-4 w-full overflow-hidden sm:mt-7">
           <div className="py-6 text-center sm:py-8">
-            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+            <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
               Failed to load books
             </p>
             <p className="text-xs text-gray-500 sm:text-sm">
@@ -236,263 +237,297 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
   // KPI counts for the top-of-page StatCard row (Wave 4 rollout)
   const totalCopies = allBooks.reduce((sum, b) => sum + b.totalCopies, 0);
-  const availableCopies = allBooks.reduce((sum, b) => sum + b.availableCopies, 0);
+  const availableCopies = allBooks.reduce(
+    (sum, b) => sum + b.availableCopies,
+    0,
+  );
   const activeBookCount = allBooks.filter((b) => b.isActive).length;
 
   return (
-    <section className="admin-panel">
-      {/* KPI Statistics Cards */}
-      <StatCardGrid className="mb-4 sm:mb-6">
-        <StatCard title="Total Books" value={allBooks.length} icon={BookMarked} hue="blue" />
-        <StatCard title="Total Copies" value={totalCopies} icon={Layers} hue="slate" />
-        <StatCard
-          title="Available Copies"
-          value={availableCopies}
-          icon={BookOpenCheck}
-          hue="emerald"
-        />
-        <StatCard
-          title="Borrowed Copies"
-          value={totalCopies - availableCopies}
-          icon={BookX}
-          hue="amber"
-        />
-        <StatCard
-          title="Active Titles"
-          value={activeBookCount}
-          icon={BookMarked}
-          hue="violet"
-          badges={[{ label: `${allBooks.length - activeBookCount} inactive`, hue: "rose" }]}
-        />
-      </StatCardGrid>
-
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
-          All Books ({allBooks.length})
-        </h2>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
-          <SearchInput
-            value={localSearch}
-            onChange={setLocalSearch}
-            placeholder="Search books..."
-            debounceMs={0}
-            className="flex-1 sm:min-w-[250px]"
+    <>
+      <AdminPageHeader
+        title="Book Catalog"
+        description="Create, edit, and manage library inventory"
+        icon={BookMarked}
+      />
+      <section className="admin-panel">
+        {/* KPI Statistics Cards */}
+        <StatCardGrid className="mb-4 sm:mb-6">
+          <StatCard
+            title="Total Books"
+            value={allBooks.length}
+            icon={BookMarked}
+            hue="blue"
           />
-          {/* Filter Dropdowns */}
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
-            <FilterSelect
-              label="Genre"
-              variant="light"
-              className="w-full sm:min-w-[170px]"
-              value={currentGenre || "all"}
-              onValueChange={(v) => handleFilterChange("genre", v)}
-              options={genreFilterOptions(genres, "All")}
+          <StatCard
+            title="Total Copies"
+            value={totalCopies}
+            icon={Layers}
+            hue="slate"
+          />
+          <StatCard
+            title="Available Copies"
+            value={availableCopies}
+            icon={BookOpenCheck}
+            hue="emerald"
+          />
+          <StatCard
+            title="Borrowed Copies"
+            value={totalCopies - availableCopies}
+            icon={BookX}
+            hue="amber"
+          />
+          <StatCard
+            title="Active Titles"
+            value={activeBookCount}
+            icon={BookMarked}
+            hue="violet"
+            badges={[
+              {
+                label: `${allBooks.length - activeBookCount} inactive`,
+                hue: "rose",
+              },
+            ]}
+          />
+        </StatCardGrid>
+
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <h2 className="text-lg font-medium text-dark-400 sm:text-xl">
+            Book Catalog ({allBooks.length})
+          </h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
+            <SearchInput
+              value={localSearch}
+              onChange={setLocalSearch}
+              placeholder="Search books..."
+              debounceMs={0}
+              className="flex-1 sm:min-w-[250px]"
             />
-            <FilterSelect
-              label="Availability"
-              variant="light"
-              className="w-full sm:min-w-[170px]"
-              value={currentAvailability || "all"}
-              onValueChange={(v) => handleFilterChange("availability", v)}
-              options={availabilityFilterOptions("All")}
-            />
+            {/* Filter Dropdowns */}
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
+              <FilterSelect
+                label="Genre"
+                variant="light"
+                className="w-full sm:min-w-[170px]"
+                value={currentGenre || "all"}
+                onValueChange={(v) => handleFilterChange("genre", v)}
+                options={genreFilterOptions(genres, "All")}
+              />
+              <FilterSelect
+                label="Availability"
+                variant="light"
+                className="w-full sm:min-w-[170px]"
+                value={currentAvailability || "all"}
+                onValueChange={(v) => handleFilterChange("availability", v)}
+                options={availabilityFilterOptions("All")}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <DismissibleFilterChips
-        variant="light"
-        groups={[
-          ...(currentGenre !== "all"
-            ? [
-                {
-                  label: "Genre",
-                  values: [currentGenre],
-                  onClear: () => handleFilterChange("genre", "all"),
-                  renderBadge: (value: string) => (
-                    <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                      {value}
-                    </span>
-                  ),
-                },
-              ]
-            : []),
-          ...(currentAvailability !== "all"
-            ? [
-                {
-                  label: "Availability",
-                  values: [currentAvailability],
-                  onClear: () => handleFilterChange("availability", "all"),
-                  renderBadge: (value: string) => (
-                    <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                      {value === "available"
-                        ? "Available"
-                        : value === "unavailable"
-                          ? "Unavailable"
-                          : value}
-                    </span>
-                  ),
-                },
-              ]
-            : []),
-        ]}
-        onReset={clearFilters}
-      />
+        <DismissibleFilterChips
+          variant="light"
+          groups={[
+            ...(currentGenre !== "all"
+              ? [
+                  {
+                    label: "Genre",
+                    values: [currentGenre],
+                    onClear: () => handleFilterChange("genre", "all"),
+                    renderBadge: (value: string) => (
+                      <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                        {value}
+                      </span>
+                    ),
+                  },
+                ]
+              : []),
+            ...(currentAvailability !== "all"
+              ? [
+                  {
+                    label: "Availability",
+                    values: [currentAvailability],
+                    onClear: () => handleFilterChange("availability", "all"),
+                    renderBadge: (value: string) => (
+                      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                        {value === "available"
+                          ? "Available"
+                          : value === "unavailable"
+                            ? "Unavailable"
+                            : value}
+                      </span>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+          onReset={clearFilters}
+        />
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button className="bg-primary-admin" asChild>
-          <Link href="/admin/books/new" className="text-white">
-            <Plus className="size-4" />
-            Create a New Book
-          </Link>
-        </Button>
-      </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button className="bg-primary-admin" asChild>
+            <Link href="/admin/books/new" className="text-white">
+              <Plus className="size-4" />
+              Create a New Book
+            </Link>
+          </Button>
+        </div>
 
-      <div className="mt-4 w-full overflow-hidden sm:mt-7">
-        {allBooks.length === 0 ? (
-          <div className="py-6 text-center sm:py-8">
-            <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
-              {hasActiveFilters
-                ? "No books found matching your criteria."
-                : "No books found. Create your first book!"}
-            </p>
-            {hasActiveFilters && (
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
-              >
-                <FilterX className="size-4" />
-                Clear All Filters
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {allBooks.map((book) => (
-              <div
-                key={book.id}
-                className="rounded-lg border border-gray-200 p-3 transition-shadow hover:shadow-md sm:p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                  <BookCover
-                    coverColor={book.coverColor}
-                    coverImage={book.coverUrl}
-                    className="h-16 w-12 sm:h-20 sm:w-16"
-                  />
+        <div className="mt-4 w-full overflow-hidden sm:mt-7">
+          {allBooks.length === 0 ? (
+            <div className="py-6 text-center sm:py-8">
+              <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
+                {hasActiveFilters
+                  ? "No books found matching your criteria."
+                  : "No books found. Create your first book!"}
+              </p>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
+                >
+                  <FilterX className="size-4" />
+                  Clear All Filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {allBooks.map((book) => (
+                <div
+                  key={book.id}
+                  className="rounded-lg border border-gray-200 p-3 transition-shadow hover:shadow-md sm:p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+                    <BookCover
+                      coverColor={book.coverColor}
+                      coverImage={book.coverUrl}
+                      className="h-16 w-12 sm:h-20 sm:w-16"
+                    />
 
-                  <div className="flex-1">
-                    <Link
-                      prefetch={false}
-                      href={`/books/${book.id}`}
-                      className="line-clamp-2 text-base font-semibold text-blue-700 hover:underline sm:text-lg"
-                    >
-                      {book.title}
-                    </Link>
-                    <p className="text-sm text-gray-600">by {book.author}</p>
-                    <p className="mt-1 text-xs text-gray-500">{book.genre}</p>
+                    <div className="flex-1">
+                      <Link
+                        prefetch={false}
+                        href={`/books/${book.id}`}
+                        className="line-clamp-2 text-base font-medium text-blue-700 hover:text-blue-600 sm:text-lg"
+                      >
+                        {book.title}
+                      </Link>
+                      <p className="text-sm text-gray-600">by {book.author}</p>
+                      <p className="mt-1 text-xs text-gray-500">{book.genre}</p>
 
-                    <div className="mt-3 space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>Total Copies:</span>
-                        <span className="font-medium">{book.totalCopies}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Available:</span>
-                        <span
-                          className={`font-medium ${
-                            book.availableCopies > 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {book.availableCopies}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Rating:</span>
-                        <span className="font-medium">{book.rating}/5</span>
-                      </div>
-
-                      {/* Enhanced Information */}
-                      {book.isbn && (
+                      <div className="mt-3 space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span>ISBN:</span>
-                          <span className="text-xs font-medium">
-                            {book.isbn}
-                          </span>
-                        </div>
-                      )}
-
-                      {book.publicationYear && (
-                        <div className="flex justify-between text-sm">
-                          <span>Published:</span>
+                          <span>Total Copies:</span>
                           <span className="font-medium">
-                            {book.publicationYear}
+                            {book.totalCopies}
                           </span>
                         </div>
-                      )}
-
-                      {book.publisher && (
                         <div className="flex justify-between text-sm">
-                          <span>Publisher:</span>
+                          <span>Available:</span>
                           <span
-                            className="max-w-20 truncate text-xs font-medium"
-                            title={book.publisher}
+                            className={`font-medium ${
+                              book.availableCopies > 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
                           >
-                            {book.publisher}
+                            {book.availableCopies}
                           </span>
                         </div>
-                      )}
+                        <div className="flex justify-between text-sm">
+                          <span>Rating:</span>
+                          <span className="font-medium">{book.rating}/5</span>
+                        </div>
 
-                      <div className="flex justify-between text-sm">
-                        <span>Status:</span>
-                        <span
-                          className={`font-medium ${
-                            book.isActive ? "text-green-600" : "text-red-600"
-                          }`}
-                        >
-                          {book.isActive ? "Active" : "Inactive"}
-                        </span>
+                        {/* Enhanced Information */}
+                        {book.isbn && (
+                          <div className="flex justify-between text-sm">
+                            <span>ISBN:</span>
+                            <span className="text-xs font-medium">
+                              {book.isbn}
+                            </span>
+                          </div>
+                        )}
+
+                        {book.publicationYear && (
+                          <div className="flex justify-between text-sm">
+                            <span>Published:</span>
+                            <span className="font-medium">
+                              {book.publicationYear}
+                            </span>
+                          </div>
+                        )}
+
+                        {book.publisher && (
+                          <div className="flex justify-between text-sm">
+                            <span>Publisher:</span>
+                            <span
+                              className="max-w-20 truncate text-xs font-medium"
+                              title={book.publisher}
+                            >
+                              {book.publisher}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-sm">
+                          <span>Status:</span>
+                          <span
+                            className={`font-medium ${
+                              book.isActive ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {book.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+
+                        {book.isFeatured ? (
+                          <div className="flex justify-between text-sm">
+                            <span>Featured:</span>
+                            <span className="font-medium text-blue-600">
+                              Homepage
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
 
-                      {book.isFeatured ? (
-                        <div className="flex justify-between text-sm">
-                          <span>Featured:</span>
-                          <span className="font-medium text-blue-600">
-                            Homepage
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
-                      <Button size="sm" asChild>
-                        <Link href={`/books/${book.id}`} prefetch={false} className="inline-flex items-center gap-2 text-white">
-                          <Eye className="size-4" />
-                          View Details
-                        </Link>
-                      </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <Link href={`/admin/books/${book.id}/edit`} className="inline-flex items-center gap-2">
-                          <Pencil className="size-4" />
-                          Edit Book
-                        </Link>
-                      </Button>
-                      <DeleteBookDialog
-                        bookId={book.id}
-                        bookTitle={book.title}
-                      />
+                      <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
+                        <Button size="sm" asChild>
+                          <Link
+                            href={`/books/${book.id}`}
+                            prefetch={false}
+                            className="inline-flex items-center gap-2 text-white"
+                          >
+                            <Eye className="size-4" />
+                            View Details
+                          </Link>
+                        </Button>
+                        <Button size="sm" variant="outline" asChild>
+                          <Link
+                            href={`/admin/books/${book.id}/edit`}
+                            className="inline-flex items-center gap-2"
+                          >
+                            <Pencil className="size-4" />
+                            Edit Book
+                          </Link>
+                        </Button>
+                        <DeleteBookDialog
+                          bookId={book.id}
+                          bookTitle={book.title}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </>
   );
 };
 

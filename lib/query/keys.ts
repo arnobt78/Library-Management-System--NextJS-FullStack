@@ -115,5 +115,7 @@ export const queryKeys = {
     systemMetrics: ["system-metrics"] as const,
     serviceHealth: ["service-health"] as const,
     analyticsRoot: ["analytics"] as const,
+    /** Sidebar muted counters (books/users/queues) — densify via patchAdminNavCounts */
+    navCounts: ["admin-nav-counts"] as const,
   },
 } as const;

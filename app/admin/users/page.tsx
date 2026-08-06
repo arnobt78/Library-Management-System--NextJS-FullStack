@@ -30,7 +30,11 @@ const Page = async ({
   }
 
   const [usersResult, adminRequestsResult, decisionsResult] = await Promise.all(
-    [getAllUsers(), getPendingAdminRequests(), getRecentAdminRequestDecisions()],
+    [
+      getAllUsers(),
+      getPendingAdminRequests(),
+      getRecentAdminRequestDecisions(),
+    ],
   );
 
   if (!usersResult.success) {
@@ -38,7 +42,7 @@ const Page = async ({
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-6">
         <div className="w-full">
           <div className="py-6 text-center sm:py-8">
-            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+            <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
               Failed to load users
             </p>
             <p className="text-xs text-gray-500 sm:text-sm">

@@ -39,7 +39,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
  * - Stat: bg-white rounded-xl p-5 space-y-5 flex-1
  * - Stat info: flex justify-between items-center gap-5
  * - Stat label: font-medium text-base
- * - Stat number: text-xl font-semibold
+ * - Stat number: text-xl font-medium
  * - Stat description: text-sm text-gray-500
  */
 interface AdminStatsSkeletonProps {

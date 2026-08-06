@@ -40,10 +40,12 @@ import {
   Loader2,
   Hourglass,
   BookOpen,
+  Bookmark,
   RotateCcw,
 } from "lucide-react";
 import type { BorrowStatus } from "@/lib/services/borrows";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 
 interface AdminBookRequestsListProps {
   /**
@@ -121,7 +123,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         currentStatus !== "all" ? (currentStatus as BorrowStatus) : undefined,
       search: currentSearch || undefined,
     }),
-    [currentStatus, currentSearch]
+    [currentStatus, currentSearch],
   );
 
   // Check if any filters are active
@@ -236,7 +238,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold sm:text-xl">Borrow Requests</h2>
+          <h2 className="text-lg font-medium sm:text-xl">Borrow Queue</h2>
         </div>
 
         <div className="mt-4 w-full overflow-hidden sm:mt-7">
@@ -255,7 +257,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     return (
       <section className="admin-panel">
         <div className="py-6 text-center sm:py-8">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
             Failed to load borrow requests
           </p>
           <p className="text-xs text-gray-500 sm:text-sm">
@@ -272,245 +274,327 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   const pendingCount = requests.filter((r) => r.status === "PENDING").length;
   const borrowedCount = requests.filter((r) => r.status === "BORROWED").length;
   const returnedCount = requests.filter((r) => r.status === "RETURNED").length;
-  const cancelledCount = requests.filter((r) => r.status === "CANCELLED").length;
+  const cancelledCount = requests.filter(
+    (r) => r.status === "CANCELLED",
+  ).length;
 
   return (
-    <section className="admin-panel">
-      {/* KPI Statistics Cards */}
-      <StatCardGrid className="mb-4 sm:mb-6">
-        <StatCard title="Total Requests" value={requests.length} icon={BookOpen} hue="blue" />
-        <StatCard title="Pending" value={pendingCount} icon={Hourglass} hue="amber" />
-        <StatCard title="Borrowed" value={borrowedCount} icon={CheckCircle} hue="violet" />
-        <StatCard title="Returned" value={returnedCount} icon={RotateCcw} hue="emerald" />
-        <StatCard title="Cancelled" value={cancelledCount} icon={XCircle} hue="rose" />
-      </StatCardGrid>
-
-      {/* Success/Error Messages */}
-      {successMessage && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <svg
-                className="size-5 text-green-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule={"evenodd" as const}
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule={"evenodd" as const}
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">
-                {successMessage === "approved" &&
-                  "✅ Borrow Request Approved Successfully!"}
-                {successMessage === "rejected" &&
-                  "✅ Borrow Request Rejected Successfully!"}
-                {successMessage === "returned" &&
-                  "✅ Book Returned Successfully!"}
-              </h3>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {errorMessage && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <svg
-                className="size-5 text-red-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule={"evenodd" as const}
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule={"evenodd" as const}
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
-                ❌ Operation Failed
-              </h3>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
-          Borrow Requests ({requests.length})
-        </h2>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          {/* Instant debounced search — this component already debounces the URL push itself (see effect above), so debounceMs=0 avoids stacking two delays */}
-          <SearchInput
-            value={localSearch}
-            onChange={setLocalSearch}
-            placeholder="Search by book, author, user..."
-            debounceMs={0}
-            className="flex-1 sm:min-w-[250px]"
-          />
-          <FilterSelect
-            label="Status"
-            variant="light"
-            className="w-full sm:min-w-[170px]"
-            value={currentStatus || "all"}
-            onValueChange={(v) => handleFilterChange("status", v)}
-            options={borrowStatusFilterOptions()}
-          />
-        </div>
-      </div>
-
-      <DismissibleFilterChips
-        variant="light"
-        groups={
-          currentStatus !== "all"
-            ? [
-                {
-                  label: "Status",
-                  values: [currentStatus],
-                  onClear: () => handleFilterChange("status", "all"),
-                  renderBadge: (value: string) => {
-                    const opt = borrowStatusFilterOptions().find(
-                      (o) => o.value === value,
-                    );
-                    return (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
-                        {opt?.label ?? value}
-                      </span>
-                    );
-                  },
-                },
-              ]
-            : []
-        }
-        onReset={clearFilters}
+    <>
+      <AdminPageHeader
+        title="Borrow Queue"
+        description="Approve, reject, and return borrow requests"
+        icon={Bookmark}
       />
+      <section className="admin-panel">
+        {/* KPI Statistics Cards */}
+        <StatCardGrid className="mb-4 sm:mb-6">
+          <StatCard
+            title="Total Requests"
+            value={requests.length}
+            icon={BookOpen}
+            hue="blue"
+          />
+          <StatCard
+            title="Pending"
+            value={pendingCount}
+            icon={Hourglass}
+            hue="amber"
+          />
+          <StatCard
+            title="Borrowed"
+            value={borrowedCount}
+            icon={CheckCircle}
+            hue="violet"
+          />
+          <StatCard
+            title="Returned"
+            value={returnedCount}
+            icon={RotateCcw}
+            hue="emerald"
+          />
+          <StatCard
+            title="Cancelled"
+            value={cancelledCount}
+            icon={XCircle}
+            hue="rose"
+          />
+        </StatCardGrid>
 
-      <div className="mt-4 w-full overflow-hidden sm:mt-7">
-        <div className="space-y-3 sm:space-y-4">
-          {requests.length === 0 ? (
-            <div className="py-6 text-center sm:py-8">
-              <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
-                {hasActiveFilters
-                  ? "No borrow requests found matching your criteria."
-                  : "No borrow requests found."}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
+        {/* Success/Error Messages */}
+        {successMessage && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
+            <div className="flex items-center">
+              <div className="shrink-0">
+                <svg
+                  className="size-5 text-green-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
                 >
-                  <FilterX className="size-4" />
-                  Clear All Filters
-                </Button>
-              )}
+                  <path
+                    fillRule={"evenodd" as const}
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule={"evenodd" as const}
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-green-800">
+                  {successMessage === "approved" &&
+                    "✅ Borrow Request Approved Successfully!"}
+                  {successMessage === "rejected" &&
+                    "✅ Borrow Request Rejected Successfully!"}
+                  {successMessage === "returned" &&
+                    "✅ Book Returned Successfully!"}
+                </h3>
+              </div>
             </div>
-          ) : (
-            requests.map((request) => (
-              <div
-                key={request.id}
-                className="rounded-lg border border-gray-200 p-3 hover:bg-gray-50 sm:p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                  {/* Book Cover */}
-                  <div className="shrink-0">
-                    <BookCover
-                      coverColor={request.bookCoverColor || ""}
-                      coverImage={request.bookCoverUrl || ""}
-                      className="h-16 w-12 sm:h-20 sm:w-16"
-                    />
-                  </div>
+          </div>
+        )}
 
-                  {/* Request Details */}
-                  <div className="flex-1">
-                    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
-                      <div>
-                        <Link
-                          prefetch={false}
-                          href={`/admin/books/${request.bookId}/edit`}
-                          className="text-base font-semibold text-blue-700 hover:underline sm:text-lg"
-                        >
-                          {request.bookTitle}
-                        </Link>
-                        <p className="text-gray-600">by {request.bookAuthor}</p>
-                        <p className="text-sm text-gray-500">
-                          {request.bookGenre}
-                        </p>
+        {errorMessage && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
+            <div className="flex items-center">
+              <div className="shrink-0">
+                <svg
+                  className="size-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule={"evenodd" as const}
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule={"evenodd" as const}
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  ❌ Operation Failed
+                </h3>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <h2 className="text-lg font-medium text-dark-400 sm:text-xl">
+            Borrow Queue ({requests.length})
+          </h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            {/* Instant debounced search — this component already debounces the URL push itself (see effect above), so debounceMs=0 avoids stacking two delays */}
+            <SearchInput
+              value={localSearch}
+              onChange={setLocalSearch}
+              placeholder="Search by book, author, user..."
+              debounceMs={0}
+              className="flex-1 sm:min-w-[250px]"
+            />
+            <FilterSelect
+              label="Status"
+              variant="light"
+              className="w-full sm:min-w-[170px]"
+              value={currentStatus || "all"}
+              onValueChange={(v) => handleFilterChange("status", v)}
+              options={borrowStatusFilterOptions()}
+            />
+          </div>
+        </div>
+
+        <DismissibleFilterChips
+          variant="light"
+          groups={
+            currentStatus !== "all"
+              ? [
+                  {
+                    label: "Status",
+                    values: [currentStatus],
+                    onClear: () => handleFilterChange("status", "all"),
+                    renderBadge: (value: string) => {
+                      const opt = borrowStatusFilterOptions().find(
+                        (o) => o.value === value,
+                      );
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                          {opt?.label ?? value}
+                        </span>
+                      );
+                    },
+                  },
+                ]
+              : []
+          }
+          onReset={clearFilters}
+        />
+
+        <div className="mt-4 w-full overflow-hidden sm:mt-7">
+          <div className="space-y-3 sm:space-y-4">
+            {requests.length === 0 ? (
+              <div className="py-6 text-center sm:py-8">
+                <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
+                  {hasActiveFilters
+                    ? "No borrow requests found matching your criteria."
+                    : "No borrow requests found."}
+                </p>
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
+                  >
+                    <FilterX className="size-4" />
+                    Clear All Filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              requests.map((request) => (
+                <div
+                  key={request.id}
+                  className="rounded-lg border border-gray-200 p-3 hover:bg-gray-50 sm:p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+                    {/* Book Cover */}
+                    <div className="shrink-0">
+                      <BookCover
+                        coverColor={request.bookCoverColor || ""}
+                        coverImage={request.bookCoverUrl || ""}
+                        className="h-16 w-12 sm:h-20 sm:w-16"
+                      />
+                    </div>
+
+                    {/* Request Details */}
+                    <div className="flex-1">
+                      <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                        <div>
+                          <Link
+                            prefetch={false}
+                            href={`/admin/books/${request.bookId}/edit`}
+                            className="text-base font-medium text-blue-700 hover:text-blue-600 sm:text-lg"
+                          >
+                            {request.bookTitle}
+                          </Link>
+                          <p className="text-gray-600">
+                            by {request.bookAuthor}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {request.bookGenre}
+                          </p>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium">Borrower Details</h4>
+                          <Link
+                            prefetch={false}
+                            href={`/admin/users/${request.userId}`}
+                            className="text-sm text-blue-700 hover:text-blue-600"
+                          >
+                            {request.userName}
+                          </Link>
+                          <p className="text-sm text-gray-600">
+                            {request.userEmail}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            ID: {request.userUniversityId}
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <h4 className="font-medium">Borrower Details</h4>
-                        <Link
-                          prefetch={false}
-                          href={`/admin/users/${request.userId}`}
-                          className="text-sm text-blue-700 hover:underline"
-                        >
-                          {request.userName}
-                        </Link>
-                        <p className="text-sm text-gray-600">
-                          {request.userEmail}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          ID: {request.userUniversityId}
-                        </p>
+                      <div className="mt-3 grid grid-cols-1 gap-3 text-xs sm:mt-4 sm:gap-4 sm:text-sm md:grid-cols-3">
+                        <div>
+                          <span className="font-medium">
+                            {request.status === "PENDING"
+                              ? "Request Created At:"
+                              : "Borrow Date:"}
+                          </span>
+                          <p>
+                            {request.borrowDate
+                              ? new Date(
+                                  request.borrowDate,
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Due Date:</span>
+                          <p>
+                            {request.dueDate
+                              ? new Date(request.dueDate).toLocaleDateString()
+                              : request.status === "PENDING"
+                                ? "N/A (7 days from approval)"
+                                : "Not set"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span>
+                          <span
+                            className={`ml-2 rounded-full px-2 py-1 text-xs font-medium ${
+                              request.status === "PENDING"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : request.status === "BORROWED"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : request.status === "CANCELLED"
+                                    ? "bg-rose-100 text-rose-800"
+                                    : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {request.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-1 gap-3 text-xs sm:mt-4 sm:gap-4 sm:text-sm md:grid-cols-3">
-                      <div>
-                        <span className="font-medium">
-                          {request.status === "PENDING"
-                            ? "Request Created At:"
-                            : "Borrow Date:"}
-                        </span>
-                        <p>
-                          {request.borrowDate
-                            ? new Date(request.borrowDate).toLocaleDateString()
-                            : "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Due Date:</span>
-                        <p>
-                          {request.dueDate
-                            ? new Date(request.dueDate).toLocaleDateString()
-                            : request.status === "PENDING"
-                              ? "N/A (7 days from approval)"
-                              : "Not set"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <span
-                          className={`ml-2 rounded-full px-2 py-1 text-xs font-medium ${
-                            request.status === "PENDING"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : request.status === "BORROWED"
-                                ? "bg-blue-100 text-blue-800"
-                                : request.status === "CANCELLED"
-                                  ? "bg-rose-100 text-rose-800"
-                                  : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {request.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions — per-row spinner while this record's mutation runs */}
-                  <div className="w-full shrink-0 sm:w-auto">
-                    {request.status === "PENDING" && (
-                      <div className="flex flex-col gap-2 sm:flex-row">
+                    {/* Actions — per-row spinner while this record's mutation runs */}
+                    <div className="w-full shrink-0 sm:w-auto">
+                      {request.status === "PENDING" && (
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApproveBorrow(request.id)}
+                            disabled={
+                              actionRecordId != null &&
+                              actionRecordId !== request.id
+                                ? true
+                                : actionRecordId === request.id
+                            }
+                          >
+                            {actionRecordId === request.id &&
+                            actionKind === "approve" ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <CheckCircle className="size-4" />
+                            )}
+                            {actionRecordId === request.id &&
+                            actionKind === "approve"
+                              ? "Approving…"
+                              : "Approve"}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleRejectBorrow(request.id)}
+                            disabled={
+                              actionRecordId != null &&
+                              actionRecordId !== request.id
+                                ? true
+                                : actionRecordId === request.id
+                            }
+                          >
+                            {actionRecordId === request.id &&
+                            actionKind === "reject" ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <XCircle className="size-4" />
+                            )}
+                            {actionRecordId === request.id &&
+                            actionKind === "reject"
+                              ? "Rejecting…"
+                              : "Reject"}
+                          </Button>
+                        </div>
+                      )}
+                      {request.status === "BORROWED" && (
                         <Button
                           className="bg-green-600 hover:bg-green-700"
-                          onClick={() => handleApproveBorrow(request.id)}
+                          onClick={() => handleReturnBook(request.id)}
                           disabled={
                             actionRecordId != null &&
                             actionRecordId !== request.id
@@ -519,78 +603,34 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                           }
                         >
                           {actionRecordId === request.id &&
-                          actionKind === "approve" ? (
+                          actionKind === "return" ? (
                             <Loader2 className="size-4 animate-spin" />
                           ) : (
-                            <CheckCircle className="size-4" />
+                            <Undo2 className="size-4" />
                           )}
                           {actionRecordId === request.id &&
-                          actionKind === "approve"
-                            ? "Approving…"
-                            : "Approve"}
+                          actionKind === "return"
+                            ? "Returning…"
+                            : "Mark as Returned"}
                         </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={() => handleRejectBorrow(request.id)}
-                          disabled={
-                            actionRecordId != null &&
-                            actionRecordId !== request.id
-                              ? true
-                              : actionRecordId === request.id
-                          }
-                        >
-                          {actionRecordId === request.id &&
-                          actionKind === "reject" ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <XCircle className="size-4" />
-                          )}
-                          {actionRecordId === request.id &&
-                          actionKind === "reject"
-                            ? "Rejecting…"
-                            : "Reject"}
-                        </Button>
-                      </div>
-                    )}
-                    {request.status === "BORROWED" && (
-                      <Button
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => handleReturnBook(request.id)}
-                        disabled={
-                          actionRecordId != null &&
-                          actionRecordId !== request.id
-                            ? true
-                            : actionRecordId === request.id
-                        }
-                      >
-                        {actionRecordId === request.id &&
-                        actionKind === "return" ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Undo2 className="size-4" />
-                        )}
-                        {actionRecordId === request.id &&
-                        actionKind === "return"
-                          ? "Returning…"
-                          : "Mark as Returned"}
-                      </Button>
-                    )}
-                    {request.status === "RETURNED" && (
-                      <div className="text-sm text-gray-500">
-                        Returned on:{" "}
-                        {request.returnDate
-                          ? new Date(request.returnDate).toLocaleDateString()
-                          : "N/A"}
-                      </div>
-                    )}
+                      )}
+                      {request.status === "RETURNED" && (
+                        <div className="text-sm text-gray-500">
+                          Returned on:{" "}
+                          {request.returnDate
+                            ? new Date(request.returnDate).toLocaleDateString()
+                            : "N/A"}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 };
 

@@ -176,7 +176,7 @@ export default function AdminSupportTicketDetailContent({
       </div>
 
       <div className="admin-panel w-full space-y-2">
-        <h1 className="text-lg font-semibold text-sky-700 sm:text-xl">
+        <h1 className="text-lg font-medium text-sky-700 sm:text-xl">
           {ticket.subject}
         </h1>
         <TicketDateMeta

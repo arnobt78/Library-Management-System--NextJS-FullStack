@@ -15,6 +15,7 @@ import {
   isDensifiedEmpty,
   seedFromSsrIfEmpty,
 } from "@/lib/utils/queryCacheLists";
+import { EMPTY_ADMIN_NAV_COUNTS } from "@/lib/admin/adminNavCountTypes";
 
 const pendingUser: User = {
   id: "u-1",
@@ -97,5 +98,31 @@ describe("applyOptimisticSignupDecision", () => {
     expect(
       seedFromSsrIfEmpty(client, pendingKey, [pendingUser]),
     ).toEqual([]);
+  });
+
+  it("syncs pendingSignUps nav pill after optimistic remove", async () => {
+    const client = new QueryClient();
+    const pendingKey = queryKeys.users.pending();
+    const sibling: User = { ...pendingUser, id: "u-2", email: "b@example.com" };
+    client.setQueryData(pendingKey, [pendingUser, sibling]);
+    client.setQueryData(queryKeys.admin.navCounts, {
+      ...EMPTY_ADMIN_NAV_COUNTS,
+      pendingSignUps: 2,
+    });
+
+    await applyOptimisticSignupDecision(client, {
+      userId: "u-1",
+      status: "APPROVED",
+      decisionActor: {
+        id: "admin-1",
+        fullName: "Test Admin",
+        email: "test@admin.com",
+        universityCard: null,
+      },
+    });
+
+    expect(client.getQueryData(queryKeys.admin.navCounts)).toMatchObject({
+      pendingSignUps: 1,
+    });
   });
 });

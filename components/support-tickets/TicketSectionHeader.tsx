@@ -50,7 +50,7 @@ export function TicketSectionHeader({
         <div className="min-w-0">
           <h2
             className={cn(
-              "text-base font-semibold sm:text-lg",
+              "text-base font-medium sm:text-lg",
               isDark ? "text-light-100" : "text-dark-400",
             )}
           >

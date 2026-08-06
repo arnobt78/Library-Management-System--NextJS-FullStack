@@ -367,7 +367,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     return (
       <div className="w-full">
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+          <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
             Book Collection
           </h1>
           <p className="text-sm text-light-200 sm:text-base">
@@ -398,13 +398,13 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     return (
       <div className="w-full">
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+          <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
             Book Collection
           </h1>
         </div>
         <Card>
           <CardContent className="empty-panel">
-            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+            <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
               Failed to load books
             </p>
             <p className="text-xs text-gray-500 sm:text-sm">
@@ -422,7 +422,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     <div className="w-full">
       {/* Page title */}
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+        <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
           Book Collection
         </h1>
         <p className="text-sm text-light-200 sm:text-base">

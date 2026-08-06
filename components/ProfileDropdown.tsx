@@ -24,6 +24,8 @@ import { UTILITY_NAVIGATION_ITEMS } from "@/constants/navigation";
 import { usePathname } from "next/navigation";
 import { LogOut, Loader2, ShieldCheck } from "lucide-react";
 import { setPendingAuthToast } from "@/lib/auth/authToast";
+import type { HeaderTone } from "@/components/RootHeaderShell";
+import { cn } from "@/lib/utils";
 
 interface ProfileDropdownProps {
   fullName: string;
@@ -31,6 +33,8 @@ interface ProfileDropdownProps {
   universityId: number;
   universityCard: string;
   isAdmin: boolean;
+  /** Admin layout passes "light"; public headers keep default "dark". */
+  tone?: HeaderTone;
 }
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
@@ -39,9 +43,11 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   universityId,
   universityCard,
   isAdmin,
+  tone = "dark",
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
+  const isLight = tone === "light";
 
   const handleLogout = async () => {
     // Prevent multiple clicks
@@ -80,13 +86,20 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <button className="relative size-8 overflow-hidden rounded-full border-2 border-gray-600 transition-all hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800 sm:size-10">
+        <button
+          className={cn(
+            "relative inline-flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 sm:size-10",
+            isLight
+              ? "border-slate-300 hover:border-slate-400 focus:ring-slate-400/50 focus:ring-offset-white"
+              : "border-gray-600 hover:border-gray-500 focus:ring-gray-500 focus:ring-offset-gray-800",
+          )}
+        >
           <UserAvatar
             universityCard={universityCard}
             fullName={fullName}
             email={email}
             size={40}
-            className="size-full"
+            className="block size-full"
           />
         </button>
       </DropdownMenuTrigger>
@@ -96,7 +109,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       >
         <DropdownMenuLabel className="px-2.5 py-1.5 sm:px-3 sm:py-2">
           <div className=" sm:space-y-1">
-            <p className="text-xs font-semibold text-light-100 sm:text-sm">
+            <p className="text-xs font-medium text-light-100 sm:text-sm">
               {fullName}
             </p>
             <p className="text-[10px] text-light-200/70 sm:text-xs">{email}</p>

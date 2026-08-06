@@ -35,6 +35,7 @@ import {
 import { computeTicketListStats } from "@/lib/ui/ticketStats";
 import PersonAttribution from "@/components/PersonAttribution";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { TicketSubjectCell } from "@/components/support-tickets/TicketSubjectCell";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
 import { SupportTicketRowActions } from "@/components/support-tickets/SupportTicketRowActions";
@@ -241,6 +242,11 @@ export default function SupportTicketList({
 
   return (
     <section className="space-y-4 sm:space-y-6">
+      <AdminPageHeader
+        title="Support Tickets"
+        description="Open and in-progress requester tickets"
+        icon={Ticket}
+      />
       <StatCardGrid>
         <StatCard title="Total Tickets" value={stats.total} icon={Ticket} hue="blue" />
         <StatCard title="Open" value={stats.open} icon={CircleDot} hue="rose" />

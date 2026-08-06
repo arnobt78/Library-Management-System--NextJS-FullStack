@@ -27,7 +27,7 @@ export function AdminListToolbar({
   return (
     <div className="mb-4 sm:mb-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
+        <h2 className="text-lg font-medium text-dark-400 sm:text-xl">
           {count !== undefined ? `${title} (${count})` : title}
         </h2>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">

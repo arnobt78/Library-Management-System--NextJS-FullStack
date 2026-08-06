@@ -14,7 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useNotifications, useUnreadNotificationCount } from "@/hooks/useQueries";
+import {
+  useNotifications,
+  useUnreadNotificationCount,
+} from "@/hooks/useQueries";
 import NotificationDropdown from "@/components/NotificationDropdown";
 
 export interface NotificationBellProps {
@@ -50,7 +53,7 @@ export default function NotificationBell({
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
           className={cn(
             // Always-visible chrome — rose glass like stock-inventory navbar bell
-            "relative flex size-8 items-center justify-center rounded-full border transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:size-10",
+            "relative inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:size-10",
             isDark
               ? "border-rose-400/30 bg-gradient-to-r from-rose-500/25 via-rose-500/15 to-rose-500/10 text-rose-300 shadow-[0_10px_30px_rgba(225,29,72,0.2)] backdrop-blur-md hover:border-rose-300/40 hover:from-rose-500/35 hover:via-rose-500/25 hover:to-rose-500/15 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
               : "border-rose-400/25 bg-gradient-to-r from-rose-500/15 via-rose-500/10 to-rose-500/5 text-rose-500 shadow-[0_8px_20px_rgba(225,29,72,0.12)] hover:border-rose-400/40 hover:from-rose-500/25 hover:via-rose-500/15 hover:to-rose-500/10 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
@@ -61,7 +64,7 @@ export default function NotificationBell({
           {unreadCount > 0 ? (
             <span
               className={cn(
-                "absolute -right-0.5 -top-0.5 flex min-w-[1.1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-[1.1rem]",
+                "absolute -right-0.5 -top-0.5 flex min-w-[1.1rem] items-center justify-center rounded-full px-1 text-[10px] font-medium leading-[1.1rem]",
                 "border-2 bg-rose-500 text-white",
                 isDark ? "border-gray-900" : "border-white",
               )}

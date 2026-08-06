@@ -21,9 +21,10 @@ export const GLASS_MENU = {
 /** Dark-glass destructive confirm (review/ticket delete on root shell). */
 export const GLASS_ALERT = {
   content: "border-gray-600 bg-gray-800/95 text-light-100 shadow-lg",
-  title: "text-base font-semibold text-light-100 sm:text-lg",
+  title: "text-base font-medium text-light-100 sm:text-lg",
   description: "text-xs text-light-200 sm:text-sm",
-  preview: "rounded-md border border-gray-600 bg-gray-900/40 p-2.5 text-light-100",
+  preview:
+    "rounded-md border border-gray-600 bg-gray-900/40 p-2.5 text-light-100",
   cancel:
     "mt-0 w-full border-gray-500 bg-gray-600 text-xs text-white hover:bg-gray-500 hover:text-white sm:w-auto sm:text-sm",
   destructive:
@@ -33,7 +34,8 @@ export const GLASS_ALERT = {
 
 /** Admin / light panel action menu. */
 export const LIGHT_MENU = {
-  content: "z-50 w-40 border-gray-200 bg-white p-1 text-dark-400 shadow-md sm:w-44",
+  content:
+    "z-50 w-40 border-gray-200 bg-white p-1 text-dark-400 shadow-md sm:w-44",
   item: "cursor-pointer gap-2 rounded-sm text-xs text-dark-400 focus:bg-gray-100 focus:text-dark-400 data-[highlighted]:bg-gray-100 data-[highlighted]:text-dark-400 sm:text-sm",
   itemDestructive:
     "cursor-pointer gap-2 rounded-sm text-xs text-red-600 focus:bg-red-50 focus:text-red-700 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700 sm:text-sm",
@@ -45,7 +47,7 @@ export const LIGHT_MENU = {
 /** Admin / light destructive confirm. */
 export const LIGHT_ALERT = {
   content: "border-gray-200 bg-white text-dark-400 shadow-lg",
-  title: "text-base font-semibold text-dark-400 sm:text-lg",
+  title: "text-base font-medium text-dark-400 sm:text-lg",
   description: "text-xs text-gray-500 sm:text-sm",
   preview: "rounded-md border border-gray-200 bg-gray-50 p-2.5 text-dark-400",
   cancel:

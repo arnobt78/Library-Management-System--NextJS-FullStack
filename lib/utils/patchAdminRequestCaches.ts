@@ -11,6 +11,16 @@ import {
   clearDensifiedEmpty,
   markDensifiedEmpty,
 } from "@/lib/utils/queryCacheLists";
+import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
+
+/** Sync User Management pill when pending make-admin queue is cached. */
+export function syncPendingAdminNav(queryClient: QueryClient): void {
+  const rows = queryClient.getQueryData<AdminRequest[]>(
+    queryKeys.admin.pendingRequests,
+  );
+  if (!Array.isArray(rows)) return;
+  patchAdminNavCounts(queryClient, { pendingAdminRequests: rows.length });
+}
 
 /** Upsert a PENDING request into the make-admin pending queue. */
 export function densifyAdminRequestCreate(
@@ -24,6 +34,7 @@ export function densifyAdminRequestCreate(
     return [{ ...request, status: "PENDING" }, ...without];
   });
   clearDensifiedEmpty(key);
+  syncPendingAdminNav(queryClient);
 }
 
 /** Remove a request from pending (cancel / after decide). */
@@ -39,6 +50,7 @@ export function densifyAdminRequestRemovePending(
   if (Array.isArray(next) && next.length === 0) {
     markDensifiedEmpty(key);
   }
+  syncPendingAdminNav(queryClient);
 }
 
 /**

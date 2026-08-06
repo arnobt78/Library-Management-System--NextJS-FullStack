@@ -40,6 +40,7 @@ import {
   Loader2,
   CalendarPlus,
   CalendarCheck,
+  UserPlus,
 } from "lucide-react";
 import { usePendingUsers, useSignupStatusDecisions } from "@/hooks/useQueries";
 import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
@@ -51,7 +52,7 @@ import type { User as UserType } from "@/lib/services/users";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
-import { UserPlus } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 
 interface AccountRequestsClientProps {
   /**
@@ -216,20 +217,13 @@ const AccountRequestsClient = ({
   // Show skeleton while loading (only if no initial data)
   if (usersLoading && (!initialUsers || initialUsers.length === 0)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-0 sm:p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ">
         <div className="w-full">
-          <div className="mb-6 sm:mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900 sm:text-3xl">
-                  Sign-up Requests
-                </h1>
-                <p className="mt-1.5 text-sm text-gray-600 sm:mt-2 sm:text-base">
-                  Review and approve pending user registrations
-                </p>
-              </div>
-            </div>
-          </div>
+          <AdminPageHeader
+            title="Registration Queue"
+            description="Approve or reject new library sign-ups"
+            icon={UserPlus}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
@@ -244,10 +238,10 @@ const AccountRequestsClient = ({
   // Show error state
   if (usersError && (!initialUsers || initialUsers.length === 0)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-0 sm:p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ">
         <div className="w-full">
           <div className="py-6 text-center sm:py-8">
-            <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+            <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
               Failed to load sign-up requests
             </p>
             <p className="text-xs text-gray-500 sm:text-sm">
@@ -262,51 +256,52 @@ const AccountRequestsClient = ({
   }
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gradient-to-br from-slate-50 to-blue-50 p-0 sm:p-6">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gradient-to-br from-slate-50 to-blue-50 ">
       <div className="w-full">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="break-words text-xl font-semibold text-gray-900 sm:text-3xl">
-                Sign-up Requests
-              </h1>
-              <p className="mt-1.5 break-words text-sm text-gray-600 sm:mt-2 sm:text-base">
-                Review and approve pending user registrations
-              </p>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-              {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
-              <SearchInput
-                value={localSearch}
-                onChange={setLocalSearch}
-                placeholder="Search by name, email, ID..."
-                debounceMs={0}
-                className="flex-1 sm:min-w-[250px]"
-              />
-              <div className="flex w-full items-center justify-start sm:w-auto sm:justify-center">
-                <div className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 sm:px-3">
-                  <span className="whitespace-nowrap text-xs font-medium text-orange-800 sm:text-sm">
-                    {users.length} Pending
-                  </span>
-                </div>
-              </div>
+        <AdminPageHeader
+          title="Registration Queue"
+          description="Approve or reject new library sign-ups"
+          icon={UserPlus}
+        />
+        <div className="mb-4 flex w-full flex-col gap-2 sm:mb-6 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
+          <SearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            placeholder="Search by name, email, ID..."
+            debounceMs={0}
+            className="flex-1 sm:min-w-[250px]"
+          />
+          <div className="flex w-full items-center justify-start sm:w-auto sm:justify-center">
+            <div className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 sm:px-3">
+              <span className="whitespace-nowrap text-xs font-medium text-orange-800 sm:text-sm">
+                {users.length} Pending
+              </span>
             </div>
           </div>
         </div>
 
         {/* KPI Statistics Cards */}
         <StatCardGrid className="mb-4 sm:mb-6">
-          <StatCard title="Pending Requests" value={users.length} icon={UserPlus} hue="amber" />
+          <StatCard
+            title="Pending Requests"
+            value={users.length}
+            icon={UserPlus}
+            hue="amber"
+          />
           <StatCard
             title="Recent Approved"
-            value={recentDecisions.filter((d) => d.status === "APPROVED").length}
+            value={
+              recentDecisions.filter((d) => d.status === "APPROVED").length
+            }
             icon={CheckCircle}
             hue="emerald"
           />
           <StatCard
             title="Recent Rejected"
-            value={recentDecisions.filter((d) => d.status === "REJECTED").length}
+            value={
+              recentDecisions.filter((d) => d.status === "REJECTED").length
+            }
             icon={XCircle}
             hue="rose"
           />
@@ -386,9 +381,7 @@ const AccountRequestsClient = ({
                 onApprove={handleApproveUser}
                 onReject={handleRejectUser}
                 isPending={actionUserId === user.id}
-                pendingKind={
-                  actionUserId === user.id ? actionKind : null
-                }
+                pendingKind={actionUserId === user.id ? actionKind : null}
                 actionsDisabled={
                   actionUserId != null && actionUserId !== user.id
                 }
@@ -400,7 +393,7 @@ const AccountRequestsClient = ({
         {/* Recent signup decisions — applicant + reviewer attribution */}
         {recentDecisions.length > 0 ? (
           <div className="mt-6 sm:mt-8">
-            <h3 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">
+            <h3 className="mb-4 text-base font-medium text-gray-900 sm:text-lg">
               Recent decisions ({recentDecisions.length})
             </h3>
             <div className="space-y-3 sm:space-y-4">
@@ -468,7 +461,10 @@ const AccountRequestsClient = ({
                           : null
                       }
                     />
-                    <DateMetaLine icon={CalendarCheck} className={`mt-1 ${mutedClass}`}>
+                    <DateMetaLine
+                      icon={CalendarCheck}
+                      className={`mt-1 ${mutedClass}`}
+                    >
                       {decision.decidedAt
                         ? new Date(decision.decidedAt).toLocaleString()
                         : "N/A"}
@@ -531,7 +527,7 @@ const AccountRequestCard = ({
           <div className="flex items-center gap-2 sm:space-x-3">
             <Avatar className="size-10 sm:size-12">
               <AvatarImage src="" />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-semibold text-white sm:text-sm">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-medium text-white sm:text-sm">
                 {getInitials(user.fullName)}
               </AvatarFallback>
             </Avatar>
@@ -539,7 +535,7 @@ const AccountRequestCard = ({
               <Link
                 prefetch={false}
                 href={`/admin/users/${user.id}`}
-                className="break-words text-base font-semibold text-blue-700 hover:underline sm:text-lg"
+                className="break-words text-base font-medium text-blue-700 hover:text-blue-600 sm:text-lg"
               >
                 {user.fullName}
               </Link>

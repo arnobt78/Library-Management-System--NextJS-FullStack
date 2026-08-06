@@ -24,7 +24,7 @@ export default function GlobalError({
     <html lang="en">
       <body className="min-h-dvh bg-dark-100 text-light-100 antialiased">
         <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
-          <h1 className="text-2xl font-semibold">Something went wrong</h1>
+          <h1 className="text-2xl font-medium">Something went wrong</h1>
           <p className="text-sm text-light-100/70">
             An unexpected error occurred. You can try again, or return home.
           </p>

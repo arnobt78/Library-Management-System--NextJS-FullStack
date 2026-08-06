@@ -89,7 +89,7 @@ const PerformanceDashboard = ({
         <div className="mb-0">
           {embedded ? (
             <>
-              <h2 className="text-xl font-semibold text-light-100 sm:text-3xl">
+              <h2 className="text-xl font-medium text-light-100 sm:text-3xl">
                 Client Performance
               </h2>
               <p className="text-sm text-light-200 sm:text-base">
@@ -99,7 +99,7 @@ const PerformanceDashboard = ({
             </>
           ) : (
             <>
-              <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+              <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
                 Performance Dashboard
               </h1>
               <p className="text-sm text-light-200 sm:text-base">
@@ -116,7 +116,7 @@ const PerformanceDashboard = ({
             subtitle="SSR delivers HTML first; React Query hydrates interactive data"
           />
           <Card className={GLASS_CARD}>
-            <CardContent className="space-y-3 p-4 sm:space-y-4 sm:p-5">
+            <CardContent className="space-y-3 p-2 sm:space-y-4 sm:p-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div className={cn(GLASS_TILE, "space-y-2")}>
                   <div className="flex flex-wrap items-center gap-2">
@@ -198,11 +198,11 @@ const PerformanceDashboard = ({
                 Average Page Load Time
               </p>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-xl font-semibold text-light-100">
+                <span className="text-xl font-medium text-light-100">
                   {averagePageLoadTime.toFixed(0)}ms
                 </span>
                 <span
-                  className={`text-base font-semibold sm:text-lg ${pageGrade.color}`}
+                  className={`text-base font-medium sm:text-lg ${pageGrade.color}`}
                 >
                   {pageGrade.grade}
                 </span>
@@ -213,11 +213,11 @@ const PerformanceDashboard = ({
                 Average Query Time
               </p>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-xl font-semibold text-light-100">
+                <span className="text-xl font-medium text-light-100">
                   {averageQueryTime.toFixed(0)}ms
                 </span>
                 <span
-                  className={`text-base font-semibold sm:text-lg ${queryGrade.color}`}
+                  className={`text-base font-medium sm:text-lg ${queryGrade.color}`}
                 >
                   {queryGrade.grade}
                 </span>
@@ -228,11 +228,11 @@ const PerformanceDashboard = ({
                 Cache Hit Rate
               </p>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-xl font-semibold text-light-100">
+                <span className="text-xl font-medium text-light-100">
                   {cacheHitRate.toFixed(1)}%
                 </span>
                 <span
-                  className={`text-base font-semibold sm:text-lg ${
+                  className={`text-base font-medium sm:text-lg ${
                     cacheHitRate > 80
                       ? "text-emerald-400"
                       : cacheHitRate > 60
@@ -249,7 +249,7 @@ const PerformanceDashboard = ({
                 Total Requests
               </p>
               <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-xl font-semibold text-light-100">
+                <span className="text-xl font-medium text-light-100">
                   {metrics.totalRequests}
                 </span>
                 <span className="text-xs text-light-200 sm:text-sm">
@@ -268,7 +268,7 @@ const PerformanceDashboard = ({
               subtitle="Hydration and paint timings captured in-browser"
             />
             <Card className={GLASS_CARD}>
-              <CardContent className="space-y-1.5 p-4 sm:space-y-2 sm:p-5">
+              <CardContent className="space-y-1.5 p-2 sm:space-y-2 sm:p-4">
                 {ssrMetrics.map(([metric, time]) => {
                   const grade = getPerformanceGrade(time, "page");
                   return (
@@ -303,8 +303,8 @@ const PerformanceDashboard = ({
           />
           <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
             <Card className={GLASS_CARD}>
-              <CardContent className="p-4 sm:p-5">
-                <p className="mb-3 text-sm font-semibold text-light-100">
+              <CardContent className="p-2 sm:p-4">
+                <p className="mb-3 text-sm font-medium text-light-100">
                   Client-Side Metrics
                 </p>
                 {Object.keys(metrics.pageLoadTimes).length > 0 ? (
@@ -349,8 +349,8 @@ const PerformanceDashboard = ({
             </Card>
 
             <Card className={GLASS_CARD}>
-              <CardContent className="p-4 sm:p-5">
-                <p className="mb-3 text-sm font-semibold text-light-100">
+              <CardContent className="p-2 sm:p-4">
+                <p className="mb-3 text-sm font-medium text-light-100">
                   Client-Side API Calls
                 </p>
                 {Object.keys(metrics.queryTimes).length > 0 ? (

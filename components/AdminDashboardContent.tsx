@@ -17,16 +17,23 @@ import React from "react";
 import {
   BookMarked,
   BookOpenCheck,
+  Home,
   ShieldCheck,
   Star,
   Ticket,
   Users,
 } from "lucide-react";
 import AdminStatsSkeleton from "@/components/skeletons/AdminStatsSkeleton";
-import { useAdminStats, useOpenTicketCount, usePendingReviewCount } from "@/hooks/useQueries";
+import {
+  useAdminStats,
+  useOpenTicketCount,
+  usePendingReviewCount,
+} from "@/hooks/useQueries";
 import type { AdminStats } from "@/lib/services/admin";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { getAdminNavItemByRoute } from "@/lib/navigation/admin-nav-config";
 
 interface AdminDashboardContentProps {
   /**
@@ -117,7 +124,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="rounded-lg border border-red-500 bg-red-50 p-4 text-center sm:p-8">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
             Failed to load admin statistics
           </p>
           <p className="text-xs text-gray-500 sm:text-sm">
@@ -199,6 +206,11 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <AdminPageHeader
+        title={getAdminNavItemByRoute("/admin")?.label ?? "Library Overview"}
+        description={getAdminNavItemByRoute("/admin")?.description}
+        icon={Home}
+      />
       {/* Success Message */}
       {successMessage === "admin-granted" && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
@@ -278,7 +290,12 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           hue="rose"
           badges={
             reservationsWaiting > 0
-              ? [{ label: `${reservationsWaiting} reservations waiting`, hue: "blue" }]
+              ? [
+                  {
+                    label: `${reservationsWaiting} reservations waiting`,
+                    hue: "blue",
+                  },
+                ]
               : undefined
           }
         />
@@ -295,7 +312,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Book Availability Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Book Availability
           </h3>
           <div className="space-y-3">
@@ -325,9 +342,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* User Status Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
-            User Status
-          </h3>
+          <h3 className="mb-4 text-base font-medium sm:text-lg">User Status</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm">Approved Users</span>
@@ -355,7 +370,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Enhanced Book Information Chart */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Book Information
           </h3>
           <div className="space-y-3">
@@ -399,7 +414,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Recent Borrows */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Recent Borrows
           </h3>
           <div className="space-y-3">
@@ -438,7 +453,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Recent Users */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Recent Users
           </h3>
           <div className="space-y-3">
@@ -453,7 +468,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/admin/users/${user.id}`}
-                      className="break-words text-sm font-medium text-blue-700 hover:underline"
+                      className="break-words text-sm font-medium text-blue-700 hover:text-blue-600"
                     >
                       {user.fullName}
                     </Link>
@@ -483,7 +498,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Book Categories */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             📚 Book Categories
           </h3>
           <div className="space-y-3">
@@ -500,7 +515,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                       <span className="font-medium text-gray-900">
                         {category.genre}
                       </span>
-                      <span className="text-sm font-semibold text-blue-600">
+                      <span className="text-sm font-medium text-blue-600">
                         {category.count} books
                       </span>
                     </div>
@@ -530,7 +545,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Books by Publication Year */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             📅 Books by Publication Year
           </h3>
           <div className="space-y-3">
@@ -546,7 +561,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     <span className="font-medium text-gray-900">{year}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-semibold text-green-600">
+                    <span className="text-sm font-medium text-green-600">
                       {count} books
                     </span>
                     <div className="h-2 w-16 rounded-full bg-gray-200">
@@ -567,7 +582,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
         {/* Books by Language */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             🌍 Books by Language
           </h3>
           <div className="space-y-2">
@@ -583,7 +598,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     {language}
                   </span>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-semibold text-purple-600">
+                    <span className="text-sm font-medium text-purple-600">
                       {count}
                     </span>
                     <div className="h-1 w-12 rounded-full bg-gray-200">
@@ -601,7 +616,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Top Rated Books */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             ⭐ Top Rated Books
           </h3>
           <div className="space-y-2">
@@ -622,7 +637,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     </p>
                   </div>
                   <div className="ml-2 flex items-center space-x-1">
-                    <span className="text-xs font-semibold text-yellow-600">
+                    <span className="text-xs font-medium text-yellow-600">
                       ⭐ {book.rating}
                     </span>
                   </div>
@@ -634,7 +649,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
         {/* Library Health Metrics */}
         <div className="stat">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             🏥 Library Health
           </h3>
           <div className="space-y-3">
@@ -642,7 +657,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="text-sm text-gray-600">
                 Collection Diversity
               </span>
-              <span className="text-sm font-semibold text-indigo-600">
+              <span className="text-sm font-medium text-indigo-600">
                 {categoryStats.length} categories
               </span>
             </div>
@@ -657,7 +672,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Availability Rate</span>
-              <span className="text-sm font-semibold text-green-600">
+              <span className="text-sm font-medium text-green-600">
                 {totalCopies > 0
                   ? Math.round((availableCopies / totalCopies) * 100)
                   : 0}
@@ -675,7 +690,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">User Engagement</span>
-              <span className="text-sm font-semibold text-purple-600">
+              <span className="text-sm font-medium text-purple-600">
                 {totalUsers > 0
                   ? Math.round((activeBorrows / totalUsers) * 100)
                   : 0}

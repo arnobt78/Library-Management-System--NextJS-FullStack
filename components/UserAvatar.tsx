@@ -66,7 +66,8 @@ const UserAvatar = ({
   const sizesAttr = `${size}px`;
   // Only apply size-10 when using the default 40px — custom sizes use inline style only
   // (size-10 + style={28} fought and mis-aligned name/email stacks vs login Select).
-  const defaultSizeClass = !useParentSize && size === 40 ? "size-10" : undefined;
+  const defaultSizeClass =
+    !useParentSize && size === 40 ? "size-10" : undefined;
 
   return (
     <div
@@ -119,7 +120,7 @@ const UserAvatar = ({
         />
       ) : (
         <div className="flex size-full items-center justify-center bg-light-100 text-dark-100">
-          <span className="text-[10px] font-semibold sm:text-xs">
+          <span className="text-[10px] font-medium sm:text-xs">
             {getInitials(fullName || "U")}
           </span>
         </div>

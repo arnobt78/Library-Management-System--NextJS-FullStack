@@ -23,6 +23,7 @@ import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import { AuditActionBadge } from "@/lib/ui/semanticBadges";
 import { PersonNameEmailCell } from "@/components/ui/PersonNameEmailCell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import {
   TABLE_CELL_STATIC,
@@ -175,6 +176,11 @@ export default function ActivityLogSection({
 
   return (
     <section className="space-y-4 sm:space-y-6">
+      <AdminPageHeader
+        title="Activity History"
+        description="Recent admin actions across the library"
+        icon={History}
+      />
       <StatCardGrid>
         <StatCard title="Total Activity" value={stats.total} icon={History} hue="blue" />
         <StatCard title="Created" value={stats.created} icon={FilePlus} hue="emerald" />

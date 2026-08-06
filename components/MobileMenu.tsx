@@ -16,7 +16,10 @@ import { signOut } from "next-auth/react";
 import { showToast } from "@/lib/toast";
 import UserAvatar from "@/components/UserAvatar";
 import { UTILITY_NAVIGATION_ITEMS } from "@/constants/navigation";
+import { ADMIN_NAV_ITEMS } from "@/lib/navigation/admin-nav-config";
 import { setPendingAuthToast } from "@/lib/auth/authToast";
+import type { HeaderTone } from "@/components/RootHeaderShell";
+import { cn } from "@/lib/utils";
 
 interface MobileMenuProps {
   fullName: string;
@@ -24,6 +27,8 @@ interface MobileMenuProps {
   universityId: number;
   universityCard: string;
   isAdmin: boolean;
+  /** Matches Header tone so hamburger stays readable on light admin chrome. */
+  tone?: HeaderTone;
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({
@@ -32,6 +37,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   universityId,
   universityCard,
   isAdmin,
+  tone = "dark",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -48,7 +54,9 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         return;
       }
       if (event.key !== "Tab") return;
-      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
+        "a[href], button:not([disabled])",
+      );
       if (!focusable?.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -77,7 +85,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         redirect: true,
         callbackUrl: "/sign-in",
       });
-
     } catch {
       setIsLoggingOut(false);
       showToast.error(
@@ -100,7 +107,12 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="text-light-100 hover:text-light-200 focus:outline-none md:hidden"
+        className={cn(
+          "focus:outline-none md:hidden",
+          tone === "light"
+            ? "text-dark-400 hover:text-gray-700"
+            : "text-light-100 hover:text-light-200",
+        )}
         aria-label="Toggle menu"
         aria-expanded={isOpen}
         aria-controls="mobile-navigation-drawer"
@@ -148,7 +160,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 className="size-full"
               />
             </div>
-            <h2 className="text-base font-semibold text-light-100 sm:text-lg">
+            <h2 className="text-base font-medium text-light-100 sm:text-lg">
               Menu
             </h2>
             <div className="flex items-center gap-2 sm:gap-3">
@@ -168,7 +180,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 
           {/* User Info Section */}
           <div className="border-b border-gray-600 p-3 sm:p-4">
-            <p className="text-xs font-semibold text-light-100 sm:text-sm">
+            <p className="text-xs font-medium text-light-100 sm:text-sm">
               {fullName}
             </p>
             <p className="mt-1 text-[10px] text-light-200/70 sm:text-xs">
@@ -216,71 +228,31 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             {isAdmin && (
               <>
                 <div className="my-2 border-t border-gray-600"></div>
-                <p className="px-2.5 py-1.5 text-[10px] font-semibold uppercase text-light-200/70 sm:px-3 sm:py-2 sm:text-xs">
+                <p className="px-2.5 py-1.5 text-[10px] font-medium uppercase text-light-200/70 sm:px-3 sm:py-2 sm:text-xs">
                   Admin
                 </p>
-                <PrefetchLink
-                  href="/admin"
-                  prefetchKind="admin-dashboard"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Dashboard Overview
-                </PrefetchLink>
-                <PrefetchLink
-                  href="/admin/users"
-                  prefetchKind="admin-users"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Users
-                </PrefetchLink>
-                <PrefetchLink
-                  href="/admin/books"
-                  prefetchKind="admin-books"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Books
-                </PrefetchLink>
-                <PrefetchLink
-                  href="/admin/book-requests"
-                  prefetchKind="admin-book-requests"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Borrow Requests
-                </PrefetchLink>
-                <PrefetchLink
-                  href="/admin/account-requests"
-                  prefetchKind="admin-account-requests"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Sign-up Requests
-                </PrefetchLink>
-                <PrefetchLink
-                  href="/admin/book-reviews"
-                  prefetchKind="admin-reviews"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Book Reviews
-                </PrefetchLink>
-                <Link
-                  href="/admin/business-insights"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Analytics Dashboard
-                </Link>
-                <Link
-                  href="/admin/automation"
-                  onClick={closeMenu}
-                  className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
-                >
-                  Automation Center
-                </Link>
+                {ADMIN_NAV_ITEMS.map((item) =>
+                  item.prefetchKind ? (
+                    <PrefetchLink
+                      key={item.route}
+                      href={item.route}
+                      prefetchKind={item.prefetchKind}
+                      onClick={closeMenu}
+                      className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
+                    >
+                      {item.label}
+                    </PrefetchLink>
+                  ) : (
+                    <Link
+                      key={item.route}
+                      href={item.route}
+                      onClick={closeMenu}
+                      className="block rounded-md p-2.5 text-sm text-light-100 transition-colors hover:bg-gray-700 hover:text-light-200 active:bg-gray-700 active:text-light-200 sm:p-3 sm:text-base sm:hover:bg-gray-700 sm:hover:text-light-200"
+                    >
+                      {item.label}
+                    </Link>
+                  ),
+                )}
               </>
             )}
             {!isAdmin && (

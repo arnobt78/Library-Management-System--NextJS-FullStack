@@ -9,13 +9,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  CheckCircle2,
-  CircleDot,
-  Loader2,
-  Plus,
-  Ticket,
-} from "lucide-react";
+import { CheckCircle2, CircleDot, Loader2, Plus, Ticket } from "lucide-react";
 import { useUserSupportTickets } from "@/hooks/useQueries";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
@@ -23,10 +17,16 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import GlassSectionHeader from "@/components/GlassSectionHeader";
-import { TicketPriorityBadge, TicketStatusBadge } from "@/lib/ui/semanticBadges";
+import {
+  TicketPriorityBadge,
+  TicketStatusBadge,
+} from "@/lib/ui/semanticBadges";
 import PersonAttribution from "@/components/PersonAttribution";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
-import type { TicketPriority, TicketStatus } from "@/lib/validations/supportTicket";
+import type {
+  TicketPriority,
+  TicketStatus,
+} from "@/lib/validations/supportTicket";
 import {
   ticketPriorityFilterOptions,
   ticketStatusFilterOptions,
@@ -43,8 +43,7 @@ const PRIORITY_FILTER_OPTIONS = ticketPriorityFilterOptions("dark");
 const GLASS_PANEL =
   "surface-card rounded-xl border border-white/10 bg-dark-300/60 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm";
 
-const SORTABLE_DARK =
-  "text-light-200 hover:bg-white/10 hover:text-light-100";
+const SORTABLE_DARK = "text-light-200 hover:bg-white/10 hover:text-light-100";
 
 export default function SupportTicketsPageContent({
   currentUserId,
@@ -104,10 +103,7 @@ export default function SupportTicketsPageContent({
         values: [status],
         onClear: () => setStatus("all"),
         renderBadge: (value: string) => (
-          <TicketStatusBadge
-            status={value as TicketStatus}
-            variant="dark"
-          />
+          <TicketStatusBadge status={value as TicketStatus} variant="dark" />
         ),
       });
     }
@@ -306,7 +302,7 @@ export default function SupportTicketsPageContent({
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <span className="shrink-0 opacity-90">{item.icon}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold leading-tight sm:text-sm">
+                  <p className="text-xs font-medium leading-tight sm:text-sm">
                     {item.title}
                   </p>
                   <p className="text-[10px] leading-snug opacity-75 sm:text-xs">
@@ -314,7 +310,7 @@ export default function SupportTicketsPageContent({
                   </p>
                 </div>
               </div>
-              <p className="shrink-0 text-lg font-bold tabular-nums sm:text-xl">
+              <p className="shrink-0 text-lg font-medium tabular-nums sm:text-xl">
                 {item.value}
               </p>
             </div>
@@ -324,7 +320,7 @@ export default function SupportTicketsPageContent({
 
       <div className={GLASS_PANEL}>
         <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-semibold text-light-100 sm:text-lg">
+          <h2 className="text-base font-medium text-light-100 sm:text-lg">
             Tickets ({tickets.length})
           </h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">

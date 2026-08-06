@@ -65,7 +65,7 @@ const ApiDocsPage = async () => {
       <main className="root-container">
         <div className="page-shell flex min-h-screen flex-col">
           <div className="page-shell-main empty-panel flex-1">
-            <p className="mb-2 text-base font-semibold text-red-400 sm:text-lg">
+            <p className="mb-2 text-base font-medium text-red-400 sm:text-lg">
               Authentication Required
             </p>
             <p className="text-xs text-light-100/70 sm:text-sm">
@@ -92,7 +92,7 @@ const ApiDocsPage = async () => {
         <div className="page-shell-main flex-1 space-y-4 sm:space-y-6">
           {/* Match All Books / My Profile hero */}
           <div className="mb-0">
-            <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+            <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
               API Documentation
             </h1>
             <p className="text-sm text-light-200 sm:text-base">
@@ -121,7 +121,7 @@ const ApiDocsPage = async () => {
               subtitle="All endpoints are relative to this origin"
             />
             <Card className="border-white/10 bg-dark-300/60 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-              <CardContent className="p-4 sm:p-5">
+              <CardContent className="p-2 sm:p-4">
                 <div className="flex flex-row items-center gap-2">
                   <code className="flex-1 rounded-md border border-white/10 bg-dark-300/80 px-2 py-1.5 font-mono text-xs text-light-100 sm:px-3 sm:py-2 sm:text-sm">
                     {baseUrl}
@@ -142,7 +142,7 @@ const ApiDocsPage = async () => {
               subtitle="Browse by domain — paths match app/api route handlers"
             />
             <Card className="border-white/10 bg-dark-300/60 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-              <CardContent className="p-4 sm:p-5">
+              <CardContent className="p-2 sm:p-4">
                 <Tabs defaultValue={defaultTab} className="w-full">
                   <TabsList className="mb-4 flex h-auto w-full flex-wrap justify-start gap-1 border border-white/10 bg-transparent p-1 sm:mb-6">
                     {API_ENDPOINT_CATEGORIES.map((category) => (
@@ -168,7 +168,7 @@ const ApiDocsPage = async () => {
                           <span className="text-light-200">
                             {CATEGORY_ICONS[category.id]}
                           </span>
-                          <h3 className="text-base font-semibold text-light-100 sm:text-lg">
+                          <h3 className="text-base font-medium text-light-100 sm:text-lg">
                             {category.category}
                           </h3>
                           <Badge variant="glassMuted" className="ml-auto">
@@ -204,7 +204,7 @@ const ApiDocsPage = async () => {
               subtitle="Common response codes returned by BookWise APIs"
             />
             <Card className="border-white/10 bg-dark-300/60 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-              <CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:gap-4 sm:p-5">
+              <CardContent className="grid grid-cols-1 gap-3 p-2 sm:grid-cols-2 sm:gap-4 sm:p-4">
                 <div className="space-y-1.5 sm:space-y-2">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <Badge variant="glassReturned">200</Badge>
@@ -271,11 +271,14 @@ const ApiDocsPage = async () => {
               subtitle="Session cookies via Auth.js — include credentials on protected calls"
             />
             <Card className="border-white/10 bg-dark-300/60 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-              <CardContent className="space-y-3 p-4 sm:p-5">
+              <CardContent className="space-y-3 p-2 sm:p-4">
                 <p className="text-xs text-light-200 sm:text-sm">
                   Protected routes require a signed-in Auth.js session. Browser
                   clients send the session cookie automatically with{" "}
-                  <code className="text-light-100">credentials: &quot;include&quot;</code>.
+                  <code className="text-light-100">
+                    credentials: &quot;include&quot;
+                  </code>
+                  .
                 </p>
                 <div className="overflow-x-auto rounded-md border border-white/10 bg-dark-300/80 p-2 sm:p-3">
                   <pre className="text-xs text-light-200 sm:text-sm">
@@ -290,8 +293,8 @@ const ApiDocsPage = async () => {
                 <p className="text-xs text-light-200/80 sm:text-sm">
                   Image uploads use{" "}
                   <code className="text-light-100">/api/auth/imagekit</code>{" "}
-                  <ImageIcon className="inline size-3.5 align-text-bottom" /> for
-                  signed client tokens.
+                  <ImageIcon className="inline size-3.5 align-text-bottom" />{" "}
+                  for signed client tokens.
                 </p>
               </CardContent>
             </Card>

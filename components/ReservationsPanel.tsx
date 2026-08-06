@@ -116,7 +116,7 @@ export default function ReservationsPanel({
   if (active.length === 0) return null;
   return (
     <section className="mb-6 rounded-2xl border border-gray-600 bg-dark-300/40 p-4 sm:p-6">
-      <h2 className="text-lg font-semibold text-light-100">Reservations</h2>
+      <h2 className="text-lg font-medium text-light-100">Reservations</h2>
       <div className="mt-3 space-y-3">
         {active.map((item) => (
           <div

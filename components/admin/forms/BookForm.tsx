@@ -76,16 +76,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
   const onSubmit = async (values: BookFormValues): Promise<void> => {
     if (type === "create") {
       // Use React Query mutation for creating book
-      createBookMutation.mutate(
-        values,
-        {
-          onSuccess: async () => {
-            // Refresh RSC trees (homepage hero) then navigate — no full browser reload
-            router.refresh();
-            router.push(`/admin/books`);
-          },
-        }
-      );
+      createBookMutation.mutate(values, {
+        onSuccess: async () => {
+          // Refresh RSC trees (homepage hero) then navigate — no full browser reload
+          router.refresh();
+          router.push(`/admin/books`);
+        },
+      });
     } else {
       // Use React Query mutation for updating book
       updateBookMutation.mutate(
@@ -95,7 +92,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
             router.refresh();
             router.push(`/admin/books`);
           },
-        }
+        },
       );
     }
   };
@@ -341,7 +338,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
 
         {/* Enhanced Fields Section */}
         <div className="border-t border-gray-200 pt-4 sm:pt-6">
-          <h3 className="mb-4 text-base font-semibold text-dark-500 sm:text-lg">
+          <h3 className="mb-4 text-base font-medium text-dark-500 sm:text-lg">
             Additional Information (Optional)
           </h3>
 
@@ -389,7 +386,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       onChange={(e) => {
                         const value = e.target.value;
                         field.onChange(
-                          value === "" ? undefined : Number(value)
+                          value === "" ? undefined : Number(value),
                         );
                       }}
                       className="book-form_input"
@@ -462,7 +459,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       onChange={(e) => {
                         const value = e.target.value;
                         field.onChange(
-                          value === "" ? undefined : Number(value)
+                          value === "" ? undefined : Number(value),
                         );
                       }}
                       className="book-form_input"

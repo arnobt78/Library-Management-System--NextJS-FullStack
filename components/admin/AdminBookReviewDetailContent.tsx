@@ -221,11 +221,7 @@ export default function AdminBookReviewDetailContent({
         <PrefetchLink
           href={bookHref}
           prefetch={false}
-          className={cn(
-            "block text-lg font-semibold sm:text-xl",
-            SKY_LINK_LIGHT,
-            "hover:underline",
-          )}
+          className={cn("block text-lg font-medium sm:text-xl", SKY_LINK_LIGHT)}
         >
           {review.bookTitle}
         </PrefetchLink>

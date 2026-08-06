@@ -12,7 +12,7 @@ const ColorPicker = ({ value, onPickerChange }: Props) => {
   return (
     <div className="relative">
       <div className="flex flex-row items-center gap-1 sm:gap-2">
-        <p className="text-base font-semibold text-dark-400">#</p>
+        <p className="text-base font-medium text-dark-400">#</p>
         <HexColorInput
           color={value}
           onChange={onPickerChange}

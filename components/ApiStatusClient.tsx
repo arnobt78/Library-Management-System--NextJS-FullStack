@@ -135,9 +135,7 @@ const ApiStatusClient = ({
     }
   };
 
-  const convertMetricsToSystemMetrics = (
-    data: MetricsData,
-  ): SystemMetric[] => {
+  const convertMetricsToSystemMetrics = (data: MetricsData): SystemMetric[] => {
     return [
       {
         title: "Database Performance",
@@ -153,8 +151,7 @@ const ApiStatusClient = ({
           data.apiPerformance.status === "HEALTHY"
             ? `${data.apiPerformance.requestsPerMinute} req/min`
             : "Unavailable",
-        status:
-          data.apiPerformance.status === "HEALTHY" ? "good" : "critical",
+        status: data.apiPerformance.status === "HEALTHY" ? "good" : "critical",
         icon: <TrendingUp className="size-5" />,
         description: "Requests per minute",
         details: data.apiPerformance,
@@ -186,8 +183,7 @@ const ApiStatusClient = ({
       {
         title: "SSL Certificate",
         value: data.sslCertificate.status,
-        status:
-          data.sslCertificate.status === "Valid" ? "good" : "critical",
+        status: data.sslCertificate.status === "Valid" ? "good" : "critical",
         icon: <Shield className="size-5" />,
         description: "Security status",
         details: data.sslCertificate,
@@ -357,7 +353,10 @@ const ApiStatusClient = ({
           <CardContent>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
               {[...Array(4)].map((_, i) => (
-                <Skeleton key={`status-skeleton-${i}`} className="h-24 w-full" />
+                <Skeleton
+                  key={`status-skeleton-${i}`}
+                  className="h-24 w-full"
+                />
               ))}
             </div>
           </CardContent>
@@ -370,7 +369,7 @@ const ApiStatusClient = ({
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="py-6 text-center sm:py-8">
-          <p className="mb-2 text-base font-semibold text-red-400 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-400 sm:text-lg">
             Failed to load API status
           </p>
           <p className="text-xs text-light-200 sm:text-sm">
@@ -394,7 +393,7 @@ const ApiStatusClient = ({
       {/* Match All Books / My Profile hero */}
       <div className="mb-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-light-100 sm:text-3xl">
+          <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
             API Status
           </h1>
           <p className="text-sm text-light-200 sm:text-base">
@@ -406,9 +405,7 @@ const ApiStatusClient = ({
           disabled={isRefreshing}
           className="flex w-full items-center justify-center gap-2 sm:w-auto"
         >
-          <RefreshCw
-            className={cn("size-4", isRefreshing && "animate-spin")}
-          />
+          <RefreshCw className={cn("size-4", isRefreshing && "animate-spin")} />
           {isRefreshing ? "Refreshing…" : "Refresh"}
         </Button>
       </div>
@@ -424,7 +421,7 @@ const ApiStatusClient = ({
           }
         />
         <Card className={GLASS_CARD}>
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-2 sm:p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-4">
               <div className={cn(GLASS_TILE, "text-center")}>
                 <div className="mb-2 flex justify-center">
@@ -447,7 +444,7 @@ const ApiStatusClient = ({
                 <p className="text-xs text-light-200 sm:text-sm">
                   Response Time
                 </p>
-                <p className="text-xl font-semibold text-light-100">
+                <p className="text-xl font-medium text-light-100">
                   {responseTime}ms
                 </p>
               </div>
@@ -456,7 +453,7 @@ const ApiStatusClient = ({
                   <Clock className="size-5 text-emerald-400" />
                 </div>
                 <p className="text-xs text-light-200 sm:text-sm">Uptime</p>
-                <p className="text-xl font-semibold text-light-100">
+                <p className="text-xl font-medium text-light-100">
                   {uptime.hours}h {uptime.minutes}m {uptime.seconds}s
                 </p>
               </div>
@@ -467,7 +464,7 @@ const ApiStatusClient = ({
                 <p className="text-xs text-light-200 sm:text-sm">
                   Health Score
                 </p>
-                <p className="text-xl font-semibold text-light-100">
+                <p className="text-xl font-medium text-light-100">
                   {healthScore.toFixed(1)}%
                 </p>
               </div>
@@ -496,7 +493,7 @@ const ApiStatusClient = ({
           subtitle="Live checks against /api/status endpoints"
         />
         <Card className={GLASS_CARD}>
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-2 sm:p-4">
             {services.length === 0 ? (
               <div className="py-6 text-center text-sm text-light-200">
                 No service data available. Please refresh.
@@ -536,7 +533,7 @@ const ApiStatusClient = ({
                           <span className="text-xs text-light-200 sm:text-sm">
                             Response Time:
                           </span>
-                          <span className="text-xs font-semibold text-light-100 sm:text-sm">
+                          <span className="text-xs font-medium text-light-100 sm:text-sm">
                             {service.responseTime}ms
                           </span>
                         </div>
@@ -582,7 +579,7 @@ const ApiStatusClient = ({
             subtitle="Operator diagnostics (admin session)"
           />
           <Card className={GLASS_CARD}>
-            <CardContent className="p-4 sm:p-5">
+            <CardContent className="p-2 sm:p-4">
               {systemMetrics.length === 0 ? (
                 <div className="py-6 text-center text-sm text-light-200">
                   No system metrics available. Please refresh.
@@ -633,7 +630,7 @@ const ApiStatusClient = ({
                               {metric.title}
                             </p>
                             <p
-                              className={`text-base font-semibold sm:text-lg ${getMetricStatusColor(metric.status)}`}
+                              className={`text-base font-medium sm:text-lg ${getMetricStatusColor(metric.status)}`}
                             >
                               {metric.value}
                             </p>

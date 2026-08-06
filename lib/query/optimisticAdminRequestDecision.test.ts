@@ -15,6 +15,7 @@ import {
   isDensifiedEmpty,
   seedFromSsrIfEmpty,
 } from "@/lib/utils/queryCacheLists";
+import { EMPTY_ADMIN_NAV_COUNTS } from "@/lib/admin/adminNavCountTypes";
 
 function makeRequest(
   overrides: Partial<AdminRequest> & Pick<AdminRequest, "id">,
@@ -99,5 +100,31 @@ describe("optimisticAdminRequestDecision", () => {
     expect(client.getQueryData(key)).toEqual([]);
     expect(isDensifiedEmpty(key)).toBe(true);
     expect(seedFromSsrIfEmpty(client, key, [pending])).toEqual([]);
+  });
+
+  it("syncs pendingAdminRequests nav pill after optimistic remove", async () => {
+    const client = new QueryClient();
+    const a = makeRequest({ id: "req-1" });
+    const b = makeRequest({ id: "req-2", userId: "user-2" });
+    client.setQueryData(queryKeys.admin.pendingRequests, [a, b]);
+    client.setQueryData(queryKeys.admin.navCounts, {
+      ...EMPTY_ADMIN_NAV_COUNTS,
+      pendingAdminRequests: 2,
+    });
+
+    await applyOptimisticAdminRequestDecision(client, {
+      requestId: "req-1",
+      status: "APPROVED",
+      reviewer: {
+        id: "admin-1",
+        fullName: "Librarian",
+        email: "lib@uni.edu",
+        universityCard: null,
+      },
+    });
+
+    expect(client.getQueryData(queryKeys.admin.navCounts)).toMatchObject({
+      pendingAdminRequests: 1,
+    });
   });
 });

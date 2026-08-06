@@ -10,8 +10,25 @@ import {
   markDensifiedEmpty,
   clearDensifiedEmpty,
 } from "@/lib/utils/queryCacheLists";
+import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
 
 type BookLike = { id: string; [key: string]: unknown };
+
+/** Sync Book Catalog pill from densest cached admin list `total`. */
+function syncBooksNav(queryClient: QueryClient): void {
+  let found = false;
+  let densest = 0;
+  for (const [, page] of queryClient.getQueriesData<BooksListResponse>({
+    queryKey: queryKeys.books.adminRoot,
+  })) {
+    if (!page || typeof page.total !== "number") continue;
+    found = true;
+    densest = Math.max(densest, page.total);
+  }
+  if (found) {
+    patchAdminNavCounts(queryClient, { books: densest });
+  }
+}
 
 function upsertInListResponse(
   prev: BooksListResponse | undefined,
@@ -110,6 +127,8 @@ export function densifyBookWrite(
     { queryKey: queryKeys.books.relatedRoot },
     (old) => patchBookArray(old, book),
   );
+
+  syncBooksNav(queryClient);
 }
 
 /** Drop deleted book ids from detail + admin list + featured/related caches. */
@@ -154,4 +173,6 @@ export function densifyBookDelete(
   })) {
     if (Array.isArray(rows) && rows.length === 0) markDensifiedEmpty(key);
   }
+
+  syncBooksNav(queryClient);
 }

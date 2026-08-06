@@ -242,7 +242,7 @@ describe("query invalidation contract", () => {
       "borrow.lifecycle": ["borrows", "books", "users", "reviews", "admin", "analytics", "recommendations", "operations", "circulation", "notifications", "activityLog"],
       "reservation.lifecycle": ["circulation", "borrows", "books", "users", "admin", "analytics", "recommendations"],
       "renewal.write": ["circulation", "borrows", "books", "users", "admin", "analytics"],
-      "review.write": ["reviews", "books", "users", "analytics", "notifications", "activityLog"],
+      "review.write": ["reviews", "books", "users", "admin", "analytics", "notifications", "activityLog"],
       "admin-request.write": ["admin", "users", "analytics", "operations", "notifications", "activityLog"],
       "fine.write": ["borrows", "users", "admin", "analytics", "operations"],
       "recommendation.write": ["recommendations", "books", "admin", "analytics"],

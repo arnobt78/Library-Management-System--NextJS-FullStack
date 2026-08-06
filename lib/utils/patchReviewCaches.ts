@@ -2,9 +2,8 @@
  * Instant densify for book-review list/detail/pendingCount caches.
  *
  * Call AFTER `await invalidateMutation("review.write")`, but always pass
- * `baselines` snapped BEFORE invalidate. Invalidate no longer
- * `removeQueries`-wipes inactive lists; still pass baselines so densify can
- * re-seed canonical keys when cache is thin or missing.
+ * `baselines` snapped BEFORE invalidate. Invalidate marks inactive lists stale
+ * (no wipe); still pass baselines so densify can re-seed when cache is thin.
  * Parent: CR-0003 / REQ-0035 polish
  */
 
@@ -15,6 +14,7 @@ import {
   writeDensifiedEmpty,
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
+import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
 
 export type ReviewListBaselines = {
   /** Densest cached admin list (any filter key). */
@@ -30,6 +30,10 @@ function bumpPendingCount(queryClient: QueryClient, delta: number): void {
   queryClient.setQueryData<number>(queryKeys.reviews.pendingCount, (old) =>
     Math.max(0, (old ?? 0) + delta),
   );
+  // Absolute sync — overwrites active sidebar refetch (no double-delta).
+  const absolute =
+    queryClient.getQueryData<number>(queryKeys.reviews.pendingCount) ?? 0;
+  patchAdminNavCounts(queryClient, { pendingReviews: absolute });
 }
 
 function upsertAdminRow(
@@ -59,7 +63,7 @@ function bookIdFromBookReviewsKey(key: QueryKey): string | undefined {
   return typeof key[1] === "string" ? key[1] : undefined;
 }
 
-/** Pre-invalidate snapshots so sibling rows survive removeQueries. */
+/** Pre-invalidate snapshots so sibling rows survive a thin cache after invalidate. */
 export function snapshotReviewListBaselines(
   queryClient: QueryClient,
 ): ReviewListBaselines {
@@ -162,7 +166,7 @@ function mapBookLists(
   );
 }
 
-/** Prefer live cache, then pre-invalidate baselines (sibling rows survive removeQueries). */
+/** Prefer live cache, then pre-invalidate baselines (sibling rows survive thin cache). */
 function findBaselineAdminReview(
   baselines: ReviewListBaselines | undefined,
   reviewId: string,
@@ -322,8 +326,8 @@ export function patchReviewCachesOnCreate(
 /** After content edit — patch rating/comment/updatedAt (+ optional status reset).
  *
  * Prefer upsert over map-only for user/book lists: inactive My Reviews / book
- * detail caches are removeQueries'd, and map-only into missing lists used to
- * seed `[]` (badge 0 / Reviews empty until remount).
+ * detail caches may be thin after invalidate, and map-only into missing lists
+ * used to seed `[]` (badge 0 / Reviews empty until remount).
  */
 export function patchReviewCachesOnUpdate(
   queryClient: QueryClient,

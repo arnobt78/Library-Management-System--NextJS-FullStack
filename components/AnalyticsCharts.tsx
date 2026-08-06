@@ -121,7 +121,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="py-6 text-center sm:py-8">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
             Failed to load analytics data
           </p>
           <p className="text-xs text-gray-500 sm:text-sm">
@@ -139,7 +139,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="py-6 text-center sm:py-8">
-          <p className="text-base font-semibold text-gray-500 sm:text-lg">
+          <p className="text-base font-medium text-gray-500 sm:text-lg">
             No analytics data available
           </p>
         </div>
@@ -222,7 +222,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           <div>
             <h2
               id="deterministic-insights"
-              className="text-lg font-semibold text-gray-900"
+              className="text-lg font-medium text-gray-900"
             >
               Explainable operational insights
             </h2>
@@ -257,7 +257,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           ].map(([label, value]) => (
             <div key={String(label)} className="rounded-lg bg-gray-50 p-3">
               <dt className="text-xs text-gray-500">{label}</dt>
-              <dd className="mt-1 text-lg font-semibold text-gray-900">
+              <dd className="mt-1 text-lg font-medium text-gray-900">
                 {value}
               </dd>
             </div>
@@ -269,7 +269,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Borrowing Trends */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Borrowing Trends
           </h3>
           <div className="w-full overflow-x-auto">
@@ -301,7 +301,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
         {/* Popular Books */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Popular Books
           </h3>
           <div className="w-full overflow-x-auto">
@@ -326,7 +326,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
         {/* Genre Distribution */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Genre Distribution
           </h3>
           <div className="w-full overflow-x-auto">
@@ -357,7 +357,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
         {/* User Activity */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Top Users by Activity
           </h3>
           <div className="w-full overflow-x-auto">
@@ -383,9 +383,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
       {/* Overdue Books Table */}
       <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-        <h3 className="mb-4 text-base font-semibold sm:text-lg">
-          Overdue Books
-        </h3>
+        <h3 className="mb-4 text-base font-medium sm:text-lg">Overdue Books</h3>
         <div className="overflow-x-auto">
           <table className="w-full min-w-full border-collapse">
             <thead>
@@ -472,7 +470,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Monthly Statistics
           </h3>
           <div className="space-y-2 sm:space-y-3">
@@ -496,7 +494,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Overdue Analysis
           </h3>
           <div className="space-y-2 sm:space-y-3">

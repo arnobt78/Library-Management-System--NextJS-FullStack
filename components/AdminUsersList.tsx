@@ -80,6 +80,7 @@ import {
 } from "lucide-react";
 import { isProtectedDemoAccount } from "@/constants";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
@@ -427,12 +428,12 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold sm:text-xl">All Users</h2>
+          <h2 className="text-lg font-medium sm:text-xl">User Management</h2>
         </div>
 
         {/* Admin Requests Skeleton */}
         <div className="mt-4 sm:mt-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
+          <h3 className="mb-4 text-base font-medium sm:text-lg">
             Pending Admin Requests
           </h3>
           <div className="space-y-3 sm:space-y-4">
@@ -483,7 +484,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     return (
       <section className="admin-panel">
         <div className="py-6 text-center sm:py-8">
-          <p className="mb-2 text-base font-semibold text-red-500 sm:text-lg">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
             Failed to load users
           </p>
           <p className="text-xs text-gray-500 sm:text-sm">
@@ -509,7 +510,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const userColumns: ColumnDef<User>[] = [
     {
       accessorKey: "fullName",
-      header: ({ column }) => <SortableHeader column={column}>Name</SortableHeader>,
+      header: ({ column }) => (
+        <SortableHeader column={column}>Name</SortableHeader>
+      ),
       cell: ({ row }) => (
         <Link
           prefetch={false}
@@ -522,14 +525,20 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     },
     {
       accessorKey: "email",
-      header: ({ column }) => <SortableHeader column={column}>Email</SortableHeader>,
+      header: ({ column }) => (
+        <SortableHeader column={column}>Email</SortableHeader>
+      ),
       cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">{row.original.email}</span>
+        <span className="text-xs text-muted-foreground">
+          {row.original.email}
+        </span>
       ),
     },
     {
       accessorKey: "universityId",
-      header: ({ column }) => <SortableHeader column={column}>University ID</SortableHeader>,
+      header: ({ column }) => (
+        <SortableHeader column={column}>University ID</SortableHeader>
+      ),
     },
     {
       accessorKey: "role",
@@ -548,7 +557,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     },
     {
       accessorKey: "status",
-      header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+      header: ({ column }) => (
+        <SortableHeader column={column}>Status</SortableHeader>
+      ),
       cell: ({ row }) => (
         <span
           className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
@@ -565,7 +576,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     },
     {
       accessorKey: "createdAt",
-      header: ({ column }) => <SortableHeader column={column}>Joined</SortableHeader>,
+      header: ({ column }) => (
+        <SortableHeader column={column}>Joined</SortableHeader>
+      ),
       cell: ({ row }) =>
         row.original.createdAt
           ? new Date(row.original.createdAt).toLocaleDateString()
@@ -649,407 +662,430 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   return (
     <>
-    <section className="admin-panel">
-      {/* KPI Statistics Cards */}
-      <StatCardGrid className="mb-4 sm:mb-6">
-        <StatCard title="Total Users" value={users.length} icon={UsersIcon} hue="blue" />
-        <StatCard
-          title="Approved"
-          value={approvedUserCount}
-          icon={UserCheck}
-          hue="emerald"
-        />
-        <StatCard
-          title="Pending"
-          value={pendingUserCount}
-          icon={Hourglass}
-          hue="amber"
-        />
-        <StatCard
-          title="Rejected"
-          value={rejectedUserCount}
-          icon={XCircle}
-          hue="rose"
-        />
-        <StatCard title="Admins" value={adminUserCount} icon={UserCog} hue="violet" />
-        <StatCard
-          title="Make Admin Requests"
-          value={adminRequests.length}
-          icon={Shield}
-          hue="slate"
-        />
-      </StatCardGrid>
+      <AdminPageHeader
+        title="User Management"
+        description="Roles, status, and librarian privileges"
+        icon={UsersIcon}
+      />
+      <section className="admin-panel">
+        {/* KPI Statistics Cards */}
+        <StatCardGrid className="mb-4 sm:mb-6">
+          <StatCard
+            title="Total Users"
+            value={users.length}
+            icon={UsersIcon}
+            hue="blue"
+          />
+          <StatCard
+            title="Approved"
+            value={approvedUserCount}
+            icon={UserCheck}
+            hue="emerald"
+          />
+          <StatCard
+            title="Pending"
+            value={pendingUserCount}
+            icon={Hourglass}
+            hue="amber"
+          />
+          <StatCard
+            title="Rejected"
+            value={rejectedUserCount}
+            icon={XCircle}
+            hue="rose"
+          />
+          <StatCard
+            title="Admins"
+            value={adminUserCount}
+            icon={UserCog}
+            hue="violet"
+          />
+          <StatCard
+            title="Make Admin Requests"
+            value={adminRequests.length}
+            icon={Shield}
+            hue="slate"
+          />
+        </StatCardGrid>
 
-      {/* Success/Error Messages */}
-      {successMessage && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <svg
-                className="size-5 text-green-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule={"evenodd" as const}
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule={"evenodd" as const}
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">
-                {successMessage === "role-updated" &&
-                  "✅ Role Updated Successfully!"}
-                {successMessage === "user-approved" &&
-                  "✅ User Approved Successfully!"}
-                {successMessage === "user-rejected" &&
-                  "✅ User Rejected Successfully!"}
-                {successMessage === "admin-approved" &&
-                  "✅ Admin Request Approved Successfully!"}
-                {successMessage === "admin-rejected" &&
-                  "✅ Admin Request Rejected Successfully!"}
-                {successMessage === "admin-removed" &&
-                  "✅ Admin Privileges Removed Successfully!"}
-              </h3>
+        {/* Success/Error Messages */}
+        {successMessage && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
+            <div className="flex items-center">
+              <div className="shrink-0">
+                <svg
+                  className="size-5 text-green-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule={"evenodd" as const}
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule={"evenodd" as const}
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-green-800">
+                  {successMessage === "role-updated" &&
+                    "✅ Role Updated Successfully!"}
+                  {successMessage === "user-approved" &&
+                    "✅ User Approved Successfully!"}
+                  {successMessage === "user-rejected" &&
+                    "✅ User Rejected Successfully!"}
+                  {successMessage === "admin-approved" &&
+                    "✅ Admin Request Approved Successfully!"}
+                  {successMessage === "admin-rejected" &&
+                    "✅ Admin Request Rejected Successfully!"}
+                  {successMessage === "admin-removed" &&
+                    "✅ Admin Privileges Removed Successfully!"}
+                </h3>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {errorMessage && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <svg
-                className="size-5 text-red-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule={"evenodd" as const}
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule={"evenodd" as const}
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
-                ❌ Operation Failed
-              </h3>
+        {errorMessage && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
+            <div className="flex items-center">
+              <div className="shrink-0">
+                <svg
+                  className="size-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule={"evenodd" as const}
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule={"evenodd" as const}
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  ❌ Operation Failed
+                </h3>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="text-lg font-semibold text-dark-400 sm:text-xl">
-          All Users ({users.length})
-        </h2>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          {/* Search Input */}
-          <form onSubmit={handleSearch} className="flex-1 sm:min-w-[250px]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search users..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <h2 className="text-lg font-medium text-dark-400 sm:text-xl">
+            User Management ({users.length})
+          </h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            {/* Search Input */}
+            <form onSubmit={handleSearch} className="flex-1 sm:min-w-[250px]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search users..."
+                  value={localSearch}
+                  onChange={(e) => setLocalSearch(e.target.value)}
+                  className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                />
+              </div>
+            </form>
+            {/* Filter Dropdowns */}
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
+              <FilterSelect
+                label="Status"
+                variant="light"
+                className="w-full sm:min-w-[170px]"
+                value={currentStatus || "all"}
+                onValueChange={(v) => handleFilterChange("status", v)}
+                options={userStatusFilterOptions()}
+              />
+              <FilterSelect
+                label="Role"
+                variant="light"
+                className="w-full sm:min-w-[170px]"
+                value={currentRole || "all"}
+                onValueChange={(v) => handleFilterChange("role", v)}
+                options={userRoleFilterOptions()}
               />
             </div>
-          </form>
-          {/* Filter Dropdowns */}
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
-            <FilterSelect
-              label="Status"
-              variant="light"
-              className="w-full sm:min-w-[170px]"
-              value={currentStatus || "all"}
-              onValueChange={(v) => handleFilterChange("status", v)}
-              options={userStatusFilterOptions()}
-            />
-            <FilterSelect
-              label="Role"
-              variant="light"
-              className="w-full sm:min-w-[170px]"
-              value={currentRole || "all"}
-              onValueChange={(v) => handleFilterChange("role", v)}
-              options={userRoleFilterOptions()}
-            />
           </div>
         </div>
-      </div>
 
-      <DismissibleFilterChips
-        variant="light"
-        groups={[
-          ...(currentStatus !== "all"
-            ? [
-                {
-                  label: "Status",
-                  values: [currentStatus],
-                  onClear: () => handleFilterChange("status", "all"),
-                  renderBadge: (value: string) => {
-                    const opt = userStatusFilterOptions().find(
-                      (o) => o.value === value,
-                    );
-                    return (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                        {opt?.label ?? value}
-                      </span>
-                    );
+        <DismissibleFilterChips
+          variant="light"
+          groups={[
+            ...(currentStatus !== "all"
+              ? [
+                  {
+                    label: "Status",
+                    values: [currentStatus],
+                    onClear: () => handleFilterChange("status", "all"),
+                    renderBadge: (value: string) => {
+                      const opt = userStatusFilterOptions().find(
+                        (o) => o.value === value,
+                      );
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          {opt?.label ?? value}
+                        </span>
+                      );
+                    },
                   },
-                },
-              ]
-            : []),
-          ...(currentRole !== "all"
-            ? [
-                {
-                  label: "Role",
-                  values: [currentRole],
-                  onClear: () => handleFilterChange("role", "all"),
-                  renderBadge: (value: string) => {
-                    const opt = userRoleFilterOptions().find(
-                      (o) => o.value === value,
-                    );
-                    return (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                        {opt?.label ?? value}
-                      </span>
-                    );
+                ]
+              : []),
+            ...(currentRole !== "all"
+              ? [
+                  {
+                    label: "Role",
+                    values: [currentRole],
+                    onClear: () => handleFilterChange("role", "all"),
+                    renderBadge: (value: string) => {
+                      const opt = userRoleFilterOptions().find(
+                        (o) => o.value === value,
+                      );
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                          {opt?.label ?? value}
+                        </span>
+                      );
+                    },
                   },
-                },
-              ]
-            : []),
-        ]}
-        onReset={clearFilters}
-      />
+                ]
+              : []),
+          ]}
+          onReset={clearFilters}
+        />
 
-      {/* Admin Requests Section - Only shows PENDING requests */}
-      {adminRequests.length > 0 && (
-        <div className="mt-4 sm:mt-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
-            Pending Admin Requests ({adminRequests.length})
-          </h3>
-          <div className="space-y-3 sm:space-y-4">
-            {adminRequests.map((request) => {
-              const demoLocked = isProtectedDemoAccount({
-                email: request.userEmail,
-              });
-              const actionsBusy =
-                approveAdminRequestMutation.isPending ||
-                rejectAdminRequestMutation.isPending;
+        {/* Admin Requests Section - Only shows PENDING requests */}
+        {adminRequests.length > 0 && (
+          <div className="mt-4 sm:mt-6">
+            <h3 className="mb-4 text-base font-medium sm:text-lg">
+              Pending Admin Requests ({adminRequests.length})
+            </h3>
+            <div className="space-y-3 sm:space-y-4">
+              {adminRequests.map((request) => {
+                const demoLocked = isProtectedDemoAccount({
+                  email: request.userEmail,
+                });
+                const actionsBusy =
+                  approveAdminRequestMutation.isPending ||
+                  rejectAdminRequestMutation.isPending;
 
-              return (
-              <div
-                key={request.id}
-                className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 sm:p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex-1">
-                    <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                return (
+                  <div
+                    key={request.id}
+                    className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 sm:p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex-1">
+                        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                          <PersonAttribution
+                            person={{
+                              id: request.userId,
+                              fullName: request.userFullName,
+                              email: request.userEmail,
+                              universityCard:
+                                request.userUniversityCard ?? null,
+                            }}
+                            href={`/admin/users/${request.userId}`}
+                            size={28}
+                            className="text-sm text-yellow-800"
+                            textClassName="text-yellow-900"
+                          />
+                        </div>
+                        <p className="mb-2 text-xs text-yellow-800 sm:text-sm">
+                          <strong>Reason:</strong> {request.requestReason}
+                        </p>
+                        <DateMetaLine
+                          icon={CalendarPlus}
+                          className="text-yellow-600"
+                        >
+                          Requested on:{" "}
+                          {request.createdAt
+                            ? new Date(request.createdAt).toLocaleString()
+                            : "N/A"}
+                        </DateMetaLine>
+                      </div>
+                      <div className="flex flex-col gap-2 sm:ml-4 sm:flex-row sm:items-start">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <Button
+                              size="sm"
+                              className={
+                                demoLocked
+                                  ? "bg-green-600/40 text-white/70 hover:bg-green-600/40"
+                                  : "bg-green-600 hover:bg-green-700"
+                              }
+                              onClick={() => openApproveConfirm(request)}
+                              disabled={actionsBusy || demoLocked}
+                              title={
+                                demoLocked
+                                  ? "Demo account — role locked"
+                                  : undefined
+                              }
+                            >
+                              <CheckCircle className="size-4" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700"
+                              onClick={() => openDeclineDialog(request)}
+                              disabled={actionsBusy}
+                            >
+                              <XCircle className="size-4" />
+                              Decline
+                            </Button>
+                          </div>
+                          {demoLocked ? (
+                            <p className="inline-flex items-center gap-1 text-xs text-yellow-800">
+                              <Lock className="size-3.5 shrink-0" aria-hidden />
+                              Demo account — role locked (Decline still
+                              allowed).
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recent decisions — who approved / rejected / withdrew (baseline; polish later) */}
+        {recentDecisions.length > 0 && (
+          <div className="mt-4 sm:mt-6">
+            <h3 className="mb-4 text-base font-medium sm:text-lg">
+              Recent decisions ({recentDecisions.length})
+            </h3>
+            <div className="space-y-3 sm:space-y-4">
+              {recentDecisions.map((decision) => {
+                const withdrawn =
+                  decision.status === "REJECTED" &&
+                  decision.rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
+                const statusLabel = withdrawn
+                  ? "Withdrawn"
+                  : decision.status === "APPROVED"
+                    ? "Approved"
+                    : "Rejected";
+                const borderClass = withdrawn
+                  ? "border-gray-200 bg-gray-50"
+                  : decision.status === "APPROVED"
+                    ? "border-green-200 bg-green-50"
+                    : "border-red-200 bg-red-50";
+                const textClass = withdrawn
+                  ? "text-gray-800"
+                  : decision.status === "APPROVED"
+                    ? "text-green-900"
+                    : "text-red-900";
+                const mutedClass = withdrawn
+                  ? "text-gray-600"
+                  : decision.status === "APPROVED"
+                    ? "text-green-700"
+                    : "text-red-700";
+
+                return (
+                  <div
+                    key={decision.id}
+                    className={`rounded-lg border p-3 sm:p-4 ${borderClass}`}
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
+                          withdrawn
+                            ? "bg-gray-200 text-gray-800"
+                            : decision.status === "APPROVED"
+                              ? "bg-green-200 text-green-900"
+                              : "bg-red-200 text-red-900"
+                        }`}
+                      >
+                        {decision.status === "APPROVED" ? (
+                          <CheckCircle className="size-3" aria-hidden />
+                        ) : (
+                          <XCircle className="size-3" aria-hidden />
+                        )}
+                        {statusLabel}
+                      </span>
                       <PersonAttribution
                         person={{
-                          id: request.userId,
-                          fullName: request.userFullName,
-                          email: request.userEmail,
-                          universityCard: request.userUniversityCard ?? null,
+                          id: decision.userId,
+                          fullName: decision.userFullName,
+                          email: decision.userEmail,
+                          universityCard: decision.userUniversityCard ?? null,
                         }}
-                        href={`/admin/users/${request.userId}`}
+                        href={`/admin/users/${decision.userId}`}
                         size={28}
-                        className="text-sm text-yellow-800"
-                        textClassName="text-yellow-900"
+                        className={`text-sm ${mutedClass}`}
+                        textClassName={textClass}
                       />
                     </div>
-                    <p className="mb-2 text-xs text-yellow-800 sm:text-sm">
-                      <strong>Reason:</strong> {request.requestReason}
+                    <p
+                      className={`mb-1 text-xs sm:text-sm ${mutedClass}`}
+                      title={decision.requestReason}
+                    >
+                      <strong>Request:</strong>{" "}
+                      {truncateDecisionText(decision.requestReason)}
                     </p>
-                    <DateMetaLine icon={CalendarPlus} className="text-yellow-600">
-                      Requested on:{" "}
-                      {request.createdAt
-                        ? new Date(request.createdAt).toLocaleString()
+                    {decision.rejectionReason && !withdrawn ? (
+                      <p className={`mb-1 text-xs sm:text-sm ${mutedClass}`}>
+                        <strong>Reason:</strong> {decision.rejectionReason}
+                      </p>
+                    ) : null}
+                    <AdminRequestReviewerAttribution
+                      reviewer={decision.reviewer}
+                      prefix={
+                        withdrawn
+                          ? "Withdrawn by"
+                          : decision.status === "APPROVED"
+                            ? "Approved by"
+                            : "Rejected by"
+                      }
+                      size={28}
+                      className={`mt-2 text-xs sm:text-sm ${mutedClass}`}
+                      textClassName={textClass}
+                      href={
+                        decision.reviewer?.id
+                          ? `/admin/users/${decision.reviewer.id}`
+                          : null
+                      }
+                    />
+                    <DateMetaLine
+                      icon={CalendarCheck}
+                      className={`mt-1 ${mutedClass}`}
+                    >
+                      {decision.reviewedAt
+                        ? new Date(decision.reviewedAt).toLocaleString()
                         : "N/A"}
                     </DateMetaLine>
                   </div>
-                  <div className="flex flex-col gap-2 sm:ml-4 sm:flex-row sm:items-start">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button
-                          size="sm"
-                          className={
-                            demoLocked
-                              ? "bg-green-600/40 text-white/70 hover:bg-green-600/40"
-                              : "bg-green-600 hover:bg-green-700"
-                          }
-                          onClick={() => openApproveConfirm(request)}
-                          disabled={actionsBusy || demoLocked}
-                          title={
-                            demoLocked
-                              ? "Demo account — role locked"
-                              : undefined
-                          }
-                        >
-                          <CheckCircle className="size-4" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-red-600 hover:bg-red-700"
-                          onClick={() => openDeclineDialog(request)}
-                          disabled={actionsBusy}
-                        >
-                          <XCircle className="size-4" />
-                          Decline
-                        </Button>
-                      </div>
-                      {demoLocked ? (
-                        <p className="inline-flex items-center gap-1 text-xs text-yellow-800">
-                          <Lock className="size-3.5 shrink-0" aria-hidden />
-                          Demo account — role locked (Decline still allowed).
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Recent decisions — who approved / rejected / withdrew (baseline; polish later) */}
-      {recentDecisions.length > 0 && (
-        <div className="mt-4 sm:mt-6">
-          <h3 className="mb-4 text-base font-semibold sm:text-lg">
-            Recent decisions ({recentDecisions.length})
-          </h3>
-          <div className="space-y-3 sm:space-y-4">
-            {recentDecisions.map((decision) => {
-              const withdrawn =
-                decision.status === "REJECTED" &&
-                decision.rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
-              const statusLabel = withdrawn
-                ? "Withdrawn"
-                : decision.status === "APPROVED"
-                  ? "Approved"
-                  : "Rejected";
-              const borderClass = withdrawn
-                ? "border-gray-200 bg-gray-50"
-                : decision.status === "APPROVED"
-                  ? "border-green-200 bg-green-50"
-                  : "border-red-200 bg-red-50";
-              const textClass = withdrawn
-                ? "text-gray-800"
-                : decision.status === "APPROVED"
-                  ? "text-green-900"
-                  : "text-red-900";
-              const mutedClass = withdrawn
-                ? "text-gray-600"
-                : decision.status === "APPROVED"
-                  ? "text-green-700"
-                  : "text-red-700";
-
-              return (
-                <div
-                  key={decision.id}
-                  className={`rounded-lg border p-3 sm:p-4 ${borderClass}`}
-                >
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
-                        withdrawn
-                          ? "bg-gray-200 text-gray-800"
-                          : decision.status === "APPROVED"
-                            ? "bg-green-200 text-green-900"
-                            : "bg-red-200 text-red-900"
-                      }`}
-                    >
-                      {decision.status === "APPROVED" ? (
-                        <CheckCircle className="size-3" aria-hidden />
-                      ) : (
-                        <XCircle className="size-3" aria-hidden />
-                      )}
-                      {statusLabel}
-                    </span>
-                    <PersonAttribution
-                      person={{
-                        id: decision.userId,
-                        fullName: decision.userFullName,
-                        email: decision.userEmail,
-                        universityCard: decision.userUniversityCard ?? null,
-                      }}
-                      href={`/admin/users/${decision.userId}`}
-                      size={28}
-                      className={`text-sm ${mutedClass}`}
-                      textClassName={textClass}
-                    />
-                  </div>
-                  <p
-                    className={`mb-1 text-xs sm:text-sm ${mutedClass}`}
-                    title={decision.requestReason}
-                  >
-                    <strong>Request:</strong>{" "}
-                    {truncateDecisionText(decision.requestReason)}
-                  </p>
-                  {decision.rejectionReason && !withdrawn ? (
-                    <p className={`mb-1 text-xs sm:text-sm ${mutedClass}`}>
-                      <strong>Reason:</strong> {decision.rejectionReason}
-                    </p>
-                  ) : null}
-                  <AdminRequestReviewerAttribution
-                    reviewer={decision.reviewer}
-                    prefix={
-                      withdrawn
-                        ? "Withdrawn by"
-                        : decision.status === "APPROVED"
-                          ? "Approved by"
-                          : "Rejected by"
-                    }
-                    size={28}
-                    className={`mt-2 text-xs sm:text-sm ${mutedClass}`}
-                    textClassName={textClass}
-                    href={
-                      decision.reviewer?.id
-                        ? `/admin/users/${decision.reviewer.id}`
-                        : null
-                    }
-                  />
-                  <DateMetaLine icon={CalendarCheck} className={`mt-1 ${mutedClass}`}>
-                    {decision.reviewedAt
-                      ? new Date(decision.reviewedAt).toLocaleString()
-                      : "N/A"}
-                  </DateMetaLine>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-4 w-full overflow-hidden sm:mt-7">
-        <DataTable
-          columns={userColumns}
-          data={users}
-          emptyMessage="No users found matching your criteria."
-          initialPageSize={20}
-        />
-        {users.length === 0 && hasActiveFilters && (
-          <div className="mt-3 flex justify-center">
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="border-gray-300 text-dark-400 hover:bg-gray-100"
-            >
-              <FilterX className="size-4" />
-              Clear All Filters
-            </Button>
+                );
+              })}
+            </div>
           </div>
         )}
-      </div>
-    </section>
+
+        <div className="mt-4 w-full overflow-hidden sm:mt-7">
+          <DataTable
+            columns={userColumns}
+            data={users}
+            emptyMessage="No users found matching your criteria."
+            initialPageSize={20}
+          />
+          {users.length === 0 && hasActiveFilters && (
+            <div className="mt-3 flex justify-center">
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="border-gray-300 text-dark-400 hover:bg-gray-100"
+              >
+                <FilterX className="size-4" />
+                Clear All Filters
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
 
       <AlertDialog
         open={approveOpen}

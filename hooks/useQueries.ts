@@ -60,6 +60,7 @@ import {
   type ServiceStatus,
 } from "@/lib/services/health-monitor";
 import { getFineConfig, type FineConfig } from "@/lib/services/admin";
+import type { AdminNavCounts } from "@/lib/admin/adminNavCountTypes";
 import {
   getBookReviews,
   getReviewEligibility,
@@ -609,6 +610,26 @@ export const useAdminStats = (initialData?: AdminStats) => {
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+  });
+};
+
+/**
+ * Aggregated sidebar counters (books/users/queues). SSR seed + densify invalidate.
+ * Parent: admin shell Stockly chrome
+ */
+export const useAdminNavCounts = (initialData?: AdminNavCounts) => {
+  return useQuery({
+    queryKey: queryKeys.admin.navCounts,
+    queryFn: async (): Promise<AdminNavCounts> => {
+      const res = await fetch("/api/admin/nav-counts");
+      if (!res.ok) {
+        throw new Error("Failed to fetch admin nav counts");
+      }
+      return res.json() as Promise<AdminNavCounts>;
+    },
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
   });
 };
 

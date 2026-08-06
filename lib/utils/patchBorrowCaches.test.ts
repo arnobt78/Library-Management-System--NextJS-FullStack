@@ -105,6 +105,15 @@ describe("patchBorrowCaches", () => {
       makeRequest({ id: "b-1", status: "PENDING" }),
       makeRequest({ id: "b-3", status: "PENDING" }),
     ]);
+    client.setQueryData(queryKeys.admin.navCounts, {
+      books: 0,
+      users: 0,
+      pendingAdminRequests: 0,
+      pendingSignUps: 0,
+      pendingBorrows: 2,
+      openTickets: 0,
+      pendingReviews: 0,
+    });
 
     const baselines = snapshotBorrowCacheBaselines(client, ["book-1"]);
     client.removeQueries({ queryKey: queryKeys.borrows.userRoot });
@@ -132,6 +141,9 @@ describe("patchBorrowCaches", () => {
       queryKeys.borrows.requests({ status: "PENDING", search: undefined }),
     );
     expect(pendingList?.some((r) => r.id === "b-1")).toBe(false);
+    expect(
+      client.getQueryData(queryKeys.admin.navCounts),
+    ).toMatchObject({ pendingBorrows: 1 });
     expect(pendingList?.some((r) => r.id === "b-3")).toBe(true);
   });
 
