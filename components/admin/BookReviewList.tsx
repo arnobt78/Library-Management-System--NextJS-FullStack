@@ -46,6 +46,7 @@ import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { ModerateReviewAlertDialog } from "@/components/admin/ModerateReviewAlertDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,6 +81,8 @@ function ReviewRowActions({
 }) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [moderateTarget, setModerateTarget] =
+    useState<"APPROVED" | "REJECTED" | null>(null);
   const moderateMutation = useModerateReview();
   const deleteMutation = useDeleteReview();
   const { data: session } = useSession();
@@ -134,14 +137,7 @@ function ReviewRowActions({
           {review.status !== "APPROVED" && (
             <DropdownMenuItem
               className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
-              onSelect={() =>
-                moderateMutation.mutate({
-                  reviewId: review.id,
-                  status: "APPROVED",
-                  bookTitle: review.bookTitle,
-                  decisionActor,
-                })
-              }
+              onSelect={() => setModerateTarget("APPROVED")}
               disabled={moderateMutation.isPending}
             >
               <CheckCircle2 className="size-3.5" />
@@ -151,14 +147,7 @@ function ReviewRowActions({
           {review.status !== "REJECTED" && (
             <DropdownMenuItem
               className={`${LIGHT_MENU.item} text-amber-700 focus:bg-amber-50 focus:text-amber-700 data-[highlighted]:bg-amber-50 data-[highlighted]:text-amber-700`}
-              onSelect={() =>
-                moderateMutation.mutate({
-                  reviewId: review.id,
-                  status: "REJECTED",
-                  bookTitle: review.bookTitle,
-                  decisionActor,
-                })
-              }
+              onSelect={() => setModerateTarget("REJECTED")}
               disabled={moderateMutation.isPending}
             >
               <XCircle className="size-3.5" />
@@ -179,6 +168,30 @@ function ReviewRowActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ModerateReviewAlertDialog
+        open={moderateTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !moderateMutation.isPending) setModerateTarget(null);
+        }}
+        status={moderateTarget}
+        bookTitle={review.bookTitle}
+        comment={review.comment}
+        rating={review.rating}
+        isPending={moderateMutation.isPending}
+        onConfirm={() => {
+          if (!moderateTarget) return;
+          moderateMutation.mutate(
+            {
+              reviewId: review.id,
+              status: moderateTarget,
+              bookTitle: review.bookTitle,
+              decisionActor,
+            },
+            { onSuccess: () => setModerateTarget(null) },
+          );
+        }}
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent className={LIGHT_ALERT.content}>

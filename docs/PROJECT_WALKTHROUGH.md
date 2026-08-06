@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-06 | Status: C2 Stage 4; densify + Approver/table polish local Prove; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-06 | Status: C2 Stage 4; review-detail redesign + densify local Prove; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -28,6 +28,7 @@ Browser
 - Borrow / admin-request / tickets / reservations / notifications / catalog: matching `patch*Caches*` families. Redis = rate-limit only.
 - PrefetchLink warms list/detail keys (incl. `/books/<uuid>` detail+reviews, `staleTime: 0` where densify races).
 - Admin Book Reviews: title → book detail; comment → review detail; table headers `font-medium`, cell titles/names `font-normal`, emails `text-xs` under names.
+- Admin review detail: ticket-shaped Back/KPI/About|Description; borrow meta; `ModerateReviewAlertDialog`; per-action Approve/Reject spinner; densify path unchanged (`review.write`).
 
 ## Main directories
 

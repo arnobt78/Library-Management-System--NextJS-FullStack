@@ -1,7 +1,7 @@
 /**
  * ReviewDateMeta — Submitted / Approved / Rejected / Updated chips with
- * Lucide icons and · separators. Shared by book-detail ReviewsSection,
- * My Reviews cards, and admin review detail.
+ * Lucide icons, · separators, and meaningful tones (ticket-date parity).
+ * Shared by book-detail ReviewsSection, My Reviews, and admin review detail.
  * Parent: CR-0003 / REQ-0035 polish
  */
 
@@ -13,11 +13,7 @@ import {
   CalendarX2,
   ShieldCheck,
 } from "lucide-react";
-import {
-  ATTRIBUTION_META_SIZE,
-  ATTRIBUTION_META_TONE_DARK,
-  ATTRIBUTION_META_TONE_LIGHT,
-} from "@/lib/ui/attributionStyles";
+import { ATTRIBUTION_META_SIZE } from "@/lib/ui/attributionStyles";
 import { cn } from "@/lib/utils";
 
 function formatWhen(value: string | Date | null | undefined): string {
@@ -50,20 +46,28 @@ export default function ReviewDateMeta({
     updatedAt &&
     new Date(createdAt).getTime() !== new Date(updatedAt).getTime();
 
-  const tone =
-    variant === "dark"
-      ? ATTRIBUTION_META_TONE_DARK
-      : ATTRIBUTION_META_TONE_LIGHT;
-  const sep = variant === "dark" ? "text-light-200/40" : "text-gray-300";
+  const isDark = variant === "dark";
+  const sep = isDark ? "text-light-200/40" : "text-gray-300";
 
-  const chips: Array<{ key: string; icon: typeof CalendarCheck2; label: string }> =
-    [
-      {
-        key: "submitted",
-        icon: CalendarCheck2,
-        label: `Submitted ${formatWhen(createdAt)}`,
-      },
-    ];
+  // Per-chip tones — match TicketDateMeta emerald/amber language.
+  const tones = {
+    submitted: isDark ? "text-emerald-300/90" : "text-emerald-700",
+    approved: isDark ? "text-sky-300/90" : "text-sky-700",
+    rejected: isDark ? "text-amber-200/80" : "text-amber-700",
+    updated: isDark ? "text-amber-200/80" : "text-amber-700/90",
+  } as const;
+
+  const chips: Array<{
+    key: keyof typeof tones;
+    icon: typeof CalendarCheck2;
+    label: string;
+  }> = [
+    {
+      key: "submitted",
+      icon: CalendarCheck2,
+      label: `Submitted ${formatWhen(createdAt)}`,
+    },
+  ];
 
   if (status === "APPROVED" && reviewedAt) {
     chips.push({
@@ -92,14 +96,16 @@ export default function ReviewDateMeta({
       className={cn(
         "flex flex-wrap items-center gap-x-1.5 gap-y-1",
         ATTRIBUTION_META_SIZE,
-        tone,
         className,
       )}
     >
       {chips.map((chip, i) => {
         const Icon = chip.icon;
         return (
-          <span key={chip.key} className="inline-flex items-center gap-1">
+          <span
+            key={chip.key}
+            className={cn("inline-flex items-center gap-1", tones[chip.key])}
+          >
             {i > 0 ? (
               <span className={cn("mx-0.5", sep)} aria-hidden>
                 ·

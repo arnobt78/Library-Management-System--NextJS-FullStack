@@ -130,3 +130,15 @@ Findings:
 Commands: `npm run typecheck` PASS | eslint (touched CR-0003 surfaces) PASS 0 warnings | `npm test` 110 passed / 11 skipped | `npm run build` PASS (Next 16.2.12; routes include `/support-tickets`, `/admin/support-tickets`, notifications, activity-logs) | audit: same pre-existing eslint `brace-expansion` high (devDep only).
 
 EvalGate: status=PASS (local polish) | eval_run_id=ER-C2-CR0003-POLISH-1 | outstanding=same nonlocal class as CR-0003 local-1 / `ER-C2-FINAL-CORRECTIVE-5`
+
+## CR-0003 Admin review detail redesign - Local Prove - 2026-08-06
+
+Scope: [built/verified] REQ-0035 detail UX — ticket-shaped layout, moderate confirms, per-action spinner; densify gateway unchanged.
+
+Findings:
+
+- Shared `DetailKpiShell`; `ReviewDetailKpiGrid`; `ReviewBorrowMeta`; `ModerateReviewAlertDialog` on detail + list kebab.
+- Dual-spinner fixed via `moderateMutation.variables?.status`; Approve CTA `text-white`.
+- `review.write` gold path preserved (`commitMutationCache` + `decisionActor`/`sourceItem`).
+
+Commands: `npm run typecheck` PASS | `npm run lint` PASS | densify unit tests 14/14 PASS | outstanding=same nonlocal EvalGate class (`ER-C2-FINAL-CORRECTIVE-5`).

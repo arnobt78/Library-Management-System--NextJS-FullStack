@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) densify closeout + Approver/table polish; nonlocal Verify still outstanding
-- SCOPE-V phase: Verify (densify + Approver/table Prove PASS locally)
-- Status: ACTIVE - densify/Approver/table polish at tip `c8faf16`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove complete (local) review-detail redesign + densify closeout; nonlocal Verify still outstanding
+- SCOPE-V phase: Verify (review-detail + densify Prove PASS locally)
+- Status: ACTIVE - review-detail redesign uncommitted→commit this session; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `c8faf16` (densify closeout + Approver densify + table typography)
-- Latest HEAD: `bbebc50` (`main` == `origin/main`; docs bind after tip)
+- Latest implementation tip: pending (review-detail redesign; see post-commit HEAD)
+- Latest HEAD: `bbebc50` pre-commit (`main` == `origin/main`)
 - Started: 2026-08-01
-- Last updated: 2026-08-06 (densify closeout + Approver densify + table typography)
+- Last updated: 2026-08-06 (admin review detail ticket shells + moderate confirm)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -118,7 +118,14 @@ Owner requested a deep audit of the CR-0003 diff before commit. A dedicated suba
 
 ### Next Action
 
-Admin book-reviews table polish + StatCardGrid auto-fit + attribution batch Prove PASS (uncommitted). Owner: review/commit. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
+Owner smoke soft-nav on `/admin/book-reviews/[id]` Approve/Reject (confirm + single spinner). Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
+
+### Admin review detail redesign (2026-08-06)
+
+- Ticket shells: `DetailKpiShell` shared; `ReviewDetailKpiGrid`; About book | Description; `ReviewBorrowMeta` light/dark.
+- `ModerateReviewAlertDialog` on detail + list kebab; per-status spinner; Approve white CTA.
+- Densify unchanged: `useModerateReview` → `commitMutationCache("review.write")` + `decisionActor`/`sourceItem`.
+- Prove: typecheck/lint/14 densify unit tests PASS.
 
 ### Attribution + book SSR fix (2026-08-06)
 

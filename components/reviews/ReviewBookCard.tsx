@@ -9,8 +9,6 @@
 
 import { useState } from "react";
 import {
-  Calendar,
-  Clock,
   Library,
   Loader2,
   MoreVertical,
@@ -22,12 +20,12 @@ import {
 import { useDeleteReview } from "@/hooks/useMutations";
 import ReviewFormDialog from "@/components/ReviewFormDialog";
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
+import { ReviewBorrowMeta } from "@/components/reviews/ReviewBorrowMeta";
 import ReviewDateMeta from "@/components/reviews/ReviewDateMeta";
 import PersonAttribution from "@/components/PersonAttribution";
 import StarRow from "@/components/ui/StarRow";
 import { Badge } from "@/components/ui/badge";
 import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
-import { formatBorrowDate } from "@/lib/profile/formatBorrowDates";
 import { GLASS_ALERT, GLASS_MENU } from "@/lib/ui/glassActionChrome";
 import { cn } from "@/lib/utils";
 import {
@@ -56,11 +54,6 @@ export default function ReviewBookCard({
   const [editing, setEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const deleteMutation = useDeleteReview();
-
-  const borrowedLabel = formatBorrowDate(review.borrowedAt);
-  const dueLabel = formatBorrowDate(review.dueDate);
-  const returnedLabel = formatBorrowDate(review.returnedAt);
-  const hasBorrowMeta = Boolean(borrowedLabel || dueLabel || returnedLabel);
 
   const moderator =
     review.reviewedByName || review.reviewedByEmail
@@ -134,31 +127,12 @@ export default function ReviewBookCard({
               <span className="text-yellow-400">{review.bookRating}</span>
             </div>
           ) : null}
-          {hasBorrowMeta ? (
-            <>
-              {borrowedLabel ? (
-                <span className="inline-flex items-center gap-1 text-light-200">
-                  <Calendar className="size-3 text-blue-400 sm:size-4" />
-                  <span className="font-medium">Borrowed:</span>
-                  <span className="text-light-100">{borrowedLabel}</span>
-                </span>
-              ) : null}
-              {dueLabel ? (
-                <span className="inline-flex items-center gap-1 text-light-200">
-                  <Clock className="size-3 text-purple-400 sm:size-4" />
-                  <span className="font-medium">Due:</span>
-                  <span className="text-light-100">{dueLabel}</span>
-                </span>
-              ) : null}
-              {returnedLabel ? (
-                <span className="inline-flex items-center gap-1 text-light-200">
-                  <Calendar className="size-3 text-emerald-400 sm:size-4" />
-                  <span className="font-medium">Returned:</span>
-                  <span className="text-light-100">{returnedLabel}</span>
-                </span>
-              ) : null}
-            </>
-          ) : null}
+          <ReviewBorrowMeta
+            borrowedAt={review.borrowedAt}
+            dueDate={review.dueDate}
+            returnedAt={review.returnedAt}
+            variant="dark"
+          />
         </div>
 
         {/* Inner body: review stars + status, comment, timestamps */}
