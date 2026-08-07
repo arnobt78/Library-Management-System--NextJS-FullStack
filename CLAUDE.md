@@ -91,7 +91,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin privilege ledger: All Users/bulk Make Admin → `adminPrivilegeLedger` (approve PENDING or insert `ADMIN_REQUEST_DIRECT_GRANT_REASON`); demote/`updateUserRole(USER)` → `removeAdminPrivileges` revoke. Invalidate `admin-request.write`.
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip/HEAD `3dd4594`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `3dd4594` / HEAD `e6c4210`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
 - CR-0003 (REQ-0034–0037): tickets + review mod + activity FIFO-50 + bell + KPIs/tables; mig `0014`; `ticket.write` + `patchTicketCaches*`; Zod ticket/review; bell SSR unread; My Reviews SSR; reply thread single-source; Prove 110 tests.
 - Ticket UI polish: person stack; KPI/section/date/activity; `CARD_PAD` p-2/sm:p-4 (also `.admin-container` + api-docs/status/performance); `LIGHT_GLASS_CTA` primary-admin/red-800; Tailwind `./lib/**`; sky links; edit dialog; densify + back-nav. Instrumentation removed.
 - Densify Waves A–C + review CRUD: `patchBorrowCaches*`; `optimisticAdminRequestDecision`; await `book.write`; `patchReviewCaches*` (create/update/delete/moderate). Approve **upserts** public `book-reviews` (admin soft-nav). Gold: snapshot → await invalidate → re-patch. Prove 120 tests.
@@ -104,4 +104,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Seed wipe: `seed:reset` also clears tickets/replies/notifications/activity_logs.
 - Debug: agent ingest relay removed; CSP still blocks browser→`127.0.0.1` ingest.
 - Mutation gateway: `commitMutationCache` + densify registry; PrefetchLink `"use client"`; Redis still rate-limit only.
-- Admin filter UX Prove (2026-08-07): type/lint/**151** tests + Next 16.2.12 build PASS; tip/HEAD `3dd4594`.
+- Admin filter UX Prove (2026-08-07): type/lint/**151** tests + Next 16.2.12 build PASS; tip `3dd4594` / HEAD `e6c4210`.
