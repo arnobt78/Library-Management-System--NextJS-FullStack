@@ -322,7 +322,7 @@ export default function AdminBookReviewDetailContent({
           </div>
         </div>
 
-        <div className="admin-panel flex flex-col space-y-3">
+        <div className="admin-panel flex flex-col space-y-2">
           <TicketSectionHeader
             variant="light"
             icon={<FileText className="size-5" />}

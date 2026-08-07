@@ -782,7 +782,7 @@ html:has(body[data-scroll-locked]) {
 
   /* Consistent list / grid / empty-state rhythm on public surfaces */
   .stack-section {
-    @apply space-y-3 sm:space-y-4;
+    @apply space-y-2 sm:space-y-4;
   }
 
   /*

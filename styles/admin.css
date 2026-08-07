@@ -54,7 +54,7 @@
   }
 
   .confirm-content {
-    @apply sm:max-w-md flex flex-col items-center justify-center p-4 sm:p-6 !important;
+    @apply sm:max-w-md flex flex-col items-center justify-center p-2 sm:p-4 !important;
   }
 
   .confirm-illustration {
@@ -97,7 +97,7 @@
 
   /* Statistics */
   .stat {
-    @apply bg-white rounded-xl p-4 sm:p-6 space-y-5 flex-1;
+    @apply bg-white rounded-xl p-2 sm:p-4 space-y-4 flex-1;
   }
 
   .stat-info {

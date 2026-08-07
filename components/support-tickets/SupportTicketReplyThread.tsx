@@ -98,7 +98,7 @@ export default function SupportTicketReplyThread({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
+      <div className="space-y-2">
         {replies.length === 0 ? (
           <p
             className={cn(

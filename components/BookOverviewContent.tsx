@@ -176,7 +176,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             Book Details
           </div>
           <div className="book-info">
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-2 sm:space-y-2">
               {/* First row: ISBN and Published */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
                 <p>
@@ -256,7 +256,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
               Library Database Information
             </div>
-            <div className="w-full space-y-2 sm:space-y-3">
+            <div className="w-full space-y-2 sm:space-y-2">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
                 <p className="text-sm sm:text-base">
                   Added to Library{" "}

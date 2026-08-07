@@ -31,7 +31,7 @@ export default function MyReviewsTab({
 
   if (isLoading && reviews.length === 0 && !densifiedEmpty) {
     return (
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-2 sm:space-y-4">
         {[...Array(2)].map((_, i) => (
           <div
             key={`my-review-sk-${i}`}
@@ -55,7 +55,7 @@ export default function MyReviewsTab({
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-2 sm:space-y-4">
       {reviews.map((review) => (
         <ReviewBookCard key={review.id} review={review} />
       ))}

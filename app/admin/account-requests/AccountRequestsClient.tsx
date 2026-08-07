@@ -396,7 +396,7 @@ const AccountRequestsClient = ({
             <h3 className="mb-4 text-base font-medium text-gray-900 sm:text-lg">
               Recent decisions ({recentDecisions.length})
             </h3>
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               {recentDecisions.map((decision) => {
                 const approved = decision.status === "APPROVED";
                 const borderClass = approved
@@ -512,7 +512,7 @@ const AccountRequestCard = ({
   return (
     <Card className="group border-0 shadow-md transition-all duration-300 hover:shadow-lg">
       <CardHeader className="pb-3 sm:pb-4">
-        <div className="space-y-2 sm:space-y-3">
+        <div className="space-y-2 sm:space-y-2">
           {/* Badge on its own row */}
           <div className="flex justify-start">
             <Badge
@@ -548,7 +548,7 @@ const AccountRequestCard = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 sm:space-y-4">
+      <CardContent className="space-y-2 sm:space-y-4">
         {/* University ID */}
         <div className="flex flex-wrap items-center gap-1.5 text-xs sm:space-x-2 sm:text-sm">
           <GraduationCap className="size-3 shrink-0 text-blue-500 sm:size-4" />

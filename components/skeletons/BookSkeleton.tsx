@@ -67,7 +67,7 @@ const BookSkeleton: React.FC<BookSkeletonProps> = ({
             <div className="pt-4">
               <Skeleton className="mb-3 h-6 w-32" />
               <div className="book-info">
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-36">
                     <Skeleton className="h-5 w-40" />
                     <Skeleton className="h-5 w-40" />
@@ -91,7 +91,7 @@ const BookSkeleton: React.FC<BookSkeletonProps> = ({
             {/* Library Database Information — same gaps as Borrow Statistics */}
             <div className="book-info">
               <Skeleton className="mb-3 h-6 w-64" />
-              <div className="w-full space-y-2 sm:space-y-3">
+              <div className="w-full space-y-2 sm:space-y-2">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
                   <Skeleton className="h-5 w-48" />
                   <Skeleton className="h-5 w-48" />
@@ -102,7 +102,7 @@ const BookSkeleton: React.FC<BookSkeletonProps> = ({
             {/* Borrow Statistics — two-column grid (matches BookBorrowStats) */}
             <div className="book-info">
               <Skeleton className="mb-3 h-6 w-48" />
-              <div className="w-full space-y-2 sm:space-y-3">
+              <div className="w-full space-y-2 sm:space-y-2">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-24">
                   <Skeleton className="h-5 w-52" />
                   <Skeleton className="h-5 w-48" />
@@ -130,13 +130,13 @@ const BookSkeleton: React.FC<BookSkeletonProps> = ({
               <Skeleton
                 className={cn(
                   "xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]",
-                  "z-10 shrink-0"
+                  "z-10 shrink-0",
                 )}
               />
               <Skeleton
                 className={cn(
                   "absolute left-16 top-10 rotate-12 opacity-40 max-sm:hidden",
-                  "xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]"
+                  "xs:w-[296px] w-[256px] xs:h-[404px] h-[354px]",
                 )}
               />
             </div>
@@ -157,7 +157,7 @@ const BookSkeleton: React.FC<BookSkeletonProps> = ({
             {/* Summary Section */}
             <section className="mt-10 flex flex-col gap-7">
               <Skeleton className="h-7 w-32" />
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <Skeleton className="h-6 w-full" />
                 <Skeleton className="h-6 w-full" />
                 <Skeleton className="h-6 w-5/6" />

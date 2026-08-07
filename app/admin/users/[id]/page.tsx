@@ -87,7 +87,7 @@ async function AdminUserDetail({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <div className="rounded-2xl bg-white p-4 sm:p-6">
+        <div className="rounded-2xl bg-white p-2 sm:p-4">
           <h2 className="text-lg font-medium">Borrowing history</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -200,7 +200,7 @@ async function AdminUserDetail({
               {data.reviewHistory.length} recent reviews ·{" "}
               {data.requestHistory.length} access requests
             </p>
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-2">
               {data.requestHistory.map((req) => (
                 <div
                   key={req.id}
@@ -282,7 +282,7 @@ export default function AdminUserDetailPage(props: {
     <Suspense
       fallback={
         <section
-          className="min-h-[32rem] space-y-6 rounded-2xl bg-white p-4 sm:p-6"
+          className="min-h-[32rem] space-y-6 rounded-2xl bg-white p-2 sm:p-4"
           aria-label="Loading user profile"
         >
           <Link

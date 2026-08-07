@@ -351,7 +351,7 @@ export default function ReviewsSection({
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-2 sm:space-y-4">
       <h3 className="text-base font-medium text-light-100 sm:text-lg">
         Reviews ({localReviews.length})
       </h3>
@@ -363,7 +363,7 @@ export default function ReviewsSection({
           </p>
         </div>
       ) : (
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-2 sm:space-y-4">
           {localReviews.map((review) => (
             <ReviewCard
               key={review.id}

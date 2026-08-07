@@ -827,7 +827,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
               <h4 className="font-medium text-gray-900">
                 Recommendation Engine
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div
                   className={`flex items-center justify-between rounded-lg p-3 ${
                     params.success === "recommendations-generated" ||
@@ -968,7 +968,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
               <h4 className="font-medium text-gray-900">
                 Recommendation Actions
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Button
                   onClick={() =>
                     generateRecommendationsMutation.mutate(undefined, {
@@ -1243,7 +1243,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             {/* Export Options */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Export Options</h4>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
                   <div>
                     <p className="font-medium text-gray-900">Books Data</p>
@@ -1355,7 +1355,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             {/* Export Settings */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Export Settings</h4>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="rounded-lg bg-blue-50 p-3">
                   <p className="break-words font-medium text-blue-900">
                     Date Range Export

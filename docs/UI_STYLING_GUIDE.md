@@ -727,7 +727,7 @@ hover:border-sky-300/50
 #### Spacing
 
 ```html
-<div class="p-4 sm:p-6">
+<div class="p-2 sm:p-4">
   <!-- Less padding on mobile -->
 </div>
 

@@ -128,7 +128,7 @@ const BookDetailContent: React.FC<BookDetailContentProps> = ({
           <h3 className="text-base font-medium text-primary sm:text-lg">
             Summary
           </h3>
-          <div className="space-y-3 break-words text-base text-light-100 sm:space-y-5 sm:text-xl">
+          <div className="space-y-2 break-words text-base text-light-100 sm:space-y-4 sm:text-xl">
             {bookData.summary?.split("\n").map((line: string, i: number) => (
               <p key={i} className="break-words">
                 {line}

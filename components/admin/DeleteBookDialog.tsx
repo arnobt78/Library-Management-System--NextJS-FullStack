@@ -71,7 +71,7 @@ const DeleteBookDialog = ({
             router.push(redirectTo);
           }
         },
-      }
+      },
     );
   };
 
@@ -107,7 +107,7 @@ const DeleteBookDialog = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="space-y-3 py-2">
+        <div className="space-y-2 py-2">
           <div className="space-y-1.5">
             <label
               htmlFor={`delete-title-${bookId}`}

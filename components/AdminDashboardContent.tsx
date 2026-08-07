@@ -315,7 +315,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Book Availability
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm">Available Copies</span>
               <span className="font-medium">{availableCopies}</span>
@@ -343,7 +343,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         {/* User Status Chart */}
         <div className="stat">
           <h3 className="mb-4 text-base font-medium sm:text-lg">User Status</h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm">Approved Users</span>
               <span className="font-medium">{approvedUsers}</span>
@@ -373,7 +373,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Book Information
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm">Books with ISBN</span>
               <span className="font-medium">{booksWithISBN}</span>
@@ -417,7 +417,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Recent Borrows
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentBorrows.length === 0 ? (
               <p className="text-sm text-gray-500">No recent borrows</p>
             ) : (
@@ -456,7 +456,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Recent Users
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentUsers.length === 0 ? (
               <p className="text-sm text-gray-500">No recent users</p>
             ) : (
@@ -501,7 +501,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             📚 Book Categories
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {categoryStats.length === 0 ? (
               <p className="text-sm text-gray-500">No books found</p>
             ) : (
@@ -548,7 +548,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             📅 Books by Publication Year
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {booksByYear.length === 0 ? (
               <p className="text-sm text-gray-500">No publication year data</p>
             ) : (
@@ -652,7 +652,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             🏥 Library Health
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">
                 Collection Diversity

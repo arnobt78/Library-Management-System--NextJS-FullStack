@@ -410,7 +410,7 @@ const ApiStatusClient = ({
         </Button>
       </div>
 
-      <section className="space-y-3 sm:space-y-4">
+      <section className="space-y-2 sm:space-y-4">
         <GlassSectionHeader
           icon={<Server className="size-5 text-primary" />}
           title="Overall System Status"
@@ -486,7 +486,7 @@ const ApiStatusClient = ({
         </Card>
       </section>
 
-      <section className="space-y-3 sm:space-y-4">
+      <section className="space-y-2 sm:space-y-4">
         <GlassSectionHeader
           icon={<Activity className="size-5 text-primary" />}
           title="Service Status"
@@ -528,7 +528,7 @@ const ApiStatusClient = ({
                       </p>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="space-y-2 sm:space-y-3">
+                      <div className="space-y-2 sm:space-y-2">
                         <div className="flex justify-between">
                           <span className="text-xs text-light-200 sm:text-sm">
                             Response Time:
@@ -572,7 +572,7 @@ const ApiStatusClient = ({
       </section>
 
       {operatorMode && (
-        <section className="space-y-3 sm:space-y-4">
+        <section className="space-y-2 sm:space-y-4">
           <GlassSectionHeader
             icon={<TrendingUp className="size-5 text-primary" />}
             title="System Metrics"

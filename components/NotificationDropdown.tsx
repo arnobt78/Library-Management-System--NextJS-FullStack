@@ -87,7 +87,7 @@ export default function NotificationDropdown({
 
       <div className="max-h-96 overflow-y-auto">
         {isLoading ? (
-          <div className="space-y-3 p-4">
+          <div className="space-y-2 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-start gap-2">
                 <Skeleton className="size-8 shrink-0 rounded-full" />

@@ -436,7 +436,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Pending Admin Requests
           </h3>
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             {[...Array(2)].map((_, i) => (
               <UserSkeleton
                 key={`admin-request-skeleton-${i}`}
@@ -861,7 +861,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             <h3 className="mb-4 text-base font-medium sm:text-lg">
               Pending Admin Requests ({adminRequests.length})
             </h3>
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               {adminRequests.map((request) => {
                 const demoLocked = isProtectedDemoAccount({
                   email: request.userEmail,
@@ -959,7 +959,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             <h3 className="mb-4 text-base font-medium sm:text-lg">
               Recent decisions ({recentDecisions.length})
             </h3>
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2 sm:space-y-4">
               {recentDecisions.map((decision) => {
                 const withdrawn =
                   decision.status === "REJECTED" &&

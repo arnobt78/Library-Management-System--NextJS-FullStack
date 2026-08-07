@@ -109,14 +109,14 @@ const PerformanceDashboard = ({
           )}
         </div>
 
-        <section className="space-y-3 sm:space-y-4">
+        <section className="space-y-2 sm:space-y-4">
           <GlassSectionHeader
             icon={<Layers className="size-5 text-primary" />}
             title="Performance Architecture"
             subtitle="SSR delivers HTML first; React Query hydrates interactive data"
           />
           <Card className={GLASS_CARD}>
-            <CardContent className="space-y-3 p-2 sm:space-y-4 sm:p-4">
+            <CardContent className="space-y-2 p-2 sm:space-y-4 sm:p-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div className={cn(GLASS_TILE, "space-y-2")}>
                   <div className="flex flex-wrap items-center gap-2">
@@ -186,7 +186,7 @@ const PerformanceDashboard = ({
           </Card>
         </section>
 
-        <section className="space-y-3 sm:space-y-4">
+        <section className="space-y-2 sm:space-y-4">
           <GlassSectionHeader
             icon={<Gauge className="size-5 text-primary" />}
             title="Session Snapshot"
@@ -261,7 +261,7 @@ const PerformanceDashboard = ({
         </section>
 
         {ssrMetrics.length > 0 && (
-          <section className="space-y-3 sm:space-y-4">
+          <section className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={<BarChart3 className="size-5 text-primary" />}
               title="SSR Performance Metrics"
@@ -295,7 +295,7 @@ const PerformanceDashboard = ({
           </section>
         )}
 
-        <section className="space-y-3 sm:space-y-4">
+        <section className="space-y-2 sm:space-y-4">
           <GlassSectionHeader
             icon={<Zap className="size-5 text-primary" />}
             title="Client Detail"

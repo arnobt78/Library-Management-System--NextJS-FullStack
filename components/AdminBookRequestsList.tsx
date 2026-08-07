@@ -427,7 +427,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         />
 
         <div className="mt-4 w-full overflow-hidden sm:mt-7">
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             {requests.length === 0 ? (
               <div className="py-6 text-center sm:py-8">
                 <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">

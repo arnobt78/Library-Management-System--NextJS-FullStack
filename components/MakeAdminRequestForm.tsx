@@ -427,7 +427,7 @@ export default function MakeAdminRequestForm({
       )}
 
       {(canEdit || isPendingStatus) && (
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-4">
           <div>
             <label
               htmlFor="requestReason"

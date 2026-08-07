@@ -114,7 +114,7 @@ const ApiDocsPage = async () => {
             </div>
           </div>
 
-          <section className="space-y-3 sm:space-y-4">
+          <section className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={<Code className="size-5 text-primary" />}
               title="Base URL"
@@ -135,7 +135,7 @@ const ApiDocsPage = async () => {
             </Card>
           </section>
 
-          <section className="space-y-3 sm:space-y-4">
+          <section className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={<BookOpen className="size-5 text-primary" />}
               title="API Endpoints"
@@ -163,7 +163,7 @@ const ApiDocsPage = async () => {
                       value={categoryTabValue(category.category)}
                       className="mt-0"
                     >
-                      <div className="space-y-3 sm:space-y-4">
+                      <div className="space-y-2 sm:space-y-4">
                         <div className="mb-2 flex flex-wrap items-center gap-2 sm:mb-3">
                           <span className="text-light-200">
                             {CATEGORY_ICONS[category.id]}
@@ -197,7 +197,7 @@ const ApiDocsPage = async () => {
             </Card>
           </section>
 
-          <section className="space-y-3 sm:space-y-4">
+          <section className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={<Activity className="size-5 text-primary" />}
               title="HTTP Status Codes"
@@ -264,14 +264,14 @@ const ApiDocsPage = async () => {
             </Card>
           </section>
 
-          <section className="space-y-3 sm:space-y-4">
+          <section className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={<Lock className="size-5 text-primary" />}
               title="Authentication"
               subtitle="Session cookies via Auth.js — include credentials on protected calls"
             />
             <Card className="border-white/10 bg-dark-300/60 text-light-100 shadow-[0_12px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-              <CardContent className="space-y-3 p-2 sm:p-4">
+              <CardContent className="space-y-2 p-2 sm:p-4">
                 <p className="text-xs text-light-200 sm:text-sm">
                   Protected routes require a signed-in Auth.js session. Browser
                   clients send the session cookie automatically with{" "}

@@ -95,7 +95,7 @@ export function DataTable<TData, TValue>({
   const isDark = variant === "dark";
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2", className)}>
       <div
         className={cn(
           "overflow-hidden rounded-xl border",
@@ -214,7 +214,10 @@ export function DataTable<TData, TValue>({
                       }}
                       className={cn(isDark && "text-light-100")}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>

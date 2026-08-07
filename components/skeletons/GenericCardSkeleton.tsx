@@ -32,9 +32,9 @@ import { Card, CardContent } from "@/components/ui/card";
  * ```
  *
  * Dimensions matched:
- * - Card: rounded-lg border bg-white p-4 sm:p-6 shadow-sm
+ * - Card: rounded-lg border bg-white p-2 sm:p-4 shadow-sm
  * - Card header: mb-4
- * - Card content: space-y-2 or space-y-3
+ * - Card content: space-y-2 or space-y-2
  * - Card footer: mt-4 pt-4 border-t
  */
 interface GenericCardSkeletonProps {
@@ -104,7 +104,7 @@ const GenericCardSkeleton: React.FC<GenericCardSkeletonProps> = ({
               key={`line-${i}`}
               className={cn(
                 heightClass,
-                i === contentLines - 1 ? "w-3/4" : "w-full"
+                i === contentLines - 1 ? "w-3/4" : "w-full",
               )}
             />
           );
@@ -125,8 +125,8 @@ const GenericCardSkeleton: React.FC<GenericCardSkeletonProps> = ({
     return (
       <Card
         className={cn(
-          "rounded-lg border bg-white p-4 sm:p-6 shadow-sm",
-          className
+          "rounded-lg border bg-white p-2 sm:p-4 shadow-sm",
+          className,
         )}
       >
         <CardContent className="p-0">{content}</CardContent>
@@ -137,8 +137,8 @@ const GenericCardSkeleton: React.FC<GenericCardSkeletonProps> = ({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-white p-4 sm:p-6 shadow-sm",
-        className
+        "rounded-lg border bg-white p-2 sm:p-4 shadow-sm",
+        className,
       )}
     >
       {content}

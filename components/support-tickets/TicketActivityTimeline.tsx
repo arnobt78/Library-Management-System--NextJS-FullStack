@@ -31,9 +31,7 @@ export function TicketActivityTimeline({
       className={cn(
         "rounded-xl border",
         CARD_PAD_CLASS,
-        isDark
-          ? "border-white/10 bg-dark-300/60"
-          : "border-gray-200 bg-white",
+        isDark ? "border-white/10 bg-dark-300/60" : "border-gray-200 bg-white",
       )}
     >
       <TicketSectionHeader
@@ -78,7 +76,7 @@ export function TicketActivityTimeline({
           No activity yet.
         </p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-2">
           {events.map((event) => (
             <li
               key={event.id}
@@ -126,9 +124,7 @@ export function TicketActivityTimeline({
                       variant={variant}
                       size={36}
                       href={
-                        adminUserHref
-                          ? `/admin/users/${event.actorId}`
-                          : null
+                        adminUserHref ? `/admin/users/${event.actorId}` : null
                       }
                       person={{
                         id: event.actorId,

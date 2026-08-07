@@ -75,10 +75,10 @@ export default function FineManagement({
                 // Cache invalidation handled by mutations
                 // No need to reload page - React Query will update UI
               },
-            }
+            },
           );
         },
-      }
+      },
     );
   };
 
@@ -88,7 +88,7 @@ export default function FineManagement({
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-2 sm:space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h6 className="text-sm font-medium text-gray-900 sm:text-base">

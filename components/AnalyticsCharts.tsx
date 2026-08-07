@@ -101,7 +101,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         {/* Overdue Books Table Skeleton */}
         <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
           <Skeleton className="mb-4 h-7 w-40" />
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[...Array(5)].map((_, i) => (
               <div key={`table-row-skeleton-${i}`} className="flex gap-4">
                 <Skeleton className="h-6 flex-1" />
@@ -473,7 +473,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Monthly Statistics
           </h3>
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-2 sm:space-y-2">
             <div className="flex justify-between">
               <span className="text-xs text-gray-600 sm:text-sm">
                 Current Month:
@@ -497,7 +497,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Overdue Analysis
           </h3>
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-2 sm:space-y-2">
             <div className="flex justify-between">
               <span className="text-xs text-gray-600 sm:text-sm">
                 Total Overdue:

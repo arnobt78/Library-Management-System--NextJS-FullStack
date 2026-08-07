@@ -102,7 +102,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
           Borrow Statistics
         </div>
-        <div className="w-full space-y-2 sm:space-y-3">
+        <div className="w-full space-y-2 sm:space-y-2">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
             <Skeleton className="h-5 w-full max-w-xs sm:h-6" />
             <Skeleton className="h-5 w-full max-w-xs sm:h-6" />
@@ -123,7 +123,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
           Borrow Statistics
         </div>
-        <div className="space-y-2 sm:space-y-3">
+        <div className="space-y-2 sm:space-y-2">
           <p className="text-xs text-red-400 sm:text-sm">
             Failed to load borrow statistics
           </p>
@@ -144,7 +144,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         Borrow Statistics
       </div>
       {/* Two-column rows — same grid pattern as Book Details above */}
-      <div className="w-full space-y-2 sm:space-y-3">
+      <div className="w-full space-y-2 sm:space-y-2">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
           <p className="text-sm sm:text-base">
             Total Times Borrowed{" "}

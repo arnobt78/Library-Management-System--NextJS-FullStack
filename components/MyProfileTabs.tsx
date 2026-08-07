@@ -554,13 +554,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               value={section.value}
               className="mt-0"
             >
-              <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-2 sm:space-y-4">
                 <GlassSectionHeader
                   icon={section.icon}
                   title={section.title}
                   subtitle={section.subtitle}
                 />
-                <div className="profile-borrow-row p-4 sm:p-6">
+                <div className="profile-borrow-row p-2 sm:p-4">
                   <AccountRegistrationNotice
                     accountStatus={
                       accountStatus === "REJECTED" ? "REJECTED" : "PENDING"
@@ -634,7 +634,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             {activeTabValue === "my-reviews" ? (
               <MyReviewsTab userId={userId} initialReviews={initialReviews} />
             ) : (
-              <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-2 sm:space-y-4">
                 {[...Array(3)].map((_, i) => (
                   <BorrowSkeleton key={`sk-${i}`} variant="profile" />
                 ))}
@@ -1428,7 +1428,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         </TabsList>
 
         <TabsContent value="active-borrows" className="mt-0">
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={sectionMeta["active-borrows"].icon}
               title={sectionMeta["active-borrows"].title}
@@ -1458,7 +1458,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="pending-requests" className="mt-0">
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={sectionMeta["pending-requests"].icon}
               title={sectionMeta["pending-requests"].title}
@@ -1482,7 +1482,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="borrow-history" className="mt-0">
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={sectionMeta["borrow-history"].icon}
               title={sectionMeta["borrow-history"].title}
@@ -1506,7 +1506,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="my-reviews" className="mt-0">
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
               icon={sectionMeta["my-reviews"].icon}
               title={sectionMeta["my-reviews"].title}

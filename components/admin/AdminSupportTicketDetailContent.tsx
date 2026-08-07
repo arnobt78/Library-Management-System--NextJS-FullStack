@@ -280,7 +280,7 @@ export default function AdminSupportTicketDetailContent({
             </div>
           ) : null}
         </div>
-        <div className="admin-panel space-y-3">
+        <div className="admin-panel space-y-2">
           <TicketSectionHeader
             variant="light"
             icon={<FileText className="size-5" />}
