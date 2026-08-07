@@ -14,11 +14,34 @@ import BorrowSkeleton from "@/components/skeletons/BorrowSkeleton";
 import AccountRegistrationNotice from "@/components/AccountRegistrationNotice";
 import GlassSectionHeader from "@/components/GlassSectionHeader";
 import MyReviewsTab from "@/components/MyReviewsTab";
+import { FilterSelect } from "@/components/ui/filter-select";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import {
   formatBorrowDate,
   formatBorrowDateTime,
 } from "@/lib/profile/formatBorrowDates";
+import {
+  activeBorrowStatusFilterOptions,
+  borrowHistoryStatusFilterOptions,
+  filterActiveBorrows,
+  filterBorrowHistory,
+  filterPendingRequests,
+  hasNonDefaultProfileFilters,
+  type ActiveBorrowStatusFilter,
+  type BorrowHistoryStatusFilter,
+  type ReviewStatusFilter,
+} from "@/lib/profile/tabListFilters";
+import {
+  type ListPeriod,
+  periodFilterOptions,
+} from "@/lib/ui/periodFilterOptions";
+import { reviewStatusFilterOptions } from "@/lib/ui/reviewOptions";
+import {
+  FILTER_CLEAR_GLASS_BTN_CLASS,
+  filterChipGlassPillClass,
+} from "@/lib/ui/filter-chip-styles";
+import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
+import type { FilterSelectOption } from "@/components/ui/filter-select";
 import { cn } from "@/lib/utils";
 import { withRippleClick } from "@/lib/ui/ripple";
 import {
@@ -46,6 +69,7 @@ import {
   Layers,
   AlarmClockCheck,
   RotateCwFadingClock,
+  FilterX,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -109,6 +133,177 @@ interface BorrowRecordWithBook {
     updatedAt: Date | null;
     updatedBy?: string | null;
   };
+}
+
+const PERIOD_FILTER_OPTIONS = periodFilterOptions("dark");
+const ACTIVE_STATUS_OPTIONS = activeBorrowStatusFilterOptions("dark");
+const HISTORY_STATUS_OPTIONS = borrowHistoryStatusFilterOptions("dark");
+const REVIEW_STATUS_OPTIONS = reviewStatusFilterOptions("dark");
+
+function ProfileTabFilterBar({
+  period,
+  onPeriodChange,
+  status,
+  onStatusChange,
+  statusOptions,
+  statusLabel,
+}: {
+  period: ListPeriod;
+  onPeriodChange: (value: ListPeriod) => void;
+  status?: string;
+  onStatusChange?: (value: string) => void;
+  statusOptions?: FilterSelectOption[];
+  statusLabel?: string;
+}) {
+  return (
+    <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+      <FilterSelect
+        label="Period"
+        variant="dark"
+        labelLayout="embedded"
+        className="w-40 sm:w-44"
+        value={period}
+        onValueChange={(v) => onPeriodChange(v as ListPeriod)}
+        options={PERIOD_FILTER_OPTIONS}
+      />
+      {status != null && onStatusChange && statusOptions ? (
+        <FilterSelect
+          label={statusLabel ?? "Status"}
+          variant="dark"
+          labelLayout="embedded"
+          className="w-40 sm:w-44"
+          value={status}
+          onValueChange={onStatusChange}
+          options={statusOptions}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function filterOptionLabel(
+  options: FilterSelectOption[],
+  value: string,
+): string {
+  return options.find((o) => o.value === value)?.label ?? value;
+}
+
+function profileStatusChipTone(
+  value: string,
+): "muted" | "genre" | "warn" | "rating" {
+  if (
+    value === "due" ||
+    value === "CANCELLED" ||
+    value === "REJECTED"
+  ) {
+    return "warn";
+  }
+  if (
+    value === "extended" ||
+    value === "RETURNED" ||
+    value === "APPROVED"
+  ) {
+    return "genre";
+  }
+  if (value === "PENDING") return "rating";
+  return "muted";
+}
+
+/**
+ * Active period/status chips under GlassSectionHeader (admin/all-books parity).
+ * Only renders when filters differ from All Time / All Status defaults.
+ */
+function ProfileActiveFilterChips({
+  period,
+  onClearPeriod,
+  status,
+  onClearStatus,
+  statusOptions,
+  onReset,
+}: {
+  period: ListPeriod;
+  onClearPeriod: () => void;
+  status?: string;
+  onClearStatus?: () => void;
+  statusOptions?: FilterSelectOption[];
+  onReset: () => void;
+}) {
+  if (!hasNonDefaultProfileFilters({ period, status })) return null;
+
+  const groups: {
+    label: string;
+    values: string[];
+    onClear: () => void;
+    renderBadge: (value: string) => React.ReactNode;
+  }[] = [];
+
+  if (period !== "all") {
+    groups.push({
+      label: "Period",
+      values: [period],
+      onClear: onClearPeriod,
+      renderBadge: (value) => (
+        <span className={cn(filterChipGlassPillClass("muted"), "pr-2.5")}>
+          {filterOptionLabel(PERIOD_FILTER_OPTIONS, value)}
+        </span>
+      ),
+    });
+  }
+
+  if (
+    status != null &&
+    status !== "all" &&
+    onClearStatus &&
+    statusOptions
+  ) {
+    groups.push({
+      label: "Status",
+      values: [status],
+      onClear: onClearStatus,
+      renderBadge: (value) => (
+        <span
+          className={cn(
+            filterChipGlassPillClass(profileStatusChipTone(value)),
+            "pr-2.5",
+          )}
+        >
+          {filterOptionLabel(statusOptions, value)}
+        </span>
+      ),
+    });
+  }
+
+  if (groups.length === 0) return null;
+
+  return (
+    <DismissibleFilterChips
+      variant="dark"
+      groups={groups}
+      onReset={onReset}
+    />
+  );
+}
+
+function ProfileFilterEmptyState({
+  message,
+  onClear,
+}: {
+  message: string;
+  onClear: () => void;
+}) {
+  return (
+    <div role="status" className="profile-borrow-row p-4 text-center sm:p-6">
+      <p className="text-sm text-light-200 sm:text-base">{message}</p>
+      <button
+        type="button"
+        onClick={onClear}
+        className={cn(FILTER_CLEAR_GLASS_BTN_CLASS, "mt-3 sm:mt-4")}
+      >
+        <FilterX className="size-4" aria-hidden />
+        Clear Filters
+      </button>
+    </div>
+  );
 }
 
 interface MyProfileTabsProps {
@@ -365,12 +560,29 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   // URL is source of truth for the open tab (refresh-safe, shareable)
   const activeTabValue = parseProfileTab(searchParams.get("tab"));
 
+  // Client-only list filters (period + tab status) — cleared on tab change via handleTabChange.
+  const [listPeriod, setListPeriod] = React.useState<ListPeriod>("all");
+  const [activeStatusFilter, setActiveStatusFilter] =
+    React.useState<ActiveBorrowStatusFilter>("all");
+  const [historyStatusFilter, setHistoryStatusFilter] =
+    React.useState<BorrowHistoryStatusFilter>("all");
+  const [reviewStatusFilter, setReviewStatusFilter] =
+    React.useState<ReviewStatusFilter>("all");
+
+  const clearProfileListFilters = React.useCallback(() => {
+    setListPeriod("all");
+    setActiveStatusFilter("all");
+    setHistoryStatusFilter("all");
+    setReviewStatusFilter("all");
+  }, []);
+
   const handleTabChange = React.useCallback(
     (value: string) => {
       const tab = parseProfileTab(value);
+      clearProfileListFilters();
       router.replace(profileTabHref(tab), { scroll: false });
     },
-    [router],
+    [router, clearProfileListFilters],
   );
 
   // Normalize missing/legacy ?tab= to canonical value without scrolling
@@ -395,6 +607,22 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           new Date(a.createdAt || 0).getTime(),
       ),
     [borrowHistory],
+  );
+
+  const filteredActiveBorrows = React.useMemo(
+    () => filterActiveBorrows(activeBorrows, listPeriod, activeStatusFilter),
+    [activeBorrows, listPeriod, activeStatusFilter],
+  );
+
+  const filteredPendingRequests = React.useMemo(
+    () => filterPendingRequests(pendingRequests, listPeriod),
+    [pendingRequests, listPeriod],
+  );
+
+  const filteredHistory = React.useMemo(
+    () =>
+      filterBorrowHistory(sortedHistory, listPeriod, historyStatusFilter),
+    [sortedHistory, listPeriod, historyStatusFilter],
   );
 
   // PENDING/REJECTED: keep chrome + zero KPIs + tabs; show registration notice (no borrow RQ / no red 403)
@@ -1430,9 +1658,30 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         <TabsContent value="active-borrows" className="mt-0">
           <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
+              className="flex-wrap gap-y-2"
               icon={sectionMeta["active-borrows"].icon}
               title={sectionMeta["active-borrows"].title}
               subtitle={sectionMeta["active-borrows"].subtitle}
+              trailing={
+                <ProfileTabFilterBar
+                  period={listPeriod}
+                  onPeriodChange={setListPeriod}
+                  status={activeStatusFilter}
+                  onStatusChange={(v) =>
+                    setActiveStatusFilter(v as ActiveBorrowStatusFilter)
+                  }
+                  statusOptions={ACTIVE_STATUS_OPTIONS}
+                  statusLabel="Status"
+                />
+              }
+            />
+            <ProfileActiveFilterChips
+              period={listPeriod}
+              onClearPeriod={() => setListPeriod("all")}
+              status={activeStatusFilter}
+              onClearStatus={() => setActiveStatusFilter("all")}
+              statusOptions={ACTIVE_STATUS_OPTIONS}
+              onReset={clearProfileListFilters}
             />
             {activeBorrows.length === 0 ? (
               <div
@@ -1443,8 +1692,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   No active borrows
                 </p>
               </div>
+            ) : filteredActiveBorrows.length === 0 ? (
+              <ProfileFilterEmptyState
+                message="No active borrows found matching your filters."
+                onClear={clearProfileListFilters}
+              />
             ) : (
-              activeBorrows.map((record) => (
+              filteredActiveBorrows.map((record) => (
                 <BorrowCard
                   key={record.id}
                   record={record}
@@ -1460,9 +1714,21 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         <TabsContent value="pending-requests" className="mt-0">
           <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
+              className="flex-wrap gap-y-2"
               icon={sectionMeta["pending-requests"].icon}
               title={sectionMeta["pending-requests"].title}
               subtitle={sectionMeta["pending-requests"].subtitle}
+              trailing={
+                <ProfileTabFilterBar
+                  period={listPeriod}
+                  onPeriodChange={setListPeriod}
+                />
+              }
+            />
+            <ProfileActiveFilterChips
+              period={listPeriod}
+              onClearPeriod={() => setListPeriod("all")}
+              onReset={clearProfileListFilters}
             />
             {pendingRequests.length === 0 ? (
               <div
@@ -1473,8 +1739,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   No pending requests
                 </p>
               </div>
+            ) : filteredPendingRequests.length === 0 ? (
+              <ProfileFilterEmptyState
+                message="No pending requests found matching your filters."
+                onClear={clearProfileListFilters}
+              />
             ) : (
-              pendingRequests.map((record) => (
+              filteredPendingRequests.map((record) => (
                 <BorrowCard key={record.id} record={record} />
               ))
             )}
@@ -1484,9 +1755,30 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         <TabsContent value="borrow-history" className="mt-0">
           <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
+              className="flex-wrap gap-y-2"
               icon={sectionMeta["borrow-history"].icon}
               title={sectionMeta["borrow-history"].title}
               subtitle={sectionMeta["borrow-history"].subtitle}
+              trailing={
+                <ProfileTabFilterBar
+                  period={listPeriod}
+                  onPeriodChange={setListPeriod}
+                  status={historyStatusFilter}
+                  onStatusChange={(v) =>
+                    setHistoryStatusFilter(v as BorrowHistoryStatusFilter)
+                  }
+                  statusOptions={HISTORY_STATUS_OPTIONS}
+                  statusLabel="Status"
+                />
+              }
+            />
+            <ProfileActiveFilterChips
+              period={listPeriod}
+              onClearPeriod={() => setListPeriod("all")}
+              status={historyStatusFilter}
+              onClearStatus={() => setHistoryStatusFilter("all")}
+              statusOptions={HISTORY_STATUS_OPTIONS}
+              onReset={clearProfileListFilters}
             />
             {sortedHistory.length === 0 ? (
               <div
@@ -1497,8 +1789,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   No borrow history
                 </p>
               </div>
+            ) : filteredHistory.length === 0 ? (
+              <ProfileFilterEmptyState
+                message="No borrow history found matching your filters."
+                onClear={clearProfileListFilters}
+              />
             ) : (
-              sortedHistory.map((record) => (
+              filteredHistory.map((record) => (
                 <BorrowCard key={record.id} record={record} />
               ))
             )}
@@ -1508,11 +1805,38 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         <TabsContent value="my-reviews" className="mt-0">
           <div className="space-y-2 sm:space-y-4">
             <GlassSectionHeader
+              className="flex-wrap gap-y-2"
               icon={sectionMeta["my-reviews"].icon}
               title={sectionMeta["my-reviews"].title}
               subtitle={sectionMeta["my-reviews"].subtitle}
+              trailing={
+                <ProfileTabFilterBar
+                  period={listPeriod}
+                  onPeriodChange={setListPeriod}
+                  status={reviewStatusFilter}
+                  onStatusChange={(v) =>
+                    setReviewStatusFilter(v as ReviewStatusFilter)
+                  }
+                  statusOptions={REVIEW_STATUS_OPTIONS}
+                  statusLabel="Status"
+                />
+              }
             />
-            <MyReviewsTab userId={userId} initialReviews={initialReviews} />
+            <ProfileActiveFilterChips
+              period={listPeriod}
+              onClearPeriod={() => setListPeriod("all")}
+              status={reviewStatusFilter}
+              onClearStatus={() => setReviewStatusFilter("all")}
+              statusOptions={REVIEW_STATUS_OPTIONS}
+              onReset={clearProfileListFilters}
+            />
+            <MyReviewsTab
+              userId={userId}
+              initialReviews={initialReviews}
+              period={listPeriod}
+              statusFilter={reviewStatusFilter}
+              onClearFilters={clearProfileListFilters}
+            />
           </div>
         </TabsContent>
       </Tabs>

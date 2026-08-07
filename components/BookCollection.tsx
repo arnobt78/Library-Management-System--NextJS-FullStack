@@ -4,23 +4,22 @@
  * BookCollection Component
  *
  * Client catalog for /all-books: full-width filter toolbar + meta row (chips / sort),
- * URL-driven filters, React Query + SSR initialData.
+ * optimistic displayFilters + URL sync, React Query + SSR initialData.
  *
  * Behavior:
- * - Instant search: controlled input + 300ms debounce → router.replace (no Search button)
- * - Instant dropdowns/sort: onValueChange → router.replace({ scroll: false })
- * - Live useSearchParams drive useAllBooks so filter changes refetch without remount
- * - initialData only when URL still matches SSR params (avoids stale grid after filter)
- * - Toolbar: Search | Genre | Availability | Rating (equal flex); Sort + chips on meta row
+ * - displayFilters drive chrome + useAllBooks (admin-parity instant clear/select)
+ * - URL updated via router.replace for shareability; back/forward syncs display
+ * - Instant search: controlled input + 300ms debounce → display + URL
+ * - Prefetch unfiltered page-1 so Clear/Reset hits warm cache
+ * - Toolbar: Search | Genre | Availability | Rating; Sort + chips on meta row
  */
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookCard from "@/components/BookCard";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterSelect } from "@/components/ui/filter-select";
 import {
@@ -30,10 +29,19 @@ import {
   ratingFilterOptions,
   sortFilterOptions,
 } from "@/lib/ui/filterOptionStyles";
+import {
+  FILTER_CLEAR_GLASS_BTN_CLASS,
+  filterChipDismissXBtnClass,
+  filterChipGlassPillClass,
+} from "@/lib/ui/filter-chip-styles";
 import { useAllBooks } from "@/hooks/useQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
-import type { BooksListResponse } from "@/lib/services/books";
+import {
+  getBooksList,
+  type BooksListResponse,
+  type BookFilters,
+} from "@/lib/services/books";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import {
   Search,
@@ -45,6 +53,7 @@ import {
   CircleX,
   Star,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type CollectionSearchParams = {
   search: string;
@@ -54,6 +63,59 @@ type CollectionSearchParams = {
   sort: string;
   page: number;
 };
+
+function parseCollectionParams(searchParamsKey: string): CollectionSearchParams {
+  const params = new URLSearchParams(searchParamsKey);
+  return {
+    search: params.get("search") || "",
+    genre: params.get("genre") || "",
+    availability: params.get("availability") || "",
+    rating: params.get("rating") || "",
+    sort: params.get("sort") || "title",
+    page: parseInt(params.get("page") || "1", 10) || 1,
+  };
+}
+
+function collectionParamsEqual(
+  a: CollectionSearchParams,
+  b: CollectionSearchParams,
+): boolean {
+  return (
+    a.search === b.search &&
+    a.genre === b.genre &&
+    a.availability === b.availability &&
+    a.rating === b.rating &&
+    a.sort === b.sort &&
+    a.page === b.page
+  );
+}
+
+function toCatalogQueryString(filters: CollectionSearchParams): string {
+  const params = new URLSearchParams();
+  if (filters.search) params.set("search", filters.search);
+  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.availability) params.set("availability", filters.availability);
+  if (filters.rating) params.set("rating", filters.rating);
+  if (filters.sort && filters.sort !== "title") params.set("sort", filters.sort);
+  if (filters.page > 1) params.set("page", String(filters.page));
+  return params.toString();
+}
+
+function toBookFilters(
+  filters: CollectionSearchParams,
+  limit: number,
+): BookFilters {
+  return {
+    search: filters.search || undefined,
+    genre: filters.genre || undefined,
+    availability:
+      (filters.availability as BookFilters["availability"]) || undefined,
+    rating: filters.rating ? Number(filters.rating) : undefined,
+    sort: (filters.sort as BookFilters["sort"]) || undefined,
+    page: filters.page,
+    limit,
+  };
+}
 
 interface BookCollectionProps {
   /**
@@ -118,33 +180,39 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   const queryClient = useQueryClient();
 
   // Initialize React Query cache with SSR user borrows data
-  // This ensures that when users navigate to book detail pages, the data is already cached
   useEffect(() => {
     if (initialUserBorrows && initialUserBorrows.length > 0) {
-      // Extract userId from first record (all records have same userId)
       const userId = initialUserBorrows[0].userId;
       if (userId) {
-        // Set the query data in React Query cache for the main user-borrows query
-        // This is the query key used by BookBorrowButton: ["user-borrows", userId, undefined]
         const queryKey = queryKeys.borrows.user(userId);
         queryClient.setQueryData(queryKey, initialUserBorrows);
       }
     }
   }, [initialUserBorrows, queryClient]);
 
-  // Live URL is source of truth so instant filter/search updates the grid without remount
   const searchParamsKey = searchParamsHook.toString();
-  const currentSearchParams: CollectionSearchParams = useMemo(() => {
-    const params = new URLSearchParams(searchParamsKey);
-    return {
-      search: params.get("search") || "",
-      genre: params.get("genre") || "",
-      availability: params.get("availability") || "",
-      rating: params.get("rating") || "",
-      sort: params.get("sort") || "title",
-      page: parseInt(params.get("page") || "1", 10) || 1,
-    };
-  }, [searchParamsKey]);
+  const urlParams: CollectionSearchParams = useMemo(
+    () => parseCollectionParams(searchParamsKey),
+    [searchParamsKey],
+  );
+
+  /** Optimistic chrome + query filters; URL follows for shareability. */
+  const [displayFilters, setDisplayFilters] =
+    useState<CollectionSearchParams>(urlParams);
+  /** QS we last pushed — skip overwriting display until URL catches up. */
+  const pendingUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (pendingUrlRef.current !== null) {
+      if (searchParamsKey === pendingUrlRef.current) {
+        pendingUrlRef.current = null;
+      }
+      return;
+    }
+    setDisplayFilters((prev) =>
+      collectionParamsEqual(prev, urlParams) ? prev : urlParams,
+    );
+  }, [searchParamsKey, urlParams]);
 
   const ssrSearchParams: CollectionSearchParams = useMemo(
     () =>
@@ -160,15 +228,20 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     [initialSearchParams, legacySearchParams],
   );
 
-  // Only hydrate RQ with SSR list when URL still matches the SSR filter snapshot
-  const filtersMatchSsr =
-    currentSearchParams.search === (ssrSearchParams.search || "") &&
-    currentSearchParams.genre === (ssrSearchParams.genre || "") &&
-    currentSearchParams.availability === (ssrSearchParams.availability || "") &&
-    currentSearchParams.rating === (ssrSearchParams.rating || "") &&
-    (currentSearchParams.sort || "title") ===
-      (ssrSearchParams.sort || "title") &&
-    currentSearchParams.page === (ssrSearchParams.page || 1);
+  const filtersMatchSsr = collectionParamsEqual(
+    displayFilters,
+    {
+      search: ssrSearchParams.search || "",
+      genre: ssrSearchParams.genre || "",
+      availability: ssrSearchParams.availability || "",
+      rating: ssrSearchParams.rating || "",
+      sort: ssrSearchParams.sort || "title",
+      page: ssrSearchParams.page || 1,
+    },
+  );
+
+  const booksPerPage =
+    initialPagination?.booksPerPage || legacyPagination?.booksPerPage || 12;
 
   const initialData: BooksListResponse | undefined =
     filtersMatchSsr && (initialBooks || legacyBooks)
@@ -191,32 +264,33 @@ const BookCollection: React.FC<BookCollectionProps> = ({
         }
       : undefined;
 
-  const booksPerPage =
-    initialPagination?.booksPerPage || legacyPagination?.booksPerPage || 12;
+  const bookQueryFilters = useMemo(
+    () => toBookFilters(displayFilters, booksPerPage),
+    [displayFilters, booksPerPage],
+  );
 
   const {
     data: booksData,
     isLoading,
     isError,
     error,
-  } = useAllBooks(
-    {
-      search: currentSearchParams.search || undefined,
-      genre: currentSearchParams.genre || undefined,
-      availability:
-        (currentSearchParams.availability as
-          "available" | "unavailable" | "all") || undefined,
-      rating: currentSearchParams.rating
-        ? Number(currentSearchParams.rating)
-        : undefined,
-      sort:
-        (currentSearchParams.sort as "title" | "author" | "rating" | "date") ||
-        undefined,
-      page: currentSearchParams.page,
+  } = useAllBooks(bookQueryFilters, initialData, {
+    skipEmptyPlaceholder: true,
+  });
+
+  // Prefetch default (unfiltered) catalog so Clear/Reset paints from warm cache
+  useEffect(() => {
+    const warm: BookFilters = {
+      sort: (displayFilters.sort as BookFilters["sort"]) || "title",
+      page: 1,
       limit: booksPerPage,
-    },
-    initialData,
-  );
+    };
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.books.adminList(warm),
+      queryFn: () => getBooksList(warm),
+      staleTime: 30 * 1000,
+    });
+  }, [queryClient, booksPerPage, displayFilters.sort]);
 
   // Unfiltered catalog size for subtitle; invalidates with books domain mutations
   const libraryTotalInitial: BooksListResponse | undefined =
@@ -235,8 +309,6 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   );
   const libraryTotalBooks = libraryMeta?.total ?? initialLibraryTotalBooks ?? 0;
 
-  // CRITICAL: Always prefer React Query data over initial/legacy data
-  // React Query data is fresh and updates immediately after mutations / filter changes
   const books =
     (booksData?.books ??
       (filtersMatchSsr ? (legacyBooks ?? initialBooks) : undefined)) ||
@@ -245,106 +317,97 @@ const BookCollection: React.FC<BookCollectionProps> = ({
 
   const pagination = booksData
     ? {
-        currentPage: booksData.page ?? currentSearchParams.page,
+        currentPage: booksData.page ?? displayFilters.page,
         totalPages: booksData.totalPages ?? 1,
         totalBooks: booksData.total ?? 0,
         booksPerPage: booksData.limit ?? booksPerPage,
       }
     : (legacyPagination ??
       initialPagination ?? {
-        currentPage: currentSearchParams.page,
+        currentPage: displayFilters.page,
         totalPages: 1,
         totalBooks: books.length,
         booksPerPage,
       });
 
-  const [localSearch, setLocalSearch] = useState(currentSearchParams.search);
-  const lastSyncedSearchRef = useRef(currentSearchParams.search);
+  const [localSearch, setLocalSearch] = useState(displayFilters.search);
+  const lastSyncedSearchRef = useRef(displayFilters.search);
 
-  // Sync localSearch with URL when it changes externally (back/forward), not mid-typing
+  const applyFilters = useCallback(
+    (next: CollectionSearchParams) => {
+      const qs = toCatalogQueryString(next);
+      pendingUrlRef.current = qs;
+      setDisplayFilters(next);
+      router.replace(qs ? `/all-books?${qs}` : "/all-books", { scroll: false });
+    },
+    [router],
+  );
+
+  // Sync localSearch when display search changes externally (back/forward / clear)
   useEffect(() => {
     if (
-      currentSearchParams.search !== lastSyncedSearchRef.current &&
+      displayFilters.search !== lastSyncedSearchRef.current &&
       localSearch === lastSyncedSearchRef.current
     ) {
-      setLocalSearch(currentSearchParams.search);
-      lastSyncedSearchRef.current = currentSearchParams.search;
+      setLocalSearch(displayFilters.search);
+      lastSyncedSearchRef.current = displayFilters.search;
     }
-  }, [currentSearchParams.search, localSearch]);
+  }, [displayFilters.search, localSearch]);
 
-  // Debounced instant search → URL (mirrors AdminBooksList 300ms pattern)
+  // Debounced instant search → display + URL
   useEffect(() => {
     const timer = setTimeout(() => {
       const trimmedSearch = localSearch.trim();
-      if (trimmedSearch !== currentSearchParams.search) {
-        const params = new URLSearchParams(searchParamsHook.toString());
-
-        if (trimmedSearch) {
-          params.set("search", trimmedSearch);
-        } else {
-          params.delete("search");
-        }
-        // Reset page when search text changes
-        params.delete("page");
-
-        lastSyncedSearchRef.current = trimmedSearch;
-        const qs = params.toString();
-        router.replace(qs ? `/all-books?${qs}` : "/all-books", {
-          scroll: false,
-        });
-      }
+      if (trimmedSearch === displayFilters.search) return;
+      lastSyncedSearchRef.current = trimmedSearch;
+      applyFilters({
+        ...displayFilters,
+        search: trimmedSearch,
+        page: 1,
+      });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [localSearch, currentSearchParams.search, searchParamsHook, router]);
-
-  const updateSearchParams = (newParams: Record<string, string>) => {
-    const params = new URLSearchParams(searchParamsHook.toString());
-
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-    });
-
-    // Reset to page 1 when filters/sort change (not when only page changes)
-    if (Object.keys(newParams).some((key) => key !== "page")) {
-      params.delete("page");
-    }
-
-    const qs = params.toString();
-    router.replace(qs ? `/all-books?${qs}` : "/all-books", { scroll: false });
-  };
+  }, [localSearch, displayFilters, applyFilters]);
 
   const handleFilterChange = (key: string, value: string) => {
-    updateSearchParams({ [key]: value });
+    applyFilters({
+      ...displayFilters,
+      [key]: value,
+      page: 1,
+    });
   };
 
   const handleSortChange = (sort: string) => {
-    updateSearchParams({ sort });
+    applyFilters({
+      ...displayFilters,
+      sort,
+      page: 1,
+    });
   };
 
   const handlePageChange = (page: number) => {
-    updateSearchParams({ page: page.toString() });
+    applyFilters({
+      ...displayFilters,
+      page,
+    });
   };
 
   /** Clear search/genre/availability/rating; keep sort (and drop page). */
   const clearFilters = () => {
     setLocalSearch("");
     lastSyncedSearchRef.current = "";
-    const params = new URLSearchParams(searchParamsHook.toString());
-    params.delete("search");
-    params.delete("genre");
-    params.delete("availability");
-    params.delete("rating");
-    params.delete("page");
-    const qs = params.toString();
-    router.replace(qs ? `/all-books?${qs}` : "/all-books", { scroll: false });
+    applyFilters({
+      search: "",
+      genre: "",
+      availability: "",
+      rating: "",
+      sort: displayFilters.sort || "title",
+      page: 1,
+    });
   };
 
-  /** Remove a single active filter chip (URL param) without wiping sort. */
+  /** Remove a single active filter chip without wiping sort. */
   const removeFilter = (
     key: "search" | "genre" | "availability" | "rating",
   ) => {
@@ -352,14 +415,18 @@ const BookCollection: React.FC<BookCollectionProps> = ({
       setLocalSearch("");
       lastSyncedSearchRef.current = "";
     }
-    updateSearchParams({ [key]: "" });
+    applyFilters({
+      ...displayFilters,
+      [key]: "",
+      page: 1,
+    });
   };
 
   const hasActiveFilters = Boolean(
-    currentSearchParams.search ||
-    currentSearchParams.genre ||
-    currentSearchParams.availability ||
-    currentSearchParams.rating,
+    displayFilters.search ||
+      displayFilters.genre ||
+      displayFilters.availability ||
+      displayFilters.rating,
   );
 
   // First paint with no cached rows — pulse toolbar + card skeletons (no “Loading…” copy)
@@ -375,7 +442,6 @@ const BookCollection: React.FC<BookCollectionProps> = ({
             books
           </p>
         </div>
-        {/* Inline pulse placeholders — same rhythm as loaded toolbar + grid */}
         <div
           className="mb-4 h-28 animate-pulse rounded-lg border border-gray-600 bg-gray-800/30 sm:mb-6 sm:h-24"
           aria-hidden
@@ -393,7 +459,6 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     );
   }
 
-  // Show error state
   if (isError) {
     return (
       <div className="w-full">
@@ -420,7 +485,6 @@ const BookCollection: React.FC<BookCollectionProps> = ({
 
   return (
     <div className="w-full">
-      {/* Page title */}
       <div className="mb-4 sm:mb-6">
         <h1 className="text-xl font-medium text-light-100 sm:text-3xl">
           Book Collection
@@ -430,11 +494,9 @@ const BookCollection: React.FC<BookCollectionProps> = ({
         </p>
       </div>
 
-      {/* Filter toolbar — Search + Genre + Availability + Rating (equal flex, h-9 aligned) */}
       <Card className="mb-4 rounded-lg border border-gray-600 bg-gray-800/30 sm:mb-6">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-3">
-            {/* Instant search — no submit; debounced URL update; space-y matches FilterSelect */}
             <div className="w-full min-w-0 flex-1 space-y-1.5">
               <label
                 htmlFor="all-books-search"
@@ -443,7 +505,6 @@ const BookCollection: React.FC<BookCollectionProps> = ({
                 Search
               </label>
               <div className="relative">
-                {/* Icon/placeholder match dark FilterSelect muted chrome */}
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-light-200/70" />
                 <Input
                   id="all-books-search"
@@ -461,7 +522,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               label="Genre"
               variant="dark"
               className="w-full min-w-0 flex-1"
-              value={currentSearchParams.genre || "all"}
+              value={displayFilters.genre || "all"}
               onValueChange={(v) =>
                 handleFilterChange("genre", v === "all" ? "" : v)
               }
@@ -472,7 +533,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               label="Availability"
               variant="dark"
               className="w-full min-w-0 flex-1"
-              value={currentSearchParams.availability || "all"}
+              value={displayFilters.availability || "all"}
               onValueChange={(v) =>
                 handleFilterChange("availability", v === "all" ? "" : v)
               }
@@ -483,7 +544,7 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               label="Rating"
               variant="dark"
               className="w-full min-w-0 flex-1"
-              value={currentSearchParams.rating || "all"}
+              value={displayFilters.rating || "all"}
               onValueChange={(v) =>
                 handleFilterChange("rating", v === "all" ? "" : v)
               }
@@ -493,120 +554,113 @@ const BookCollection: React.FC<BookCollectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Meta: Showing + chips + Reset All | Sort by (inline from sm); same mb as toolbar */}
+      {/* Meta: Showing + chips + inline Reset All | Sort by */}
       <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="shrink-0 text-xs text-gray-100 sm:text-sm">
+          <span className="shrink-0 text-xs tabular-nums text-gray-100 sm:text-sm">
             Showing {books.length} of {pagination.totalBooks} books
           </span>
 
           {hasActiveFilters && (
             <>
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                {currentSearchParams.search ? (
-                  <Badge
-                    variant="secondary"
-                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
-                  >
-                    <Search className="size-3.5 shrink-0" aria-hidden />
+                {displayFilters.search ? (
+                  <span className={filterChipGlassPillClass("muted")}>
+                    <Search
+                      className="size-3.5 shrink-0 text-sky-300"
+                      aria-hidden
+                    />
                     <span className="leading-none">
-                      &quot;{currentSearchParams.search}&quot;
+                      &quot;{displayFilters.search}&quot;
                     </span>
                     <button
                       type="button"
                       onClick={() => removeFilter("search")}
-                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
+                      className={filterChipDismissXBtnClass("dark")}
                       aria-label="Remove search filter"
                     >
                       <X className="size-3.5" />
                     </button>
-                  </Badge>
+                  </span>
                 ) : null}
 
-                {currentSearchParams.genre ? (
-                  <Badge
-                    variant="secondary"
-                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
-                  >
+                {displayFilters.genre ? (
+                  <span className={filterChipGlassPillClass("genre")}>
                     {React.createElement(
-                      genreFilterIcon(currentSearchParams.genre),
+                      genreFilterIcon(displayFilters.genre),
                       {
-                        className: "size-3.5 shrink-0 text-emerald-600",
+                        className: "size-3.5 shrink-0 text-emerald-300",
                         "aria-hidden": true,
                       },
                     )}
-                    <span className="leading-none">
-                      {currentSearchParams.genre}
-                    </span>
+                    <span className="leading-none">{displayFilters.genre}</span>
                     <button
                       type="button"
                       onClick={() => removeFilter("genre")}
-                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
-                      aria-label={`Remove genre filter ${currentSearchParams.genre}`}
+                      className={filterChipDismissXBtnClass("dark")}
+                      aria-label={`Remove genre filter ${displayFilters.genre}`}
                     >
                       <X className="size-3.5" />
                     </button>
-                  </Badge>
+                  </span>
                 ) : null}
 
-                {currentSearchParams.availability ? (
-                  <Badge
-                    variant="secondary"
-                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
+                {displayFilters.availability ? (
+                  <span
+                    className={filterChipGlassPillClass(
+                      displayFilters.availability === "available"
+                        ? "genre"
+                        : "warn",
+                    )}
                   >
-                    {currentSearchParams.availability === "available" ? (
+                    {displayFilters.availability === "available" ? (
                       <CircleCheck
-                        className="size-3.5 shrink-0 text-emerald-600"
+                        className="size-3.5 shrink-0 text-emerald-300"
                         aria-hidden
                       />
                     ) : (
                       <CircleX
-                        className="size-3.5 shrink-0 text-rose-600"
+                        className="size-3.5 shrink-0 text-rose-300"
                         aria-hidden
                       />
                     )}
                     <span className="leading-none">
-                      {currentSearchParams.availability === "available"
+                      {displayFilters.availability === "available"
                         ? "Available"
                         : "Unavailable"}
                     </span>
                     <button
                       type="button"
                       onClick={() => removeFilter("availability")}
-                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
+                      className={filterChipDismissXBtnClass("dark")}
                       aria-label="Remove availability filter"
                     >
                       <X className="size-3.5" />
                     </button>
-                  </Badge>
+                  </span>
                 ) : null}
 
-                {currentSearchParams.rating ? (
-                  <Badge
-                    variant="secondary"
-                    className="inline-flex items-center gap-1.5 py-1 pl-2 pr-1 text-xs sm:text-sm"
-                  >
-                    {/* Outline amber star (not filled) — matches rating list accent style */}
+                {displayFilters.rating ? (
+                  <span className={filterChipGlassPillClass("rating")}>
                     <Star
-                      className="size-3.5 shrink-0 text-amber-500"
+                      className="size-3.5 shrink-0 text-amber-300"
                       aria-hidden
                     />
                     <span className="leading-none">
-                      {currentSearchParams.rating}+ Stars
+                      {displayFilters.rating}+ Stars
                     </span>
                     <button
                       type="button"
                       onClick={() => removeFilter("rating")}
-                      className="inline-flex size-5 items-center justify-center rounded-full hover:bg-black/10"
+                      className={filterChipDismissXBtnClass("dark")}
                       aria-label="Remove rating filter"
                     >
                       <X className="size-3.5" />
                     </button>
-                  </Badge>
+                  </span>
                 ) : null}
               </div>
 
-              {/* Text + icon — not a badge/button chrome */}
               <button
                 type="button"
                 onClick={clearFilters}
@@ -624,13 +678,12 @@ const BookCollection: React.FC<BookCollectionProps> = ({
           variant="dark"
           labelLayout="inline"
           className="w-full shrink-0 sm:w-auto sm:min-w-56"
-          value={currentSearchParams.sort || "title"}
+          value={displayFilters.sort || "title"}
           onValueChange={handleSortChange}
           options={sortFilterOptions("dark")}
         />
       </div>
 
-      {/* Books Grid — full page-shell width */}
       {books.length === 0 ? (
         <Card className="border-2 border-gray-600 bg-gray-800/30">
           <CardContent className="empty-panel">
@@ -638,14 +691,14 @@ const BookCollection: React.FC<BookCollectionProps> = ({
               No books found matching your criteria.
             </p>
             {hasActiveFilters && (
-              <Button
-                variant="outline"
+              <button
+                type="button"
                 onClick={clearFilters}
-                className="mt-3 sm:mt-4"
+                className={cn(FILTER_CLEAR_GLASS_BTN_CLASS, "mt-3 sm:mt-4")}
               >
-                <FilterX className="size-4" />
+                <FilterX className="size-4" aria-hidden />
                 Clear Filters
-              </Button>
+              </button>
             )}
           </CardContent>
         </Card>
@@ -657,7 +710,6 @@ const BookCollection: React.FC<BookCollectionProps> = ({
         </div>
       )}
 
-      {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="mt-6 flex flex-wrap items-center justify-center gap-1.5 sm:mt-8 sm:gap-2">
           <Button

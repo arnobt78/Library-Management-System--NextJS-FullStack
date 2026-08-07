@@ -13,10 +13,6 @@ import {
   FilePlus,
   History,
   Trash2,
-  CalendarDays,
-  CalendarRange,
-  CalendarClock,
-  List,
 } from "lucide-react";
 import { useActivityLogs } from "@/hooks/useQueries";
 import type {
@@ -40,33 +36,9 @@ import {
   TABLE_CELL_TITLE,
 } from "@/lib/ui/tableCellStyles";
 import { cn } from "@/lib/utils";
+import { periodFilterOptions } from "@/lib/ui/periodFilterOptions";
 
-const PERIOD_OPTIONS = [
-  {
-    value: "today",
-    label: "Today",
-    icon: CalendarDays,
-    iconClassName: "text-sky-500",
-  },
-  {
-    value: "7days",
-    label: "Last 7 days",
-    icon: CalendarRange,
-    iconClassName: "text-violet-500",
-  },
-  {
-    value: "30days",
-    label: "Last 30 days",
-    icon: CalendarClock,
-    iconClassName: "text-amber-500",
-  },
-  {
-    value: "all",
-    label: "All History",
-    icon: List,
-    iconClassName: "text-slate-500",
-  },
-];
+const PERIOD_OPTIONS = periodFilterOptions("light");
 
 /** Books/users use their existing pages as the "detail" surface (no dedicated route). */
 const ENTITY_DETAIL_ROUTE: Record<string, (id: string) => string> = {

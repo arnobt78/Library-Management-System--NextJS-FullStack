@@ -112,7 +112,14 @@ import { useSearchParams } from "next/navigation";
  */
 export const useAllBooks = (
   filters?: BookFilters,
-  initialData?: BooksListResponse
+  initialData?: BooksListResponse,
+  options?: {
+    /**
+     * All-books only: do not keep a 0-book previous page as placeholder when
+     * clearing filters (avoids sticky empty until the broader fetch returns).
+     */
+    skipEmptyPlaceholder?: boolean;
+  },
 ) => {
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
@@ -148,8 +155,14 @@ export const useAllBooks = (
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
-    // Instant filter UX: show previous results until the new key resolves (no empty flash)
-    placeholderData: keepPreviousData,
+    // Instant filter UX: show previous results until the new key resolves (no empty flash).
+    // skipEmptyPlaceholder: clearing from 0 hits must not keep empty as placeholder.
+    placeholderData: options?.skipEmptyPlaceholder
+      ? (previousData: BooksListResponse | undefined) =>
+          previousData && previousData.books.length > 0
+            ? previousData
+            : undefined
+      : keepPreviousData,
   });
 };
 

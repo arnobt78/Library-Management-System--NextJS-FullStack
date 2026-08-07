@@ -109,3 +109,7 @@ Repo reconciled: HEAD `115fcc8`, tip `06ca476`, docs bind through `4538840`, own
 ## Admin filter UX polish (2026-08-07)
 
 Owner approved filter/KPI/empty-UI batch. Delivered: `adminListUniverse` dual-query KPIs; instant `localSearch`; `AdminFilterEmptyState`; Select scroll-lock sticky header; activity `7days` SSR seed only. Prove type/lint/151/build PASS. EvalGate still FAIL (Gate 2 blocked).
+
+## Glass catalog + profile tab filters (2026-08-07)
+
+Owner approved glass chips + My Profile period/status filters. Delivered: all-books glass chips/Reset/Clear + optimistic `displayFilters`; profile `All Time`/`All Status` + dark chips (`tabListFilters` / `periodFilterOptions`). Densify unchanged. EvalGate still FAIL.

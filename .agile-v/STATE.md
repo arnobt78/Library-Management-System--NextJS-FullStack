@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) admin filter UX polish; nonlocal Verify still outstanding
+- Stage: 4 - Prove complete (local) glass catalog chips + profile tab filters; nonlocal Verify still outstanding
 - SCOPE-V phase: Verify (filter UX Prove PASS locally)
-- Status: ACTIVE - admin filter UX at tip `3dd4594`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - glass/profile filter UX tip pending post-commit bind; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `3dd4594` (admin filter UX: universe KPIs, instant search, empty state, sticky header)
-- Latest HEAD: `0f64bc5` (`main` == `origin/main`)
+- Latest implementation tip: (bind after product commit)
+- Latest HEAD: (bind after push)
 - Started: 2026-08-01
-- Last updated: 2026-08-07 (admin filter UX: universe KPIs, instant search, empty state, sticky header)
+- Last updated: 2026-08-07 (glass all-books chips + profile tab period/status filters)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,7 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (admin filter UX polish)
+- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (glass chips + profile filters)
 
 ## Resume Protocol
 
@@ -41,11 +41,12 @@
 | INT-0006 | C2 Gate 1 | RESOLVED | `C2-G1-20260801-5d31a8c2` | GATE-0006 |
 | — | C2 Gate 2 | NOT OPENED | — | EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`) |
 
-## Reconciliation snapshot (2026-08-07, admin filter UX)
+## Reconciliation snapshot (2026-08-07, glass + profile filters)
 
 Verified facts:
-- Admin filter polish: universe KPIs (`adminListUniverse`), instant `localSearch`, `AdminFilterEmptyState`, Select scroll-lock sticky header, activity `7days` SSR seed only.
-- Local Prove: typecheck + lint + **151** tests + Next 16.2.12 build PASS. Debug instrumentation removed.
+- `/all-books`: glass chips, inline Reset All, glass empty Clear, optimistic `displayFilters` + prefetch + `skipEmptyPlaceholder`.
+- My Profile tabs: client period/status (`tabListFilters` / `periodFilterOptions`); **All Time** / **All Status**; dark `DismissibleFilterChips`.
+- Local Prove: typecheck + lint + filter unit tests PASS. Densify/RQ mutation paths unchanged.
 - EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); C2 Gate 2 not opened.
 - Protocol: `docs/AGILE_V_PROTOCOL.md`.
 
@@ -53,9 +54,17 @@ Verified facts:
 
 **Human-Decision:** Wave 5 / BL-0017 (EvalGate evidence), further REQ-0033 polish, new CR, or named bug. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
 
+## Reconciliation snapshot (2026-08-07, admin filter UX)
+
+Verified facts:
+- Admin filter polish: universe KPIs (`adminListUniverse`), instant `localSearch`, `AdminFilterEmptyState`, Select scroll-lock sticky header, activity `7days` SSR seed only.
+- Local Prove: typecheck + lint + **151** tests + Next 16.2.12 build PASS. Debug instrumentation removed.
+- EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); C2 Gate 2 not opened.
+- Tip was `3dd4594`; superseded by glass/profile filter snapshot above after commit/push.
+
 ## Reconciliation snapshot (2026-08-07, resume)
 
-Pre-filter-batch note: HEAD was `115fcc8` / tip `06ca476`. Superseded by admin filter UX snapshot above after commit/push.
+Pre-filter-batch note: HEAD was `115fcc8` / tip `06ca476`. Superseded by admin filter UX then glass/profile filter snapshots.
 
 ## Reconciliation snapshot (2026-08-06, resume)
 

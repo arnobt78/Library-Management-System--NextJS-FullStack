@@ -106,18 +106,20 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - Invalidation: `relatedRoot` is under books + recommendations domains (no new mutation family).
 - `BookCard`: subtle cover glow, cover-width meta, `line-clamp-2` title/author, star + rating beside genre, hover scale/tilt with reduced-motion off. List keys use `book.id`.
 
-## All Books catalog UX (2026-08-03, REQ-0033 polish)
+## All Books catalog UX (2026-08-03, REQ-0033 polish; 2026-08-07 glass/clear)
 
-- Layout: full-width filter toolbar (no sidebar); Sort by + dismissible chips + Reset All on the meta row; sticky transparent Header with scroll blur (`RootHeaderShell`).
-- Instant filters: 300ms debounced search, immediate selects via `router.replace`; live URL → `useAllBooks`; `keepPreviousData` avoids empty flash; SSR title/author search uses `ilike` (API parity).
-- Counts: subtitle uses unfiltered `initialLibraryTotalBooks` / catalog meta query; “Showing X of Y” uses filtered pagination total.
-- Chrome: dark FilterSelect `h-9`, `FilterSurface` tones, hover icons stay light; search field matches `border-gray-700` / `.catalog-search-input` clear control.
-- Loading: pulse toolbar + `BookCardSkeleton` only — no “Updating…” / “Loading books…” copy.
+- Layout: full-width filter toolbar; Sort + glass dismissible chips + inline Reset All (`text-light-200`) on meta row; sticky Header (`RootHeaderShell`).
+- Instant filters: optimistic `displayFilters` drive chrome + `useAllBooks`, then `router.replace`; 300ms search debounce; unfiltered page-1 prefetch; `skipEmptyPlaceholder` avoids sticky empty on clear; SSR `ilike`.
+- Counts: subtitle = unfiltered library total; “Showing X of Y” = filtered page (content-sized; digit width may nudge).
+- Empty: glass Clear Filters (`.profile-action-btn--clear`; do not put `btn-ripple` on the host).
+- Chrome: dark FilterSelect `h-9`; `.catalog-search-input` clear = light-200.
+- Loading: pulse toolbar + `BookCardSkeleton` only on cold empty — no meta-row “Loading…”.
 
-## My Profile UX (2026-08-03, REQ-0033 polish)
+## My Profile UX (2026-08-03, REQ-0033 polish; 2026-08-07 tab filters)
 
 - Hero matches All Books. Shared `GlassSectionHeader` for stats + tab sections. KPI cards: icon | title/hint | value.
-- Tabs: transparent track + dark glass pills. Borrow rows: soft glass + left accent; status icons (`Timer` / `RotateCwFadingClock` / `AlarmClockCheck`); glass CTAs (`.profile-action-btn*`).
+- Tab list filters (client-only): Period (default **All Time**) + tab status via `lib/ui/periodFilterOptions` + `lib/profile/tabListFilters`; labels Title Case (**All Status**); dark `DismissibleFilterChips` under headers when non-default; glass empty Clear.
+- Tabs: transparent track + dark glass pills. Borrow rows: soft glass + left accent; glass CTAs (`.profile-action-btn*`).
 - `CountdownTimer` lazy-inits from dueDate (fixes red flash). `review.write` includes `/my-profile`.
 - Admin→profile CSS leak: no Card/`bg-card` on borrow rows; `.profile-borrow-row` forces dark glass (`!`). Status: requested/approved datetime + return date-only (`lib/profile/formatBorrowDates.ts`).
 - Scroll: manual `scrollRestoration` + layout scroll-to-top; header starts blurred until top measured.
