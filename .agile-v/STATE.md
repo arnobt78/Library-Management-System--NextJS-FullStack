@@ -8,7 +8,7 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `f0f5d35` (glass all-books chips + profile tab period/status filters)
-- Latest HEAD: `f85af0f` (`main` == `origin/main`)
+- Latest HEAD: `a75ec75` (`main` == `origin/main`)
 - Started: 2026-08-01
 - Last updated: 2026-08-07 (glass all-books chips + profile tab period/status filters)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
