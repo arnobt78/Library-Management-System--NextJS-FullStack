@@ -329,6 +329,7 @@ export default function SupportTicketsPageContent({
               value={search}
               onChange={setSearch}
               placeholder="Search your tickets…"
+              debounceMs={0}
               className="sm:min-w-[200px]"
             />
             <FilterSelect

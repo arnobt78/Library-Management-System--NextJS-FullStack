@@ -8,7 +8,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FilePen, FilePlus, History, Trash2 } from "lucide-react";
+import {
+  FilePen,
+  FilePlus,
+  History,
+  Trash2,
+  CalendarDays,
+  CalendarRange,
+  CalendarClock,
+  List,
+} from "lucide-react";
 import { useActivityLogs } from "@/hooks/useQueries";
 import type {
   ActivityLogFilters,
@@ -24,6 +33,7 @@ import { AuditActionBadge } from "@/lib/ui/semanticBadges";
 import { PersonNameEmailCell } from "@/components/ui/PersonNameEmailCell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import {
   TABLE_CELL_STATIC,
@@ -32,10 +42,30 @@ import {
 import { cn } from "@/lib/utils";
 
 const PERIOD_OPTIONS = [
-  { value: "today", label: "Today" },
-  { value: "7days", label: "Last 7 days" },
-  { value: "30days", label: "Last 30 days" },
-  { value: "all", label: "All (latest 50)" },
+  {
+    value: "today",
+    label: "Today",
+    icon: CalendarDays,
+    iconClassName: "text-sky-500",
+  },
+  {
+    value: "7days",
+    label: "Last 7 days",
+    icon: CalendarRange,
+    iconClassName: "text-violet-500",
+  },
+  {
+    value: "30days",
+    label: "Last 30 days",
+    icon: CalendarClock,
+    iconClassName: "text-amber-500",
+  },
+  {
+    value: "all",
+    label: "All History",
+    icon: List,
+    iconClassName: "text-slate-500",
+  },
 ];
 
 /** Books/users use their existing pages as the "detail" surface (no dedicated route). */
@@ -67,23 +97,46 @@ export default function ActivityLogSection({
   const [period, setPeriod] = useState<ActivityLogFilters["period"]>("7days");
   const [search, setSearch] = useState("");
 
+  // Period drives the server fetch; search filters the loaded rows locally so
+  // typing matches from the first character (no RQ refetch per keystroke).
   const filters = useMemo<ActivityLogFilters>(
-    () => ({ period, search: search || undefined }),
-    [period, search],
+    () => ({ period }),
+    [period],
   );
-  const { data: logs = [], isPending } = useActivityLogs(filters, initialLogs);
+  const {
+    data: periodLogs = [],
+    isPending,
+  } = useActivityLogs(filters, initialLogs);
+
+  const logs = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return periodLogs;
+    return periodLogs.filter((log) => {
+      const hay = [
+        log.actorName ?? "",
+        log.actorEmail ?? "",
+        log.action,
+        log.entityType,
+        log.entityId ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [periodLogs, search]);
 
   const stats = useMemo(() => {
     let created = 0;
     let updated = 0;
     let deleted = 0;
-    for (const log of logs) {
+    // KPIs stay on the full period universe (not the search-filtered rows)
+    for (const log of periodLogs) {
       if (log.action === "CREATE") created += 1;
       else if (log.action === "UPDATE") updated += 1;
       else if (log.action === "DELETE") deleted += 1;
     }
-    return { total: logs.length, created, updated, deleted };
-  }, [logs]);
+    return { total: periodLogs.length, created, updated, deleted };
+  }, [periodLogs]);
 
   const filterChipGroups = useMemo(() => {
     if (period === "7days") return [];
@@ -107,6 +160,8 @@ export default function ActivityLogSection({
     setSearch("");
     setPeriod("7days");
   };
+
+  const hasDisplayFilters = Boolean(search.trim() || period !== "7days");
 
   const columns = useMemo<ColumnDef<ActivityLogItem>[]>(
     () => [
@@ -203,14 +258,15 @@ export default function ActivityLogSection({
           <SearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Search by actor, action, entity…"
-            className="sm:min-w-[250px]"
+            placeholder="Search actor, action…"
+            debounceMs={0}
+            className="sm:min-w-64"
           />
           <FilterSelect
             label="Period"
             variant="light"
-            labelLayout="inline"
-            className="sm:min-w-[190px]"
+            labelLayout="embedded"
+            className="sm:min-w-[170px]"
             value={period}
             onValueChange={(value) => setPeriod(value as ActivityLogFilters["period"])}
             options={PERIOD_OPTIONS}
@@ -221,7 +277,15 @@ export default function ActivityLogSection({
           columns={columns}
           data={logs}
           isLoading={isPending && logs.length === 0}
-          emptyMessage="No activity recorded for this period."
+          emptyMessage={
+            <AdminFilterEmptyState
+              entityLabel="activity"
+              filtered={hasDisplayFilters}
+              onClear={handleResetFilters}
+              blankMessage="No activity recorded for this period."
+              className="py-4 sm:py-6"
+            />
+          }
           initialPageSize={10}
         />
       </div>

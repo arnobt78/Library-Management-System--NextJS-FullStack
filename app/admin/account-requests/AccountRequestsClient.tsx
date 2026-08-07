@@ -36,7 +36,6 @@ import {
   Eye,
   Shield,
   Clock,
-  FilterX,
   Loader2,
   CalendarPlus,
   CalendarCheck,
@@ -53,6 +52,8 @@ import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 
 interface AccountRequestsClientProps {
   /**
@@ -132,20 +133,16 @@ const AccountRequestsClient = ({
     return () => clearTimeout(timer);
   }, [localSearch, currentSearch, searchParamsHook, router]);
 
-  // Check if any filters are active
-  const hasActiveFilters = currentSearch;
+  // URL search stays debounced for shareable links; list filters on localSearch.
+  const searchQuery = localSearch.trim();
 
-  // Only use initialData on first load (when no filters are active)
-  const initialUsersData =
-    !hasActiveFilters && initialUsers ? initialUsers : undefined;
-
-  // React Query hook with SSR initial data
+  // Always load the full pending queue; filter client-side for instant UX.
   const {
     data: usersData,
     isLoading: usersLoading,
     isError: usersError,
     error: usersErrorData,
-  } = usePendingUsers(initialUsersData, currentSearch || undefined);
+  } = usePendingUsers(initialUsers, "");
 
   // React Query mutations
   const approveUserMutation = useApproveUser();
@@ -163,12 +160,24 @@ const AccountRequestsClient = ({
     null,
   );
 
-  // CRITICAL: Always prefer React Query data over initial data
-  // React Query data is fresh and updates immediately after mutations
-  // initial data is only used as fallback during initial load
-  // Extract users from response
-  // usePendingUsers returns User[] directly (not wrapped in UsersListResponse)
-  const users: UserType[] = ((usersData ?? initialUsers) || []) as UserType[];
+  // Full pending queue for KPIs/badge; `users` is search-filtered for the list.
+  const pendingUniverse: UserType[] = React.useMemo(
+    () => ((usersData ?? initialUsers) || []) as UserType[],
+    [usersData, initialUsers],
+  );
+
+  const users: UserType[] = React.useMemo(() => {
+    if (!searchQuery) return pendingUniverse;
+    const q = searchQuery.toLowerCase();
+    return pendingUniverse.filter(
+      (u) =>
+        u.fullName.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        String(u.universityId).includes(q),
+    );
+  }, [pendingUniverse, searchQuery]);
+
+  const hasActiveFilters = Boolean(searchQuery);
 
   const clearFilters = () => {
     setLocalSearch("");
@@ -263,29 +272,27 @@ const AccountRequestsClient = ({
           description="Approve or reject new library sign-ups"
           icon={UserPlus}
         />
-        <div className="mb-4 flex w-full flex-col gap-2 sm:mb-6 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-          {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
+        <AdminListToolbar title="Registration Queue" count={users.length}>
+          {/* Instant debounced search — URL push already debounced; debounceMs=0 */}
           <SearchInput
             value={localSearch}
             onChange={setLocalSearch}
-            placeholder="Search by name, email, ID..."
+            placeholder="Search name, email, ID…"
             debounceMs={0}
-            className="flex-1 sm:min-w-[250px]"
+            className="sm:min-w-64"
           />
-          <div className="flex w-full items-center justify-start sm:w-auto sm:justify-center">
-            <div className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 sm:px-3">
-              <span className="whitespace-nowrap text-xs font-medium text-orange-800 sm:text-sm">
-                {users.length} Pending
-              </span>
-            </div>
+          <div className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 sm:px-3">
+            <span className="whitespace-nowrap text-xs font-medium text-orange-800 sm:text-sm">
+              {pendingUniverse.length} Pending
+            </span>
           </div>
-        </div>
+        </AdminListToolbar>
 
         {/* KPI Statistics Cards */}
         <StatCardGrid className="mb-4 sm:mb-6">
           <StatCard
             title="Pending Requests"
-            value={users.length}
+            value={pendingUniverse.length}
             icon={UserPlus}
             hue="amber"
           />
@@ -347,28 +354,25 @@ const AccountRequestsClient = ({
         {users.length === 0 ? (
           <Card className="text-center">
             <CardContent className="py-8 sm:py-12">
-              <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-gray-100 sm:mb-4 sm:size-24">
-                <User className="size-10 text-gray-400 sm:size-12" />
-              </div>
-              <h3 className="mb-1.5 text-base font-medium text-gray-900 sm:mb-2 sm:text-lg">
-                {hasActiveFilters
-                  ? "No pending requests found matching your criteria."
-                  : "No Pending Requests"}
-              </h3>
-              <p className="mb-3 text-sm text-gray-500 sm:mb-4 sm:text-base">
-                {hasActiveFilters
-                  ? "Try adjusting your search terms."
-                  : "All sign-up requests have been processed."}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="mt-1.5 border-gray-300 text-xs text-gray-700 hover:bg-gray-100 sm:mt-2 sm:text-sm"
-                >
-                  <FilterX className="size-4" />
-                  Clear All Filters
-                </Button>
+              {!hasActiveFilters ? (
+                <>
+                  <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full bg-gray-100 sm:mb-4 sm:size-24">
+                    <User className="size-10 text-gray-400 sm:size-12" />
+                  </div>
+                  <h3 className="mb-1.5 text-base font-medium text-gray-900 sm:mb-2 sm:text-lg">
+                    No Pending Requests
+                  </h3>
+                  <p className="text-sm font-normal text-gray-500">
+                    All sign-up requests have been processed.
+                  </p>
+                </>
+              ) : (
+                <AdminFilterEmptyState
+                  entityLabel="pending requests"
+                  filtered
+                  onClear={clearFilters}
+                  className="py-2 sm:py-4"
+                />
               )}
             </CardContent>
           </Card>

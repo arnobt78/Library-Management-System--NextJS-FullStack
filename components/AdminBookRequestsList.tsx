@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
+import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { borrowStatusFilterOptions } from "@/lib/ui/filterOptionStyles";
 import BookCover from "@/components/BookCover";
 import BorrowSkeleton from "@/components/skeletons/BorrowSkeleton";
@@ -32,8 +33,8 @@ import {
   useReturnBook,
 } from "@/hooks/useMutations";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
+import { ADMIN_BORROW_REQUESTS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
-  FilterX,
   CheckCircle,
   XCircle,
   Undo2,
@@ -46,6 +47,7 @@ import {
 import type { BorrowStatus } from "@/lib/services/borrows";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 
 interface AdminBookRequestsListProps {
   /**
@@ -116,7 +118,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     return () => clearTimeout(timer);
   }, [localSearch, currentSearch, searchParamsHook, router]);
 
-  // Build filters from URL params
+  // Build filters from URL params (RQ cache warming; search debounced via URL)
   const filters = React.useMemo(
     () => ({
       status:
@@ -126,16 +128,31 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     [currentStatus, currentSearch],
   );
 
-  // Check if any filters are active
-  const hasActiveFilters = currentSearch || currentStatus !== "all";
+  const searchQuery = localSearch.trim();
+  const hasDisplayFilters = Boolean(
+    searchQuery || currentStatus !== "all",
+  );
+
+  // URL filters (SSR initialData)
+  const hasActiveFilters = Boolean(currentSearch || currentStatus !== "all");
 
   // Only use initialData on first load (when no filters are active)
   const initialRequestsData =
     !hasActiveFilters && initialRequests ? initialRequests : undefined;
 
-  // React Query hook with SSR initial data
+  // Full-universe KPIs — dedicated unfiltered query (stays warm under filters)
+  const { data: universeRequestsData } = useBorrowRequests(
+    ADMIN_BORROW_REQUESTS_UNFILTERED,
+    initialRequests,
+  );
+  const universeRequests: BorrowRecordWithDetails[] = React.useMemo(
+    () =>
+      (universeRequestsData ?? initialRequests ?? []) as BorrowRecordWithDetails[],
+    [universeRequestsData, initialRequests],
+  );
+
+  // Filtered query warms cache; table rows come from universe (+ client filter).
   const {
-    data: requestsData,
     isLoading: requestsLoading,
     isError: requestsError,
     error: requestsErrorData,
@@ -151,14 +168,33 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     "approve" | "reject" | "return" | null
   >(null);
 
-  // CRITICAL: Always prefer React Query data over initial data
-  // React Query data is fresh and updates immediately after mutations
-  // initial data is only used as fallback during initial load
-  // Extract data from response
-  // useBorrowRequests returns BorrowRecordWithDetails[] directly
-  const requests: BorrowRecordWithDetails[] = ((requestsData ??
-    initialRequests) ||
-    []) as BorrowRecordWithDetails[];
+  // Table: warm universe + client filter on localSearch (instant first keystroke).
+  const requests: BorrowRecordWithDetails[] = React.useMemo(() => {
+    const base =
+      universeRequests.length > 0
+        ? universeRequests
+        : (initialRequests ?? []);
+    if (!hasDisplayFilters) {
+      return base;
+    }
+    const q = searchQuery.toLowerCase();
+    return base.filter((r) => {
+      if (currentStatus !== "all" && r.status !== currentStatus) return false;
+      if (!q) return true;
+      return (
+        (r.bookTitle ?? "").toLowerCase().includes(q) ||
+        (r.bookAuthor ?? "").toLowerCase().includes(q) ||
+        (r.userName ?? "").toLowerCase().includes(q) ||
+        (r.userEmail ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [
+    universeRequests,
+    initialRequests,
+    hasDisplayFilters,
+    searchQuery,
+    currentStatus,
+  ]);
 
   // Update search params in URL and trigger refetch
   const updateSearchParams = (newParams: Record<string, string>) => {
@@ -233,8 +269,8 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     );
   };
 
-  // Show skeleton while loading (only if no initial data)
-  if (requestsLoading && (!initialRequests || initialRequests.length === 0)) {
+  // Skeleton only when nothing displayable
+  if (requestsLoading && requests.length === 0) {
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -253,7 +289,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   }
 
   // Show error state
-  if (requestsError && (!initialRequests || initialRequests.length === 0)) {
+  if (requestsError && requests.length === 0) {
     return (
       <section className="admin-panel">
         <div className="py-6 text-center sm:py-8">
@@ -270,11 +306,17 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
     );
   }
 
-  // KPI counts for the top-of-page StatCard row (Wave 4 rollout)
-  const pendingCount = requests.filter((r) => r.status === "PENDING").length;
-  const borrowedCount = requests.filter((r) => r.status === "BORROWED").length;
-  const returnedCount = requests.filter((r) => r.status === "RETURNED").length;
-  const cancelledCount = requests.filter(
+  // KPI counts — full-universe queue (not filtered table rows)
+  const pendingCount = universeRequests.filter(
+    (r) => r.status === "PENDING",
+  ).length;
+  const borrowedCount = universeRequests.filter(
+    (r) => r.status === "BORROWED",
+  ).length;
+  const returnedCount = universeRequests.filter(
+    (r) => r.status === "RETURNED",
+  ).length;
+  const cancelledCount = universeRequests.filter(
     (r) => r.status === "CANCELLED",
   ).length;
 
@@ -290,7 +332,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         <StatCardGrid className="mb-4 sm:mb-6">
           <StatCard
             title="Total Requests"
-            value={requests.length}
+            value={universeRequests.length}
             icon={BookOpen}
             hue="blue"
           />
@@ -376,76 +418,65 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
           </div>
         )}
 
-        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h2 className="text-lg font-medium text-dark-400 sm:text-xl">
-            Borrow Queue ({requests.length})
-          </h2>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            {/* Instant debounced search — this component already debounces the URL push itself (see effect above), so debounceMs=0 avoids stacking two delays */}
-            <SearchInput
-              value={localSearch}
-              onChange={setLocalSearch}
-              placeholder="Search by book, author, user..."
-              debounceMs={0}
-              className="flex-1 sm:min-w-[250px]"
-            />
-            <FilterSelect
-              label="Status"
+        <AdminListToolbar
+          title="Borrow Queue"
+          count={requests.length}
+          chips={
+            <DismissibleFilterChips
               variant="light"
-              className="w-full sm:min-w-[170px]"
-              value={currentStatus || "all"}
-              onValueChange={(v) => handleFilterChange("status", v)}
-              options={borrowStatusFilterOptions()}
+              groups={
+                currentStatus !== "all"
+                  ? [
+                      {
+                        label: "Status",
+                        values: [currentStatus],
+                        onClear: () => handleFilterChange("status", "all"),
+                        renderBadge: (value: string) => {
+                          const opt = borrowStatusFilterOptions().find(
+                            (o) => o.value === value,
+                          );
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                              {opt?.label ?? value}
+                            </span>
+                          );
+                        },
+                      },
+                    ]
+                  : []
+              }
+              onReset={clearFilters}
             />
-          </div>
-        </div>
-
-        <DismissibleFilterChips
-          variant="light"
-          groups={
-            currentStatus !== "all"
-              ? [
-                  {
-                    label: "Status",
-                    values: [currentStatus],
-                    onClear: () => handleFilterChange("status", "all"),
-                    renderBadge: (value: string) => {
-                      const opt = borrowStatusFilterOptions().find(
-                        (o) => o.value === value,
-                      );
-                      return (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
-                          {opt?.label ?? value}
-                        </span>
-                      );
-                    },
-                  },
-                ]
-              : []
           }
-          onReset={clearFilters}
-        />
+        >
+          {/* Instant debounced search — URL push already debounced; debounceMs=0 */}
+          <SearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            placeholder="Search book, author, user…"
+            debounceMs={0}
+            className="sm:min-w-64"
+          />
+          <FilterSelect
+            label="Status"
+            variant="light"
+            labelLayout="embedded"
+            className="shrink-0 sm:min-w-[150px]"
+            value={currentStatus || "all"}
+            onValueChange={(v) => handleFilterChange("status", v)}
+            options={borrowStatusFilterOptions()}
+          />
+        </AdminListToolbar>
 
         <div className="mt-4 w-full overflow-hidden sm:mt-7">
           <div className="space-y-2 sm:space-y-4">
             {requests.length === 0 ? (
-              <div className="py-6 text-center sm:py-8">
-                <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
-                  {hasActiveFilters
-                    ? "No borrow requests found matching your criteria."
-                    : "No borrow requests found."}
-                </p>
-                {hasActiveFilters && (
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
-                  >
-                    <FilterX className="size-4" />
-                    Clear All Filters
-                  </Button>
-                )}
-              </div>
+              <AdminFilterEmptyState
+                entityLabel="borrow requests"
+                filtered={hasDisplayFilters}
+                onClear={clearFilters}
+                blankMessage="No borrow requests found."
+              />
             ) : (
               requests.map((request) => (
                 <div

@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) admin Stockly shell + nav-count densify; nonlocal Verify still outstanding
-- SCOPE-V phase: Verify (shell + densify Prove PASS locally)
-- Status: ACTIVE - admin shell densify at tip `06ca476`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove complete (local) admin filter UX polish; nonlocal Verify still outstanding
+- SCOPE-V phase: Verify (filter UX Prove PASS locally)
+- Status: ACTIVE - admin filter UX polish pending tip bind; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `06ca476` (Stockly admin chrome + patchAdminNavCounts)
-- Latest HEAD: `14646c1` (`main` == `origin/main`; docs bind after tip)
+- Latest implementation tip: (pending admin-filter UX commit)
+- Latest HEAD: (pending admin-filter UX commit)
 - Started: 2026-08-01
-- Last updated: 2026-08-07 (admin Stockly shell + nav-count densify)
+- Last updated: 2026-08-07 (admin filter UX: universe KPIs, instant search, empty state, sticky header)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,7 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (admin shell densify)
+- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (admin filter UX polish)
 
 ## Resume Protocol
 
@@ -40,6 +40,22 @@
 | INT-0005 | C2 Gate 0 | RESOLVED | `C2-G0-20260801-74b2e9a1` | GATE-0005 |
 | INT-0006 | C2 Gate 1 | RESOLVED | `C2-G1-20260801-5d31a8c2` | GATE-0006 |
 | — | C2 Gate 2 | NOT OPENED | — | EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`) |
+
+## Reconciliation snapshot (2026-08-07, admin filter UX)
+
+Verified facts:
+- Admin filter polish: universe KPIs (`adminListUniverse`), instant `localSearch`, `AdminFilterEmptyState`, Select scroll-lock sticky header, activity `7days` SSR seed only.
+- Local Prove: typecheck + lint + **151** tests + Next 16.2.12 build PASS. Debug instrumentation removed.
+- EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); C2 Gate 2 not opened.
+- Protocol: `docs/AGILE_V_PROTOCOL.md`.
+
+### Next Action
+
+**Human-Decision:** Wave 5 / BL-0017 (EvalGate evidence), further REQ-0033 polish, new CR, or named bug. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-07, resume)
+
+Pre-filter-batch note: HEAD was `115fcc8` / tip `06ca476`. Superseded by admin filter UX snapshot above after commit/push.
 
 ## Reconciliation snapshot (2026-08-06, resume)
 
@@ -118,7 +134,7 @@ Owner requested a deep audit of the CR-0003 diff before commit. A dedicated suba
 
 ### Next Action
 
-Hard-refresh admin smoke (avatar center, logo, densify badge path). Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
+Superseded by 2026-08-07 resume Human-Decision above. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER (`ER-C2-FINAL-CORRECTIVE-5`).
 
 ### Admin review detail redesign (2026-08-06)
 

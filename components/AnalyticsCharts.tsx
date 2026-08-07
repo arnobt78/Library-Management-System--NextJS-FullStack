@@ -77,7 +77,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               contentLines={2}
               lineHeight={4}
               useCardWrapper={false}
-              className="rounded-lg border bg-white p-4 shadow-sm sm:p-6"
+              className="rounded-lg border bg-white p-2 shadow-md sm:p-4"
             />
           ))}
         </div>
@@ -87,7 +87,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           {[...Array(4)].map((_, i) => (
             <div
               key={`chart-skeleton-${i}`}
-              className="rounded-lg border bg-white p-4 shadow-sm sm:p-6"
+              className="rounded-lg border bg-white p-2 shadow-md sm:p-4"
             >
               <Skeleton className="mb-4 h-7 w-40" />
               <ChartSkeleton
@@ -99,7 +99,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* Overdue Books Table Skeleton */}
-        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
           <Skeleton className="mb-4 h-7 w-40" />
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => (
@@ -215,7 +215,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       </StatCardGrid>
 
       <section
-        className="rounded-lg border bg-white p-4 shadow-sm sm:p-6"
+        className="rounded-lg border bg-white p-2 shadow-md sm:p-4"
         aria-labelledby="deterministic-insights"
       >
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -268,7 +268,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Borrowing Trends */}
-        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Borrowing Trends
           </h3>
@@ -300,7 +300,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* Popular Books */}
-        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Popular Books
           </h3>
@@ -325,7 +325,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* Genre Distribution */}
-        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Genre Distribution
           </h3>
@@ -356,7 +356,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         {/* User Activity */}
-        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Top Users by Activity
           </h3>
@@ -382,7 +382,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       </div>
 
       {/* Overdue Books Table */}
-      <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+      <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
         <h3 className="mb-4 text-base font-medium sm:text-lg">Overdue Books</h3>
         <div className="overflow-x-auto">
           <table className="w-full min-w-full border-collapse">
@@ -469,7 +469,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
-        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Monthly Statistics
           </h3>
@@ -493,7 +493,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-lg border bg-white p-2 shadow-md sm:p-4">
           <h3 className="mb-4 text-base font-medium sm:text-lg">
             Overdue Analysis
           </h3>

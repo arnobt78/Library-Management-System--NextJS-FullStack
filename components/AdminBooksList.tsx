@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
+import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import {
   genreFilterOptions,
   availabilityFilterOptions,
@@ -31,8 +32,8 @@ import { getBookGenres } from "@/lib/services/books";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
 import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
 import type { BookFilters } from "@/lib/services/books";
+import { ADMIN_BOOKS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
-  FilterX,
   Plus,
   Eye,
   Pencil,
@@ -43,6 +44,7 @@ import {
 } from "lucide-react";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 
 interface AdminBooksListProps {
   /**
@@ -110,7 +112,8 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     return () => clearTimeout(timer);
   }, [localSearch, currentSearch, searchParamsHook, router]);
 
-  // Build filters from URL params
+  // URL filters drive RQ cache keys (debounced). Display search uses localSearch
+  // so the list filters on the first keystroke (all-books-style instant UX).
   const filters: BookFilters = React.useMemo(
     () => ({
       search: currentSearch || undefined,
@@ -125,36 +128,83 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     [currentSearch, currentGenre, currentAvailability],
   );
 
-  // Check if any filters are active
-  const hasActiveFilters =
-    currentSearch || currentGenre !== "all" || currentAvailability !== "all";
+  const searchQuery = localSearch.trim();
+  const hasDisplayFilters = Boolean(
+    searchQuery || currentGenre !== "all" || currentAvailability !== "all",
+  );
+
+  // Check if any URL filters are active (SSR initialData / empty chips)
+  const hasActiveFilters = Boolean(
+    currentSearch || currentGenre !== "all" || currentAvailability !== "all",
+  );
+
+  const ssrBooksResponse = React.useMemo(
+    () =>
+      initialBooks
+        ? {
+            books: initialBooks,
+            total: initialBooks.length,
+            page: 1,
+            totalPages: 1,
+            limit: initialBooks.length,
+          }
+        : undefined,
+    [initialBooks],
+  );
 
   // Only use initialData on first load (when no filters are active)
-  const initialBooksData =
-    !hasActiveFilters && initialBooks
-      ? {
-          books: initialBooks,
-          total: initialBooks.length,
-          page: 1,
-          totalPages: 1,
-          limit: initialBooks.length,
-        }
-      : undefined;
+  const initialBooksData = !hasActiveFilters ? ssrBooksResponse : undefined;
 
-  // Use React Query hook with SSR initial data
+  // Full-universe KPIs — dedicated unfiltered query (stays warm under filters)
+  const { data: universeData } = useAllBooks(
+    ADMIN_BOOKS_UNFILTERED,
+    ssrBooksResponse,
+  );
+  const universeBooks: Book[] = React.useMemo(
+    () => (universeData?.books ?? initialBooks ?? []) as Book[],
+    [universeData, initialBooks],
+  );
+
+  // Filtered table query — warms filtered keys for invalidation / other consumers.
+  // Table rows come from universe (+ client filter); do not bind to this result.
   const {
-    data: booksData,
     isLoading,
     isError,
     error,
   } = useAllBooks(filters, initialBooksData);
 
-  // CRITICAL: Always prefer React Query data over initial data
-  // React Query data is fresh and updates immediately after mutations
-  // initial data is only used as fallback during initial load
-  // Extract books from response with proper typing
-  // Book is a global type from types.d.ts
-  const allBooks: Book[] = ((booksData?.books ?? initialBooks) || []) as Book[];
+  // Table/grid: always prefer warm universe for display (filtered = client
+  // filter on localSearch + select filters). Instant from first keystroke;
+  // URL search stays debounced for shareable links / RQ warming.
+  const allBooks: Book[] = React.useMemo(() => {
+    const base =
+      universeBooks.length > 0 ? universeBooks : (initialBooks ?? []);
+    if (!hasDisplayFilters) {
+      return base;
+    }
+    const q = searchQuery.toLowerCase();
+    return base.filter((b) => {
+      if (currentGenre !== "all" && b.genre !== currentGenre) return false;
+      if (currentAvailability === "available" && b.availableCopies <= 0) {
+        return false;
+      }
+      if (currentAvailability === "unavailable" && b.availableCopies > 0) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        b.title.toLowerCase().includes(q) ||
+        b.author.toLowerCase().includes(q)
+      );
+    });
+  }, [
+    universeBooks,
+    initialBooks,
+    hasDisplayFilters,
+    searchQuery,
+    currentGenre,
+    currentAvailability,
+  ]);
 
   // Update search params in URL and trigger refetch
   const updateSearchParams = (newParams: Record<string, string>) => {
@@ -180,8 +230,8 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     router.push("/admin/books");
   };
 
-  // Show skeleton while loading (only if no initial data)
-  if (isLoading && (!initialBooks || initialBooks.length === 0)) {
+  // Skeleton only when nothing displayable (placeholder/SSR already covered)
+  if (isLoading && allBooks.length === 0) {
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -206,7 +256,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   }
 
   // Show error state
-  if (isError && (!initialBooks || initialBooks.length === 0)) {
+  if (isError && allBooks.length === 0) {
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -235,13 +285,13 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     );
   }
 
-  // KPI counts for the top-of-page StatCard row (Wave 4 rollout)
-  const totalCopies = allBooks.reduce((sum, b) => sum + b.totalCopies, 0);
-  const availableCopies = allBooks.reduce(
+  // KPI counts — full-universe catalog (not filtered table rows)
+  const totalCopies = universeBooks.reduce((sum, b) => sum + b.totalCopies, 0);
+  const availableCopies = universeBooks.reduce(
     (sum, b) => sum + b.availableCopies,
     0,
   );
-  const activeBookCount = allBooks.filter((b) => b.isActive).length;
+  const activeBookCount = universeBooks.filter((b) => b.isActive).length;
 
   return (
     <>
@@ -255,7 +305,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
         <StatCardGrid className="mb-4 sm:mb-6">
           <StatCard
             title="Total Books"
-            value={allBooks.length}
+            value={universeBooks.length}
             icon={BookMarked}
             hue="blue"
           />
@@ -284,88 +334,87 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             hue="violet"
             badges={[
               {
-                label: `${allBooks.length - activeBookCount} inactive`,
+                label: `${universeBooks.length - activeBookCount} inactive`,
                 hue: "rose",
               },
             ]}
           />
         </StatCardGrid>
 
-        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h2 className="text-lg font-medium text-dark-400 sm:text-xl">
-            Book Catalog ({allBooks.length})
-          </h2>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            {/* Instant debounced search — this component already debounces the URL push itself, so debounceMs=0 avoids stacking two delays */}
-            <SearchInput
-              value={localSearch}
-              onChange={setLocalSearch}
-              placeholder="Search books..."
-              debounceMs={0}
-              className="flex-1 sm:min-w-[250px]"
+        <AdminListToolbar
+          title="Book Catalog"
+          count={allBooks.length}
+          chips={
+            <DismissibleFilterChips
+              variant="light"
+              groups={[
+                ...(currentGenre !== "all"
+                  ? [
+                      {
+                        label: "Genre",
+                        values: [currentGenre],
+                        onClear: () => handleFilterChange("genre", "all"),
+                        renderBadge: (value: string) => (
+                          <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                            {value}
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(currentAvailability !== "all"
+                  ? [
+                      {
+                        label: "Availability",
+                        values: [currentAvailability],
+                        onClear: () =>
+                          handleFilterChange("availability", "all"),
+                        renderBadge: (value: string) => (
+                          <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                            {value === "available"
+                              ? "Available"
+                              : value === "unavailable"
+                                ? "Unavailable"
+                                : value}
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+              ]}
+              onReset={clearFilters}
             />
-            {/* Filter Dropdowns */}
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
-              <FilterSelect
-                label="Genre"
-                variant="light"
-                className="w-full sm:min-w-[170px]"
-                value={currentGenre || "all"}
-                onValueChange={(v) => handleFilterChange("genre", v)}
-                options={genreFilterOptions(genres, "All")}
-              />
-              <FilterSelect
-                label="Availability"
-                variant="light"
-                className="w-full sm:min-w-[170px]"
-                value={currentAvailability || "all"}
-                onValueChange={(v) => handleFilterChange("availability", v)}
-                options={availabilityFilterOptions("All")}
-              />
-            </div>
-          </div>
-        </div>
+          }
+        >
+          {/* Instant debounced search — URL push is already debounced; debounceMs=0 */}
+          <SearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            placeholder="Search books…"
+            debounceMs={0}
+            className="sm:min-w-64"
+          />
+          <FilterSelect
+            label="Genre"
+            variant="light"
+            labelLayout="embedded"
+            className="shrink-0 sm:min-w-[150px]"
+            value={currentGenre || "all"}
+            onValueChange={(v) => handleFilterChange("genre", v)}
+            options={genreFilterOptions(genres, "All Genres")}
+          />
+          <FilterSelect
+            label="Availability"
+            variant="light"
+            labelLayout="embedded"
+            className="shrink-0 sm:min-w-[150px]"
+            value={currentAvailability || "all"}
+            onValueChange={(v) => handleFilterChange("availability", v)}
+            options={availabilityFilterOptions("All Availability")}
+          />
+        </AdminListToolbar>
 
-        <DismissibleFilterChips
-          variant="light"
-          groups={[
-            ...(currentGenre !== "all"
-              ? [
-                  {
-                    label: "Genre",
-                    values: [currentGenre],
-                    onClear: () => handleFilterChange("genre", "all"),
-                    renderBadge: (value: string) => (
-                      <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                        {value}
-                      </span>
-                    ),
-                  },
-                ]
-              : []),
-            ...(currentAvailability !== "all"
-              ? [
-                  {
-                    label: "Availability",
-                    values: [currentAvailability],
-                    onClear: () => handleFilterChange("availability", "all"),
-                    renderBadge: (value: string) => (
-                      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                        {value === "available"
-                          ? "Available"
-                          : value === "unavailable"
-                            ? "Unavailable"
-                            : value}
-                      </span>
-                    ),
-                  },
-                ]
-              : []),
-          ]}
-          onReset={clearFilters}
-        />
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
           <Button className="bg-primary-admin" asChild>
             <Link href="/admin/books/new" className="text-white">
               <Plus className="size-4" />
@@ -376,23 +425,12 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
         <div className="mt-4 w-full overflow-hidden sm:mt-7">
           {allBooks.length === 0 ? (
-            <div className="py-6 text-center sm:py-8">
-              <p className="mb-4 text-base font-medium text-gray-600 sm:text-lg">
-                {hasActiveFilters
-                  ? "No books found matching your criteria."
-                  : "No books found. Create your first book!"}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="mt-2 border-gray-300 text-dark-400 hover:bg-gray-100"
-                >
-                  <FilterX className="size-4" />
-                  Clear All Filters
-                </Button>
-              )}
-            </div>
+            <AdminFilterEmptyState
+              entityLabel="books"
+              filtered={hasDisplayFilters}
+              onClear={clearFilters}
+              blankMessage="No books found. Create your first book!"
+            />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
               {allBooks.map((book) => (

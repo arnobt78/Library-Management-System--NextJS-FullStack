@@ -47,6 +47,7 @@ import PersonAttribution from "@/components/PersonAttribution";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { ModerateReviewAlertDialog } from "@/components/admin/ModerateReviewAlertDialog";
 import {
   AlertDialog,
@@ -323,6 +324,8 @@ export default function BookReviewList({
     setStatusFilter("all");
   };
 
+  const hasDisplayFilters = Boolean(search.trim() || statusFilter !== "all");
+
   const statusFilterOptions = useMemo(
     () => reviewStatusFilterOptions("light"),
     [],
@@ -583,16 +586,17 @@ export default function BookReviewList({
           <SearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Search book, reviewer, comment…"
-            className="sm:min-w-[240px]"
+            placeholder="Search book, reviewer…"
+            debounceMs={0}
+            className="sm:min-w-64"
           />
           <FilterSelect
             label="Status"
             value={statusFilter}
             onValueChange={setStatusFilter}
             options={statusFilterOptions}
-            labelLayout="inline"
-            className="sm:min-w-[160px]"
+            labelLayout="embedded"
+            className="sm:min-w-[150px]"
           />
         </AdminListToolbar>
 
@@ -600,7 +604,15 @@ export default function BookReviewList({
           columns={columns}
           data={reviews}
           isLoading={(isPending || isFetching) && reviews.length === 0}
-          emptyMessage="No reviews match your filters."
+          emptyMessage={
+            <AdminFilterEmptyState
+              entityLabel="book reviews"
+              filtered={hasDisplayFilters}
+              onClear={handleResetFilters}
+              blankMessage="No book reviews found."
+              className="py-4 sm:py-6"
+            />
+          }
           initialPageSize={10}
         />
       </div>

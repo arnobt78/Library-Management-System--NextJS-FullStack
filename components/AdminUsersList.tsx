@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import {
@@ -48,6 +48,7 @@ import {
   usePendingAdminRequests,
   useRecentAdminRequestDecisions,
 } from "@/hooks/useQueries";
+import { ADMIN_USERS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
   useUpdateUserRole,
   useUpdateUserStatus,
@@ -63,8 +64,6 @@ import type {
 import type { AdminRequest } from "@/lib/services/users";
 import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import {
-  Search,
-  FilterX,
   Shield,
   ShieldOff,
   CheckCircle,
@@ -81,9 +80,11 @@ import {
 import { isProtectedDemoAccount } from "@/constants";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
+import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
 import { cn } from "@/lib/utils";
@@ -184,8 +185,8 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     return () => clearTimeout(timer);
   }, [localSearch, currentSearch, searchParamsHook, router]);
 
-  // Build filters from URL params (default sort to "created" for most recent first)
-  // Use useMemo to ensure filters object updates when URL params change
+  // URL filters drive RQ cache keys (debounced). Display search uses localSearch
+  // so the table filters on the first keystroke.
   const filters: UserFilters = React.useMemo(() => {
     return {
       search: currentSearch || undefined,
@@ -201,25 +202,47 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     };
   }, [currentSearch, currentStatus, currentRole, currentSort]);
 
-  // Check if any filters are active (used for conditional initialData and empty state)
-  const hasActiveFilters =
-    currentSearch || currentStatus !== "all" || currentRole !== "all";
+  const searchQuery = localSearch.trim();
+  const hasDisplayFilters = Boolean(
+    searchQuery || currentStatus !== "all" || currentRole !== "all",
+  );
+
+  // URL filters (SSR initialData / empty state chips)
+  const hasActiveFilters = Boolean(
+    currentSearch || currentStatus !== "all" || currentRole !== "all",
+  );
+
+  const ssrUsersResponse = React.useMemo(
+    (): UsersListResponse | undefined =>
+      initialUsers
+        ? {
+            users: initialUsers,
+            total: initialUsers.length,
+            page: 1,
+            totalPages: 1,
+            limit: initialUsers.length,
+          }
+        : undefined,
+    [initialUsers],
+  );
 
   // Only use initialData on first load (when no filters are active)
-  // This prevents initialData from overriding filtered results
-  const initialUsersData: UsersListResponse | undefined =
-    !hasActiveFilters && initialUsers
-      ? {
-          users: initialUsers,
-          total: initialUsers.length,
-          page: 1,
-          totalPages: 1,
-          limit: initialUsers.length,
-        }
-      : undefined;
+  const initialUsersData: UsersListResponse | undefined = !hasActiveFilters
+    ? ssrUsersResponse
+    : undefined;
 
+  // Full-universe KPIs — dedicated unfiltered query (stays warm under filters)
+  const { data: universeUsersData } = useAllUsers(
+    ADMIN_USERS_UNFILTERED,
+    ssrUsersResponse,
+  );
+  const universeUsers: User[] = React.useMemo(
+    () => (universeUsersData?.users ?? initialUsers ?? []) as User[],
+    [universeUsersData, initialUsers],
+  );
+
+  // Filtered query warms cache; table rows come from universe (+ client filter).
   const {
-    data: usersData,
     isLoading: usersLoading,
     isError: usersError,
     error: usersErrorData,
@@ -265,12 +288,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     router.replace(newUrl, { scroll: false });
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedSearch = localSearch.trim();
-    updateSearchParams({ search: trimmedSearch });
-  };
-
   const handleFilterChange = (key: string, value: string) => {
     updateSearchParams({ [key]: value });
   };
@@ -305,12 +322,34 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     }
   }, [searchParamsHook, router]);
 
-  // CRITICAL: Always prefer React Query data over initial data
-  // React Query data is fresh and updates immediately after mutations
-  // initial data is only used as fallback during initial load
-  // Extract data from responses
-  // useAllUsers returns UsersListResponse with users array
-  const users: User[] = ((usersData?.users ?? initialUsers) || []) as User[];
+  // Table: warm universe + client filter on localSearch (instant first keystroke).
+  // URL search stays debounced for shareable links / RQ warming.
+  const users: User[] = React.useMemo(() => {
+    const base =
+      universeUsers.length > 0 ? universeUsers : (initialUsers ?? []);
+    if (!hasDisplayFilters) {
+      return base;
+    }
+    const q = searchQuery.toLowerCase();
+    return base.filter((u) => {
+      if (currentStatus !== "all" && u.status !== currentStatus) return false;
+      if (currentRole !== "all" && u.role !== currentRole) return false;
+      if (!q) return true;
+      return (
+        u.fullName.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        String(u.universityId).includes(q)
+      );
+    });
+  }, [
+    universeUsers,
+    initialUsers,
+    hasDisplayFilters,
+    searchQuery,
+    currentStatus,
+    currentRole,
+  ]);
+
   // usePendingAdminRequests returns AdminRequest[] directly
   const adminRequests: AdminRequest[] = ((adminRequestsData ??
     initialAdminRequests) ||
@@ -419,11 +458,12 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     );
   };
 
-  // Show skeleton while loading (only if no initial data)
+  // Show skeleton while loading (only if nothing displayable yet)
   if (
-    (usersLoading && (!initialUsers || initialUsers.length === 0)) ||
+    (usersLoading && users.length === 0) ||
     (adminRequestsLoading &&
-      (!initialAdminRequests || initialAdminRequests.length === 0))
+      (!initialAdminRequests || initialAdminRequests.length === 0) &&
+      adminRequests.length === 0)
   ) {
     return (
       <section className="admin-panel">
@@ -477,9 +517,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   // Show error state
   if (
-    (usersError && (!initialUsers || initialUsers.length === 0)) ||
+    (usersError && users.length === 0) ||
     (adminRequestsError &&
-      (!initialAdminRequests || initialAdminRequests.length === 0))
+      (!initialAdminRequests || initialAdminRequests.length === 0) &&
+      adminRequests.length === 0)
   ) {
     return (
       <section className="admin-panel">
@@ -499,11 +540,17 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     );
   }
 
-  // KPI counts for the top-of-page StatCard row (Wave 4 rollout)
-  const approvedUserCount = users.filter((u) => u.status === "APPROVED").length;
-  const pendingUserCount = users.filter((u) => u.status === "PENDING").length;
-  const rejectedUserCount = users.filter((u) => u.status === "REJECTED").length;
-  const adminUserCount = users.filter((u) => u.role === "ADMIN").length;
+  // KPI counts — full-universe directory (not filtered table rows)
+  const approvedUserCount = universeUsers.filter(
+    (u) => u.status === "APPROVED",
+  ).length;
+  const pendingUserCount = universeUsers.filter(
+    (u) => u.status === "PENDING",
+  ).length;
+  const rejectedUserCount = universeUsers.filter(
+    (u) => u.status === "REJECTED",
+  ).length;
+  const adminUserCount = universeUsers.filter((u) => u.role === "ADMIN").length;
 
   // Table column defs — same cell content/handlers as the previous plain <table>,
   // now with asc/desc sorting + pagination via the shared DataTable (Wave 5 retrofit).
@@ -672,7 +719,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         <StatCardGrid className="mb-4 sm:mb-6">
           <StatCard
             title="Total Users"
-            value={users.length}
+            value={universeUsers.length}
             icon={UsersIcon}
             hue="blue"
           />
@@ -770,91 +817,83 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           </div>
         )}
 
-        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h2 className="text-lg font-medium text-dark-400 sm:text-xl">
-            User Management ({users.length})
-          </h2>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            {/* Search Input */}
-            <form onSubmit={handleSearch} className="flex-1 sm:min-w-[250px]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search users..."
-                  value={localSearch}
-                  onChange={(e) => setLocalSearch(e.target.value)}
-                  className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-dark-400 placeholder:text-gray-500 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                />
-              </div>
-            </form>
-            {/* Filter Dropdowns */}
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end sm:gap-3">
-              <FilterSelect
-                label="Status"
-                variant="light"
-                className="w-full sm:min-w-[170px]"
-                value={currentStatus || "all"}
-                onValueChange={(v) => handleFilterChange("status", v)}
-                options={userStatusFilterOptions()}
-              />
-              <FilterSelect
-                label="Role"
-                variant="light"
-                className="w-full sm:min-w-[170px]"
-                value={currentRole || "all"}
-                onValueChange={(v) => handleFilterChange("role", v)}
-                options={userRoleFilterOptions()}
-              />
-            </div>
-          </div>
-        </div>
-
-        <DismissibleFilterChips
-          variant="light"
-          groups={[
-            ...(currentStatus !== "all"
-              ? [
-                  {
-                    label: "Status",
-                    values: [currentStatus],
-                    onClear: () => handleFilterChange("status", "all"),
-                    renderBadge: (value: string) => {
-                      const opt = userStatusFilterOptions().find(
-                        (o) => o.value === value,
-                      );
-                      return (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                          {opt?.label ?? value}
-                        </span>
-                      );
-                    },
-                  },
-                ]
-              : []),
-            ...(currentRole !== "all"
-              ? [
-                  {
-                    label: "Role",
-                    values: [currentRole],
-                    onClear: () => handleFilterChange("role", "all"),
-                    renderBadge: (value: string) => {
-                      const opt = userRoleFilterOptions().find(
-                        (o) => o.value === value,
-                      );
-                      return (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                          {opt?.label ?? value}
-                        </span>
-                      );
-                    },
-                  },
-                ]
-              : []),
-          ]}
-          onReset={clearFilters}
-        />
-
+        <AdminListToolbar
+          title="User Management"
+          count={users.length}
+          chips={
+            <DismissibleFilterChips
+              variant="light"
+              groups={[
+                ...(currentStatus !== "all"
+                  ? [
+                      {
+                        label: "Status",
+                        values: [currentStatus],
+                        onClear: () => handleFilterChange("status", "all"),
+                        renderBadge: (value: string) => {
+                          const opt = userStatusFilterOptions().find(
+                            (o) => o.value === value,
+                          );
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                              {opt?.label ?? value}
+                            </span>
+                          );
+                        },
+                      },
+                    ]
+                  : []),
+                ...(currentRole !== "all"
+                  ? [
+                      {
+                        label: "Role",
+                        values: [currentRole],
+                        onClear: () => handleFilterChange("role", "all"),
+                        renderBadge: (value: string) => {
+                          const opt = userRoleFilterOptions().find(
+                            (o) => o.value === value,
+                          );
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                              {opt?.label ?? value}
+                            </span>
+                          );
+                        },
+                      },
+                    ]
+                  : []),
+              ]}
+              onReset={clearFilters}
+            />
+          }
+        >
+          {/* Parent already debounces URL; SearchInput debounceMs=0 */}
+          <SearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            placeholder="Search users…"
+            debounceMs={0}
+            className="sm:min-w-64"
+          />
+          <FilterSelect
+            label="Status"
+            variant="light"
+            labelLayout="embedded"
+            className="shrink-0 sm:min-w-[150px]"
+            value={currentStatus || "all"}
+            onValueChange={(v) => handleFilterChange("status", v)}
+            options={userStatusFilterOptions()}
+          />
+          <FilterSelect
+            label="Role"
+            variant="light"
+            labelLayout="embedded"
+            className="shrink-0 sm:min-w-[150px]"
+            value={currentRole || "all"}
+            onValueChange={(v) => handleFilterChange("role", v)}
+            options={userRoleFilterOptions()}
+          />
+        </AdminListToolbar>
         {/* Admin Requests Section - Only shows PENDING requests */}
         {adminRequests.length > 0 && (
           <div className="mt-4 sm:mt-6">
@@ -1069,21 +1108,17 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           <DataTable
             columns={userColumns}
             data={users}
-            emptyMessage="No users found matching your criteria."
+            emptyMessage={
+              <AdminFilterEmptyState
+                entityLabel="users"
+                filtered={hasDisplayFilters}
+                onClear={clearFilters}
+                blankMessage="No users found."
+                className="py-4 sm:py-6"
+              />
+            }
             initialPageSize={20}
           />
-          {users.length === 0 && hasActiveFilters && (
-            <div className="mt-3 flex justify-center">
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                className="border-gray-300 text-dark-400 hover:bg-gray-100"
-              >
-                <FilterX className="size-4" />
-                Clear All Filters
-              </Button>
-            </div>
-          )}
         </div>
       </section>
 

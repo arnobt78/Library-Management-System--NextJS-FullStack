@@ -1,8 +1,8 @@
 /**
  * MultiSelectFilter — checkbox multi-select dropdown for list toolbars
- * (status/priority/rating filters). Built on the existing Radix
- * dropdown-menu checkbox item — no new Radix package required.
- * Parent: CR-0003 / REQ-0034
+ * (status/priority filters). Label lives in the trigger when empty (no top label).
+ * Check indicator is on the right (parity with FilterSelect). Parent: CR-0003.
+ * modal={false}: avoid body scroll-lock so sticky admin header / hamburger stay visible.
  */
 "use client";
 
@@ -12,7 +12,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -32,6 +31,9 @@ export interface MultiSelectFilterProps {
   options: MultiSelectOption[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  /** Icon shown on the empty / multi-select trigger (e.g. List / Flag) */
+  icon?: LucideIcon;
+  iconClassName?: string;
   className?: string;
   triggerClassName?: string;
 }
@@ -41,6 +43,8 @@ export function MultiSelectFilter({
   options,
   selected,
   onChange,
+  icon: FilterIcon,
+  iconClassName,
   className,
   triggerClassName,
 }: MultiSelectFilterProps) {
@@ -52,15 +56,24 @@ export function MultiSelectFilter({
     );
   };
 
+  const single =
+    selected.length === 1
+      ? options.find((o) => o.value === selected[0])
+      : undefined;
+
+  const TriggerIcon = single?.icon ?? FilterIcon;
+  const triggerIconClass =
+    single?.iconClassName ?? iconClassName ?? "text-slate-500";
+
   const summary =
     selected.length === 0
       ? label
       : selected.length === 1
-        ? options.find((o) => o.value === selected[0])?.label ?? label
+        ? (single?.label ?? label)
         : `${label} (${selected.length})`;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
@@ -71,13 +84,19 @@ export function MultiSelectFilter({
             className,
           )}
         >
-          <span className="truncate">{summary}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            {TriggerIcon ? (
+              <TriggerIcon
+                className={cn("size-4 shrink-0 opacity-90", triggerIconClass)}
+                aria-hidden
+              />
+            ) : null}
+            <span className="truncate">{summary}</span>
+          </span>
           <ChevronDown className="size-4 shrink-0 opacity-50" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-52">
-        <DropdownMenuLabel>{label}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
         {options.map((option) => {
           const Icon = option.icon;
           return (

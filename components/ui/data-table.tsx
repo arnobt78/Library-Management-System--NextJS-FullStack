@@ -18,7 +18,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Table,
@@ -46,7 +46,7 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
   /** Skeleton row count while isLoading (default 5) */
   skeletonRows?: number;
-  emptyMessage?: string;
+  emptyMessage?: ReactNode;
   onRowClick?: (row: TData) => void;
   /** Disable client pagination for small/pre-filtered lists (default true) */
   paginated?: boolean;
@@ -234,6 +234,8 @@ export function DataTable<TData, TValue>({
                   colSpan={columnCount}
                   className={cn(
                     "h-24 text-center",
+                    // Allow richer empty states (message + Clear Filters) to breathe
+                    typeof emptyMessage !== "string" && "h-auto py-2",
                     isDark ? "text-light-200/80" : "text-gray-500",
                   )}
                 >

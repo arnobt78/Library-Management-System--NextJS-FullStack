@@ -88,7 +88,8 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 
 - Root layout: Header + main + `Footer` inside `.page-shell` / `max-w-9xl` (96rem). Auth layout uses `Footer variant="auth"`. Admin has no site footer.
 - Meta nav: API Docs + API Status. `/performance` redirects to `/api-status`; dashboard mounts embedded.
-- Filters: `FilterSelect` + `lib/ui/filterOptionStyles.ts`. Select scroll-lock: unlayered `body[data-scroll-locked]` margin/overflow rules in `globals.css`.
+- Filters: `FilterSelect` + `lib/ui/filterOptionStyles.ts` (Title Case All…). Select scroll-lock: unlayered `html body[data-scroll-locked]` zeros RemoveScroll padding/position/overflow so sticky `.root-header` stays visible; MultiSelectFilter uses `modal={false}`.
+- Admin lists (books/users/borrow/account-requests/tickets/reviews/activity): StatCards from warm unfiltered universe (`lib/ui/adminListUniverse` + dual RQ); table rows client-filter on `localSearch` (`SearchInput debounceMs={0}`) while URL search stays 300ms for shareable links; shared `AdminFilterEmptyState` (`No {entity} found matching…` + Clear Filters on display filters). Activity: SSR seed only for period `7days`; search filters loaded rows locally; KPIs use period universe.
 - Buttons: click ripple via `lib/ui/ripple` (`ui/button`, `TabsTrigger`, profile glass CTAs). Optional `.cta-shine-wrap` on Borrow / Book Details / Discover. Do not `@apply hover:bg-primary/90` — CSS-var primary needs `:hover { color-mix(...) }`. Spec: `docs/RIPPLE_BUTTON_EFFECT.md`.
 
 ## Book overview hero (2026-08-03, REQ-0033)

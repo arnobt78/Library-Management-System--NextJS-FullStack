@@ -1,7 +1,8 @@
 /**
  * Shared admin list header row — title (+ optional count) on the left,
- * SearchInput / filters as `children` on the right. Optional `chips` slot
- * renders dismissible active-filter badges under the toolbar (stock parity).
+ * SearchInput / embedded FilterSelect / MultiSelectFilter as `children` on the right.
+ * Children should use label-in-trigger filters (no stacked labels above controls).
+ * Optional `chips` slot renders dismissible active-filter badges under the toolbar.
  * Parent: CR-0003 / REQ-0034 cosmetic DRY
  *
  * Does NOT wrap `admin-panel` or the DataTable — callers keep:

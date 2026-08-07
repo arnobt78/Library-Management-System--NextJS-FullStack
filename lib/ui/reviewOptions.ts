@@ -50,7 +50,7 @@ export function reviewStatusFilterOptions(
   return [
     {
       value: "all",
-      label: "All statuses",
+      label: "All Statuses",
       icon: List,
       iconClassName: mutedIcon(surface),
       itemClassName: mutedLabel(surface),

@@ -94,3 +94,18 @@ Repo reconciled: HEAD `df0d0e8`, implementation tip `d61a058`, `main` == `origin
 ## Attribution + book SSR fix (2026-08-06)
 
 Owner approved plan `review_attribution_densify_28a6e928`. Delivered: href-gated sky links; dark-glass static names; `/books/[id]` SSR moderator parity; densify attribution asserts. Prove 120 tests. Awaiting owner commit.
+
+## Session resume note (2026-08-07)
+
+Repo reconciled: HEAD `115fcc8`, tip `06ca476`, docs bind through `4538840`, owner pad commits `2c30930`/`115fcc8`, `main` == `origin/main`, clean tree, no PENDING interrupt. Docs closeout already pushed. Owner invoked Agile V core/pipeline resume **without naming a product ask**. **Human-Decision:** pick one before coding:
+
+1. **Wave 5 / BL-0017** — nonlocal REQ-0032 evidence toward EvalGate / C2 Gate 2
+2. **REQ-0033 polish (BL-0018)** — concrete UX list
+3. **New Stage 1 CR** — name the feature/extension
+4. **Bug fix** — name symptom + expected behavior
+5. **Docs-only** — tip/HEAD bind for pad commits `2c30930`/`115fcc8` (no product code)
+6. **Other named scope** — explicit path/files/outcome
+
+## Admin filter UX polish (2026-08-07)
+
+Owner approved filter/KPI/empty-UI batch. Delivered: `adminListUniverse` dual-query KPIs; instant `localSearch`; `AdminFilterEmptyState`; Select scroll-lock sticky header; activity `7days` SSR seed only. Prove type/lint/151/build PASS. EvalGate still FAIL (Gate 2 blocked).

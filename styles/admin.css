@@ -31,9 +31,9 @@
     @apply flex w-full min-w-0 flex-1 flex-col bg-transparent p-2 sm:p-4;
   }
 
-  /* Shared white section shell — pad matches root CARD_PAD / .surface-card */
+  /* Shared white section shell — pad matches root CARD_PAD; soft surface depth */
   .admin-panel {
-    @apply w-full rounded-2xl bg-white p-2 sm:p-4;
+    @apply w-full rounded-2xl bg-white p-2 shadow-md sm:p-4;
   }
 
   .back-btn {

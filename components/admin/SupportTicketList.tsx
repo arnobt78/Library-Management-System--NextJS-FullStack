@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   CircleDot,
+  Flag,
+  List,
   Loader2,
   Ticket,
 } from "lucide-react";
@@ -36,6 +38,7 @@ import { computeTicketListStats } from "@/lib/ui/ticketStats";
 import PersonAttribution from "@/components/PersonAttribution";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { TicketSubjectCell } from "@/components/support-tickets/TicketSubjectCell";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
 import { SupportTicketRowActions } from "@/components/support-tickets/SupportTicketRowActions";
@@ -114,6 +117,10 @@ export default function SupportTicketList({
     setStatusFilter([]);
     setPriorityFilter([]);
   };
+
+  const hasDisplayFilters = Boolean(
+    search.trim() || statusFilter.length > 0 || priorityFilter.length > 0,
+  );
 
   const columns = useMemo<ColumnDef<SupportTicketListItem>[]>(
     () => [
@@ -286,21 +293,26 @@ export default function SupportTicketList({
             value={search}
             onChange={setSearch}
             placeholder="Search subject, requester…"
-            className="sm:min-w-[220px]"
+            debounceMs={0}
+            className="sm:min-w-64"
           />
           <MultiSelectFilter
             label="Status"
+            icon={List}
+            iconClassName="text-slate-500"
             options={ticketStatusMultiOptions("light")}
             selected={statusFilter}
             onChange={setStatusFilter}
-            className="sm:min-w-[150px]"
+            className="shrink-0 sm:min-w-[140px]"
           />
           <MultiSelectFilter
             label="Priority"
+            icon={Flag}
+            iconClassName="text-slate-500"
             options={ticketPriorityMultiOptions("light")}
             selected={priorityFilter}
             onChange={setPriorityFilter}
-            className="sm:min-w-[150px]"
+            className="shrink-0 sm:min-w-[140px]"
           />
         </AdminListToolbar>
 
@@ -312,7 +324,15 @@ export default function SupportTicketList({
           columns={columns}
           data={tickets}
           isLoading={isPending && tickets.length === 0}
-          emptyMessage="No support tickets match your filters."
+          emptyMessage={
+            <AdminFilterEmptyState
+              entityLabel="support tickets"
+              filtered={hasDisplayFilters}
+              onClear={handleResetFilters}
+              blankMessage="No support tickets found."
+              className="py-4 sm:py-6"
+            />
+          }
           initialPageSize={10}
         />
       </div>

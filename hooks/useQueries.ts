@@ -391,6 +391,8 @@ export const useAllUsers = (
     staleTime: 0, // Always refetch when query key changes (filters change)
     refetchOnMount: true, // Refetch on mount
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+    // Instant filter UX: show previous results until the new key resolves (no empty flash)
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -413,14 +415,22 @@ export const useAllUsers = (
  */
 export const usePendingUsers = (
   initialData?: User[],
+  /**
+   * Explicit search override. Pass `""` to force the unfiltered pending key
+   * (ignore URL) when the page client-filters locally for instant search UX.
+   * Omit to read `?search=` from the URL.
+   */
   search?: string
 ) => {
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
-  // Get search from URL params if not provided
-  const searchValue = search || searchParams.get("search") || undefined;
+  // `search !== undefined` wins (including "") so callers can pin unfiltered.
+  const searchValue =
+    search !== undefined
+      ? search || undefined
+      : searchParams.get("search") || undefined;
 
   // Build query key from search for proper caching
   const queryKey = queryKeys.users.pending(searchValue);
@@ -663,13 +673,16 @@ export const useBorrowRequests = (
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
-  // Get filters from URL params if not provided
+  // When `filters` is passed (even empty {}), treat it as authoritative — do not
+  // fall back to URL. Needed for unfiltered KPI queries while the table is filtered.
   const status: BorrowStatus | undefined =
-    filters?.status ||
-    (searchParams.get("status") as BorrowStatus | null) ||
-    undefined;
+    filters !== undefined
+      ? filters.status
+      : (searchParams.get("status") as BorrowStatus | null) || undefined;
   const search: string | undefined =
-    filters?.search || searchParams.get("search") || undefined;
+    filters !== undefined
+      ? filters.search
+      : searchParams.get("search") || undefined;
 
   // Build query key from filters for proper caching
   const queryKey = queryKeys.borrows.requests({ status, search });
@@ -691,6 +704,8 @@ export const useBorrowRequests = (
     staleTime: 30 * 1000, // Badge + PrefetchLink warm; invalidate still forces refetch
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData: seed,
+    // Instant filter UX: show previous results until the new key resolves (no empty flash)
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -1155,23 +1170,18 @@ export const useActivityLogs = (
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();
   const queryKey = queryKeys.activityLog.list(filters);
+  // Only seed the default SSR period (7days, no search). Never seed today/30/all
+  // with 7days SSR rows — that made every period show the same table (staleTime).
   const unfiltered = filters.period === "7days" && !filters.search;
-  const seed = seedFromSsrIfEmpty(
-    queryClient,
-    queryKey,
-    unfiltered || (initialData && initialData.length > 0)
-      ? initialData
-      : undefined,
-  );
+  const seedCandidate = unfiltered ? initialData : undefined;
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, seedCandidate);
 
   return useQuery<ActivityLogItem[]>({
     queryKey,
     queryFn: () =>
       trackQuery("activity-logs", async () => getActivityLogs(filters)),
     initialData: seed,
-    // Keeps the previous period/search result on screen while the new one
-    // loads, instead of dropping to an empty table between queryKey changes.
-    placeholderData: keepPreviousData,
+    // No keepPreviousData: period switches must not flash yesterday's rows as "today".
     staleTime: 30 * 1000,
     refetchOnMount: true,
   });

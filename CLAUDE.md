@@ -54,7 +54,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin chrome: shared `components/Header` `tone="light"` (orphan `admin/Header` deleted); `.root-header` `py-2` + `items-center`; `--admin-header-offset` 3/3.5rem; admin logo `/icons/admin/logo.svg`; dual `@tailwind base` in `admin.css` kept (soft-nav residual).
 - Nav counts densify: `getAdminNavCounts` SSR + `/api/admin/nav-counts` (`authorizeAdminRoute`) + `patchAdminNavCounts` absolute merge after domain patches; signup INSERT/CLI skip client densify.
 - Nav: API Docs + API Status only; `/performance` → `/api-status` (embedded `PerformanceDashboard`).
-- Select: FilterSelect icons (`lib/ui/filterOptionStyles.ts`); scroll-lock gutter fix (`body[data-scroll-locked]`).
+- Select: FilterSelect icons (`lib/ui/filterOptionStyles.ts`); scroll-lock: neutralize RemoveScroll padding/overflow so sticky `.root-header` stays (`html body[data-scroll-locked]`); MultiSelect `modal={false}`.
+- Admin list filters: universe KPIs via `lib/ui/adminListUniverse` + dual RQ; table = instant `localSearch` client-filter (`debounceMs={0}`; URL 300ms); unified `AdminFilterEmptyState` + Clear Filters; activity SSR seed only `7days`.
 - Buttons: ripple via shared `lib/ui/ripple` → `ui/button`, `TabsTrigger`, profile glass CTAs (`.btn-ripple`); CTA shine on Borrow/Details/Discover; default `.btn-primary` hover via `color-mix` (CSS-var `primary/90` is a no-op).
 - Book overview (home + `/books/[id]`): full-width title header; md+ details|hero; soft `.book-overview__hero-glow` (blur, no disk clip, reduced-motion off); Library DB + Borrow Stats share 2-col row classes; Available/Low/Unavailable colors; RQ paths unchanged (REQ-0033 polish).
 - Related recs on `/books/[id]`: `getRelatedBooks` + `/api/books/[id]/related` + `useRelatedBooks` (`book-related` keys). BookCard: centered cover, full-width meta, reserved 2-line title/author, stronger `.book-card__glow`, star+rating, hover tilt; `book-list`/`grid-cards` larger `gap-y`; `BookList` key=`id`.
@@ -90,7 +91,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin privilege ledger: All Users/bulk Make Admin → `adminPrivilegeLedger` (approve PENDING or insert `ADMIN_REQUEST_DIRECT_GRANT_REASON`); demote/`updateUserRole(USER)` → `removeAdminPrivileges` revoke. Invalidate `admin-request.write`.
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `06ca476` / HEAD `14646c1`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip/HEAD bind after admin-filter commit; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
 - CR-0003 (REQ-0034–0037): tickets + review mod + activity FIFO-50 + bell + KPIs/tables; mig `0014`; `ticket.write` + `patchTicketCaches*`; Zod ticket/review; bell SSR unread; My Reviews SSR; reply thread single-source; Prove 110 tests.
 - Ticket UI polish: person stack; KPI/section/date/activity; `CARD_PAD` p-2/sm:p-4 (also `.admin-container` + api-docs/status/performance); `LIGHT_GLASS_CTA` primary-admin/red-800; Tailwind `./lib/**`; sky links; edit dialog; densify + back-nav. Instrumentation removed.
 - Densify Waves A–C + review CRUD: `patchBorrowCaches*`; `optimisticAdminRequestDecision`; await `book.write`; `patchReviewCaches*` (create/update/delete/moderate). Approve **upserts** public `book-reviews` (admin soft-nav). Gold: snapshot → await invalidate → re-patch. Prove 120 tests.
@@ -101,6 +102,6 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Table UI: `tableCellStyles` (header medium / cell titles normal); emails `text-xs` under names; Book Reviews title→`/books/[id]` PrefetchLink (`book-detail` warm), comment→review detail.
 - Admin review detail: ticket shells (`DetailKpiShell`/`ReviewDetailKpiGrid`/About|Description); `ReviewBorrowMeta`; `ModerateReviewAlertDialog` (list+detail); per-status spinner; Approve `text-white`.
 - Seed wipe: `seed:reset` also clears tickets/replies/notifications/activity_logs.
-- Debug: CSP `connect-src 'self'` blocks browser→`127.0.0.1:7290` ingest (empty `.cursor/debug-*.log`); curl ingest or temporary same-origin relay only.
+- Debug: agent ingest relay removed; CSP still blocks browser→`127.0.0.1` ingest.
 - Mutation gateway: `commitMutationCache` + densify registry; PrefetchLink `"use client"`; Redis still rate-limit only.
-- Admin shell densify Prove (2026-08-07): type/lint/**151** tests + Next 16.2.12 build PASS; tip `06ca476` / HEAD `14646c1`.
+- Admin filter UX Prove (2026-08-07): type/lint/**151** tests + Next 16.2.12 build PASS (universe KPIs, instant search, empty state, sticky header).

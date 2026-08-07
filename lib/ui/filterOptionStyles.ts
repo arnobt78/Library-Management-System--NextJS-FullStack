@@ -86,7 +86,7 @@ export function genreFilterIcon(genre: string): LucideIcon {
 }
 
 export function availabilityFilterOptions(
-  allLabel = "All Books",
+  allLabel = "All Availability",
   surface: FilterSurface = "light"
 ): FilterSelectOption[] {
   const allMuted = mutedIcon(surface);
@@ -122,7 +122,7 @@ export function userStatusFilterOptions(): FilterSelectOption[] {
   return [
     {
       value: "all",
-      label: "All",
+      label: "All Status",
       icon: List,
       itemClassName: "text-slate-500",
       iconClassName: "text-slate-500",
@@ -155,7 +155,7 @@ export function userRoleFilterOptions(): FilterSelectOption[] {
   return [
     {
       value: "all",
-      label: "All",
+      label: "All Roles",
       icon: Users,
       itemClassName: "text-slate-500",
       iconClassName: "text-slate-500",
@@ -181,7 +181,7 @@ export function borrowStatusFilterOptions(): FilterSelectOption[] {
   return [
     {
       value: "all",
-      label: "All",
+      label: "All Status",
       icon: List,
       itemClassName: "text-slate-500",
       iconClassName: "text-slate-500",
