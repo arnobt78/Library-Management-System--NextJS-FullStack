@@ -15,6 +15,7 @@ import {
   densifyReservationStatus,
   snapshotReservationBaselines,
 } from "@/lib/utils/patchReservationCaches";
+import { patchBorrowCachesOnCreate } from "@/lib/utils/patchBorrowCaches";
 import type { UserReservationItem } from "@/lib/services/reservations";
 import { showToast } from "@/lib/toast";
 import { BookOpen, X } from "lucide-react";
@@ -73,11 +74,25 @@ export default function ReservationsPanel({
         if (!result.success)
           return showToast.error("Reservation Update Failed", result.error);
         const nextStatus = action === "claim" ? "FULFILLED" : "CANCELLED";
+        const fromStatus =
+          items.find((item) => item.id === id)?.status ?? null;
         const resolvedBookId =
           (result.data && "bookId" in result.data
             ? result.data.bookId
             : undefined) ?? bookId;
         const baselines = snapshotReservationBaselines(queryClient);
+        const claimPayload =
+          action === "claim" &&
+          result.data &&
+          typeof result.data === "object" &&
+          "borrowId" in result.data &&
+          typeof (result.data as { borrowId?: unknown }).borrowId === "string"
+            ? (result.data as {
+                borrowId: string;
+                bookId: string;
+                dueDate: string;
+              })
+            : null;
         await commitMutationCache(queryClient, "reservation.lifecycle", {
           snapshot: () => baselines,
           densify: (snap) => {
@@ -88,9 +103,25 @@ export default function ReservationsPanel({
                 status: nextStatus,
                 bookId: resolvedBookId,
                 userId,
+                fromStatus,
               },
               snap ?? undefined,
             );
+            // Claim creates BORROWED — densify Active Borrows / profile lists (no invent copies).
+            if (claimPayload && userId) {
+              patchBorrowCachesOnCreate(queryClient, {
+                userId,
+                tempId: claimPayload.borrowId,
+                serverRecord: {
+                  id: claimPayload.borrowId,
+                  userId,
+                  bookId: resolvedBookId,
+                  status: "BORROWED",
+                  dueDate: claimPayload.dueDate,
+                  borrowDate: new Date(),
+                },
+              });
+            }
           },
         });
         showToast.success(

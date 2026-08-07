@@ -155,15 +155,40 @@ export async function getAdminReviewDetail(
   return row ? serializeRow(row) : null;
 }
 
+/** Review KPI breakdown for Library Overview (pending still drives nav). */
+export type BookReviewOverviewCounts = {
+  pendingReviewCount: number;
+  reviewsApproved: number;
+  reviewsRejected: number;
+};
+
+/**
+ * Review status aggregates for admin.stats badges.
+ * Wrapped in React `cache()` so layout nav + overview share one round trip.
+ */
+export const getBookReviewOverviewCounts = cache(
+  async (): Promise<BookReviewOverviewCounts> => {
+    const rows = await db
+      .select({
+        pendingReviewCount: sql<number>`count(*) filter (where ${bookReviews.status} = 'PENDING')`,
+        reviewsApproved: sql<number>`count(*) filter (where ${bookReviews.status} = 'APPROVED')`,
+        reviewsRejected: sql<number>`count(*) filter (where ${bookReviews.status} = 'REJECTED')`,
+      })
+      .from(bookReviews);
+
+    return {
+      pendingReviewCount: Number(rows[0]?.pendingReviewCount ?? 0),
+      reviewsApproved: Number(rows[0]?.reviewsApproved ?? 0),
+      reviewsRejected: Number(rows[0]?.reviewsRejected ?? 0),
+    };
+  },
+);
+
 /**
  * Sidebar badge — reviews awaiting moderation.
- * Wrapped in React `cache()` so admin layout.tsx + page.tsx both calling this
- * in the same request dedupe to a single DB round trip (request-scoped memo).
+ * Dedupes with getBookReviewOverviewCounts in the same request.
  */
 export const getPendingReviewCount = cache(async (): Promise<number> => {
-  const rows = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(bookReviews)
-    .where(eq(bookReviews.status, "PENDING"));
-  return Number(rows[0]?.count ?? 0);
+  const counts = await getBookReviewOverviewCounts();
+  return counts.pendingReviewCount;
 });

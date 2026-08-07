@@ -11,8 +11,46 @@ import {
   clearDensifiedEmpty,
 } from "@/lib/utils/queryCacheLists";
 import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
+import {
+  patchAdminStatsOnBookChange,
+  patchAdminStatsOnBookDelete,
+  type AdminStatsBookSnapshot,
+} from "@/lib/utils/patchAdminStatsCaches";
 
 type BookLike = { id: string; [key: string]: unknown };
+
+function toBookSnapshot(book: BookLike): AdminStatsBookSnapshot {
+  return {
+    id: book.id,
+    isActive:
+      typeof book.isActive === "boolean" ? book.isActive : (book.isActive as boolean | null | undefined),
+    totalCopies:
+      typeof book.totalCopies === "number" ? book.totalCopies : null,
+    availableCopies:
+      typeof book.availableCopies === "number" ? book.availableCopies : null,
+    isbn: typeof book.isbn === "string" ? book.isbn : null,
+    publisher: typeof book.publisher === "string" ? book.publisher : null,
+    pageCount: typeof book.pageCount === "number" ? book.pageCount : null,
+  };
+}
+
+function findCachedBookSnapshot(
+  queryClient: QueryClient,
+  bookId: string,
+): AdminStatsBookSnapshot | null {
+  const detail = queryClient.getQueryData<BookLike>(
+    queryKeys.books.detail(bookId),
+  );
+  if (detail?.id) return toBookSnapshot(detail);
+
+  for (const [, page] of queryClient.getQueriesData<BooksListResponse>({
+    queryKey: queryKeys.books.adminRoot,
+  })) {
+    const hit = page?.books?.find((b) => b.id === bookId);
+    if (hit) return toBookSnapshot(hit as unknown as BookLike);
+  }
+  return null;
+}
 
 /** Sync Book Catalog pill from densest cached admin list `total`. */
 function syncBooksNav(queryClient: QueryClient): void {
@@ -101,6 +139,9 @@ export function densifyBookWrite(
 ): void {
   if (!book?.id) return;
 
+  // Snapshot before overwrite — overview Total Books / Availability / Book Information.
+  const previous = findCachedBookSnapshot(queryClient, book.id);
+
   queryClient.setQueryData(queryKeys.books.detail(book.id), (prev: unknown) =>
     prev && typeof prev === "object"
       ? { ...(prev as object), ...book }
@@ -129,6 +170,10 @@ export function densifyBookWrite(
   );
 
   syncBooksNav(queryClient);
+  patchAdminStatsOnBookChange(queryClient, {
+    previous,
+    next: toBookSnapshot(book),
+  });
 }
 
 /** Drop deleted book ids from detail + admin list + featured/related caches. */
@@ -136,6 +181,10 @@ export function densifyBookDelete(
   queryClient: QueryClient,
   bookIds: string[],
 ): void {
+  const snapshots = bookIds
+    .map((id) => findCachedBookSnapshot(queryClient, id))
+    .filter((b): b is AdminStatsBookSnapshot => Boolean(b));
+
   for (const id of bookIds) {
     queryClient.removeQueries({ queryKey: queryKeys.books.detail(id) });
   }
@@ -175,4 +224,7 @@ export function densifyBookDelete(
   }
 
   syncBooksNav(queryClient);
+  for (const snap of snapshots) {
+    patchAdminStatsOnBookDelete(queryClient, snap);
+  }
 }

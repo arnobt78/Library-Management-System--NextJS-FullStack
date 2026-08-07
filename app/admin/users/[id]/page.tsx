@@ -1,11 +1,17 @@
 // Parent: REQ-0028, REQ-0029, REQ-0031
+// Wave B: AdminSurfacePanel + semantic status badges (REQ-0033)
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { parseEntityId, parseProfilePagination } from "@/lib/actionInputs";
 import { getAdminUserProfile } from "@/lib/admin/userProfile";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
+import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
 import { Badge } from "@/components/ui/badge";
+import {
+  AccountStatusBadge,
+  BorrowStatusBadge,
+} from "@/lib/ui/semanticBadges";
 import { Suspense } from "react";
 import { formatBorrowDateTime } from "@/lib/profile/formatBorrowDates";
 
@@ -71,9 +77,9 @@ async function AdminUserDetail({
             {data.user.email} · University ID {data.user.universityId}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge>{data.user.role}</Badge>
-          <Badge variant="outline">{data.user.status}</Badge>
+          <AccountStatusBadge status={data.user.status || "PENDING"} />
         </div>
       </div>
 
@@ -87,7 +93,7 @@ async function AdminUserDetail({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <div className="rounded-2xl bg-white p-2 sm:p-4">
+        <AdminSurfacePanel>
           <h2 className="text-lg font-medium">Borrowing history</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -116,7 +122,7 @@ async function AdminUserDetail({
                       </p>
                     </td>
                     <td>
-                      <Badge variant="outline">{record.status}</Badge>
+                      <BorrowStatusBadge status={record.status} />
                     </td>
                     <td>{record.dueDate ?? "—"}</td>
                     <td>${Number(record.fineAmount ?? 0).toFixed(2)}</td>
@@ -133,9 +139,9 @@ async function AdminUserDetail({
               </tbody>
             </table>
           </div>
-        </div>
+        </AdminSurfacePanel>
         <div className="space-y-6">
-          <div className="rounded-2xl bg-white p-4">
+          <AdminSurfacePanel>
             <h2 className="font-medium">Explainable insights</h2>
             <p className="mt-2 text-sm text-gray-600">
               Top genres:{" "}
@@ -154,8 +160,8 @@ async function AdminUserDetail({
               {data.libraryInsights.periodEnd}. Deterministic aggregates only;
               no personal data is sent to an external AI provider.
             </p>
-          </div>
-          <div className="rounded-2xl bg-white p-4">
+          </AdminSurfacePanel>
+          <AdminSurfacePanel>
             <h2 className="font-medium">Reservations</h2>
             {data.reservationHistory.map((item) => (
               <p key={item.id} className="mt-2 text-sm">
@@ -165,8 +171,8 @@ async function AdminUserDetail({
             {data.reservationHistory.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500">No reservations</p>
             ) : null}
-          </div>
-          <div className="rounded-2xl bg-white p-4">
+          </AdminSurfacePanel>
+          <AdminSurfacePanel>
             <h2 className="font-medium">Registration decision</h2>
             {(data.user.status === "APPROVED" ||
               data.user.status === "REJECTED") &&
@@ -193,8 +199,8 @@ async function AdminUserDetail({
                 No registration decision recorded yet
               </p>
             )}
-          </div>
-          <div className="rounded-2xl bg-white p-4">
+          </AdminSurfacePanel>
+          <AdminSurfacePanel>
             <h2 className="font-medium">Reviews and access requests</h2>
             <p className="mt-2 text-sm text-gray-600">
               {data.reviewHistory.length} recent reviews ·{" "}
@@ -204,7 +210,7 @@ async function AdminUserDetail({
               {data.requestHistory.map((req) => (
                 <div
                   key={req.id}
-                  className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm"
+                  className="rounded-xl bg-gray-50/90 p-3 text-sm"
                 >
                   <p className="font-medium text-gray-900">
                     {req.status}
@@ -228,7 +234,7 @@ async function AdminUserDetail({
                 </div>
               ))}
             </div>
-          </div>
+          </AdminSurfacePanel>
         </div>
       </div>
       {data.pagination.total > data.pagination.size ? (
@@ -282,7 +288,7 @@ export default function AdminUserDetailPage(props: {
     <Suspense
       fallback={
         <section
-          className="min-h-[32rem] space-y-6 rounded-2xl bg-white p-2 sm:p-4"
+          className="admin-panel min-h-[32rem] space-y-6"
           aria-label="Loading user profile"
         >
           <Link

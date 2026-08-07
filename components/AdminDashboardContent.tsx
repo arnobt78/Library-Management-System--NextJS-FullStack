@@ -11,17 +11,29 @@
  * - Displays skeleton loaders while fetching
  * - Shows error state if fetch fails
  * - Displays comprehensive statistics, charts, and recent activity
+ * Parent: REQ-0033 admin glass polish
  */
 
 import React from "react";
 import {
+  AlertTriangle,
+  Ban,
   BookMarked,
+  BookOpen,
   BookOpenCheck,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  HeartPulse,
   Home,
+  Languages,
+  Library,
+  Package,
   ShieldCheck,
   Star,
   Ticket,
   Users,
+  XCircle,
 } from "lucide-react";
 import AdminStatsSkeleton from "@/components/skeletons/AdminStatsSkeleton";
 import {
@@ -31,55 +43,18 @@ import {
 } from "@/hooks/useQueries";
 import type { AdminStats } from "@/lib/services/admin";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
-import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
+import { RecentBorrowRow } from "@/components/admin/RecentBorrowRow";
+import { RecentUserRow } from "@/components/admin/RecentUserRow";
+import { OverviewTopRatedRow } from "@/components/admin/OverviewTopRatedRow";
+import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import { getAdminNavItemByRoute } from "@/lib/navigation/admin-nav-config";
 
 interface AdminDashboardContentProps {
-  /**
-   * Initial admin stats data from SSR (prevents duplicate fetch)
-   */
-  initialStats?: AdminStats & {
-    recentBorrows?: Array<{
-      id: string;
-      bookTitle: string;
-      userName: string;
-      status: string;
-    }>;
-    recentUsers?: Array<{
-      id: string;
-      fullName: string;
-      email: string;
-      status: string;
-    }>;
-    categoryStats?: Array<{
-      genre: string;
-      count: number;
-      totalCopies: number;
-      availableCopies: number;
-      avgRating: number;
-    }>;
-    booksByYear?: Array<[string, number]>;
-    booksByLanguage?: Array<[string, number]>;
-    topRatedBooks?: Array<{
-      id: string;
-      title: string;
-      author: string;
-      rating: number;
-    }>;
-    activeBooks?: number;
-    inactiveBooks?: number;
-    booksWithISBN?: number;
-    booksWithPublisher?: number;
-    averagePageCount?: number;
-    /** Cross-domain KPI counts (Wave 4 rollout) */
-    reservationsWaiting?: number;
-    openTicketCount?: number;
-    pendingReviewCount?: number;
-  };
-  /**
-   * Success message from URL params
-   */
+  /** Initial admin stats from SSR (shared shape with GET /api/admin/stats) */
+  initialStats?: AdminStats;
+  /** Success message from URL params */
   successMessage?: string;
 }
 
@@ -87,13 +62,21 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   initialStats,
   successMessage,
 }) => {
+  // Stable mount stamp — RQ treats SSR as fresh (parity MyProfileTabs borrows)
+  const [ssrTimestamp] = React.useState<number>(() => Date.now());
+
   // Use React Query hook with SSR initial data
   const {
     data: stats,
     isLoading,
     isError,
     error,
-  } = useAdminStats(initialStats);
+  } = useAdminStats(
+    initialStats,
+    initialStats ? ssrTimestamp : undefined,
+  );
+  // Prefer admin.stats (densified on ticket/review CRUD) over separate count hooks
+  // so Overview KPI value + badges cannot briefly disagree after mutations.
   const { data: openTicketCount, isLoading: ticketCountLoading } =
     useOpenTicketCount(initialStats?.openTicketCount);
   const { data: pendingReviewCount, isLoading: reviewCountLoading } =
@@ -137,72 +120,63 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     );
   }
 
-  // CRITICAL: Always prefer React Query data over initialStats
-  // React Query data is fresh and updates immediately after mutations
-  // initialStats is only used as fallback during initial load
+  // Prefer RQ (fresh after invalidate/densify); SSR is seed + fallback
   const statsData = stats ?? initialStats;
 
   if (!statsData) {
     return null;
   }
 
-  // Extract data for rendering with proper type assertions
   const {
     totalUsers = 0,
     approvedUsers = 0,
     pendingUsers = 0,
+    rejectedUsers = 0,
     adminUsers = 0,
     totalBooks = 0,
     totalCopies = 0,
     availableCopies = 0,
     borrowedCopies = 0,
+    activeBooks = 0,
+    inactiveBooks = 0,
+    booksWithISBN = 0,
+    booksWithPublisher = 0,
+    averagePageCount = 0,
     activeBorrows = 0,
     pendingBorrows = 0,
     returnedBooks = 0,
+    cancelledBorrows = 0,
+    reservationsWaiting = 0,
+    pendingAdminRequests = 0,
+    rejectedAdminRequests = 0,
+    approvedAdminRequests = 0,
+    ticketsOpen = 0,
+    ticketsInProgress = 0,
+    ticketsResolved = 0,
+    ticketsUrgentOpen = 0,
+    reviewsApproved = 0,
+    reviewsRejected = 0,
+    openTicketCount: statsOpenTicketCount,
+    pendingReviewCount: statsPendingReviewCount,
+    recentBorrows = [],
+    recentUsers = [],
+    categoryStats = [],
+    booksByYear = [],
+    booksByLanguage = [],
+    topRatedBooks = [],
   } = statsData;
 
-  // Extract additional fields with type assertions
-  const activeBooks = (statsData.activeBooks as number) || 0;
-  const inactiveBooks = (statsData.inactiveBooks as number) || 0;
-  const booksWithISBN = (statsData.booksWithISBN as number) || 0;
-  const booksWithPublisher = (statsData.booksWithPublisher as number) || 0;
-  const averagePageCount = (statsData.averagePageCount as number) || 0;
-  const reservationsWaiting = (statsData.reservationsWaiting as number) || 0;
+  // Densified admin.stats wins over dedicated count queries (same mutation paint).
+  const openTicketsValue =
+    statsOpenTicketCount ?? openTicketCount ?? initialStats?.openTicketCount ?? 0;
+  const pendingReviewsValue =
+    statsPendingReviewCount ??
+    pendingReviewCount ??
+    initialStats?.pendingReviewCount ??
+    0;
 
-  // Extract arrays with proper type assertions
-  type RecentBorrow = {
-    id: string;
-    bookTitle: string;
-    userName: string;
-    status: string;
-  };
-  type RecentUser = {
-    id: string;
-    fullName: string;
-    email: string;
-    status: string;
-  };
-  type CategoryStat = {
-    genre: string;
-    count: number;
-    totalCopies: number;
-    availableCopies: number;
-    avgRating: number;
-  };
-  type TopRatedBook = {
-    id: string;
-    title: string;
-    author: string;
-    rating: number;
-  };
-
-  const recentBorrows = (statsData.recentBorrows as RecentBorrow[]) || [];
-  const recentUsers = (statsData.recentUsers as RecentUser[]) || [];
-  const categoryStats = (statsData.categoryStats as CategoryStat[]) || [];
-  const booksByYear = (statsData.booksByYear as Array<[string, number]>) || [];
-  const booksByLanguage =
-    (statsData.booksByLanguage as Array<[string, number]>) || [];
-  const topRatedBooks = (statsData.topRatedBooks as TopRatedBook[]) || [];
+  const pct = (part: number, whole: number) =>
+    whole > 0 ? (part / whole) * 100 : 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -230,7 +204,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-green-800">
-                🎉 Admin Access Granted!
+                Admin Access Granted!
               </h3>
               <div className="mt-2 text-sm text-green-700">
                 <p>
@@ -243,7 +217,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         </div>
       )}
 
-      {/* KPI Statistics Cards — shared StatCard grid (Wave 4 rollout) */}
+      {/* KPI Statistics Cards — glass status badges (REQ-0033 count homes) */}
       <StatCardGrid>
         <StatCard
           title="Total Users"
@@ -251,8 +225,25 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           icon={Users}
           hue="blue"
           badges={[
-            { label: `${approvedUsers} approved`, hue: "emerald" },
-            { label: `${pendingUsers} pending`, hue: "amber" },
+            {
+              label: `${approvedUsers} approved`,
+              hue: "emerald",
+              icon: CheckCircle2,
+            },
+            {
+              label: `${pendingUsers} pending sign-ups`,
+              hue: "amber",
+              icon: Clock,
+            },
+            ...(rejectedUsers > 0
+              ? [
+                  {
+                    label: `${rejectedUsers} rejected`,
+                    hue: "rose" as const,
+                    icon: XCircle,
+                  },
+                ]
+              : []),
           ]}
         />
         <StatCard
@@ -260,7 +251,18 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           value={totalBooks}
           icon={BookMarked}
           hue="emerald"
-          badges={[{ label: `${totalCopies} copies`, hue: "slate" }]}
+          badges={[
+            {
+              label: `${activeBooks} active`,
+              hue: "emerald",
+              icon: CheckCircle2,
+            },
+            {
+              label: `${inactiveBooks} inactive`,
+              hue: "rose",
+              icon: Ban,
+            },
+          ]}
         />
         <StatCard
           title="Active Borrows"
@@ -268,8 +270,21 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           icon={BookOpenCheck}
           hue="violet"
           badges={[
-            { label: `${pendingBorrows} pending`, hue: "amber" },
-            { label: `${returnedBooks} returned`, hue: "emerald" },
+            {
+              label: `${pendingBorrows} pending`,
+              hue: "amber",
+              icon: Clock,
+            },
+            {
+              label: `${returnedBooks} returned`,
+              hue: "emerald",
+              icon: CheckCircle2,
+            },
+            {
+              label: `${cancelledBorrows} cancelled`,
+              hue: "slate",
+              icon: Ban,
+            },
           ]}
         />
         <StatCard
@@ -278,101 +293,196 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           icon={ShieldCheck}
           hue="slate"
           badges={[
-            { label: `${activeBooks} active books`, hue: "slate" },
-            { label: `${inactiveBooks} inactive`, hue: "rose" },
+            {
+              label: `${pendingAdminRequests} pending requests`,
+              hue: "amber",
+              icon: Clock,
+            },
+            {
+              label: `${rejectedAdminRequests} rejected`,
+              hue: "rose",
+              icon: XCircle,
+            },
           ]}
         />
         <StatCard
           title="Open Tickets"
-          value={openTicketCount ?? initialStats?.openTicketCount ?? 0}
-          valueLoading={ticketCountLoading && openTicketCount === undefined}
+          value={openTicketsValue}
+          valueLoading={
+            ticketCountLoading &&
+            statsOpenTicketCount === undefined &&
+            openTicketCount === undefined
+          }
           icon={Ticket}
           hue="rose"
-          badges={
-            reservationsWaiting > 0
-              ? [
-                  {
-                    label: `${reservationsWaiting} reservations waiting`,
-                    hue: "blue",
-                  },
-                ]
-              : undefined
-          }
+          badges={[
+            {
+              label: `${ticketsOpen} open`,
+              hue: "rose",
+              icon: Ticket,
+            },
+            {
+              label: `${ticketsInProgress} in progress`,
+              hue: "amber",
+              icon: Clock,
+            },
+            {
+              label: `${ticketsResolved} resolved`,
+              hue: "emerald",
+              icon: CheckCircle2,
+            },
+            {
+              label: `${ticketsUrgentOpen} urgent open`,
+              hue: "rose",
+              icon: AlertTriangle,
+            },
+          ]}
         />
         <StatCard
           title="Pending Reviews"
-          value={pendingReviewCount ?? initialStats?.pendingReviewCount ?? 0}
-          valueLoading={reviewCountLoading && pendingReviewCount === undefined}
+          value={pendingReviewsValue}
+          valueLoading={
+            reviewCountLoading &&
+            statsPendingReviewCount === undefined &&
+            pendingReviewCount === undefined
+          }
           icon={Star}
           hue="amber"
+          badges={[
+            {
+              label: `${reviewsApproved} approved`,
+              hue: "emerald",
+              icon: CheckCircle2,
+            },
+            {
+              label: `${reviewsRejected} rejected`,
+              hue: "rose",
+              icon: XCircle,
+            },
+          ]}
         />
       </StatCardGrid>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-        {/* Book Availability Chart */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Book Availability
-          </h3>
+        <AdminSurfacePanel variant="stat">
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Library className="size-5" />}
+            title="Book Availability"
+            iconToneClassName="border-emerald-200 bg-emerald-50 text-emerald-600"
+          />
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Available Copies</span>
+              <span className="text-sm">Books in catalog</span>
+              <span className="font-medium">{totalBooks}</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-emerald-600"
+                style={{ width: `${totalBooks > 0 ? 100 : 0}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Available copies</span>
               <span className="font-medium">{availableCopies}</span>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-green-600"
-                style={{ width: `${(availableCopies / totalCopies) * 100}%` }}
-              ></div>
+                style={{ width: `${pct(availableCopies, totalCopies)}%` }}
+              />
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm">Borrowed Copies</span>
+              <span className="text-sm">Borrowed copies</span>
               <span className="font-medium">{borrowedCopies}</span>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-blue-600"
-                style={{ width: `${(borrowedCopies / totalCopies) * 100}%` }}
-              ></div>
+                style={{ width: `${pct(borrowedCopies, totalCopies)}%` }}
+              />
             </div>
           </div>
-        </div>
+        </AdminSurfacePanel>
 
-        {/* User Status Chart */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">User Status</h3>
+        <AdminSurfacePanel variant="stat">
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Users className="size-5" />}
+            title="User Status"
+            iconToneClassName="border-blue-200 bg-blue-50 text-blue-600"
+          />
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Approved Users</span>
+              <span className="text-sm">Approved users</span>
               <span className="font-medium">{approvedUsers}</span>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-green-600"
-                style={{ width: `${(approvedUsers / totalUsers) * 100}%` }}
-              ></div>
+                style={{ width: `${pct(approvedUsers, totalUsers)}%` }}
+              />
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm">Pending Users</span>
+              <span className="text-sm">Pending sign-ups</span>
               <span className="font-medium">{pendingUsers}</span>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-yellow-600"
-                style={{ width: `${(pendingUsers / totalUsers) * 100}%` }}
-              ></div>
+                style={{ width: `${pct(pendingUsers, totalUsers)}%` }}
+              />
+            </div>
+
+            {rejectedUsers > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Rejected users</span>
+                  <span className="font-medium">{rejectedUsers}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-2 rounded-full bg-rose-500"
+                    style={{ width: `${pct(rejectedUsers, totalUsers)}%` }}
+                  />
+                </div>
+              </>
+            ) : null}
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Admin requests pending</span>
+              <span className="font-medium">{pendingAdminRequests}</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-amber-500"
+                style={{
+                  width: `${pct(
+                    pendingAdminRequests,
+                    pendingAdminRequests +
+                      rejectedAdminRequests +
+                      approvedAdminRequests,
+                  )}%`,
+                }}
+              />
             </div>
           </div>
-        </div>
+        </AdminSurfacePanel>
 
-        {/* Enhanced Book Information Chart */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Book Information
-          </h3>
+        <AdminSurfacePanel variant="stat">
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Package className="size-5" />}
+            title="Book Information"
+            iconToneClassName="border-violet-200 bg-violet-50 text-violet-600"
+          />
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm">Books with ISBN</span>
@@ -381,8 +491,8 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-indigo-600"
-                style={{ width: `${(booksWithISBN / totalBooks) * 100}%` }}
-              ></div>
+                style={{ width: `${pct(booksWithISBN, totalBooks)}%` }}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -392,115 +502,73 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-purple-600"
-                style={{ width: `${(booksWithPublisher / totalBooks) * 100}%` }}
-              ></div>
+                style={{ width: `${pct(booksWithPublisher, totalBooks)}%` }}
+              />
             </div>
 
-            {averagePageCount > 0 && (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Avg Page Count</span>
-                  <span className="font-medium">
-                    {Math.round(averagePageCount)}
-                  </span>
-                </div>
-              </>
-            )}
+            {averagePageCount > 0 ? (
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Avg Page Count</span>
+                <span className="font-medium">
+                  {Math.round(averagePageCount)}
+                </span>
+              </div>
+            ) : null}
           </div>
-        </div>
+        </AdminSurfacePanel>
       </div>
 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-        {/* Recent Borrows */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Recent Borrows
-          </h3>
+        <AdminSurfacePanel variant="stat">
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<BookOpen className="size-5" />}
+            title="Recent Borrows"
+            iconToneClassName="border-sky-200 bg-sky-50 text-sky-600"
+          />
           <div className="space-y-2">
             {recentBorrows.length === 0 ? (
               <p className="text-sm text-gray-500">No recent borrows</p>
             ) : (
               recentBorrows.map((borrow) => (
-                <div
-                  key={borrow.id}
-                  className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="break-words text-sm font-medium">
-                      {borrow.bookTitle}
-                    </p>
-                    <p className="break-words text-xs text-gray-600">
-                      by {borrow.userName}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
-                      borrow.status === "BORROWED"
-                        ? "bg-blue-100 text-blue-800"
-                        : borrow.status === "PENDING"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {borrow.status}
-                  </span>
-                </div>
+                <RecentBorrowRow key={borrow.id} borrow={borrow} />
               ))
             )}
           </div>
-        </div>
+        </AdminSurfacePanel>
 
-        {/* Recent Users */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Recent Users
-          </h3>
+        <AdminSurfacePanel variant="stat">
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Users className="size-5" />}
+            title="Recent Users"
+            iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
+          />
           <div className="space-y-2">
             {recentUsers.length === 0 ? (
               <p className="text-sm text-gray-500">No recent users</p>
             ) : (
               recentUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex flex-col gap-2 rounded bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/admin/users/${user.id}`}
-                      className="break-words text-sm font-medium text-blue-700 hover:text-blue-600"
-                    >
-                      {user.fullName}
-                    </Link>
-                    <p className="break-words text-xs text-gray-600">
-                      {user.email}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
-                      user.status === "APPROVED"
-                        ? "bg-green-100 text-green-800"
-                        : user.status === "PENDING"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {user.status}
-                  </span>
-                </div>
+                <RecentUserRow key={user.id} user={user} />
               ))
             )}
           </div>
-        </div>
+        </AdminSurfacePanel>
       </div>
 
       {/* Book Categories Section */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-        {/* Book Categories */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            📚 Book Categories
-          </h3>
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Library className="size-5" />}
+            title="Book Categories"
+            iconToneClassName="border-indigo-200 bg-indigo-50 text-indigo-600"
+          />
           <div className="space-y-2">
             {categoryStats.length === 0 ? (
               <p className="text-sm text-gray-500">No books found</p>
@@ -508,46 +576,57 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               categoryStats.map((category) => (
                 <div
                   key={category.genre}
-                  className="flex items-center justify-between rounded bg-gray-50 p-3"
+                  className="flex items-center justify-between rounded-xl bg-gray-50/90 p-3"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-gray-900">
                         {category.genre}
                       </span>
-                      <span className="text-sm font-medium text-blue-600">
-                        {category.count} books
-                      </span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="text-sm font-medium leading-none text-blue-600">
+                          {category.count} books
+                        </span>
+                        {category.avgRating > 0 ? (
+                          <span className="inline-flex items-center gap-0.5 leading-none text-amber-600">
+                            <Star
+                              className="size-3 shrink-0 fill-amber-500 text-amber-500"
+                              aria-hidden
+                            />
+                            <span className="text-xs font-medium leading-none sm:text-sm">
+                              {category.avgRating.toFixed(1)}
+                            </span>
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="mt-1 flex items-center justify-between text-xs text-gray-600">
                       <span>{category.totalCopies} total copies</span>
                       <span>{category.availableCopies} available</span>
-                      {category.avgRating > 0 && (
-                        <span className="flex items-center">
-                          ⭐ {category.avgRating.toFixed(1)}
-                        </span>
-                      )}
                     </div>
                     <div className="mt-2 h-1 w-full rounded-full bg-gray-200">
                       <div
                         className="h-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
                         style={{
-                          width: `${(category.count / totalBooks) * 100}%`,
+                          width: `${pct(category.count, totalBooks)}%`,
                         }}
-                      ></div>
+                      />
                     </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </AdminSurfacePanel>
 
-        {/* Books by Publication Year */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            📅 Books by Publication Year
-          </h3>
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Calendar className="size-5" />}
+            title="Books by Publication Year"
+            iconToneClassName="border-emerald-200 bg-emerald-50 text-emerald-600"
+          />
           <div className="space-y-2">
             {booksByYear.length === 0 ? (
               <p className="text-sm text-gray-500">No publication year data</p>
@@ -555,11 +634,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               booksByYear.map(([year, count]) => (
                 <div
                   key={year}
-                  className="flex items-center justify-between rounded bg-gray-50 p-3"
+                  className="flex items-center justify-between rounded-xl bg-gray-50/90 p-3"
                 >
-                  <div className="flex items-center">
-                    <span className="font-medium text-gray-900">{year}</span>
-                  </div>
+                  <span className="font-medium text-gray-900">{year}</span>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium text-green-600">
                       {count} books
@@ -567,24 +644,27 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     <div className="h-2 w-16 rounded-full bg-gray-200">
                       <div
                         className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
-                        style={{ width: `${(count / totalBooks) * 100}%` }}
-                      ></div>
+                        style={{ width: `${pct(count, totalBooks)}%` }}
+                      />
                     </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </AdminSurfacePanel>
       </div>
 
       {/* Additional Statistics Section */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-        {/* Books by Language */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            🌍 Books by Language
-          </h3>
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Languages className="size-5" />}
+            title="Books by Language"
+            iconToneClassName="border-violet-200 bg-violet-50 text-violet-600"
+          />
           <div className="space-y-2">
             {booksByLanguage.length === 0 ? (
               <p className="text-sm text-gray-500">No language data</p>
@@ -592,7 +672,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               booksByLanguage.map(([language, count]) => (
                 <div
                   key={language}
-                  className="flex items-center justify-between rounded bg-gray-50 p-2"
+                  className="flex items-center justify-between rounded-xl bg-gray-50/90 p-2"
                 >
                   <span className="text-sm font-medium text-gray-700">
                     {language}
@@ -604,59 +684,46 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                     <div className="h-1 w-12 rounded-full bg-gray-200">
                       <div
                         className="h-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
-                        style={{ width: `${(count / totalBooks) * 100}%` }}
-                      ></div>
+                        style={{ width: `${pct(count, totalBooks)}%` }}
+                      />
                     </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </AdminSurfacePanel>
 
-        {/* Top Rated Books */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            ⭐ Top Rated Books
-          </h3>
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Star className="size-5" />}
+            title="Top Rated Books"
+            iconToneClassName="border-amber-200 bg-amber-50 text-amber-600"
+          />
           <div className="space-y-2">
             {topRatedBooks.length === 0 ? (
               <p className="text-sm text-gray-500">No rated books</p>
             ) : (
               topRatedBooks.map((book) => (
-                <div
-                  key={book.id}
-                  className="flex items-center justify-between rounded bg-gray-50 p-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900">
-                      {book.title}
-                    </p>
-                    <p className="truncate text-xs text-gray-600">
-                      {book.author}
-                    </p>
-                  </div>
-                  <div className="ml-2 flex items-center space-x-1">
-                    <span className="text-xs font-medium text-yellow-600">
-                      ⭐ {book.rating}
-                    </span>
-                  </div>
-                </div>
+                <OverviewTopRatedRow key={book.id} book={book} />
               ))
             )}
           </div>
-        </div>
+        </AdminSurfacePanel>
 
-        {/* Library Health Metrics */}
-        <div className="stat">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            🏥 Library Health
-          </h3>
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<HeartPulse className="size-5" />}
+            title="Library Health"
+            iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
+          />
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                Collection Diversity
-              </span>
+              <span className="text-sm text-gray-600">Collection Diversity</span>
               <span className="text-sm font-medium text-indigo-600">
                 {categoryStats.length} categories
               </span>
@@ -667,46 +734,178 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                 style={{
                   width: `${Math.min((categoryStats.length / 10) * 100, 100)}%`,
                 }}
-              ></div>
+              />
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Availability Rate</span>
               <span className="text-sm font-medium text-green-600">
-                {totalCopies > 0
-                  ? Math.round((availableCopies / totalCopies) * 100)
-                  : 0}
-                %
+                {Math.round(pct(availableCopies, totalCopies))}%
               </span>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
-                style={{
-                  width: `${totalCopies > 0 ? (availableCopies / totalCopies) * 100 : 0}%`,
-                }}
-              ></div>
+                style={{ width: `${pct(availableCopies, totalCopies)}%` }}
+              />
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">User Engagement</span>
               <span className="text-sm font-medium text-purple-600">
-                {totalUsers > 0
-                  ? Math.round((activeBorrows / totalUsers) * 100)
-                  : 0}
-                %
+                {Math.round(pct(activeBorrows, totalUsers))}%
               </span>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-200">
               <div
                 className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
                 style={{
-                  width: `${totalUsers > 0 ? Math.min((activeBorrows / totalUsers) * 100, 100) : 0}%`,
+                  width: `${Math.min(pct(activeBorrows, totalUsers), 100)}%`,
                 }}
-              ></div>
+              />
             </div>
+
+            {/* Extra state metrics — real counts only (REQ-0033 Library Health) */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Pending Borrow Queue</span>
+              <span className="text-sm font-medium text-amber-600">
+                {pendingBorrows}
+                {activeBorrows + pendingBorrows > 0
+                  ? ` · ${Math.round(pct(pendingBorrows, activeBorrows + pendingBorrows))}%`
+                  : ""}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                style={{
+                  width: `${pct(pendingBorrows, activeBorrows + pendingBorrows)}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Reservations Waiting</span>
+              <span className="text-sm font-medium text-sky-600">
+                {reservationsWaiting}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"
+                style={{
+                  width: `${Math.min(
+                    (reservationsWaiting / Math.max(reservationsWaiting, 5)) *
+                      100,
+                    100,
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Return Completion</span>
+              <span className="text-sm font-medium text-emerald-600">
+                {Math.round(
+                  pct(returnedBooks, returnedBooks + activeBorrows),
+                )}
+                %
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
+                style={{
+                  width: `${pct(returnedBooks, returnedBooks + activeBorrows)}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Catalog Active</span>
+              <span className="text-sm font-medium text-violet-600">
+                {activeBooks}/{totalBooks}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500"
+                style={{ width: `${pct(activeBooks, totalBooks)}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Signup Approved</span>
+              <span className="text-sm font-medium text-blue-600">
+                {Math.round(pct(approvedUsers, totalUsers))}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500"
+                style={{ width: `${pct(approvedUsers, totalUsers)}%` }}
+              />
+            </div>
+
+            {pendingUsers > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Signup Pending</span>
+                  <span className="text-sm font-medium text-amber-600">
+                    {pendingUsers}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-amber-300 to-yellow-500"
+                    style={{ width: `${pct(pendingUsers, totalUsers)}%` }}
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {rejectedUsers > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Signup Rejected</span>
+                  <span className="text-sm font-medium text-rose-600">
+                    {rejectedUsers}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-rose-400 to-red-500"
+                    style={{ width: `${pct(rejectedUsers, totalUsers)}%` }}
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {cancelledBorrows > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    Cancelled Borrows
+                  </span>
+                  <span className="text-sm font-medium text-slate-600">
+                    {cancelledBorrows}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-slate-400 to-slate-500"
+                    style={{
+                      width: `${pct(
+                        cancelledBorrows,
+                        cancelledBorrows + returnedBooks + activeBorrows + pendingBorrows,
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
-        </div>
+        </AdminSurfacePanel>
       </div>
     </div>
   );

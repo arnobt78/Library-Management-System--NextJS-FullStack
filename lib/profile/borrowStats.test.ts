@@ -84,18 +84,27 @@ describe("borrowStats", () => {
           renewalCount: 0,
           createdAt: "2026-07-15",
         },
+        {
+          id: "6",
+          bookId: "b5",
+          status: "CANCELLED",
+          dueDate: null,
+          fineAmount: 0,
+          renewalCount: 0,
+        },
       ],
       3,
       now,
     );
 
-    expect(stats.totalBorrows).toBe(5);
+    expect(stats.totalBorrows).toBe(6);
     expect(stats.pending).toBe(1);
     expect(stats.active).toBe(2);
     expect(stats.returned).toBe(2);
+    expect(stats.cancelled).toBe(1);
     expect(stats.overdueNow).toBe(1);
     expect(stats.dueSoon).toBe(1);
-    expect(stats.uniqueBooks).toBe(4);
+    expect(stats.uniqueBooks).toBe(5);
     expect(stats.totalRenewals).toBe(3);
     expect(stats.onTimeReturns).toBe(1);
     expect(stats.lateReturns).toBe(1);

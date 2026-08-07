@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) glass catalog chips + profile tab filters; nonlocal Verify still outstanding
-- SCOPE-V phase: Verify (filter UX Prove PASS locally)
-- Status: ACTIVE - glass/profile filter UX at tip `f0f5d35`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove complete (local) overview KPI glass badges + admin.stats densify; nonlocal Verify still outstanding
+- SCOPE-V phase: Verify (KPI densify Prove PASS locally; full build/integration not re-claimed this wave)
+- Status: ACTIVE - overview KPI densify at tip `ae2a6aa`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `f0f5d35` (glass all-books chips + profile tab period/status filters)
-- Latest HEAD: `38544a9` (`main` == `origin/main`)
+- Latest implementation tip: `ae2a6aa` (overview KPI glass badges + `patchAdminStatsCaches*`)
+- Latest HEAD: `ae2a6aa` (`main` ahead of `origin/main` by 1; push deferred)
 - Started: 2026-08-01
-- Last updated: 2026-08-07 (glass all-books chips + profile tab period/status filters)
+- Last updated: 2026-08-08 (KPI densify tip bind)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,20 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, build-agent-js (glass chips + profile filters)
+- Skills applied this session: agile-v-core, agile-v-pipeline (resume reconcile)
+
+## Reconciliation snapshot (2026-08-08, overview KPI densify)
+
+Verified facts:
+- Shared `buildAdminDashboardStats` + glass `StatCard` badges; Overview KPI homes (users/books/borrows/admins/tickets/reviews).
+- `patchAdminStatsCaches*` on borrow (explicit `fromStatus` + universe recount), user/book/ticket/review/admin-request/reservation; claim → borrow create densify.
+- Profile Cancelled KPI + `glassCancelled`. Debug ingest removed.
+- Local Prove: typecheck + lint + densify unit tests PASS. Analytics/automation densify still noop; full build/integration not re-run this check.
+- EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); C2 Gate 2 not opened. Redis = rate-limit only.
+
+### Next Action
+
+**Human-Decision:** UI polish test tomorrow; Wave 5 / BL-0017; further REQ-0033 polish; or named bug. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER. Push only if owner confirms.
 
 ## Resume Protocol
 
@@ -40,6 +53,20 @@
 | INT-0005 | C2 Gate 0 | RESOLVED | `C2-G0-20260801-74b2e9a1` | GATE-0005 |
 | INT-0006 | C2 Gate 1 | RESOLVED | `C2-G1-20260801-5d31a8c2` | GATE-0006 |
 | — | C2 Gate 2 | NOT OPENED | — | EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`) |
+
+## Reconciliation snapshot (2026-08-07, agile-v resume)
+
+Verified facts:
+- Working tree clean (except untracked `.cursor/`); `main` == `origin/main` at `3849abe`.
+- Product tip `f0f5d35` (glass catalog chips + profile tab filters) pushed; docs trail `f85af0f`→`3849abe`.
+- Docs bind plan `docs_and_commit_filters` already delivered — do **not** re-implement.
+- No PENDING interrupt; INT-0005/0006 still RESOLVED.
+- EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`); Wave 5 / BL-0017 remains Gate 2 path.
+- Protocol: `docs/AGILE_V_PROTOCOL.md`.
+
+### Next Action
+
+**Human-Decision:** pick one before coding (see scoped plan).
 
 ## Reconciliation snapshot (2026-08-07, glass + profile filters)
 

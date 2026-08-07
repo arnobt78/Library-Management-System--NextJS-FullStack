@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-07 | Status: C2 Stage 4; admin Stockly shell + nav-count densify local Prove; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-08 | Status: C2 Stage 4; overview KPI glass badges + admin.stats densify local Prove; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -21,7 +21,7 @@ Browser
 - PostgreSQL is authoritative. Redis does not cache business records.
 - `proxy.ts` is the Next.js 16 request-proxy entry and exports Auth.js `auth` as `proxy`.
 
-## Mutation densify (2026-08-06)
+## Mutation densify (2026-08-06; overview stats 2026-08-08)
 
 - Gold: `commitMutationCache` = snapshot → await `invalidateMutation` → densify `setQueryData` (active + inactive). Soft-nav/Back must not flash stale SSR.
 - Reviews (`review.write`): `patchReviewCaches*` + `resolveReviewModeratorForDensify`; approve upserts public `book-reviews`; edit can seed admin list from public row.
@@ -30,6 +30,7 @@ Browser
 - Admin Book Reviews: title → book detail; comment → review detail; table headers `font-medium`, cell titles/names `font-normal`, emails `text-xs` under names.
 - Admin review detail: ticket-shaped Back/KPI/About|Description; borrow meta; `ModerateReviewAlertDialog`; per-action Approve/Reject spinner; densify path unchanged (`review.write`).
 - Admin nav badges: absolute `patchAdminNavCounts` after domain densify; SSR `getAdminNavCounts` + GET `/api/admin/nav-counts` (admin-authorized).
+- Library Overview (`admin.stats`): shared `buildAdminDashboardStats` for page + API parity; glass `StatCard` badges; `patchAdminStatsCaches*` on borrow/user/book/ticket/review/admin-request/reservation (borrow needs pre-mutate `fromStatus`; claim densifies BORROWED create). Analytics/automation KPIs stay invalidate-only.
 
 ## Admin Stockly chrome (2026-08-07)
 

@@ -87,6 +87,7 @@ import { SortableHeader } from "@/components/ui/SortableHeader";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
+import { AccountStatusBadge } from "@/lib/ui/semanticBadges";
 import { cn } from "@/lib/utils";
 
 const DECISION_REASON_MAX = 120;
@@ -608,17 +609,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         <SortableHeader column={column}>Status</SortableHeader>
       ),
       cell: ({ row }) => (
-        <span
-          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
-            row.original.status === "APPROVED"
-              ? "bg-green-100 text-green-800"
-              : row.original.status === "PENDING"
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-red-100 text-red-800"
-          }`}
-        >
-          {row.original.status}
-        </span>
+        <AccountStatusBadge status={row.original.status || "PENDING"} />
       ),
     },
     {

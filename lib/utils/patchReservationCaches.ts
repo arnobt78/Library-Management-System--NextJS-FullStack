@@ -12,6 +12,7 @@ import {
   clearDensifiedEmpty,
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
+import { patchAdminStatsOnReservationWaitingChange } from "@/lib/utils/patchAdminStatsCaches";
 
 export type ReservationStatus =
   | "WAITING"
@@ -108,6 +109,8 @@ export function densifyReservationCreate(
     );
     clearDensifiedEmpty(queueKey);
   }
+
+  patchAdminStatsOnReservationWaitingChange(queryClient, 1);
 }
 
 /**
@@ -121,6 +124,8 @@ export function densifyReservationStatus(
     status: ReservationStatus;
     bookId?: string;
     userId?: string;
+    /** Prior status for overview reservationsWaiting delta. */
+    fromStatus?: ReservationStatus | string | null;
   },
   baselines?: ReservationListBaselines,
 ): void {
@@ -162,5 +167,12 @@ export function densifyReservationStatus(
         (old: unknown) => (old && typeof old === "object" ? { ...old } : old),
       );
     }
+  }
+
+  // Only adjust overview waiting bar when we know prior status was WAITING.
+  if (args.fromStatus === "WAITING" && args.status !== "WAITING") {
+    patchAdminStatsOnReservationWaitingChange(queryClient, -1);
+  } else if (args.fromStatus && args.fromStatus !== "WAITING" && args.status === "WAITING") {
+    patchAdminStatsOnReservationWaitingChange(queryClient, 1);
   }
 }

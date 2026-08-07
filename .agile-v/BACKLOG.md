@@ -112,4 +112,12 @@ Owner approved filter/KPI/empty-UI batch. Delivered: `adminListUniverse` dual-qu
 
 ## Glass catalog + profile tab filters (2026-08-07)
 
-Owner approved glass chips + My Profile period/status filters. Delivered: all-books glass chips/Reset/Clear + optimistic `displayFilters`; profile `All Time`/`All Status` + dark chips (`tabListFilters` / `periodFilterOptions`). Densify unchanged. EvalGate still FAIL.
+Owner approved glass chips + My Profile period/status filters. Delivered: all-books glass chips/Reset/Clear + optimistic `displayFilters`; profile `All Time`/`All Status` + dark chips (`tabListFilters` / `periodFilterOptions`). Densify unchanged. Tip `f0f5d35`; HEAD `3849abe`. EvalGate still FAIL.
+
+## Session resume note (2026-08-07, evening)
+
+Repo reconciled: tip `f0f5d35`, HEAD `3849abe`, `main` == `origin/main`, clean tree (`.cursor/` untracked). Docs/commit plan already shipped. Owner invoked Agile V core/pipeline **without a new product ask**. **Human-Decision:** pick one before coding.
+
+## Overview KPI glass badges + admin.stats densify (2026-08-08)
+
+Owner approved overview KPI wave. Delivered: shared `buildAdminDashboardStats`; glass `StatCard` badges; `patchAdminStatsCaches*` across borrow/user/book/ticket/review/admin-request/reservation; profile Cancelled KPI; debug ingest removed. Local Prove type/lint/densify tests PASS. Tip `ae2a6aa`. Analytics/automation densify still noop. EvalGate still FAIL (Gate 2 blocked). Push deferred until owner confirms.

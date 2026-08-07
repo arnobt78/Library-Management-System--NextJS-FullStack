@@ -15,6 +15,7 @@ import {
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
 import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
+import { patchAdminStatsOnReviewStatusChange } from "@/lib/utils/patchAdminStatsCaches";
 
 export type ReviewListBaselines = {
   /** Densest cached admin list (any filter key). */
@@ -320,7 +321,13 @@ export function patchReviewCachesOnCreate(
     (rows) => upsertPublicRow(rows, adminItemToPublicReview(item)),
     baselines,
   );
-  if (item.status === "PENDING") bumpPendingCount(queryClient, 1);
+  if (item.status === "PENDING") {
+    bumpPendingCount(queryClient, 1);
+    patchAdminStatsOnReviewStatusChange(queryClient, {
+      fromStatus: null,
+      toStatus: "PENDING",
+    });
+  }
 }
 
 /** After content edit — patch rating/comment/updatedAt (+ optional status reset).
@@ -500,6 +507,10 @@ export function patchReviewCachesOnUpdate(
     const isPending = patch.status === "PENDING";
     if (wasPending && !isPending) bumpPendingCount(queryClient, -1);
     else if (!wasPending && isPending) bumpPendingCount(queryClient, 1);
+    patchAdminStatsOnReviewStatusChange(queryClient, {
+      fromStatus: previousStatus,
+      toStatus: patch.status,
+    });
   }
 }
 
@@ -552,6 +563,12 @@ export function patchReviewCachesOnDelete(
   }
 
   if (previous?.status === "PENDING") bumpPendingCount(queryClient, -1);
+  if (previous?.status) {
+    patchAdminStatsOnReviewStatusChange(queryClient, {
+      fromStatus: previous.status,
+      toStatus: null,
+    });
+  }
 }
 
 /**
@@ -673,4 +690,12 @@ export function patchReviewCachesOnModerate(
   const isPending = patch.status === "PENDING";
   if (wasPending && !isPending) bumpPendingCount(queryClient, -1);
   else if (!wasPending && isPending) bumpPendingCount(queryClient, 1);
+
+  // Overview Pending Reviews badges (approved / rejected lifetime counts).
+  if (previousStatus && previousStatus !== patch.status) {
+    patchAdminStatsOnReviewStatusChange(queryClient, {
+      fromStatus: previousStatus,
+      toStatus: patch.status,
+    });
+  }
 }

@@ -40,6 +40,9 @@ const badgeVariants = cva(
         /** Glass: muted / outline on dark */
         glassMuted:
           "border-gray-400/30 bg-gradient-to-r from-gray-500/25 via-gray-500/10 to-gray-500/5 text-white/80 backdrop-blur-sm shadow-[0_10px_30px_rgba(107,114,128,0.2)]",
+        /** Glass: cancelled / soft-cancel borrow (slate-rose) */
+        glassCancelled:
+          "border-slate-400/40 bg-gradient-to-r from-slate-500/30 via-rose-500/10 to-slate-500/5 text-slate-100 backdrop-blur-sm shadow-[0_10px_30px_rgba(148,163,184,0.25)]",
       },
     },
     defaultVariants: {

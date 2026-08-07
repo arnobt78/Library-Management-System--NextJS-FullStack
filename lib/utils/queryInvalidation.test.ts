@@ -255,6 +255,7 @@ describe("query invalidation contract", () => {
       "user.write": [
         "/my-profile",
         "/make-admin",
+        "/admin",
         "/admin/account-requests",
         "/admin/users",
         "/admin/users/[id]",

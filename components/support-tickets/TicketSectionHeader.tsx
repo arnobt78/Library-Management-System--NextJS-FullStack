@@ -16,6 +16,11 @@ export function TicketSectionHeader({
   variant = "light",
   /** Override icon tile colors (e.g. teal for Internal Notes). */
   iconToneClassName,
+  /**
+   * start = default (ticket/review detail with optional subtitle).
+   * center = icon + title vertically middle (Library Overview cards).
+   */
+  align = "start",
   className,
 }: {
   icon: ReactNode;
@@ -24,17 +29,20 @@ export function TicketSectionHeader({
   trailing?: ReactNode;
   variant?: "light" | "dark";
   iconToneClassName?: string;
+  align?: "start" | "center";
   className?: string;
 }) {
   const isDark = variant === "dark";
+  const rowAlign = align === "center" ? "items-center" : "items-start";
   return (
     <div
       className={cn(
-        "mb-4 flex flex-wrap items-start justify-between gap-3",
+        "mb-4 flex flex-wrap justify-between gap-3",
+        rowAlign,
         className,
       )}
     >
-      <div className="flex min-w-0 items-start gap-3">
+      <div className={cn("flex min-w-0 gap-3", rowAlign)}>
         <div
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",

@@ -2,6 +2,7 @@
  * StatCard — shared admin KPI tile.
  *
  * Parent: CR-0003 / REQ-0034 (Admin Suite Parity Expansion)
+ * Wave: REQ-0033 — light glass status badges under the value (semanticBadges rhythm).
  *
  * Every admin page renders a row of these at the top (Wave 4 KPI rollout).
  * `valueLoading` shows a skeleton pulse instead of the value so SSR shells can
@@ -25,6 +26,8 @@ export type StatCardHue =
 export interface StatCardBadge {
   label: string;
   hue?: StatCardHue;
+  /** Optional Lucide icon (semantic badge parity) */
+  icon?: LucideIcon;
 }
 
 export interface StatCardProps {
@@ -32,7 +35,7 @@ export interface StatCardProps {
   value: number | string;
   icon: LucideIcon;
   hue?: StatCardHue;
-  /** Small secondary badges under the value (e.g. "3 overdue") */
+  /** Small secondary glass badges under the value (e.g. "3 overdue") */
   badges?: StatCardBadge[];
   /** Shows a skeleton in place of the value (first paint / refetch) */
   valueLoading?: boolean;
@@ -43,13 +46,18 @@ export interface StatCardProps {
   className?: string;
 }
 
-const BADGE_HUE_CLASS: Record<StatCardHue, string> = {
-  blue: "bg-blue-50 text-blue-700",
-  emerald: "bg-emerald-50 text-emerald-700",
-  amber: "bg-amber-50 text-amber-700",
-  rose: "bg-rose-50 text-rose-700",
-  violet: "bg-violet-50 text-violet-700",
-  slate: "bg-slate-100 text-slate-700",
+/** Light-admin glass chips — border + translucent fill + soft glow (not flat gray-50). */
+const BADGE_GLASS_CLASS: Record<StatCardHue, string> = {
+  blue: "border-blue-200 bg-blue-50/90 text-blue-700 backdrop-blur-sm shadow-[0_0_12px_rgba(59,130,246,0.12)]",
+  emerald:
+    "border-emerald-200 bg-emerald-50/90 text-emerald-700 backdrop-blur-sm shadow-[0_0_12px_rgba(16,185,129,0.12)]",
+  amber:
+    "border-amber-200 bg-amber-50/90 text-amber-700 backdrop-blur-sm shadow-[0_0_12px_rgba(245,158,11,0.12)]",
+  rose: "border-rose-200 bg-rose-50/90 text-rose-700 backdrop-blur-sm shadow-[0_0_12px_rgba(244,63,94,0.12)]",
+  violet:
+    "border-violet-200 bg-violet-50/90 text-violet-700 backdrop-blur-sm shadow-[0_0_12px_rgba(139,92,246,0.12)]",
+  slate:
+    "border-slate-200/80 bg-slate-50/90 text-slate-600 backdrop-blur-sm shadow-[0_0_10px_rgba(100,116,139,0.08)]",
 };
 
 export function StatCard({
@@ -83,22 +91,28 @@ export function StatCard({
           <p className="kpi-card__value leading-tight">{value}</p>
         )}
         {badges && badges.length > 0 ? (
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {badgeValuesLoading
               ? badges.map((_, i) => (
-                  <Skeleton key={i} className="h-4 w-12 rounded-full" />
+                  <Skeleton key={i} className="h-5 w-14 rounded-md" />
                 ))
-              : badges.map((badge, i) => (
-                  <span
-                    key={`${badge.label}-${i}`}
-                    className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none",
-                      BADGE_HUE_CLASS[badge.hue ?? "slate"],
-                    )}
-                  >
-                    {badge.label}
-                  </span>
-                ))}
+              : badges.map((badge, i) => {
+                  const BadgeIcon = badge.icon;
+                  return (
+                    <span
+                      key={`${badge.label}-${i}`}
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-medium leading-none",
+                        BADGE_GLASS_CLASS[badge.hue ?? "slate"],
+                      )}
+                    >
+                      {BadgeIcon ? (
+                        <BadgeIcon className="size-3 shrink-0" aria-hidden />
+                      ) : null}
+                      {badge.label}
+                    </span>
+                  );
+                })}
           </div>
         ) : null}
       </div>

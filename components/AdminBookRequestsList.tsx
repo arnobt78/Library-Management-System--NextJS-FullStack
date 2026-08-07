@@ -34,6 +34,7 @@ import {
 } from "@/hooks/useMutations";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 import { ADMIN_BORROW_REQUESTS_UNFILTERED } from "@/lib/ui/adminListUniverse";
+import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   CheckCircle,
   XCircle,
@@ -555,21 +556,9 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                                 : "Not set"}
                           </p>
                         </div>
-                        <div>
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">Status:</span>
-                          <span
-                            className={`ml-2 rounded-full px-2 py-1 text-xs font-medium ${
-                              request.status === "PENDING"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : request.status === "BORROWED"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : request.status === "CANCELLED"
-                                    ? "bg-rose-100 text-rose-800"
-                                    : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {request.status}
-                          </span>
+                          <BorrowStatusBadge status={request.status} />
                         </div>
                       </div>
                     </div>

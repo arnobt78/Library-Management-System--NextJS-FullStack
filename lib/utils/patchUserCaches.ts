@@ -13,6 +13,10 @@ import {
   markDensifiedEmpty,
 } from "@/lib/utils/queryCacheLists";
 import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
+import {
+  patchAdminStatsOnUserRoleChange,
+  patchAdminStatsOnUserStatusChange,
+} from "@/lib/utils/patchAdminStatsCaches";
 
 type UserLike = {
   id: string;
@@ -21,7 +25,7 @@ type UserLike = {
   [key: string]: unknown;
 };
 
-/** Sync Registration Queue pill from densest cached pending-users list. */
+/** Sync Registration Queue pill + overview pending-sign-ups badge from pending cache. */
 export function syncPendingSignUpsNav(queryClient: QueryClient): void {
   let found = false;
   let densest = 0;
@@ -34,6 +38,22 @@ export function syncPendingSignUpsNav(queryClient: QueryClient): void {
   }
   if (found) {
     patchAdminNavCounts(queryClient, { pendingSignUps: densest });
+    // Absolute pendingUsers on overview when signup queue is cached (heals badge drift).
+    const stats = queryClient.getQueryData<{
+      pendingUsers?: number;
+      recentBorrows?: unknown;
+      recentUsers?: unknown;
+    }>(queryKeys.admin.stats);
+    if (
+      stats &&
+      Array.isArray(stats.recentBorrows) &&
+      Array.isArray(stats.recentUsers)
+    ) {
+      queryClient.setQueryData(queryKeys.admin.stats, {
+        ...stats,
+        pendingUsers: densest,
+      });
+    }
   }
 }
 
@@ -82,9 +102,70 @@ function patchAdminUsersListRows(
 /** Patch cached user detail after status/role change. */
 export function densifyUserWrite(
   queryClient: QueryClient,
-  patch: { userId: string; status?: string; role?: string },
+  patch: {
+    userId: string;
+    status?: string;
+    role?: string;
+    /** Prior status for overview KPI delta (omit → only bump destination). */
+    fromStatus?: string | null;
+    reviewer?: {
+      id: string;
+      fullName: string;
+      email: string;
+      universityCard: string | null;
+    } | null;
+    statusReviewedAt?: string | null;
+  },
 ): void {
   if (!patch.userId) return;
+
+  // Prefer explicit fromStatus; else read detail/list before patch
+  let fromStatus = patch.fromStatus ?? null;
+  let fromRole: string | null = null;
+  const detailBefore = queryClient.getQueryData<{
+    status?: string;
+    role?: string;
+  }>(queryKeys.users.detail(patch.userId));
+  if (patch.status !== undefined && fromStatus === null) {
+    fromStatus = detailBefore?.status ?? null;
+    if (!fromStatus) {
+      for (const [, page] of queryClient.getQueriesData<UsersListResponse>({
+        queryKey: queryKeys.users.adminRoot,
+      })) {
+        const hit = page?.users?.find((u) => u.id === patch.userId);
+        if (hit?.status) {
+          fromStatus = hit.status;
+          break;
+        }
+      }
+    }
+    // Pending queue (before we drop the row) — Account Requests approve path.
+    if (!fromStatus) {
+      for (const [, rows] of queryClient.getQueriesData<UserLike[]>({
+        queryKey: queryKeys.users.pendingRoot,
+      })) {
+        if (rows?.some((u) => u.id === patch.userId)) {
+          fromStatus = "PENDING";
+          break;
+        }
+      }
+    }
+  }
+  if (patch.role !== undefined) {
+    fromRole = detailBefore?.role ?? null;
+    if (!fromRole) {
+      for (const [, page] of queryClient.getQueriesData<UsersListResponse>({
+        queryKey: queryKeys.users.adminRoot,
+      })) {
+        const hit = page?.users?.find((u) => u.id === patch.userId);
+        if (hit?.role) {
+          fromRole = hit.role;
+          break;
+        }
+      }
+    }
+  }
+
   const key = queryKeys.users.detail(patch.userId);
   queryClient.setQueryData(key, (prev: unknown) => {
     if (!prev || typeof prev !== "object") return prev;
@@ -114,6 +195,24 @@ export function densifyUserWrite(
   }
 
   syncUsersNav(queryClient);
+
+  if (patch.status) {
+    patchAdminStatsOnUserStatusChange(queryClient, {
+      userId: patch.userId,
+      fromStatus,
+      toStatus: patch.status,
+      reviewer: patch.reviewer,
+      statusReviewedAt: patch.statusReviewedAt,
+    });
+  }
+
+  // Overview Admins KPI value (not make-admin request badges).
+  if (patch.role !== undefined) {
+    patchAdminStatsOnUserRoleChange(queryClient, {
+      fromRole,
+      toRole: patch.role,
+    });
+  }
 }
 
 /**

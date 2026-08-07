@@ -169,6 +169,117 @@ export function ReviewStatusBadge({
   );
 }
 
+type BorrowStatusValue = "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
+type AccountStatusValue = "PENDING" | "APPROVED" | "REJECTED";
+
+const BORROW_STATUS_LABELS: Record<BorrowStatusValue, string> = {
+  PENDING: "Pending",
+  BORROWED: "Borrowed",
+  RETURNED: "Returned",
+  CANCELLED: "Cancelled",
+};
+
+const ACCOUNT_STATUS_LABELS: Record<AccountStatusValue, string> = {
+  PENDING: "Pending",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+};
+
+export function BorrowStatusBadge({
+  status,
+  className,
+  variant = "light",
+}: {
+  status: BorrowStatusValue | string;
+  className?: string;
+  variant?: BadgeSurface;
+}) {
+  const normalized = (
+    ["PENDING", "BORROWED", "RETURNED", "CANCELLED"].includes(status)
+      ? status
+      : "PENDING"
+  ) as BorrowStatusValue;
+  const config: Record<
+    BorrowStatusValue,
+    { icon: typeof Clock; light: string; dark: string }
+  > = {
+    PENDING: {
+      icon: Clock,
+      light:
+        "border-amber-200 bg-amber-50/90 text-amber-700 shadow-sm backdrop-blur-sm",
+      dark: "border-amber-400/30 bg-amber-500/15 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.15)]",
+    },
+    BORROWED: {
+      icon: CircleDot,
+      light:
+        "border-blue-200 bg-blue-50/90 text-blue-700 shadow-sm backdrop-blur-sm",
+      dark: "border-blue-400/30 bg-blue-500/15 text-blue-100 shadow-[0_0_12px_rgba(59,130,246,0.15)]",
+    },
+    RETURNED: {
+      icon: CheckCircle2,
+      light:
+        "border-emerald-200 bg-emerald-50/90 text-emerald-700 shadow-sm backdrop-blur-sm",
+      dark: "border-emerald-400/30 bg-emerald-500/15 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
+    },
+    CANCELLED: {
+      icon: XCircle,
+      light:
+        "border-slate-200/80 bg-slate-50/90 text-slate-600 shadow-sm backdrop-blur-sm",
+      dark: "border-white/15 bg-white/5 text-light-200",
+    },
+  };
+  const { icon: Icon, light, dark } = config[normalized];
+  return (
+    <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
+      <Icon className="size-3" aria-hidden />
+      {BORROW_STATUS_LABELS[normalized]}
+    </Badge>
+  );
+}
+
+export function AccountStatusBadge({
+  status,
+  className,
+  variant = "light",
+}: {
+  status: AccountStatusValue | string;
+  className?: string;
+  variant?: BadgeSurface;
+}) {
+  const normalized = (
+    ["PENDING", "APPROVED", "REJECTED"].includes(status) ? status : "PENDING"
+  ) as AccountStatusValue;
+  const config: Record<
+    AccountStatusValue,
+    { icon: typeof Clock; light: string; dark: string }
+  > = {
+    PENDING: {
+      icon: Clock,
+      light:
+        "border-amber-200 bg-amber-50/90 text-amber-700 shadow-sm backdrop-blur-sm",
+      dark: "border-amber-400/30 bg-amber-500/15 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.15)]",
+    },
+    APPROVED: {
+      icon: CheckCircle2,
+      light:
+        "border-emerald-200 bg-emerald-50/90 text-emerald-700 shadow-sm backdrop-blur-sm",
+      dark: "border-emerald-400/30 bg-emerald-500/15 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
+    },
+    REJECTED: {
+      icon: XCircle,
+      light: "border-rose-200 bg-rose-50/90 text-rose-700 shadow-sm backdrop-blur-sm",
+      dark: "border-rose-400/30 bg-rose-500/15 text-rose-100 shadow-[0_0_12px_rgba(244,63,94,0.15)]",
+    },
+  };
+  const { icon: Icon, light, dark } = config[normalized];
+  return (
+    <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
+      <Icon className="size-3" aria-hidden />
+      {ACCOUNT_STATUS_LABELS[normalized]}
+    </Badge>
+  );
+}
+
 export function AuditActionBadge({
   action,
   className,

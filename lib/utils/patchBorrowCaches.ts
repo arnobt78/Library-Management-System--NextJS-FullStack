@@ -19,6 +19,10 @@ import type { BookBorrowStats } from "@/lib/services/books";
 import { patchAdminListAvailability } from "@/lib/utils/patchBookCaches";
 import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
 import {
+  patchAdminStatsOnBorrowStatusChange,
+  syncAdminStatsBorrowCountsFromRows,
+} from "@/lib/utils/patchAdminStatsCaches";
+import {
   clearDensifiedEmpty,
   markDensifiedEmpty,
   writeMappedList,
@@ -418,6 +422,12 @@ export function patchBorrowCachesOnStatusChange(
     userId?: string | null;
     bookId?: string | null;
     /**
+     * Pre-mutate status for overview KPI deltas. Required when onMutate already
+     * rewrote list rows — post-optimistic baselines report the *new* status and
+     * would make Active/Returned/Cancelled badge bumps no-ops.
+     */
+    fromStatus?: BorrowStatus | null;
+    /**
      * Live delta (onMutate). After invalidate, prefer `restoreInventory` with
      * baselines snapped while the optimistic inventory was already applied.
      */
@@ -450,6 +460,17 @@ export function patchBorrowCachesOnStatusChange(
 
   const bookId = args.bookId ?? meta?.bookId;
 
+  // Prefer explicit pre-mutate status; baseline is only safe when onMutate did not run.
+  const fromStatus =
+    args.fromStatus !== undefined
+      ? args.fromStatus
+      : (baselines?.requests?.find((r) => r.id === args.recordId)?.status ??
+        (userId
+          ? baselines?.users?.[userId]?.find((r) => r.id === args.recordId)
+              ?.status
+          : undefined) ??
+        null);
+
   mapUserBorrowLists(
     queryClient,
     userId,
@@ -479,6 +500,20 @@ export function patchBorrowCachesOnStatusChange(
   }
 
   syncPendingBorrowsNav(queryClient);
+
+  if (args.patch.status) {
+    patchAdminStatsOnBorrowStatusChange(queryClient, {
+      recordId: args.recordId,
+      fromStatus,
+      toStatus: args.patch.status,
+    });
+  }
+
+  // Absolute recount from densified universe heals any missed delta (badge drift).
+  const universe = queryClient.getQueryData<BorrowRecordWithDetails[]>(
+    queryKeys.borrows.requests({ status: undefined, search: undefined }),
+  );
+  syncAdminStatsBorrowCountsFromRows(queryClient, universe);
 }
 
 /**
@@ -559,4 +594,11 @@ export function patchBorrowCachesOnCreate(
   );
 
   syncPendingBorrowsNav(queryClient);
+
+  // Bump overview borrow KPIs only — skip inventing a thin recent row (API refetch fills)
+  patchAdminStatsOnBorrowStatusChange(queryClient, {
+    recordId: args.serverRecord.id,
+    fromStatus: null,
+    toStatus: args.serverRecord.status ?? "PENDING",
+  });
 }

@@ -285,6 +285,7 @@ describe("patchBorrowCaches", () => {
         patch: { status: "CANCELLED" },
         userId: "user-1",
         bookId: "book-1",
+        fromStatus: "PENDING",
       },
       baselines,
     );
@@ -296,5 +297,91 @@ describe("patchBorrowCaches", () => {
         makeRequest({ id: "b-only", status: "PENDING" }),
       ]),
     ).toEqual([]);
+  });
+
+  it("recounts overview Active Borrows badges from densified universe", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.admin.stats, {
+      totalUsers: 1,
+      approvedUsers: 1,
+      pendingUsers: 0,
+      rejectedUsers: 0,
+      adminUsers: 1,
+      totalBooks: 1,
+      totalCopies: 1,
+      availableCopies: 0,
+      borrowedCopies: 1,
+      activeBooks: 1,
+      inactiveBooks: 0,
+      booksWithISBN: 1,
+      booksWithPublisher: 1,
+      averagePageCount: 100,
+      // Stale overview badges (post-optimistic fromStatus bug simulation)
+      activeBorrows: 3,
+      pendingBorrows: 1,
+      returnedBooks: 4,
+      cancelledBorrows: 2,
+      recentBorrows: [],
+      recentUsers: [],
+      categoryStats: [],
+      booksByYear: [],
+      booksByLanguage: [],
+      topRatedBooks: [],
+      reservationsWaiting: 0,
+    });
+    const unfilteredKey = queryKeys.borrows.requests({
+      status: undefined,
+      search: undefined,
+    });
+    client.setQueryData(unfilteredKey, [
+      makeRequest({ id: "a", status: "BORROWED" }),
+      makeRequest({ id: "b", status: "BORROWED" }),
+      makeRequest({ id: "c", status: "RETURNED" }),
+      makeRequest({ id: "d", status: "RETURNED" }),
+      makeRequest({ id: "e", status: "RETURNED" }),
+      makeRequest({ id: "f", status: "RETURNED" }),
+      makeRequest({ id: "g", status: "CANCELLED" }),
+      makeRequest({ id: "h", status: "CANCELLED" }),
+      makeRequest({ id: "i", status: "CANCELLED" }),
+      makeRequest({ id: "j", status: "PENDING" }),
+    ]);
+
+    const baselines = snapshotBorrowCacheBaselines(client);
+    // Optimistic list already CANCELLED — without fromStatus + sync, badges stay stale.
+    client.setQueryData(unfilteredKey, [
+      makeRequest({ id: "a", status: "BORROWED" }),
+      makeRequest({ id: "b", status: "BORROWED" }),
+      makeRequest({ id: "c", status: "RETURNED" }),
+      makeRequest({ id: "d", status: "RETURNED" }),
+      makeRequest({ id: "e", status: "RETURNED" }),
+      makeRequest({ id: "f", status: "RETURNED" }),
+      makeRequest({ id: "g", status: "CANCELLED" }),
+      makeRequest({ id: "h", status: "CANCELLED" }),
+      makeRequest({ id: "i", status: "CANCELLED" }),
+      makeRequest({ id: "j", status: "CANCELLED" }),
+    ]);
+
+    patchBorrowCachesOnStatusChange(
+      client,
+      {
+        recordId: "j",
+        patch: { status: "CANCELLED" },
+        userId: "user-1",
+        bookId: "book-1",
+        fromStatus: "PENDING",
+      },
+      baselines,
+    );
+
+    const stats = client.getQueryData<{
+      activeBorrows: number;
+      pendingBorrows: number;
+      returnedBooks: number;
+      cancelledBorrows: number;
+    }>(queryKeys.admin.stats);
+    expect(stats?.activeBorrows).toBe(2);
+    expect(stats?.pendingBorrows).toBe(0);
+    expect(stats?.returnedBooks).toBe(4);
+    expect(stats?.cancelledBorrows).toBe(4);
   });
 });

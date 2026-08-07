@@ -69,10 +69,12 @@ export const getAllBorrowRequests = async () => {
         userName: users.fullName,
         userEmail: users.email,
         userUniversityId: users.universityId,
+        userUniversityCard: users.universityCard,
         // Book details
         bookTitle: books.title,
         bookAuthor: books.author,
         bookGenre: books.genre,
+        bookRating: books.rating,
         bookCoverUrl: books.coverUrl,
         bookCoverColor: books.coverColor,
       })

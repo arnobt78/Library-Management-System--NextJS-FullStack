@@ -50,6 +50,7 @@ export const MUTATION_RSC_PATH_REGISTRY = {
   "user.write": [
     "/my-profile",
     "/make-admin",
+    "/admin",
     "/admin/account-requests",
     "/admin/users",
     "/admin/users/[id]",

@@ -45,6 +45,7 @@ import type { FilterSelectOption } from "@/components/ui/filter-select";
 import { cn } from "@/lib/utils";
 import { withRippleClick } from "@/lib/ui/ripple";
 import {
+  Ban,
   BookOpen,
   Clock,
   Calendar,
@@ -920,6 +921,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             Book Returned
           </Badge>
         );
+      case "CANCELLED":
+        return (
+          <Badge variant="glassCancelled">
+            <Ban className="size-3" />
+            Cancelled
+          </Badge>
+        );
       default:
         return <Badge variant="glassMuted">{status}</Badge>;
     }
@@ -1450,6 +1458,14 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       value: borrowStats.returned,
       icon: <CheckCircle2 className="size-4 shrink-0" />,
       tone: "from-emerald-500/25 via-emerald-500/10 to-emerald-500/5 border-emerald-400/30 text-emerald-100 shadow-[0_10px_30px_rgba(16,185,129,0.2)]",
+    },
+    {
+      key: "cancelled",
+      title: "Cancelled",
+      hint: "Soft-cancelled borrow requests",
+      value: borrowStats.cancelled,
+      icon: <Ban className="size-4 shrink-0" />,
+      tone: "from-slate-500/30 via-rose-500/10 to-slate-500/5 border-slate-400/40 text-slate-100 shadow-[0_10px_30px_rgba(148,163,184,0.25)]",
     },
     {
       key: "overdue",

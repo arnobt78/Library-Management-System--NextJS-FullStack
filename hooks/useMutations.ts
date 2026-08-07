@@ -542,13 +542,14 @@ export const useApproveUser = () => {
       );
     },
     onSuccess: async (_data, variables) => {
-      // Optimistic already painted; gateway invalidates + densify status APPROVED.
+      // Optimistic already removed pending row — pass explicit fromStatus for overview KPIs.
       await commitMutationCache(queryClient, "user.write", {
         snapshot: () => undefined,
         densify: () =>
           densifyUserWrite(queryClient, {
             userId: variables.userId,
             status: "APPROVED",
+            fromStatus: "PENDING",
           }),
       });
       const userName = variables.userName || "User";
@@ -643,6 +644,7 @@ export const useRejectUser = () => {
           densifyUserWrite(queryClient, {
             userId: variables.userId,
             status: "REJECTED",
+            fromStatus: "PENDING",
           }),
       });
       const userName = variables.userName || "User";
@@ -1027,10 +1029,12 @@ export const useApproveBorrow = () => {
           activeDelta: 1,
         });
       }
+      // Capture pre-mutate status before optimistic list rewrite for overview KPI densify.
       return {
         previousRequests,
         previousUserBorrows,
         meta,
+        fromStatus: meta?.status ?? null,
         dueDate,
       };
     },
@@ -1061,6 +1065,8 @@ export const useApproveBorrow = () => {
     onSuccess: async (_data, variables, context) => {
       const meta =
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      // Prefer onMutate-captured status — findCachedBorrowMeta now sees optimistic BORROWED.
+      const fromStatus = context?.fromStatus ?? null;
       const dueDate =
         context?.dueDate ??
         (() => {
@@ -1082,6 +1088,7 @@ export const useApproveBorrow = () => {
               patch: { status: "BORROWED", dueDate },
               userId: meta?.userId,
               bookId: meta?.bookId,
+              fromStatus,
               restoreInventory: Boolean(meta?.bookId),
             },
             baselines,
@@ -1149,6 +1156,7 @@ export const useRejectBorrow = () => {
         queryKey: queryKeys.borrows.userRoot,
       });
       const meta = findCachedBorrowMeta(queryClient, recordId);
+      const fromStatus = meta?.status ?? null;
       const patchStatus = (old: unknown) => {
         if (!Array.isArray(old)) return old;
         return old.map((row: { id?: string; status?: string }) =>
@@ -1163,7 +1171,7 @@ export const useRejectBorrow = () => {
         { queryKey: queryKeys.borrows.userRoot },
         patchStatus,
       );
-      return { previousRequests, previousUserBorrows, meta };
+      return { previousRequests, previousUserBorrows, meta, fromStatus };
     },
     onError: (error: Error, variables, context) => {
       if (context?.previousRequests) {
@@ -1186,6 +1194,7 @@ export const useRejectBorrow = () => {
     onSuccess: async (_data, variables, context) => {
       const meta =
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      const fromStatus = context?.fromStatus ?? null;
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: (qc) =>
           snapshotBorrowCacheBaselines(
@@ -1200,6 +1209,7 @@ export const useRejectBorrow = () => {
               patch: { status: "CANCELLED" },
               userId: meta?.userId,
               bookId: meta?.bookId,
+              fromStatus,
             },
             baselines,
           );
@@ -1262,6 +1272,7 @@ export const useReturnBook = () => {
         queryKey: queryKeys.borrows.userRoot,
       });
       const meta = findCachedBorrowMeta(queryClient, recordId);
+      const fromStatus = meta?.status ?? null;
       const returnDate = new Date().toISOString().slice(0, 10);
       const patchStatus = (old: unknown) => {
         if (!Array.isArray(old)) return old;
@@ -1290,12 +1301,14 @@ export const useReturnBook = () => {
         previousRequests,
         previousUserBorrows,
         meta,
+        fromStatus,
         returnDate,
       };
     },
     onSuccess: async (data, variables, context) => {
       const meta =
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      const fromStatus = context?.fromStatus ?? null;
       const returnDate =
         context?.returnDate ?? new Date().toISOString().slice(0, 10);
       const fineAmount =
@@ -1320,6 +1333,7 @@ export const useReturnBook = () => {
               },
               userId: meta?.userId,
               bookId: meta?.bookId,
+              fromStatus,
               restoreInventory: Boolean(meta?.bookId),
             },
             baselines,
@@ -2038,7 +2052,9 @@ export const useCancelMyAdminRequest = () => {
       await commitMutationCache(queryClient, "admin-request.write", {
         snapshot: () => undefined,
         densify: () => {
-          densifyAdminRequestRemovePending(queryClient, variables.requestId);
+          densifyAdminRequestRemovePending(queryClient, variables.requestId, {
+            overviewWithdraw: true,
+          });
         },
       });
       showToast.admin.requestCancelled();
@@ -2821,11 +2837,17 @@ export const useUpdateSupportTicket = () => {
           ...input,
         });
       }
-      return { previous, key, previousStatus: previous?.status };
+      return {
+        previous,
+        key,
+        previousStatus: previous?.status,
+        previousPriority: previous?.priority ?? null,
+      };
     },
     onSuccess: async (data, _variables, context) => {
       const previousStatus =
         context?.previousStatus ?? findCachedTicketStatus(queryClient, data.id);
+      const previousPriority = context?.previousPriority ?? null;
       await commitMutationCache(queryClient, "ticket.write", {
         snapshot: snapshotTicketListBaselines,
         densify: (baselines) => {
@@ -2834,6 +2856,7 @@ export const useUpdateSupportTicket = () => {
             data,
             previousStatus,
             baselines,
+            previousPriority,
           );
         },
       });
@@ -2862,9 +2885,19 @@ export const useDeleteSupportTicket = () => {
         queryKeys.tickets.detail(ticketId),
       );
       await deleteSupportTicket(ticketId);
-      return { ticketId, previousStatus, userId: detail?.userId ?? null };
+      return {
+        ticketId,
+        previousStatus,
+        previousPriority: detail?.priority ?? null,
+        userId: detail?.userId ?? null,
+      };
     },
-    onSuccess: async ({ ticketId, previousStatus, userId }) => {
+    onSuccess: async ({
+      ticketId,
+      previousStatus,
+      previousPriority,
+      userId,
+    }) => {
       await commitMutationCache(queryClient, "ticket.write", {
         snapshot: snapshotTicketListBaselines,
         densify: (baselines) => {
@@ -2874,6 +2907,7 @@ export const useDeleteSupportTicket = () => {
             previousStatus,
             userId,
             baselines,
+            previousPriority,
           );
         },
       });

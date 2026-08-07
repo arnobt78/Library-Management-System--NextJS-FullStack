@@ -610,6 +610,7 @@ export const useUserReservations = (
  * Uses a 30-second freshness window plus explicit invalidation for bounded reconciliation.
  *
  * @param initialData - Optional initial data from SSR (prevents duplicate fetch)
+ * @param initialDataUpdatedAt - SSR stamp so hydration freshness is explicit
  * @returns React Query result with admin statistics and loading/error states
  *
  * @example
@@ -618,10 +619,13 @@ export const useUserReservations = (
  * const { data, isLoading } = useAdminStats();
  *
  * // With SSR initial data
- * const { data } = useAdminStats(serverStatsData);
+ * const { data } = useAdminStats(serverStatsData, Date.now());
  * ```
  */
-export const useAdminStats = (initialData?: AdminStats) => {
+export const useAdminStats = (
+  initialData?: AdminStats,
+  initialDataUpdatedAt?: number,
+) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
@@ -633,6 +637,7 @@ export const useAdminStats = (initialData?: AdminStats) => {
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+    initialDataUpdatedAt,
   });
 };
 

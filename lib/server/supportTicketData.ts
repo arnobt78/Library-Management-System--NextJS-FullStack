@@ -349,15 +349,54 @@ export async function getAssignableAdmins(): Promise<
   return rows;
 }
 
+/** Ticket KPI breakdown for Library Overview (OPEN+IN_PROGRESS still drives nav). */
+export type SupportTicketOverviewCounts = {
+  openTicketCount: number;
+  ticketsOpen: number;
+  ticketsInProgress: number;
+  ticketsResolved: number;
+  /** URGENT priority among OPEN or IN_PROGRESS */
+  ticketsUrgentOpen: number;
+};
+
+/**
+ * Ticket status/priority aggregates for admin.stats badges.
+ * Wrapped in React `cache()` so layout nav + overview share one round trip.
+ */
+export const getSupportTicketOverviewCounts = cache(
+  async (): Promise<SupportTicketOverviewCounts> => {
+    const rows = await db
+      .select({
+        ticketsOpen: sql<number>`count(*) filter (where ${supportTickets.status} = 'OPEN')`,
+        ticketsInProgress: sql<number>`count(*) filter (where ${supportTickets.status} = 'IN_PROGRESS')`,
+        ticketsResolved: sql<number>`count(*) filter (where ${supportTickets.status} = 'RESOLVED')`,
+        ticketsUrgentOpen: sql<number>`count(*) filter (
+          where ${supportTickets.priority} = 'URGENT'
+            and ${supportTickets.status} in ('OPEN', 'IN_PROGRESS')
+        )`,
+      })
+      .from(supportTickets);
+
+    const ticketsOpen = Number(rows[0]?.ticketsOpen ?? 0);
+    const ticketsInProgress = Number(rows[0]?.ticketsInProgress ?? 0);
+    const ticketsResolved = Number(rows[0]?.ticketsResolved ?? 0);
+    const ticketsUrgentOpen = Number(rows[0]?.ticketsUrgentOpen ?? 0);
+
+    return {
+      openTicketCount: ticketsOpen + ticketsInProgress,
+      ticketsOpen,
+      ticketsInProgress,
+      ticketsResolved,
+      ticketsUrgentOpen,
+    };
+  },
+);
+
 /**
  * Sidebar badge — open + in-progress tickets awaiting admin action.
- * Wrapped in React `cache()` so admin layout.tsx + page.tsx both calling this
- * in the same request dedupe to a single DB round trip (request-scoped memo).
+ * Dedupes with getSupportTicketOverviewCounts in the same request.
  */
 export const getOpenTicketCount = cache(async (): Promise<number> => {
-  const rows = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(supportTickets)
-    .where(or(eq(supportTickets.status, "OPEN"), eq(supportTickets.status, "IN_PROGRESS")));
-  return Number(rows[0]?.count ?? 0);
+  const counts = await getSupportTicketOverviewCounts();
+  return counts.openTicketCount;
 });

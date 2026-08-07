@@ -20,6 +20,7 @@ export interface BorrowStats {
   pending: number;
   active: number;
   returned: number;
+  cancelled: number;
   overdueNow: number;
   dueSoon: number;
   withFines: number;
@@ -88,6 +89,7 @@ export function computeBorrowStats(
   let pending = 0;
   let active = 0;
   let returned = 0;
+  let cancelled = 0;
   let overdueNow = 0;
   let dueSoon = 0;
   let withFines = 0;
@@ -156,6 +158,11 @@ export function computeBorrowStats(
       ) {
         returnedThisMonth += 1;
       }
+      continue;
+    }
+
+    if (r.status === "CANCELLED") {
+      cancelled += 1;
     }
   }
 
@@ -170,6 +177,7 @@ export function computeBorrowStats(
     pending,
     active,
     returned,
+    cancelled,
     overdueNow,
     dueSoon,
     withFines,

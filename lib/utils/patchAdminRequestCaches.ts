@@ -12,6 +12,7 @@ import {
   markDensifiedEmpty,
 } from "@/lib/utils/queryCacheLists";
 import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
+import { patchAdminStatsOnAdminRequestStatusChange } from "@/lib/utils/patchAdminStatsCaches";
 
 /** Sync User Management pill when pending make-admin queue is cached. */
 export function syncPendingAdminNav(queryClient: QueryClient): void {
@@ -35,12 +36,21 @@ export function densifyAdminRequestCreate(
   });
   clearDensifiedEmpty(key);
   syncPendingAdminNav(queryClient);
+  patchAdminStatsOnAdminRequestStatusChange(queryClient, {
+    fromStatus: null,
+    toStatus: "PENDING",
+  });
 }
 
-/** Remove a request from pending (cancel / after decide). */
+/**
+ * Remove a request from pending (cancel / after decide).
+ * Pass `overviewWithdraw: true` on applicant cancel so Admins pending badge drops
+ * without double-counting when `densifyAdminRequestDecision` also runs.
+ */
 export function densifyAdminRequestRemovePending(
   queryClient: QueryClient,
   requestId: string,
+  options?: { overviewWithdraw?: boolean },
 ): void {
   const key = queryKeys.admin.pendingRequests;
   queryClient.setQueryData<AdminRequest[]>(key, (old) =>
@@ -51,6 +61,12 @@ export function densifyAdminRequestRemovePending(
     markDensifiedEmpty(key);
   }
   syncPendingAdminNav(queryClient);
+  if (options?.overviewWithdraw) {
+    patchAdminStatsOnAdminRequestStatusChange(queryClient, {
+      fromStatus: "PENDING",
+      toStatus: null,
+    });
+  }
 }
 
 /**
@@ -70,4 +86,10 @@ export function densifyAdminRequestDecision(
       return [request, ...without].slice(0, RECENT_ADMIN_REQUEST_DECISIONS_LIMIT);
     },
   );
+
+  // Overview Admins card: pending / rejected / approved request badges.
+  patchAdminStatsOnAdminRequestStatusChange(queryClient, {
+    fromStatus: "PENDING",
+    toStatus: request.status,
+  });
 }

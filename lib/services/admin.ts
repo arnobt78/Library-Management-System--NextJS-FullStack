@@ -15,24 +15,12 @@
  */
 
 import { ApiError } from "./apiError";
+import type { AdminDashboardStats } from "@/lib/admin/adminDashboardStatsTypes";
 
-/**
- * Admin statistics interface
- */
-export interface AdminStats {
-  totalUsers: number;
-  approvedUsers: number;
-  pendingUsers: number;
-  adminUsers: number;
-  totalBooks: number;
-  totalCopies: number;
-  availableCopies: number;
-  borrowedCopies: number;
-  activeBorrows: number;
-  pendingBorrows: number;
-  returnedBooks: number;
-  [key: string]: unknown; // Allow additional stats
-}
+/** Admin dashboard statistics (SSR + GET /api/admin/stats). */
+export type AdminStats = AdminDashboardStats;
+
+export type { AdminDashboardStats };
 
 /**
  * Fine configuration response

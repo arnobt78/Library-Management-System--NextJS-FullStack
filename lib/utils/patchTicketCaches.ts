@@ -14,6 +14,7 @@ import {
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
 import { patchAdminNavCounts } from "@/lib/utils/patchAdminNavCounts";
+import { patchAdminStatsOnTicketStatusChange } from "@/lib/utils/patchAdminStatsCaches";
 
 function isActiveQueueStatus(status: string | undefined): boolean {
   return status === "OPEN" || status === "IN_PROGRESS";
@@ -190,6 +191,11 @@ export function patchTicketCachesOnCreate(
   );
   if (isActiveQueueStatus(ticket.status)) {
     bumpOpenCount(queryClient, 1);
+    patchAdminStatsOnTicketStatusChange(queryClient, {
+      fromStatus: null,
+      toStatus: ticket.status,
+      toPriority: ticket.priority,
+    });
   }
 }
 
@@ -199,6 +205,7 @@ export function patchTicketCachesOnUpdate(
   ticket: SupportTicketDetail,
   previousStatus?: string,
   baselines?: TicketListBaselines,
+  previousPriority?: string | null,
 ): void {
   queryClient.setQueryData(queryKeys.tickets.detail(ticket.id), ticket);
   const row = toListItem(ticket);
@@ -213,6 +220,20 @@ export function patchTicketCachesOnUpdate(
   const isActive = isActiveQueueStatus(ticket.status);
   if (wasActive && !isActive) bumpOpenCount(queryClient, -1);
   else if (!wasActive && isActive) bumpOpenCount(queryClient, 1);
+
+  const fromPriority = previousPriority ?? ticket.priority;
+  // Overview Open Tickets KPI + status/urgent badges (status and/or priority).
+  if (
+    (previousStatus && previousStatus !== ticket.status) ||
+    fromPriority !== ticket.priority
+  ) {
+    patchAdminStatsOnTicketStatusChange(queryClient, {
+      fromStatus: previousStatus ?? ticket.status,
+      toStatus: ticket.status,
+      fromPriority,
+      toPriority: ticket.priority,
+    });
+  }
 }
 
 /** After delete — drop detail + list rows; force densify-empty when never cached. */
@@ -222,6 +243,7 @@ export function patchTicketCachesOnDelete(
   previousStatus?: string,
   userId?: string | null,
   baselines?: TicketListBaselines,
+  previousPriority?: string | null,
 ): void {
   queryClient.removeQueries({ queryKey: queryKeys.tickets.detail(ticketId) });
   mapTicketLists(
@@ -248,6 +270,15 @@ export function patchTicketCachesOnDelete(
 
   if (isActiveQueueStatus(previousStatus)) {
     bumpOpenCount(queryClient, -1);
+  }
+
+  if (previousStatus) {
+    patchAdminStatsOnTicketStatusChange(queryClient, {
+      fromStatus: previousStatus,
+      toStatus: null,
+      fromPriority: previousPriority ?? null,
+      toPriority: null,
+    });
   }
 }
 
