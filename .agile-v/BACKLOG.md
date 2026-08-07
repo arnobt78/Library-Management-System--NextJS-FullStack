@@ -120,4 +120,4 @@ Repo reconciled: tip `f0f5d35`, HEAD `3849abe`, `main` == `origin/main`, clean t
 
 ## Overview KPI glass badges + admin.stats densify (2026-08-08)
 
-Owner approved overview KPI wave. Delivered: shared `buildAdminDashboardStats`; glass `StatCard` badges; `patchAdminStatsCaches*` across borrow/user/book/ticket/review/admin-request/reservation; profile Cancelled KPI; debug ingest removed. Local Prove type/lint/densify tests PASS. Tip `ae2a6aa`. Analytics/automation densify still noop. EvalGate still FAIL (Gate 2 blocked). Push deferred until owner confirms.
+Owner approved overview KPI wave. Delivered: shared `buildAdminDashboardStats`; glass `StatCard` badges; `patchAdminStatsCaches*` across borrow/user/book/ticket/review/admin-request/reservation; profile Cancelled KPI; debug ingest removed. Local Prove type/lint/densify tests PASS. Tip `69a31ad`. Analytics/automation densify still noop. EvalGate still FAIL (Gate 2 blocked). Push deferred until owner confirms.

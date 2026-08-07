@@ -4,11 +4,11 @@
 - Cycle: C2
 - Stage: 4 - Prove complete (local) overview KPI glass badges + admin.stats densify; nonlocal Verify still outstanding
 - SCOPE-V phase: Verify (KPI densify Prove PASS locally; full build/integration not re-claimed this wave)
-- Status: ACTIVE - overview KPI densify at tip `ae2a6aa`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - overview KPI densify at tip `69a31ad`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `ae2a6aa` (overview KPI glass badges + `patchAdminStatsCaches*`)
-- Latest HEAD: `ae2a6aa` (`main` ahead of `origin/main` by 1; push deferred)
+- Latest implementation tip: `69a31ad` (overview KPI glass badges + `patchAdminStatsCaches*`)
+- Latest HEAD: `69a31ad` (`main` ahead of `origin/main` by 1+; push deferred)
 - Started: 2026-08-01
 - Last updated: 2026-08-08 (KPI densify tip bind)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)

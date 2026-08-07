@@ -107,4 +107,4 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin filter UX Prove (2026-08-07): type/lint/**151** tests + Next 16.2.12 build PASS; tip `3dd4594` / HEAD `0f64bc5`.
 - REQ-0033 overview KPIs: shared `buildAdminDashboardStats` + types (SSR=`/admin`, API=`/api/admin/stats`); glass `StatCard` badges + icons; breakdowns via `adminRequestCounts` / ticket+review overview counts.
 - `patchAdminStatsCaches*`: borrow (explicit `fromStatus` + universe recount), user status/role, book CRUD, tickets, reviews, admin-requests, reservation waiting; claim → `patchBorrowCachesOnCreate`. Overview prefers densified `admin.stats` for ticket/review KPI values.
-- Profile: `glassCancelled` + Cancelled KPI (`borrowStats.cancelled`). Debug ingest removed. Analytics/automation densify still registry noop; Gate 2 still EvalGate-blocked. Tip/HEAD `ae2a6aa` (local; push deferred).
+- Profile: `glassCancelled` + Cancelled KPI (`borrowStats.cancelled`). Debug ingest removed. Analytics/automation densify still registry noop; Gate 2 still EvalGate-blocked. Tip `69a31ad` (local; push deferred).
