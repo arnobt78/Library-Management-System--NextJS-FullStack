@@ -4,11 +4,11 @@
 - Cycle: C2
 - Stage: 4 - Prove complete (local) admin filter UX polish; nonlocal Verify still outstanding
 - SCOPE-V phase: Verify (filter UX Prove PASS locally)
-- Status: ACTIVE - admin filter UX polish pending tip bind; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - admin filter UX at tip `3dd4594`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: (pending admin-filter UX commit)
-- Latest HEAD: (pending admin-filter UX commit)
+- Latest implementation tip: `3dd4594` (admin filter UX: universe KPIs, instant search, empty state, sticky header)
+- Latest HEAD: `3dd4594` (`main` ahead of origin until push; tip bind follow-up)
 - Started: 2026-08-01
 - Last updated: 2026-08-07 (admin filter UX: universe KPIs, instant search, empty state, sticky header)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
