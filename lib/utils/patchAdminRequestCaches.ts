@@ -93,3 +93,62 @@ export function densifyAdminRequestDecision(
     toStatus: request.status,
   });
 }
+
+/**
+ * All Users Make Admin (direct grant or settle pending) — drop user's PENDING
+ * queue rows, prepend APPROVED ledger row, sync overview badges.
+ */
+export function densifyAdminDirectGrant(
+  queryClient: QueryClient,
+  request: AdminRequest,
+): void {
+  const pendingKey = queryKeys.admin.pendingRequests;
+  const pending = queryClient.getQueryData<AdminRequest[]>(pendingKey);
+  const hadPending = Boolean(
+    pending?.some((r) => r.userId === request.userId || r.id === request.id),
+  );
+  if (Array.isArray(pending)) {
+    queryClient.setQueryData(
+      pendingKey,
+      pending.filter((r) => r.userId !== request.userId && r.id !== request.id),
+    );
+    const next = queryClient.getQueryData<AdminRequest[]>(pendingKey);
+    if (Array.isArray(next) && next.length === 0) {
+      markDensifiedEmpty(pendingKey);
+    }
+    syncPendingAdminNav(queryClient);
+  }
+
+  queryClient.setQueryData<AdminRequest[]>(
+    queryKeys.admin.recentRequestDecisions,
+    (old) => {
+      const without = (old ?? []).filter((r) => r.id !== request.id);
+      return [request, ...without].slice(0, RECENT_ADMIN_REQUEST_DECISIONS_LIMIT);
+    },
+  );
+
+  patchAdminStatsOnAdminRequestStatusChange(queryClient, {
+    fromStatus: hadPending ? "PENDING" : null,
+    toStatus: "APPROVED",
+  });
+}
+
+/**
+ * Remove Admin — prepend REJECTED/revoked ledger row into Recent decisions.
+ */
+export function densifyAdminPrivilegeRevoke(
+  queryClient: QueryClient,
+  request: AdminRequest,
+): void {
+  queryClient.setQueryData<AdminRequest[]>(
+    queryKeys.admin.recentRequestDecisions,
+    (old) => {
+      const without = (old ?? []).filter((r) => r.id !== request.id);
+      return [request, ...without].slice(0, RECENT_ADMIN_REQUEST_DECISIONS_LIMIT);
+    },
+  );
+  patchAdminStatsOnAdminRequestStatusChange(queryClient, {
+    fromStatus: "APPROVED",
+    toStatus: "REJECTED",
+  });
+}

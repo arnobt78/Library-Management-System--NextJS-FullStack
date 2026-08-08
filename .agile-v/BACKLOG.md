@@ -120,4 +120,16 @@ Repo reconciled: tip `f0f5d35`, HEAD `3849abe`, `main` == `origin/main`, clean t
 
 ## Overview KPI glass badges + admin.stats densify (2026-08-08)
 
-Owner approved overview KPI wave. Delivered: shared `buildAdminDashboardStats`; glass `StatCard` badges; `patchAdminStatsCaches*` across borrow/user/book/ticket/review/admin-request/reservation; profile Cancelled KPI; debug ingest removed. Local Prove type/lint/densify tests PASS. Tip `69a31ad`. Analytics/automation densify still noop. EvalGate still FAIL (Gate 2 blocked). Push deferred until owner confirms.
+Owner approved overview KPI wave. Delivered: shared `buildAdminDashboardStats`; glass `StatCard` badges; `patchAdminStatsCaches*` across borrow/user/book/ticket/review/admin-request/reservation; profile Cancelled KPI; debug ingest removed. Local Prove type/lint/densify tests PASS. Tip `69a31ad`; HEAD `cef46ec`; pushed (`main` == `origin/main`). Analytics/automation densify still noop. EvalGate still FAIL (Gate 2 blocked).
+
+## Session resume note (2026-08-09)
+
+Repo reconciled: tip `69a31ad`, HEAD `cef46ec`, `main` == `origin/main`, clean tree. KPI densify push confirmed. Owner invoked Agile V core/pipeline **without a new product ask**. **Human-Decision:** pick one before coding (REQ-0033 polish list, Wave 5 / BL-0017, named bug, new CR, or docs-only stop).
+
+## Densify P0/P1 gaps (2026-08-09)
+
+Owner reported soft-nav stale Borrow Queue after user borrow create. Delivered: create upsert into `borrow-requests` + nav/stats recount; PrefetchLink `staleTime: 0`; All Users signup decision densify; renew→admin lists; reservation claim inventory; direct Make Admin / revoke Recent decisions densify. Prove type/lint/densify tests PASS.
+
+## Densify expand books + ops/fine/recs/analytics (2026-08-09)
+
+Owner asked no stale soft-nav on books + former noop domains. Delivered: PrefetchLink catalog/dashboard `staleTime: 0`; book delete strips recs/borrowStats; `patchFineCaches` / `patchOpsCaches` / `densifyRecommendationWrite`; registry required for fine/ops/recommendation; `evictAnalyticsCaches` on book/borrow/user/fine/ops/recs; insights staleTime 0. Bulk UI still deferred. Prove type/lint/densify tests PASS. Commit/push deferred until owner confirms.

@@ -179,6 +179,98 @@ describe("patchBorrowCaches", () => {
     expect(mine?.some((r) => r.id === "b-old")).toBe(true);
   });
 
+  it("create upserts PENDING into admin borrow-requests universe + nav", () => {
+    const client = new QueryClient();
+    const stale = makeRequest({ id: "b-old", status: "PENDING" });
+    const unfilteredKey = queryKeys.borrows.requests({
+      status: undefined,
+      search: undefined,
+    });
+    const pendingKey = queryKeys.borrows.requests({
+      status: "PENDING",
+      search: undefined,
+    });
+    client.setQueryData(unfilteredKey, [stale]);
+    client.setQueryData(pendingKey, [stale]);
+    client.setQueryData(queryKeys.admin.navCounts, {
+      books: 0,
+      users: 0,
+      pendingAdminRequests: 0,
+      pendingSignUps: 0,
+      pendingBorrows: 1,
+      openTickets: 0,
+      pendingReviews: 0,
+    });
+    client.setQueryData(queryKeys.books.detail("book-2"), {
+      id: "book-2",
+      title: "React in Action",
+      author: "Thomas",
+      genre: "JS",
+      coverUrl: "/r.jpg",
+      coverColor: "#111",
+    });
+    const temp = makeUserBorrow({
+      id: "temp-new",
+      bookId: "book-2",
+      status: "PENDING",
+      book: {
+        id: "book-2",
+        title: "React in Action",
+        author: "Thomas",
+        genre: "JS",
+        rating: 4,
+        totalCopies: 2,
+        availableCopies: 1,
+        description: "",
+        coverColor: "#111",
+        coverUrl: "/r.jpg",
+        videoUrl: "",
+        summary: "",
+        isActive: true,
+        createdAt: null,
+        updatedAt: null,
+      },
+    });
+    client.setQueryData(queryKeys.borrows.user("user-1"), [temp]);
+
+    const baselines = snapshotBorrowCacheBaselines(client);
+    // Soft-nav poison: densify must upsert even when invalidate left stale lists.
+    patchBorrowCachesOnCreate(
+      client,
+      {
+        userId: "user-1",
+        tempId: "temp-new",
+        serverRecord: {
+          id: "server-new",
+          userId: "user-1",
+          bookId: "book-2",
+          status: "PENDING",
+        },
+        requestMeta: {
+          userName: "Test Admin",
+          userEmail: "test@admin.com",
+          userUniversityId: 900002,
+        },
+      },
+      baselines,
+    );
+
+    const universe = client.getQueryData<BorrowRecordWithDetails[]>(unfilteredKey);
+    expect(universe?.some((r) => r.id === "server-new")).toBe(true);
+    expect(universe?.find((r) => r.id === "server-new")?.bookTitle).toBe(
+      "React in Action",
+    );
+    const pending = client.getQueryData<BorrowRecordWithDetails[]>(pendingKey);
+    expect(pending?.some((r) => r.id === "server-new")).toBe(true);
+    expect(pending?.length).toBe(2);
+    expect(client.getQueryData(queryKeys.admin.navCounts)).toMatchObject({
+      pendingBorrows: 2,
+    });
+    // seedFromSsrIfEmpty must keep densified universe over older SSR.
+    const seeded = seedFromSsrIfEmpty(client, unfilteredKey, [stale]);
+    expect(seeded?.some((r) => r.id === "server-new")).toBe(true);
+  });
+
   it("return bumps availableCopies and borrow stats from inventory baseline", () => {
     const client = new QueryClient();
     client.setQueryData(queryKeys.books.detail("book-1"), {

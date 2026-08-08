@@ -264,6 +264,7 @@ export const useBookRecommendations = (
   limit: number = 10,
   initialData?: Book[]
 ) => {
+  const queryClient = useQueryClient();
   const { trackQuery } = useQueryPerformance();
   const searchParams = useSearchParams();
 
@@ -278,6 +279,8 @@ export const useBookRecommendations = (
 
   // Build query key from parameters for proper caching
   const queryKey = queryKeys.books.recommendations(finalUserId, finalLimit);
+  // Evict densify / densify-empty must win over stale SSR on soft-nav.
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
 
   return useQuery({
     queryKey,
@@ -290,7 +293,7 @@ export const useBookRecommendations = (
       ),
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    initialData: seed,
     enabled: true, // Always enabled (userId is optional)
   });
 };
@@ -929,9 +932,12 @@ export const useBusinessInsights = (
       trackQuery("business-insights", async () => {
         return getCompleteAnalytics(finalOptions);
       }),
-    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    // Evict + remount refetch (no invent chart densify). initialDataUpdatedAt 0
+    // marks SSR seed immediately stale so soft-nav cannot paint a frozen RSC frame.
+    staleTime: 0,
+    refetchOnMount: "always",
+    initialData,
+    initialDataUpdatedAt: 0,
   });
 };
 
@@ -1057,9 +1063,10 @@ export const useFineConfig = (initialData?: FineConfig) => {
       trackQuery("fine-config", async () => {
         return getFineConfig();
       }),
-    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    // Densify writes fineConfig on save; keep short stale so remount reconciles.
+    staleTime: 0,
+    refetchOnMount: true,
+    initialData,
   });
 };
 
@@ -1089,9 +1096,10 @@ export const useReminderStats = (initialData?: ReminderStats) => {
       trackQuery("reminder-stats", async () => {
         return getReminderStats();
       }),
-    staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
-    refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    // densifyReminderStats bumps sentToday; staleTime 0 avoids soft-nav freeze.
+    staleTime: 0,
+    refetchOnMount: true,
+    initialData,
   });
 };
 

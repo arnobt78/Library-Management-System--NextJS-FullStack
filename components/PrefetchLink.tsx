@@ -93,10 +93,12 @@ export default function PrefetchLink({
       }
       case "all-books":
       case "admin-books":
+        // staleTime 0 — after book.write densify, hover prefetch must not reuse
+        // a 30s-fresh pre-mutation catalog (stale create/delete on soft-nav).
         void queryClient.prefetchQuery({
           queryKey: queryKeys.books.adminList({}),
           queryFn: () => getBooksList({}),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         break;
       case "admin-reviews":
@@ -116,13 +118,15 @@ export default function PrefetchLink({
         });
         break;
       case "admin-book-requests":
+        // staleTime 0 — after borrow.create densify, hover prefetch must not
+        // reuse a 30s-fresh pre-create universe (stale list/KPIs on soft-nav).
         void queryClient.prefetchQuery({
           queryKey: queryKeys.borrows.requests({
             status: "PENDING",
             search: undefined,
           }),
           queryFn: () => getBorrowRequests("PENDING"),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         void queryClient.prefetchQuery({
           queryKey: queryKeys.borrows.requests({
@@ -130,7 +134,7 @@ export default function PrefetchLink({
             search: undefined,
           }),
           queryFn: () => getBorrowRequests(),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         break;
       case "admin-account-requests":
@@ -141,10 +145,11 @@ export default function PrefetchLink({
         });
         break;
       case "admin-dashboard":
+        // staleTime 0 — densified overview KPIs must win over a warm 30s cache.
         void queryClient.prefetchQuery({
           queryKey: queryKeys.admin.stats,
           queryFn: () => getAdminStats(),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         break;
       case "admin-tickets":

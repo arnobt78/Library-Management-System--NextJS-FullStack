@@ -69,4 +69,25 @@ describe("patchBookCaches", () => {
     expect(client.getQueryData(key)).toEqual([]);
     expect(isDensifiedEmpty(key)).toBe(true);
   });
+
+  it("densifyBookDelete strips recommendations and borrowStats", () => {
+    const client = new QueryClient();
+    const recKey = queryKeys.books.recommendations(undefined, 10);
+    client.setQueryData(recKey, [
+      { id: "book-1", title: "Gone" },
+      { id: "book-2", title: "Keep" },
+    ]);
+    client.setQueryData(queryKeys.books.borrowStats("book-1"), {
+      totalBorrows: 3,
+      activeBorrows: 1,
+      returnedBorrows: 2,
+    });
+    densifyBookDelete(client, ["book-1"]);
+    const recs = client.getQueryData<Array<{ id: string }>>(recKey);
+    expect(recs?.some((b) => b.id === "book-1")).toBe(false);
+    expect(recs?.some((b) => b.id === "book-2")).toBe(true);
+    expect(client.getQueryData(queryKeys.books.borrowStats("book-1"))).toBe(
+      undefined,
+    );
+  });
 });

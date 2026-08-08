@@ -86,10 +86,22 @@ import {
 } from "@/lib/utils/patchBookCaches";
 import { densifyUserWrite, densifyUserRegistrationPending } from "@/lib/utils/patchUserCaches";
 import {
+  densifyAdminDirectGrant,
+  densifyAdminPrivilegeRevoke,
   densifyAdminRequestCreate,
   densifyAdminRequestDecision,
   densifyAdminRequestRemovePending,
 } from "@/lib/utils/patchAdminRequestCaches";
+import {
+  ADMIN_REQUEST_DIRECT_GRANT_REASON,
+  ADMIN_REQUEST_REVOKED_REASON,
+} from "@/lib/admin/adminRequestConstants";
+import {
+  densifyFineConfig,
+  densifyOverdueFines,
+} from "@/lib/utils/patchFineCaches";
+import { densifyReminderStats } from "@/lib/utils/patchOpsCaches";
+import { densifyRecommendationWrite } from "@/lib/utils/patchRecommendationCaches";
 import {
   findCachedTicketStatus,
   patchTicketCachesOnCreate,
@@ -350,22 +362,73 @@ export const useUpdateUserRole = () => {
       userId: string;
       role: "USER" | "ADMIN";
       userName?: string; // Optional, for toast message
+      userEmail?: string;
+      userUniversityCard?: string | null;
     }) => {
       const result = await updateUserRole(userId, role);
       if (!result.success) {
-        throw new Error(result.error || "Failed to update user role");
+        throw new Error(
+          ("error" in result && result.error) || "Failed to update user role",
+        );
       }
-      return { userId, role };
+      return {
+        userId,
+        role,
+        ledger: "data" in result ? result.data : undefined,
+      };
     },
     onSuccess: async (data, variables) => {
-      // Role + admin_requests ledger — densify cached user detail role.
+      // Role + admin_requests ledger — densify role + Recent decisions on promote.
       await commitMutationCache(queryClient, "admin-request.write", {
         snapshot: () => undefined,
-        densify: () =>
+        densify: () => {
           densifyUserWrite(queryClient, {
             userId: data.userId,
             role: data.role,
-          }),
+          });
+          if (!data.ledger) return;
+          const ledgerCard =
+            "userUniversityCard" in data.ledger &&
+            typeof data.ledger.userUniversityCard === "string"
+              ? data.ledger.userUniversityCard
+              : null;
+          // Promote returns direct-grant ledger; demote via updateUserRole(USER)
+          // delegates to removeAdminPrivileges and returns revoke ledger.
+          if (data.role === "ADMIN") {
+            densifyAdminDirectGrant(queryClient, {
+              id: data.ledger.requestId,
+              userId: data.ledger.userId,
+              userEmail: data.ledger.userEmail,
+              userFullName: data.ledger.userFullName,
+              userUniversityCard:
+                ledgerCard ?? variables.userUniversityCard ?? null,
+              requestReason: ADMIN_REQUEST_DIRECT_GRANT_REASON,
+              status: "APPROVED",
+              reviewedBy: data.ledger.reviewedBy,
+              reviewedAt: new Date(data.ledger.decidedAt),
+              rejectionReason: null,
+              createdAt: new Date(data.ledger.decidedAt),
+              updatedAt: new Date(data.ledger.decidedAt),
+              reviewer: data.ledger.reviewer,
+            });
+            return;
+          }
+          densifyAdminPrivilegeRevoke(queryClient, {
+            id: data.ledger.requestId,
+            userId: data.ledger.userId,
+            userEmail: data.ledger.userEmail,
+            userFullName: data.ledger.userFullName,
+            userUniversityCard: ledgerCard ?? variables.userUniversityCard ?? null,
+            requestReason: ADMIN_REQUEST_DIRECT_GRANT_REASON,
+            status: "REJECTED",
+            reviewedBy: data.ledger.reviewedBy,
+            reviewedAt: new Date(data.ledger.decidedAt),
+            rejectionReason: ADMIN_REQUEST_REVOKED_REASON,
+            createdAt: new Date(data.ledger.decidedAt),
+            updatedAt: new Date(data.ledger.decidedAt),
+            reviewer: data.ledger.reviewer,
+          });
+        },
       });
 
       // Show success toast
@@ -714,6 +777,7 @@ export const useRequestRegistrationReview = () => {
  */
 export const useBorrowBook = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ bookId }: {
@@ -900,6 +964,14 @@ export const useBorrowBook = () => {
     onSuccess: async (data, variables, context) => {
       const tempId = context?.optimisticRecordId as string | undefined;
       const serverRecord = Array.isArray(data) ? data[0] : data;
+      const su = session?.user as SessionUser | undefined;
+      const bookCached = queryClient.getQueryData<{
+        title?: string;
+        author?: string;
+        genre?: string;
+        coverUrl?: string | null;
+        coverColor?: string | null;
+      }>(queryKeys.books.detail(variables.bookId));
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: snapshotBorrowListBaselines,
         densify: (baselines) => {
@@ -909,12 +981,35 @@ export const useBorrowBook = () => {
             typeof serverRecord === "object" &&
             "id" in serverRecord
           ) {
+            // Enrich thin server.returning() so admin Borrow Queue paints book/user.
             patchBorrowCachesOnCreate(
               queryClient,
               {
                 userId: variables.userId,
                 tempId,
-                serverRecord: serverRecord as { id: string },
+                serverRecord: {
+                  ...(serverRecord as { id: string }),
+                  bookId:
+                    (serverRecord as { bookId?: string }).bookId ??
+                    variables.bookId,
+                  userId:
+                    (serverRecord as { userId?: string }).userId ??
+                    variables.userId,
+                },
+                requestMeta: {
+                  userName: su?.name?.trim() || "User",
+                  userEmail: su?.email ?? "",
+                  userUniversityId:
+                    typeof (su as { universityId?: unknown } | undefined)
+                      ?.universityId === "number"
+                      ? (su as { universityId: number }).universityId
+                      : 0,
+                  bookTitle: variables.bookTitle ?? bookCached?.title,
+                  bookAuthor: bookCached?.author,
+                  bookGenre: bookCached?.genre,
+                  bookCoverUrl: bookCached?.coverUrl ?? null,
+                  bookCoverColor: bookCached?.coverColor ?? null,
+                },
               },
               baselines,
             );
@@ -923,11 +1018,8 @@ export const useBorrowBook = () => {
       });
 
       // Prefer mutate bookTitle, then book detail cache, else "this book"
-      const cached = queryClient.getQueryData<{ title?: string }>(
-        queryKeys.books.detail(variables.bookId),
-      );
       showToast.book.borrowSuccess(
-        resolveActionBookTitle(variables.bookTitle, cached?.title),
+        resolveActionBookTitle(variables.bookTitle, bookCached?.title),
       );
     },
     // CRITICAL: Rollback optimistic update on error
@@ -1110,7 +1202,7 @@ export const useApproveBorrow = () => {
 /**
  * Hook to reject a borrow request (admin action).
  * Automatically invalidates related queries and shows success/error toasts.
- * Deletes the pending borrow request.
+ * Soft-cancels the pending row (status → CANCELLED; history kept).
  *
  * @returns React Query mutation object with mutate function and loading/error states
  *
@@ -2297,21 +2389,43 @@ export const useRemoveAdminPrivileges = () => {
     mutationFn: async ({ userId }: {
       userId: string;
       userName?: string; // Optional, for toast message
+      userEmail?: string;
+      userUniversityCard?: string | null;
     }) => {
       const result = await removeAdminPrivileges(userId);
       if (!result.success) {
         throw new Error(result.error || "Failed to remove admin privileges");
       }
-      return { userId };
+      return { userId, ledger: result.data ?? null };
     },
     onSuccess: async (data, variables) => {
       await commitMutationCache(queryClient, "admin-request.write", {
         snapshot: () => undefined,
-        densify: () =>
+        densify: () => {
           densifyUserWrite(queryClient, {
             userId: data.userId,
             role: "USER",
-          }),
+          });
+          if (!data.ledger) return;
+          densifyAdminPrivilegeRevoke(queryClient, {
+            id: data.ledger.requestId,
+            userId: data.ledger.userId,
+            userEmail: data.ledger.userEmail,
+            userFullName: data.ledger.userFullName,
+            userUniversityCard:
+              data.ledger.userUniversityCard ??
+              variables.userUniversityCard ??
+              null,
+            requestReason: ADMIN_REQUEST_DIRECT_GRANT_REASON,
+            status: "REJECTED",
+            reviewedBy: data.ledger.reviewedBy,
+            reviewedAt: new Date(data.ledger.decidedAt),
+            rejectionReason: ADMIN_REQUEST_REVOKED_REASON,
+            createdAt: new Date(data.ledger.decidedAt),
+            updatedAt: new Date(data.ledger.decidedAt),
+            reviewer: data.ledger.reviewer,
+          });
+        },
       });
 
       // Show success toast
@@ -2360,10 +2474,9 @@ export const useUpdateFineConfig = () => {
       return config;
     },
     onSuccess: async (data, variables) => {
-      // Invalidate all related queries (admin stats, fine config, borrows)
       await commitMutationCache(queryClient, "fine.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () => densifyFineConfig(queryClient, data),
       });
 
       // Show success toast
@@ -2407,14 +2520,14 @@ export const useSendDueReminders = () => {
       return result;
     },
     onSuccess: async (data) => {
-      // Invalidate all related queries (admin stats, borrows)
+      const count = data.results?.length || 0;
       await commitMutationCache(queryClient, "operations.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () =>
+          densifyReminderStats(queryClient, { sentCount: count }),
       });
 
       // Show success toast
-      const count = data.results?.length || 0;
       showToast.success(
         "Reminders Sent",
         `Successfully sent ${count} due soon reminder${count !== 1 ? "s" : ""}.`
@@ -2454,14 +2567,14 @@ export const useSendOverdueReminders = () => {
       return result;
     },
     onSuccess: async (data) => {
-      // Invalidate all related queries (admin stats, borrows)
+      const count = data.results?.length || 0;
       await commitMutationCache(queryClient, "operations.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () =>
+          densifyReminderStats(queryClient, { sentCount: count }),
       });
 
       // Show success toast
-      const count = data.results?.length || 0;
       showToast.success(
         "Overdue Reminders Sent",
         `Successfully sent ${count} overdue reminder${count !== 1 ? "s" : ""}.`
@@ -2510,10 +2623,9 @@ export const useUpdateOverdueFines = () => {
       return result;
     },
     onSuccess: async (data) => {
-      // Invalidate all related queries (admin stats, borrows, analytics)
       await commitMutationCache(queryClient, "fine.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () => densifyOverdueFines(queryClient, data.results),
       });
 
       // Show success toast
@@ -2557,10 +2669,9 @@ export const useGenerateAllUserRecommendations = () => {
       return result;
     },
     onSuccess: async (data) => {
-      // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
       await commitMutationCache(queryClient, "recommendation.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () => densifyRecommendationWrite(queryClient),
       });
 
       // Show success toast
@@ -2603,10 +2714,9 @@ export const useUpdateTrendingBooks = () => {
       return result;
     },
     onSuccess: async (data) => {
-      // Invalidate only recommendation-related queries (optimized - doesn't invalidate reminder-stats, export-stats, fine-config)
       await commitMutationCache(queryClient, "recommendation.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () => densifyRecommendationWrite(queryClient),
       });
 
       // Show success toast
@@ -2649,7 +2759,7 @@ export const useRefreshRecommendationCache = () => {
     onSuccess: async (data) => {
       await commitMutationCache(queryClient, "recommendation.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () => densifyRecommendationWrite(queryClient),
       });
 
       showToast.success(

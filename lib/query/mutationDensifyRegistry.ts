@@ -22,9 +22,9 @@ export const MUTATION_DENSIFY_REGISTRY = {
   "renewal.write": "required",
   "review.write": "required",
   "admin-request.write": "required",
-  "fine.write": "noop",
-  "recommendation.write": "noop",
-  "operations.write": "noop",
+  "fine.write": "required",
+  "recommendation.write": "required",
+  "operations.write": "required",
   "ticket.write": "required",
   "notification.write": "required",
 } as const satisfies Record<MutationDomainName, DensifyRequirement>;

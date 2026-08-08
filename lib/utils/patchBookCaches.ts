@@ -16,6 +16,7 @@ import {
   patchAdminStatsOnBookDelete,
   type AdminStatsBookSnapshot,
 } from "@/lib/utils/patchAdminStatsCaches";
+import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 
 type BookLike = { id: string; [key: string]: unknown };
 
@@ -174,6 +175,8 @@ export function densifyBookWrite(
     previous,
     next: toBookSnapshot(book),
   });
+  // Insights charts — evict so soft-nav refetches (no invent series densify).
+  evictAnalyticsCaches(queryClient);
 }
 
 /** Drop deleted book ids from detail + admin list + featured/related caches. */
@@ -223,8 +226,24 @@ export function densifyBookDelete(
     if (Array.isArray(rows) && rows.length === 0) markDensifiedEmpty(key);
   }
 
+  // Home recommendations — drop deleted ids (invalidate alone can soft-nav stale).
+  queryClient.setQueriesData<BookLike[]>(
+    { queryKey: queryKeys.books.recommendationsRoot },
+    (old) => removeFromBookArray(old, idSet),
+  );
+  for (const [key, rows] of queryClient.getQueriesData<BookLike[]>({
+    queryKey: queryKeys.books.recommendationsRoot,
+  })) {
+    if (Array.isArray(rows) && rows.length === 0) markDensifiedEmpty(key);
+  }
+
+  for (const id of bookIds) {
+    queryClient.removeQueries({ queryKey: queryKeys.books.borrowStats(id) });
+  }
+
   syncBooksNav(queryClient);
   for (const snap of snapshots) {
     patchAdminStatsOnBookDelete(queryClient, snap);
   }
+  evictAnalyticsCaches(queryClient);
 }

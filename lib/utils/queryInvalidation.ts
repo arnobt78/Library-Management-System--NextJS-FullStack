@@ -69,7 +69,13 @@ export const MUTATION_RSC_PATH_REGISTRY = {
     "/admin/business-insights",
     "/admin/activity-history",
   ],
-  "fine.write": ["/my-profile", "/admin/book-requests", "/admin/users/[id]", "/admin/business-insights"],
+  "fine.write": [
+    "/my-profile",
+    "/admin/book-requests",
+    "/admin/users/[id]",
+    "/admin/business-insights",
+    "/admin/automation",
+  ],
   "recommendation.write": ["/", "/all-books", "/admin/automation", "/admin/business-insights"],
   "operations.write": ["/my-profile", "/api-status", "/admin", "/admin/book-requests", "/admin/automation", "/admin/business-insights"],
   "ticket.write": [

@@ -14,6 +14,9 @@ import { patchReviewCachesOnDelete } from "@/lib/utils/patchReviewCaches";
 import { densifyAdminRequestCreate } from "@/lib/utils/patchAdminRequestCaches";
 import { patchTicketCachesOnDelete } from "@/lib/utils/patchTicketCaches";
 import { densifyNotificationDelete } from "@/lib/utils/patchNotificationCaches";
+import { densifyFineConfig } from "@/lib/utils/patchFineCaches";
+import { densifyReminderStats } from "@/lib/utils/patchOpsCaches";
+import { densifyRecommendationWrite } from "@/lib/utils/patchRecommendationCaches";
 
 /** required families → at least one exported densify entrypoint (compile-time presence). */
 const REQUIRED_DENSIFY_ADAPTERS = {
@@ -21,11 +24,14 @@ const REQUIRED_DENSIFY_ADAPTERS = {
   "user.write": densifyUserWrite,
   "borrow.lifecycle": patchBorrowCachesOnStatusChange,
   "reservation.lifecycle": densifyReservationCreate,
-  "renewal.write": true, // inline writeMappedList in MyProfileTabs
+  "renewal.write": true, // patchBorrowCachesOnRenewal in MyProfileTabs
   "review.write": patchReviewCachesOnDelete,
   "admin-request.write": densifyAdminRequestCreate,
   "ticket.write": patchTicketCachesOnDelete,
   "notification.write": densifyNotificationDelete,
+  "fine.write": densifyFineConfig,
+  "operations.write": densifyReminderStats,
+  "recommendation.write": densifyRecommendationWrite,
 } as const;
 
 describe("MUTATION_DENSIFY_REGISTRY", () => {

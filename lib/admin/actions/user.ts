@@ -112,7 +112,24 @@ export const updateUserRole = async (
       });
     });
 
-    return { success: true };
+    // Client densify needs ledger id + applicant fields for Recent decisions.
+    return {
+      success: true,
+      data: {
+        requestId: ledgerRequestId,
+        userId: safeUserId,
+        userEmail: target.email,
+        userFullName: target.fullName,
+        decidedAt: decidedAt.toISOString(),
+        reviewedBy: actor.id,
+        reviewer: {
+          id: actor.id,
+          fullName: actor.name,
+          email: actor.email,
+          universityCard: null as string | null,
+        },
+      },
+    };
   } catch (error) {
     console.error("Error updating user role:", error);
     return {

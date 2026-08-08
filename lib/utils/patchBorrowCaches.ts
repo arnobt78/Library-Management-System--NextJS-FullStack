@@ -22,6 +22,7 @@ import {
   patchAdminStatsOnBorrowStatusChange,
   syncAdminStatsBorrowCountsFromRows,
 } from "@/lib/utils/patchAdminStatsCaches";
+import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 import {
   clearDensifiedEmpty,
   markDensifiedEmpty,
@@ -514,11 +515,103 @@ export function patchBorrowCachesOnStatusChange(
     queryKeys.borrows.requests({ status: undefined, search: undefined }),
   );
   syncAdminStatsBorrowCountsFromRows(queryClient, universe);
+  evictAnalyticsCaches(queryClient);
+}
+
+/** Optional actor/book display fields for admin queue densify on create. */
+export type BorrowCreateRequestMeta = {
+  userName?: string;
+  userEmail?: string;
+  userUniversityId?: number;
+  bookTitle?: string;
+  bookAuthor?: string;
+  bookGenre?: string;
+  bookCoverUrl?: string | null;
+  bookCoverColor?: string | null;
+};
+
+/**
+ * Build admin Borrow Queue row from create payload + book detail / user-borrows cache.
+ * Soft-nav to /admin/book-requests must see the new PENDING without a second visit.
+ */
+function buildRequestRowFromCreate(
+  queryClient: QueryClient,
+  args: {
+    userId: string;
+    tempId: string;
+    serverRecord: Partial<BorrowRecordFull> & { id: string };
+    requestMeta?: BorrowCreateRequestMeta;
+  },
+  baselines?: BorrowListBaselines,
+): BorrowRecordWithDetails {
+  const bookId = args.serverRecord.bookId ?? "";
+  const userBorrow =
+    baselines?.users[args.userId]?.find(
+      (r) => r.id === args.tempId || r.id === args.serverRecord.id,
+    ) ??
+    queryClient
+      .getQueryData<BorrowRecordFull[]>(queryKeys.borrows.user(args.userId))
+      ?.find((r) => r.id === args.tempId || r.id === args.serverRecord.id);
+  const bookFromDetail = bookId
+    ? queryClient.getQueryData<{
+        title?: string;
+        author?: string;
+        genre?: string;
+        coverUrl?: string | null;
+        coverColor?: string | null;
+      }>(queryKeys.books.detail(bookId))
+    : undefined;
+  const book = args.serverRecord.book ?? userBorrow?.book;
+  const meta = args.requestMeta;
+
+  return {
+    id: args.serverRecord.id,
+    userId: args.serverRecord.userId ?? args.userId,
+    bookId,
+    borrowDate: args.serverRecord.borrowDate ?? userBorrow?.borrowDate ?? null,
+    dueDate: args.serverRecord.dueDate ?? null,
+    returnDate: args.serverRecord.returnDate ?? null,
+    status: args.serverRecord.status ?? "PENDING",
+    borrowedBy: args.serverRecord.borrowedBy ?? null,
+    returnedBy: args.serverRecord.returnedBy ?? null,
+    fineAmount: args.serverRecord.fineAmount ?? "0",
+    notes: args.serverRecord.notes ?? null,
+    renewalCount: args.serverRecord.renewalCount ?? 0,
+    lastReminderSent: args.serverRecord.lastReminderSent ?? null,
+    updatedAt: args.serverRecord.updatedAt ?? null,
+    updatedBy: args.serverRecord.updatedBy ?? null,
+    createdAt: args.serverRecord.createdAt ?? userBorrow?.createdAt ?? null,
+    userName: meta?.userName ?? "User",
+    userEmail: meta?.userEmail ?? "",
+    userUniversityId: meta?.userUniversityId ?? 0,
+    bookTitle:
+      meta?.bookTitle ?? book?.title ?? bookFromDetail?.title ?? "Unknown Book",
+    bookAuthor:
+      meta?.bookAuthor ?? book?.author ?? bookFromDetail?.author ?? "Unknown Author",
+    bookGenre: meta?.bookGenre ?? book?.genre ?? bookFromDetail?.genre ?? "",
+    bookCoverUrl:
+      meta?.bookCoverUrl ?? book?.coverUrl ?? bookFromDetail?.coverUrl ?? null,
+    bookCoverColor:
+      meta?.bookCoverColor ??
+      book?.coverColor ??
+      bookFromDetail?.coverColor ??
+      null,
+  };
+}
+
+/** Upsert admin queue row (create path — temp id was never on borrow-requests). */
+function upsertRequestRow(
+  rows: BorrowRecordWithDetails[],
+  row: BorrowRecordWithDetails,
+  tempId: string,
+): BorrowRecordWithDetails[] {
+  const withoutTemp = rows.filter((r) => r.id !== tempId && r.id !== row.id);
+  return [row, ...withoutTemp];
 }
 
 /**
- * After borrow create — replace optimistic temp id with server id and re-seed
- * user-borrows (and pending requests if the optimistic row was present).
+ * After borrow create — replace optimistic temp id with server id, upsert
+ * admin borrow-requests (unfiltered + PENDING), then sync nav + overview KPIs.
  */
 export function patchBorrowCachesOnCreate(
   queryClient: QueryClient,
@@ -526,6 +619,16 @@ export function patchBorrowCachesOnCreate(
     userId: string;
     tempId: string;
     serverRecord: Partial<BorrowRecordFull> & { id: string };
+    /** Display fields for admin Borrow Queue densify (session + book cache). */
+    requestMeta?: BorrowCreateRequestMeta;
+    /** Claim path: decrement available copies when creating BORROWED. */
+    inventory?: {
+      availableDelta?: number;
+      activeDelta?: number;
+      returnedDelta?: number;
+      totalDelta?: number;
+    };
+    inventoryBaselines?: BookInventoryBaselines;
   },
   baselines?: BorrowListBaselines,
 ): void {
@@ -581,24 +684,83 @@ export function patchBorrowCachesOnCreate(
 
   mapUserBorrowLists(queryClient, args.userId, replaceTemp, baselines);
 
-  // Requests: replace temp id if present in baselines (admin may not have it).
+  // Admin queue: upsert (create never wrote temp onto borrow-requests).
+  const requestRow = buildRequestRowFromCreate(queryClient, args, baselines);
   mapRequestLists(
     queryClient,
-    (rows) =>
-      rows.map((r) =>
-        r.id === args.tempId
-          ? ({ ...r, ...args.serverRecord, id: args.serverRecord.id } as BorrowRecordWithDetails)
-          : r,
-      ),
+    (rows) => upsertRequestRow(rows, requestRow, args.tempId),
     baselines,
   );
 
+  if (args.inventory) {
+    patchBookInventory(
+      queryClient,
+      args.serverRecord.bookId,
+      args.inventory,
+      args.inventoryBaselines,
+    );
+  }
+
   syncPendingBorrowsNav(queryClient);
 
-  // Bump overview borrow KPIs only — skip inventing a thin recent row (API refetch fills)
+  // Delta then absolute recount from densified universe (badge drift heal).
   patchAdminStatsOnBorrowStatusChange(queryClient, {
     recordId: args.serverRecord.id,
     fromStatus: null,
     toStatus: args.serverRecord.status ?? "PENDING",
   });
+  const universe = queryClient.getQueryData<BorrowRecordWithDetails[]>(
+    queryKeys.borrows.requests({ status: undefined, search: undefined }),
+  );
+  syncAdminStatsBorrowCountsFromRows(queryClient, universe);
+  evictAnalyticsCaches(queryClient);
+}
+
+/**
+ * After renew — patch dueDate/renewalCount on user-borrows + admin borrow-requests.
+ */
+export function patchBorrowCachesOnRenewal(
+  queryClient: QueryClient,
+  args: {
+    recordId: string;
+    userId: string;
+    dueDate: string | Date | null;
+    renewalCount: number;
+  },
+  baselines?: BorrowListBaselines,
+): void {
+  // BorrowRecord.dueDate is ISO string | null in list types.
+  const nextDue: string | null =
+    args.dueDate instanceof Date
+      ? args.dueDate.toISOString()
+      : args.dueDate;
+  mapUserBorrowLists(
+    queryClient,
+    args.userId,
+    (rows) =>
+      rows.map((r) =>
+        r.id === args.recordId
+          ? ({
+              ...r,
+              dueDate: nextDue as BorrowRecordFull["dueDate"],
+              renewalCount: args.renewalCount,
+            } as BorrowRecordFull)
+          : r,
+      ),
+    baselines,
+  );
+  mapRequestLists(
+    queryClient,
+    (rows) =>
+      rows.map((r) =>
+        r.id === args.recordId
+          ? ({
+              ...r,
+              dueDate: nextDue as BorrowRecordWithDetails["dueDate"],
+              renewalCount: args.renewalCount,
+            } as BorrowRecordWithDetails)
+          : r,
+      ),
+    baselines,
+  );
 }

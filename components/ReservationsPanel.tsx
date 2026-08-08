@@ -15,7 +15,10 @@ import {
   densifyReservationStatus,
   snapshotReservationBaselines,
 } from "@/lib/utils/patchReservationCaches";
-import { patchBorrowCachesOnCreate } from "@/lib/utils/patchBorrowCaches";
+import {
+  patchBorrowCachesOnCreate,
+  snapshotBorrowCacheBaselines,
+} from "@/lib/utils/patchBorrowCaches";
 import type { UserReservationItem } from "@/lib/services/reservations";
 import { showToast } from "@/lib/toast";
 import { BookOpen, X } from "lucide-react";
@@ -80,7 +83,11 @@ export default function ReservationsPanel({
           (result.data && "bookId" in result.data
             ? result.data.bookId
             : undefined) ?? bookId;
-        const baselines = snapshotReservationBaselines(queryClient);
+        const reservationBaselines = snapshotReservationBaselines(queryClient);
+        const borrowBaselines =
+          action === "claim" && resolvedBookId
+            ? snapshotBorrowCacheBaselines(queryClient, [resolvedBookId])
+            : undefined;
         const claimPayload =
           action === "claim" &&
           result.data &&
@@ -94,7 +101,7 @@ export default function ReservationsPanel({
               })
             : null;
         await commitMutationCache(queryClient, "reservation.lifecycle", {
-          snapshot: () => baselines,
+          snapshot: () => reservationBaselines,
           densify: (snap) => {
             densifyReservationStatus(
               queryClient,
@@ -107,20 +114,26 @@ export default function ReservationsPanel({
               },
               snap ?? undefined,
             );
-            // Claim creates BORROWED — densify Active Borrows / profile lists (no invent copies).
+            // Claim creates BORROWED — densify lists + decrement available copies.
             if (claimPayload && userId) {
-              patchBorrowCachesOnCreate(queryClient, {
-                userId,
-                tempId: claimPayload.borrowId,
-                serverRecord: {
-                  id: claimPayload.borrowId,
+              patchBorrowCachesOnCreate(
+                queryClient,
+                {
                   userId,
-                  bookId: resolvedBookId,
-                  status: "BORROWED",
-                  dueDate: claimPayload.dueDate,
-                  borrowDate: new Date(),
+                  tempId: claimPayload.borrowId,
+                  serverRecord: {
+                    id: claimPayload.borrowId,
+                    userId,
+                    bookId: resolvedBookId,
+                    status: "BORROWED",
+                    dueDate: claimPayload.dueDate,
+                    borrowDate: new Date(),
+                  },
+                  inventory: { availableDelta: -1, activeDelta: 1 },
+                  inventoryBaselines: borrowBaselines?.inventory,
                 },
-              });
+                borrowBaselines,
+              );
             }
           },
         });

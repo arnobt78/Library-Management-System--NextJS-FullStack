@@ -17,6 +17,7 @@ import {
   patchAdminStatsOnUserRoleChange,
   patchAdminStatsOnUserStatusChange,
 } from "@/lib/utils/patchAdminStatsCaches";
+import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 
 type UserLike = {
   id: string;
@@ -212,6 +213,10 @@ export function densifyUserWrite(
       fromRole,
       toRole: patch.role,
     });
+  }
+
+  if (patch.status !== undefined || patch.role !== undefined) {
+    evictAnalyticsCaches(queryClient);
   }
 }
 

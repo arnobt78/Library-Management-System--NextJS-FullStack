@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-08 | Status: C2 Stage 4; overview KPI glass badges + admin.stats densify local Prove; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-09 | Status: C2 Stage 4; borrow-create + P0/P1 densify gap wave local Prove; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -31,6 +31,8 @@ Browser
 - Admin review detail: ticket-shaped Back/KPI/About|Description; borrow meta; `ModerateReviewAlertDialog`; per-action Approve/Reject spinner; densify path unchanged (`review.write`).
 - Admin nav badges: absolute `patchAdminNavCounts` after domain densify; SSR `getAdminNavCounts` + GET `/api/admin/nav-counts` (admin-authorized).
 - Library Overview (`admin.stats`): shared `buildAdminDashboardStats` for page + API parity; glass `StatCard` badges; `patchAdminStatsCaches*` on borrow/user/book/ticket/review/admin-request/reservation (borrow needs pre-mutate `fromStatus`; claim densifies BORROWED create). Analytics/automation KPIs stay invalidate-only.
+- Borrow create: upsert PENDING into admin `borrow-requests` (not temp-id replace-only) + nav/stats recount; PrefetchLink book-requests `staleTime: 0`. Renew densifies admin queue dueDate; All Users signup uses approve/reject decision path; direct Make Admin densifies Recent decisions ledger.
+- Fine/ops/recs densify required (config + reminder sentToday + evict featured/recs); analytics charts use `evictAnalyticsCaches` (no invent series). PrefetchLink catalog/dashboard `staleTime: 0`. Book delete strips recommendations + borrowStats.
 
 ## Admin Stockly chrome (2026-08-07)
 

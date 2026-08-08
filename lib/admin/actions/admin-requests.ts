@@ -565,7 +565,25 @@ export async function cancelMyAdminRequest(
 // Remove admin privileges from a user
 export async function removeAdminPrivileges(
   userId: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    requestId: string;
+    userId: string;
+    userEmail: string;
+    userFullName: string;
+    userUniversityCard: string | null;
+    decidedAt: string;
+    reviewedBy: string;
+    reviewer: {
+      id: string;
+      fullName: string;
+      email: string;
+      universityCard: string | null;
+    };
+  } | null;
+}> {
   try {
     const actor = await requireAdminActor();
     const safeUserId = parseEntityId(userId);
@@ -601,7 +619,7 @@ export async function removeAdminPrivileges(
     const decidedAt = new Date();
 
     // Demote role + settle latest APPROVED make-admin row so /make-admin unlocks re-apply.
-    await db.transaction(async (tx) => {
+    const revokedRequestId = await db.transaction(async (tx) => {
       await tx
         .update(users)
         .set({
@@ -611,7 +629,7 @@ export async function removeAdminPrivileges(
         })
         .where(eq(users.id, safeUserId));
 
-      await revokeLatestApprovedAdminRequest(tx, {
+      return revokeLatestApprovedAdminRequest(tx, {
         userId: safeUserId,
         actorId: actor.id,
         now: decidedAt,
@@ -619,8 +637,26 @@ export async function removeAdminPrivileges(
     });
 
     revalidateMutationPaths("admin-request.write");
+    // Client densify Recent decisions when a ledger row was revoked.
     return {
       success: true,
+      data: revokedRequestId
+        ? {
+            requestId: revokedRequestId,
+            userId: safeUserId,
+            userEmail: user[0].email,
+            userFullName: user[0].fullName,
+            userUniversityCard: user[0].universityCard ?? null,
+            decidedAt: decidedAt.toISOString(),
+            reviewedBy: actor.id,
+            reviewer: {
+              id: actor.id,
+              fullName: actor.name,
+              email: actor.email,
+              universityCard: null as string | null,
+            },
+          }
+        : null,
     };
   } catch (error) {
     console.error("Error removing admin privileges:", error);

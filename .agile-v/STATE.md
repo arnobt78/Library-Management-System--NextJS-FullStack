@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) overview KPI glass badges + admin.stats densify; nonlocal Verify still outstanding
-- SCOPE-V phase: Verify (KPI densify Prove PASS locally; full build/integration not re-claimed this wave)
-- Status: ACTIVE - overview KPI densify at tip `69a31ad`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove complete (local) densify expand books+ops/fine/recs; nonlocal Verify still outstanding
+- SCOPE-V phase: Verify (densify expand Prove PASS locally; tip bind pending owner commit)
+- Status: ACTIVE - densify P0/P1 + expand waves uncommitted on tip base `69a31ad`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `69a31ad` (overview KPI glass badges + `patchAdminStatsCaches*`)
-- Latest HEAD: `48af95a` (`main` ahead of `origin/main` by 2; push deferred)
+- Latest implementation tip: `69a31ad` (overview KPI densify; densify waves pending commit)
+- Latest HEAD: `cef46ec` (`main` == `origin/main` until densify commit)
 - Started: 2026-08-01
-- Last updated: 2026-08-08 (KPI densify tip bind)
+- Last updated: 2026-08-09 (densify expand books+ops Prove)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,6 +25,34 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline (resume reconcile)
 
+## Reconciliation snapshot (2026-08-09, densify expand books+ops)
+
+Verified facts:
+- PrefetchLink books/dashboard `staleTime: 0`; book delete strips recommendations + borrowStats.
+- `fine.write` / `operations.write` / `recommendation.write` → registry required + densify adapters; `evictAnalyticsCaches` on mutating domains; insights visit always refetches (`initialDataUpdatedAt: 0`).
+- Prior P0/P1 borrow-create upsert wave still in working tree. Bulk UI densify deferred (map to existing adapters when shipped).
+- Local Prove: typecheck + lint + densify/registry unit tests PASS. EvalGate still FAIL; Gate 2 not opened. Commit/push deferred until owner asks.
+
+### Next Action
+
+**Human-Decision:** commit/push densify waves for prod retest. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-09, densify P0/P1 gaps)
+
+Verified facts:
+- Root cause: `patchBorrowCachesOnCreate` never upserted admin `borrow-requests` → soft-nav stale list/KPIs; PrefetchLink 30s amplified.
+- Fixed: create upsert + universe recount; PrefetchLink `staleTime: 0`; All Users approve/reject decision densify; renew→admin lists; claim inventory; direct Make Admin / revoke ledger densify.
+- Superseded expand snapshot above (fine/ops/recs/analytics eviction).
+
+## Reconciliation snapshot (2026-08-09, agile-v resume)
+
+Verified facts:
+- Working tree was clean; `main` == `origin/main` at `cef46ec`.
+- Product tip `69a31ad` (overview KPI densify) pushed; docs trail `48af95a` → `cef46ec`.
+- No PENDING interrupt; INT-0005/0006 still RESOLVED.
+- EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`); Wave 5 / BL-0017 remains Gate 2 path.
+- Superseded by densify P0/P1 gap snapshot above after owner approved gap plan.
+
 ## Reconciliation snapshot (2026-08-08, overview KPI densify)
 
 Verified facts:
@@ -32,11 +60,7 @@ Verified facts:
 - `patchAdminStatsCaches*` on borrow (explicit `fromStatus` + universe recount), user/book/ticket/review/admin-request/reservation; claim → borrow create densify.
 - Profile Cancelled KPI + `glassCancelled`. Debug ingest removed.
 - Local Prove: typecheck + lint + densify unit tests PASS. Analytics/automation densify still noop; full build/integration not re-run this check.
-- EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); C2 Gate 2 not opened. Redis = rate-limit only.
-
-### Next Action
-
-**Human-Decision:** UI polish test tomorrow; Wave 5 / BL-0017; further REQ-0033 polish; or named bug. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER. Push only if owner confirms.
+- EvalGate still FAIL (`ER-C2-FINAL-CORRECTIVE-5`); C2 Gate 2 not opened. Redis = rate-limit only. Push later confirmed (see 2026-08-09 snapshot).
 
 ## Resume Protocol
 

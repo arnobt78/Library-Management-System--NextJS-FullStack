@@ -81,8 +81,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { renewBorrowedBook } from "@/lib/actions/circulation";
 import { beginMutation, isLatestMutation } from "@/lib/utils/mutationOrdering";
 import { commitMutationCache } from "@/lib/query/mutationGateway";
-import { snapshotBorrowListBaselines } from "@/lib/utils/patchBorrowCaches";
-import { writeMappedList } from "@/lib/utils/queryCacheLists";
+import {
+  patchBorrowCachesOnRenewal,
+  snapshotBorrowListBaselines,
+} from "@/lib/utils/patchBorrowCaches";
 import { showToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/query/keys";
 import { computeBorrowStats } from "@/lib/profile/borrowStats";
@@ -1012,22 +1014,16 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
             await commitMutationCache(queryClient, "renewal.write", {
               snapshot: snapshotBorrowListBaselines,
               densify: (baselines) => {
-                const key = queryKeys.borrows.user(userId);
-                writeMappedList(
+                // Profile + admin Borrow Queue share dueDate/renewalCount.
+                patchBorrowCachesOnRenewal(
                   queryClient,
-                  key,
-                  queryClient.getQueryData<BorrowRecordFull[]>(key),
-                  baselines.users[userId],
-                  (rows) =>
-                    rows.map((item) =>
-                      item.id === record.id
-                        ? {
-                            ...item,
-                            dueDate: result.data.dueDate,
-                            renewalCount: result.data.renewalCount,
-                          }
-                        : item,
-                    ),
+                  {
+                    recordId: record.id,
+                    userId,
+                    dueDate: result.data.dueDate,
+                    renewalCount: result.data.renewalCount,
+                  },
+                  baselines,
                 );
               },
             });

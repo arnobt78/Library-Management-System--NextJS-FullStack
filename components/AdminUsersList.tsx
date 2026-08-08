@@ -51,7 +51,8 @@ import {
 import { ADMIN_USERS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
   useUpdateUserRole,
-  useUpdateUserStatus,
+  useApproveUser,
+  useRejectUser,
   useApproveAdminRequest,
   useRejectAdminRequest,
   useRemoveAdminPrivileges,
@@ -156,6 +157,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     id: string;
     fullName: string;
     email: string;
+    universityCard?: string | null;
     action: "make" | "remove";
   } | null>(null);
 
@@ -260,9 +262,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     initialRecentDecisions,
   );
 
-  // React Query mutations
+  // React Query mutations (Approve/Reject Student use signup-decision densify path)
   const updateUserRoleMutation = useUpdateUserRole();
-  const updateUserStatusMutation = useUpdateUserStatus();
+  const approveUserMutation = useApproveUser();
+  const rejectUserMutation = useRejectUser();
   const approveAdminRequestMutation = useApproveAdminRequest();
   const rejectAdminRequestMutation = useRejectAdminRequest();
   const removeAdminPrivilegesMutation = useRemoveAdminPrivileges();
@@ -365,6 +368,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      universityCard: user.universityCard ?? null,
       action: "make",
     });
   };
@@ -374,6 +378,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      universityCard: user.universityCard ?? null,
       action: "remove",
     });
   };
@@ -386,6 +391,8 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           userId: roleTarget.id,
           role: "ADMIN",
           userName: roleTarget.fullName,
+          userEmail: roleTarget.email,
+          userUniversityCard: roleTarget.universityCard ?? null,
         },
         {
           onSuccess: () => setRoleTarget(null),
@@ -397,6 +404,8 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       {
         userId: roleTarget.id,
         userName: roleTarget.fullName,
+        userEmail: roleTarget.email,
+        userUniversityCard: roleTarget.universityCard ?? null,
       },
       {
         onSuccess: () => setRoleTarget(null),
@@ -404,16 +413,33 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     );
   };
 
-  const handleUpdateUserStatus = async (
+  const handleUpdateUserStatus = (
     userId: string,
-    status: "PENDING" | "APPROVED" | "REJECTED",
+    status: "APPROVED" | "REJECTED",
   ) => {
     const user = users.find((u) => u.id === userId);
-    updateUserStatusMutation.mutate({
+    const su = session?.user as
+      | { id?: string; name?: string | null; email?: string | null }
+      | undefined;
+    const decisionActor =
+      su?.email && (su.name || su.email)
+        ? {
+            id: su.id ?? null,
+            fullName: su.name?.trim() || "Admin",
+            email: su.email,
+            universityCard: null as string | null,
+          }
+        : null;
+    const payload = {
       userId,
-      status,
       userName: user?.fullName,
-    });
+      decisionActor,
+    };
+    if (status === "APPROVED") {
+      approveUserMutation.mutate(payload);
+      return;
+    }
+    rejectUserMutation.mutate(payload);
   };
 
   const openApproveConfirm = (request: AdminRequest) => {
@@ -643,7 +669,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                   size="sm"
                   className="bg-green-600 hover:bg-green-700"
                   onClick={() => handleUpdateUserStatus(user.id, "APPROVED")}
-                  disabled={updateUserStatusMutation.isPending}
+                  disabled={
+                    approveUserMutation.isPending || rejectUserMutation.isPending
+                  }
                 >
                   <CheckCircle className="size-4" />
                   Approve Student
@@ -652,7 +680,9 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
                   size="sm"
                   className="bg-red-600 hover:bg-red-700"
                   onClick={() => handleUpdateUserStatus(user.id, "REJECTED")}
-                  disabled={updateUserStatusMutation.isPending}
+                  disabled={
+                    approveUserMutation.isPending || rejectUserMutation.isPending
+                  }
                 >
                   <XCircle className="size-4" />
                   Reject
