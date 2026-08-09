@@ -7,8 +7,8 @@
 - Status: ACTIVE - Activity History audit/densify + export coverage on `main` working tree; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `bce8637` (AdminPageShell; Activity matrix close pending commit)
-- Latest HEAD: `bce8637`
+- Latest implementation tip: `d266fe3` (Activity History audit densify + matrix close)
+- Latest HEAD: `d266fe3`
 - Started: 2026-08-01
 - Last updated: 2026-08-10 (Activity matrix close: exports + ops Entity)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -35,7 +35,7 @@ Verified facts:
 
 ### Next Action
 
-**Human-Decision:** smoke Automation CSV/JSON export → Activity History row + Entity link; commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+**Human-Decision:** smoke Automation export → Activity History if desired. Tip `d266fe3` on `main`. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
 
 ## Reconciliation snapshot (2026-08-10, Densify + Activity History harden)
 

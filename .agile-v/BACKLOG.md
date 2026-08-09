@@ -175,7 +175,7 @@ Owner approved plan `densify_softnav_harden`. Delivered: borrow create/reservati
 
 ## Activity History matrix close (2026-08-10)
 
-Owner approved plan `admin_activity_matrix_close`. Delivered: export `logAdminExportActivity` + client blob densify; ops/export/recs Entity → `/admin/automation`; bulk Automation UI deferred. Local Prove type/lint/209 unit PASS.
+Owner approved plan `admin_activity_matrix_close`. Delivered: export `logAdminExportActivity` + client blob densify; ops/export/recs Entity → `/admin/automation`; bulk Automation UI deferred. Tip `d266fe3`.
 
 ## AdminPageShell KPI layout (2026-08-09)
 
