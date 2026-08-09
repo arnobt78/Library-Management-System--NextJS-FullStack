@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) featured hero densify; tip base `4e4bd5f`; nonlocal Verify still outstanding
-- SCOPE-V phase: Prove (featured densify wave; EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - featured hero densify uncommitted on `4e4bd5f`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove (local) featured hero densify shipped; tip `d8845bc`; nonlocal Verify still outstanding
+- SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
+- Status: ACTIVE - tip `d8845bc` on `main`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `4e4bd5f` (featured densify pending commit)
-- Latest HEAD: `4e4bd5f` (`main` == `origin/main` until featured densify commit)
+- Latest implementation tip: `d8845bc` (lendable KPIs + overview inactive + featured densify)
+- Latest HEAD: `d8845bc`
 - Started: 2026-08-01
-- Last updated: 2026-08-09 (featured hero densify flash fix)
+- Last updated: 2026-08-09 (tip-bind `d8845bc`)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -28,13 +28,13 @@
 ## Reconciliation snapshot (2026-08-09, featured hero densify)
 
 Verified facts:
-- `densifyBookWrite` replaces/evicts `featuredRoot` on feature swap + inactive/unfeature (fallback from unfiltered catalog or removeQueries).
-- Admin list sibling `isFeatured` cleared; `updateBook`/`createBook` force `isFeatured=false` when inactive.
-- `HomeFeaturedHero` ignores inactive RQ[0]. Soft-nav `/` no stale hero flash.
+- Tip `d8845bc`: lendable KPIs + Inactive mid panels + books-nav fix + Top Rated rating↓/A-Z + featuredRoot replace/evict.
+- Soft-nav `/` no stale hero flash; public `/all-books` stays invalidate+refetch.
+- Local Prove: typecheck + lint + densify unit tests PASS.
 
 ### Next Action
 
-**Human-Decision:** owner smoke + commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+**Human-Decision:** owner smoke if desired. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
 
 ## Reconciliation snapshot (2026-08-09, books nav + A-Z)
 

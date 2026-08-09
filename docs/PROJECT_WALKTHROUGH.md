@@ -33,10 +33,7 @@ Browser
 - Library Overview (`admin.stats`): shared `buildAdminDashboardStats` for page + API parity; glass `StatCard` badges; `patchAdminStatsCaches*` on borrow/user/book/ticket/review/admin-request/reservation (borrow needs pre-mutate `fromStatus`; claim densifies BORROWED create). Analytics/automation KPIs stay invalidate-only.
 - Borrow create: upsert PENDING into admin `borrow-requests` (not temp-id replace-only) + nav/stats recount; PrefetchLink book-requests `staleTime: 0`. Renew densifies admin queue dueDate; All Users signup uses approve/reject decision path; direct Make Admin densifies Recent decisions ledger.
 - Fine/ops/recs densify required (config + reminder sentToday + evict featured/recs); analytics charts use `evictAnalyticsCaches` (no invent series); insights `initialDataUpdatedAt: 0` on visit. PrefetchLink catalog/dashboard `staleTime: 0`. Book delete strips recommendations + borrowStats. Tip `4e4bd5f`.
-- Lendable copies (active-only): `sumLendableCopies` / `isBookActive` shared by Overview SSR, Book Catalog KPIs, and `patchAdminStatsOnBook*`; deactivate drops pool, reactivate restores. `StatCardGrid` = 3-col; KPI chips text-only.
-- Overview mid: Health · Categories · Year / Top Rated · Inactive Books · Language; `inactiveTitles` densified on `book.write`.
-- Book Catalog nav badge uses unfiltered list `total` only; admin catalog + Inactive lists sort title A-Z; Top Rated = rating desc then A-Z.
-- Homepage featured: `densifyBookWrite` replaces/evicts `featuredRoot` on feature/inactive flips (sibling admin `isFeatured` cleared); server clears featured when inactive; hero ignores inactive RQ cache.
+- Tip `d8845bc`: lendable (active-only) KPIs; Overview Inactive mid panel; books-nav unfiltered; Top Rated rating↓/A-Z; homepage `featuredRoot` replace/evict on feature/inactive; inactive clears featured server-side.
 
 ## Admin Stockly chrome (2026-08-07)
 

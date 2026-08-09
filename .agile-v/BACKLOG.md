@@ -159,4 +159,4 @@ Owner approved plan `overview_inactive_titles`. Delivered: Health·Categories·Y
 
 ## Featured hero densify (2026-08-09)
 
-Owner approved plan `featured_hero_densify`. Delivered: `featuredRoot` replace/evict + sibling `isFeatured` clear; inactive forces unfeature; HomeFeaturedHero skips inactive RQ[0]. Public `/all-books` stays invalidate+refetch (no invent). Local Prove PASS.
+Owner approved plan `featured_hero_densify`. Delivered: `featuredRoot` replace/evict + sibling `isFeatured` clear; inactive forces unfeature; HomeFeaturedHero skips inactive RQ[0]. Public `/all-books` stays invalidate+refetch (no invent). Tip `d8845bc` pushed.
