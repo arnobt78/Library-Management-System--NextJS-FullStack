@@ -139,7 +139,22 @@ import {
   snapshotBorrowCacheBaselines,
   snapshotBorrowListBaselines,
 } from "@/lib/utils/patchBorrowCaches";
+import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 // BookParams is a global type from types.d.ts, no import needed
+
+/** Session actor fields for Activity History densify (may be null in admin trees). */
+function activityActorFromSession(
+  session: { user?: SessionUser } | null | undefined,
+) {
+  const su = session?.user;
+  if (!su) return {};
+  return {
+    actorId: su.id ?? null,
+    actorName: su.name?.trim() || null,
+    actorEmail: su.email ?? null,
+    actorUniversityCard: null as string | null,
+  };
+}
 
 /**
  * Hook to create a new book.
@@ -162,6 +177,7 @@ import {
  */
 export const useCreateBook = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (params: BookParams) => {
@@ -175,7 +191,19 @@ export const useCreateBook = () => {
       // Gateway: invalidate domains then densify detail/admin list.
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
-        densify: () => densifyBookWrite(queryClient, data ?? undefined),
+        densify: () => {
+          densifyBookWrite(queryClient, data ?? undefined);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "CREATE",
+            entityType: "book",
+            entityId: data?.id ?? null,
+            details: {
+              title: variables.title,
+              ...(variables.author ? { author: variables.author } : {}),
+            },
+          });
+        },
       });
 
       // Show success toast
@@ -213,6 +241,7 @@ export const useCreateBook = () => {
  */
 export const useUpdateBook = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -228,18 +257,26 @@ export const useUpdateBook = () => {
       return result.data;
     },
     onSuccess: async (data, variables) => {
+      const bookTitle = variables.title || data?.title || "Book";
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
-        densify: () =>
+        densify: () => {
           densifyBookWrite(queryClient, {
             id: variables.bookId,
             ...(data && typeof data === "object" ? data : {}),
             ...(variables.title ? { title: variables.title } : {}),
-          }),
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "book",
+            entityId: variables.bookId,
+            details: { title: bookTitle },
+          });
+        },
       });
 
       // Show success toast with updated title (or fallback to bookId)
-      const bookTitle = variables.title || data?.title || "Book";
       showToast.success(
         "Book Updated",
         `"${bookTitle}" has been updated successfully.`
@@ -282,6 +319,7 @@ export const useUpdateBook = () => {
  */
 export const useDeleteBook = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -300,13 +338,25 @@ export const useDeleteBook = () => {
       return { bookIds, message: result.message };
     },
     onSuccess: async (data, variables) => {
+      const count = data.bookIds.length;
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
-        densify: () => densifyBookDelete(queryClient, data.bookIds),
+        densify: () => {
+          densifyBookDelete(queryClient, data.bookIds);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "DELETE",
+            entityType: "book",
+            entityId: count === 1 ? data.bookIds[0] : null,
+            details: {
+              count,
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+          });
+        },
       });
 
       // Show success toast
-      const count = data.bookIds.length;
       const bookTitle =
         variables.bookTitle || (count === 1 ? "Book" : `${count} books`);
       showToast.success(
@@ -353,6 +403,7 @@ export const useDeleteBook = () => {
  */
 export const useUpdateUserRole = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -385,6 +436,17 @@ export const useUpdateUserRole = () => {
           densifyUserWrite(queryClient, {
             userId: data.userId,
             role: data.role,
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "admin-request",
+            entityId: data.ledger?.requestId ?? null,
+            details: {
+              role: data.role,
+              status: data.role === "ADMIN" ? "APPROVED" : "REVOKED",
+              userId: data.userId,
+            },
           });
           if (!data.ledger) return;
           const ledgerCard =
@@ -477,6 +539,7 @@ export const useUpdateUserRole = () => {
  */
 export const useUpdateUserStatus = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -496,11 +559,19 @@ export const useUpdateUserStatus = () => {
     onSuccess: async (data, variables) => {
       await commitMutationCache(queryClient, "user.write", {
         snapshot: () => undefined,
-        densify: () =>
+        densify: () => {
           densifyUserWrite(queryClient, {
             userId: data.userId,
             status: data.status,
-          }),
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "user",
+            entityId: data.userId,
+            details: { status: data.status },
+          });
+        },
       });
 
       // Show success toast
@@ -608,12 +679,20 @@ export const useApproveUser = () => {
       // Optimistic already removed pending row — pass explicit fromStatus for overview KPIs.
       await commitMutationCache(queryClient, "user.write", {
         snapshot: () => undefined,
-        densify: () =>
+        densify: () => {
           densifyUserWrite(queryClient, {
             userId: variables.userId,
             status: "APPROVED",
             fromStatus: "PENDING",
-          }),
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "user",
+            entityId: variables.userId,
+            details: { status: "APPROVED" },
+          });
+        },
       });
       const userName = variables.userName || "User";
       showToast.success(
@@ -703,12 +782,20 @@ export const useRejectUser = () => {
     onSuccess: async (_data, variables) => {
       await commitMutationCache(queryClient, "user.write", {
         snapshot: () => undefined,
-        densify: () =>
+        densify: () => {
           densifyUserWrite(queryClient, {
             userId: variables.userId,
             status: "REJECTED",
             fromStatus: "PENDING",
-          }),
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "user",
+            entityId: variables.userId,
+            details: { status: "REJECTED" },
+          });
+        },
       });
       const userName = variables.userName || "User";
       showToast.success(
@@ -740,6 +827,13 @@ export const useRequestRegistrationReview = () => {
         snapshot: () => undefined,
         densify: () => {
           if (userId) densifyUserRegistrationPending(queryClient, userId);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "user",
+            entityId: userId ?? null,
+            details: { status: "PENDING" },
+          });
         },
       });
       showToast.success(
@@ -1014,6 +1108,25 @@ export const useBorrowBook = () => {
               baselines,
             );
           }
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "CREATE",
+            entityType: "borrow",
+            entityId:
+              serverRecord &&
+              typeof serverRecord === "object" &&
+              "id" in serverRecord &&
+              typeof (serverRecord as { id?: unknown }).id === "string"
+                ? (serverRecord as { id: string }).id
+                : null,
+            details: {
+              status: "PENDING",
+              userId: variables.userId,
+              ...(variables.bookTitle || bookCached?.title
+                ? { title: variables.bookTitle ?? bookCached?.title }
+                : {}),
+            },
+          });
         },
       });
 
@@ -1066,6 +1179,7 @@ export const useBorrowBook = () => {
  */
 export const useApproveBorrow = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1185,6 +1299,17 @@ export const useApproveBorrow = () => {
             },
             baselines,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: variables.recordId,
+            details: {
+              status: "BORROWED",
+              ...(meta?.userId ? { userId: meta.userId } : {}),
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+          });
         },
       });
 
@@ -1220,6 +1345,7 @@ export const useApproveBorrow = () => {
  */
 export const useRejectBorrow = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1305,6 +1431,17 @@ export const useRejectBorrow = () => {
             },
             baselines,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: variables.recordId,
+            details: {
+              status: "CANCELLED",
+              ...(meta?.userId ? { userId: meta.userId } : {}),
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+          });
         },
       });
 
@@ -1338,6 +1475,7 @@ export const useRejectBorrow = () => {
  */
 export const useReturnBook = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1430,6 +1568,17 @@ export const useReturnBook = () => {
             },
             baselines,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: variables.recordId,
+            details: {
+              status: "RETURNED",
+              ...(meta?.userId ? { userId: meta.userId } : {}),
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+          });
         },
       });
 
@@ -1595,6 +1744,16 @@ export const useCreateReview = () => {
         snapshot: snapshotReviewListBaselines,
         densify: (baselines) => {
           patchReviewCachesOnCreate(queryClient, densifyItem, baselines);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "CREATE",
+            entityType: "review",
+            entityId: densifyItem.id,
+            details: {
+              title: densifyItem.bookTitle,
+              status: densifyItem.status,
+            },
+          });
           // Eligibility densify — ReviewButton flips without eligibility refetch flash.
           queryClient.setQueryData(
             queryKeys.reviews.eligibility(variables.bookId),
@@ -1651,6 +1810,7 @@ export const useCreateReview = () => {
  */
 export const useUpdateReview = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1799,6 +1959,16 @@ export const useUpdateReview = () => {
             baselines,
             previousStatus,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "review",
+            entityId: variables.reviewId,
+            details: {
+              status: nextStatus ?? "PENDING",
+              ...(variables.bookId ? { bookId: variables.bookId } : {}),
+            },
+          });
         },
       });
       const cached = variables.bookId
@@ -1852,6 +2022,7 @@ export const useUpdateReview = () => {
  */
 export const useDeleteReview = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -1926,6 +2097,15 @@ export const useDeleteReview = () => {
             densifyMeta,
             baselines,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "DELETE",
+            entityType: "review",
+            entityId: variables.reviewId,
+            details: densifyMeta.bookId
+              ? { bookId: densifyMeta.bookId }
+              : null,
+          });
           // Eligibility densify — ReviewButton can submit again without flash.
           if (densifyMeta.bookId) {
             queryClient.setQueryData(
@@ -2069,6 +2249,13 @@ export const useModerateReview = () => {
             // Prefer post-invalidate row (has join) for public book upsert.
             postInvalidate ?? cached,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "review",
+            entityId: variables.reviewId,
+            details: { status: data.status },
+          });
         },
       });
       const bookTitle = resolveActionBookTitle(variables.bookTitle);
@@ -2092,6 +2279,7 @@ export const useModerateReview = () => {
  */
 export const useCreateAdminRequest = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -2114,6 +2302,16 @@ export const useCreateAdminRequest = () => {
           if (_data?.data) {
             densifyAdminRequestCreate(queryClient, _data.data as AdminRequest);
           }
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "CREATE",
+            entityType: "admin-request",
+            entityId: _data?.data?.id ?? null,
+            details: {
+              status: "PENDING",
+              userId: _data?.data?.userId ?? session?.user?.id ?? null,
+            },
+          });
         },
       });
       showToast.admin.requestSubmitted(variables.userEmail);
@@ -2131,6 +2329,7 @@ export const useCreateAdminRequest = () => {
  */
 export const useCancelMyAdminRequest = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ requestId }: { requestId: string }) => {
@@ -2146,6 +2345,16 @@ export const useCancelMyAdminRequest = () => {
         densify: () => {
           densifyAdminRequestRemovePending(queryClient, variables.requestId, {
             overviewWithdraw: true,
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "admin-request",
+            entityId: variables.requestId,
+            details: {
+              status: "CANCELLED",
+              userId: session?.user?.id ?? null,
+            },
           });
         },
       });
@@ -2242,6 +2451,16 @@ export const useApproveAdminRequest = () => {
         snapshot: () => undefined,
         densify: () => {
           if (data) densifyAdminRequestDecision(queryClient, data);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "admin-request",
+            entityId: variables.requestId,
+            details: {
+              status: "APPROVED",
+              ...(promotedUserId ? { userId: promotedUserId } : {}),
+            },
+          });
           if (!promotedUserId) return;
           densifyUserWrite(queryClient, {
             userId: promotedUserId,
@@ -2351,6 +2570,16 @@ export const useRejectAdminRequest = () => {
         snapshot: () => undefined,
         densify: () => {
           if (data) densifyAdminRequestDecision(queryClient, data);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "admin-request",
+            entityId: variables.requestId,
+            details: {
+              status: "REJECTED",
+              ...(data?.userId ? { userId: data.userId } : {}),
+            },
+          });
         },
       });
 
@@ -2384,6 +2613,7 @@ export const useRejectAdminRequest = () => {
  */
 export const useRemoveAdminPrivileges = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ userId }: {
@@ -2405,6 +2635,17 @@ export const useRemoveAdminPrivileges = () => {
           densifyUserWrite(queryClient, {
             userId: data.userId,
             role: "USER",
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "admin-request",
+            entityId: data.ledger?.requestId ?? null,
+            details: {
+              role: "USER",
+              status: "REVOKED",
+              userId: data.userId,
+            },
           });
           if (!data.ledger) return;
           densifyAdminPrivilegeRevoke(queryClient, {
@@ -2465,6 +2706,7 @@ export const useRemoveAdminPrivileges = () => {
  */
 export const useUpdateFineConfig = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ fineAmount }: {
@@ -2476,7 +2718,19 @@ export const useUpdateFineConfig = () => {
     onSuccess: async (data, variables) => {
       await commitMutationCache(queryClient, "fine.write", {
         snapshot: () => undefined,
-        densify: () => densifyFineConfig(queryClient, data),
+        densify: () => {
+          densifyFineConfig(queryClient, data);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: null,
+            details: {
+              status: "FINE_CONFIG",
+              amount: variables.fineAmount,
+            },
+          });
+        },
       });
 
       // Show success toast
@@ -2513,6 +2767,7 @@ export const useUpdateFineConfig = () => {
  */
 export const useSendDueReminders = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async () => {
@@ -2523,8 +2778,16 @@ export const useSendDueReminders = () => {
       const count = data.results?.length || 0;
       await commitMutationCache(queryClient, "operations.write", {
         snapshot: () => undefined,
-        densify: () =>
-          densifyReminderStats(queryClient, { sentCount: count }),
+        densify: () => {
+          densifyReminderStats(queryClient, { sentCount: count });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: null,
+            details: { status: "DUE_SOON_REMINDERS", count },
+          });
+        },
       });
 
       // Show success toast
@@ -2560,6 +2823,7 @@ export const useSendDueReminders = () => {
  */
 export const useSendOverdueReminders = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async () => {
@@ -2570,8 +2834,16 @@ export const useSendOverdueReminders = () => {
       const count = data.results?.length || 0;
       await commitMutationCache(queryClient, "operations.write", {
         snapshot: () => undefined,
-        densify: () =>
-          densifyReminderStats(queryClient, { sentCount: count }),
+        densify: () => {
+          densifyReminderStats(queryClient, { sentCount: count });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: null,
+            details: { status: "OVERDUE_REMINDERS", count },
+          });
+        },
       });
 
       // Show success toast
@@ -2612,6 +2884,7 @@ export const useSendOverdueReminders = () => {
  */
 export const useUpdateOverdueFines = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -2623,13 +2896,23 @@ export const useUpdateOverdueFines = () => {
       return result;
     },
     onSuccess: async (data) => {
+      const count = data.results?.length || 0;
       await commitMutationCache(queryClient, "fine.write", {
         snapshot: () => undefined,
-        densify: () => densifyOverdueFines(queryClient, data.results),
+        densify: () => {
+          densifyOverdueFines(queryClient, data.results);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: null,
+            // API uses forceUpdateOverdueFines — match server audit status label.
+            details: { status: "FINE_FORCE_UPDATE", count },
+          });
+        },
       });
 
       // Show success toast
-      const count = data.results?.length || 0;
       showToast.success(
         "Overdue Fines Updated",
         `Successfully updated fines for ${count} overdue book${count !== 1 ? "s" : ""}.`
@@ -2662,6 +2945,7 @@ export const useUpdateOverdueFines = () => {
  */
 export const useGenerateAllUserRecommendations = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async () => {
@@ -2671,7 +2955,20 @@ export const useGenerateAllUserRecommendations = () => {
     onSuccess: async (data) => {
       await commitMutationCache(queryClient, "recommendation.write", {
         snapshot: () => undefined,
-        densify: () => densifyRecommendationWrite(queryClient),
+        densify: () => {
+          densifyRecommendationWrite(queryClient);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "book",
+            entityId: null,
+            details: {
+              status: "RECOMMENDATIONS_GENERATED",
+              count: data.totalRecommendations,
+              users: data.totalUsers,
+            },
+          });
+        },
       });
 
       // Show success toast
@@ -2707,6 +3004,7 @@ export const useGenerateAllUserRecommendations = () => {
  */
 export const useUpdateTrendingBooks = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async () => {
@@ -2716,7 +3014,19 @@ export const useUpdateTrendingBooks = () => {
     onSuccess: async (data) => {
       await commitMutationCache(queryClient, "recommendation.write", {
         snapshot: () => undefined,
-        densify: () => densifyRecommendationWrite(queryClient),
+        densify: () => {
+          densifyRecommendationWrite(queryClient);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "book",
+            entityId: null,
+            details: {
+              status: "TRENDING_UPDATED",
+              count: data.trendingCount,
+            },
+          });
+        },
       });
 
       // Show success toast
@@ -2750,6 +3060,7 @@ export const useUpdateTrendingBooks = () => {
  */
 export const useRefreshRecommendationCache = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async () => {
@@ -2759,7 +3070,16 @@ export const useRefreshRecommendationCache = () => {
     onSuccess: async (data) => {
       await commitMutationCache(queryClient, "recommendation.write", {
         snapshot: () => undefined,
-        densify: () => densifyRecommendationWrite(queryClient),
+        densify: () => {
+          densifyRecommendationWrite(queryClient);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "book",
+            entityId: null,
+            details: { status: "RECOMMENDATIONS_REFRESHED" },
+          });
+        },
       });
 
       showToast.success(
@@ -2897,6 +3217,7 @@ export const useMarkAllNotificationsRead = () => {
 /** Creates a ticket (APPROVED actor only — enforced server-side). */
 export const useCreateSupportTicket = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (input: CreateTicketInput) => createSupportTicket(input),
@@ -2907,6 +3228,13 @@ export const useCreateSupportTicket = () => {
         snapshot: snapshotTicketListBaselines,
         densify: (baselines) => {
           patchTicketCachesOnCreate(queryClient, ticket, baselines);
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "CREATE",
+            entityType: "ticket",
+            entityId: ticket.id,
+            details: { subject: ticket.subject },
+          });
         },
       });
       showToast.success(
@@ -2930,6 +3258,7 @@ export const useCreateSupportTicket = () => {
  */
 export const useUpdateSupportTicket = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -2968,6 +3297,16 @@ export const useUpdateSupportTicket = () => {
             baselines,
             previousPriority,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "ticket",
+            entityId: data.id,
+            details: {
+              subject: data.subject,
+              ...(data.status ? { status: data.status } : {}),
+            },
+          });
         },
       });
       showToast.success("Ticket Updated", "The ticket has been updated.");
@@ -2987,6 +3326,7 @@ export const useUpdateSupportTicket = () => {
 /** Deletes a ticket (admin any time; creator while OPEN or IN_PROGRESS). */
 export const useDeleteSupportTicket = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ ticketId }: { ticketId: string }) => {
@@ -3000,6 +3340,7 @@ export const useDeleteSupportTicket = () => {
         previousStatus,
         previousPriority: detail?.priority ?? null,
         userId: detail?.userId ?? null,
+        subject: detail?.subject ?? null,
       };
     },
     onSuccess: async ({
@@ -3007,6 +3348,7 @@ export const useDeleteSupportTicket = () => {
       previousStatus,
       previousPriority,
       userId,
+      subject,
     }) => {
       await commitMutationCache(queryClient, "ticket.write", {
         snapshot: snapshotTicketListBaselines,
@@ -3019,6 +3361,13 @@ export const useDeleteSupportTicket = () => {
             baselines,
             previousPriority,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "DELETE",
+            entityType: "ticket",
+            entityId: ticketId,
+            details: subject ? { subject } : null,
+          });
         },
       });
       showToast.success("Ticket Deleted", "The ticket has been deleted.");
@@ -3035,6 +3384,7 @@ export const useDeleteSupportTicket = () => {
 /** Posts a reply and densifies the thread + list replyCount after invalidate. */
 export const useCreateSupportTicketReply = () => {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ ticketId, body }: { ticketId: string; body: string }) =>
@@ -3053,6 +3403,16 @@ export const useCreateSupportTicketReply = () => {
             detail?.userId ?? null,
             baselines,
           );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "ticket",
+            entityId: variables.ticketId,
+            details: {
+              ...(detail?.subject ? { subject: detail.subject } : {}),
+              reply: true,
+            },
+          });
         },
       });
     },

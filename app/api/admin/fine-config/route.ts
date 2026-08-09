@@ -5,6 +5,7 @@ import {
   initializeDefaultConfigs,
 } from "@/lib/admin/actions/config";
 import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
+import { logActivity } from "@/lib/admin/activityLog";
 
 export const runtime = "nodejs";
 
@@ -69,6 +70,14 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    await logActivity({
+      actorId: authorization.actor.id,
+      action: "UPDATE",
+      entityType: "borrow",
+      entityId: null,
+      details: { status: "FINE_CONFIG", amount: fineAmount },
+    });
 
     return NextResponse.json({
       success: true,

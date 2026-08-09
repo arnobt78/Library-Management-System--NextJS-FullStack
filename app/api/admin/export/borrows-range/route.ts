@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exportBorrows } from "@/lib/admin/actions/data-export";
+import { logAdminExportActivity } from "@/lib/admin/logAdminExportActivity";
 import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 
 export const runtime = "nodejs";
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
           success: false,
           message: "Start date and end date are required",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,8 +31,20 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await exportBorrows(format, dateRange);
+    if (!result.data) {
+      return NextResponse.json(
+        { success: false, message: "Export produced empty payload" },
+        { status: 500 },
+      );
+    }
 
-    // Return the file as a download
+    await logAdminExportActivity({
+      actorId: authorization.actor.id,
+      entityType: "borrow",
+      status: "EXPORT_BORROWS_RANGE",
+      format,
+    });
+
     return new NextResponse(result.data, {
       status: 200,
       headers: {
@@ -46,7 +59,7 @@ export async function POST(request: NextRequest) {
         success: false,
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -260,7 +260,7 @@ export async function POST(
         returnedAt: null,
       } satisfies AdminBookReviewItem);
 
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "CREATE",
       entityType: "review",

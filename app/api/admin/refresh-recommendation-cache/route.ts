@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { refreshRecommendationCache } from "@/lib/admin/actions/recommendations";
 import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { logActivity } from "@/lib/admin/activityLog";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,13 @@ export async function POST(_request: NextRequest) {
     if (!authorization.ok) return authorization.response;
 
     const result = await refreshRecommendationCache();
+    await logActivity({
+      actorId: authorization.actor.id,
+      action: "UPDATE",
+      entityType: "book",
+      entityId: null,
+      details: { status: "RECOMMENDATIONS_REFRESHED" },
+    });
     revalidateMutationPaths("recommendation.write");
 
     return NextResponse.json({

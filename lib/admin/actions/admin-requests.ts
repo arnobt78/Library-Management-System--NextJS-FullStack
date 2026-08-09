@@ -231,7 +231,19 @@ export async function createAdminRequest(
       const fullRequest = await selectAdminRequestById(tx, newRequest.id);
       return { success: true as const, data: fullRequest };
     });
-    if (result.success) revalidateMutationPaths("admin-request.write");
+    if (result.success) {
+      await logActivity({
+        actorId: actor.id,
+        action: "CREATE",
+        entityType: "admin-request",
+        entityId: result.data?.id ?? null,
+        details: {
+          status: "PENDING",
+          userId: actor.id,
+        },
+      });
+      revalidateMutationPaths("admin-request.write");
+    }
     return result;
   } catch (error) {
     console.error("Error creating admin request:", error);
@@ -401,15 +413,18 @@ export async function approveAdminRequest(
       return { success: true as const, data: fullRequest };
     });
     if (result.success) {
-      revalidateMutationPaths("admin-request.write");
-      scheduleAdminRequestDecisionEmail(result.data);
-      void logActivity({
+      await logActivity({
         actorId: actor.id,
         action: "UPDATE",
         entityType: "admin-request",
         entityId: safeRequestId,
-        details: { status: "APPROVED" },
+        details: {
+          status: "APPROVED",
+          ...(result.data?.userId ? { userId: result.data.userId } : {}),
+        },
       });
+      revalidateMutationPaths("admin-request.write");
+      scheduleAdminRequestDecisionEmail(result.data);
     }
     return result;
   } catch (error) {
@@ -471,15 +486,18 @@ export async function rejectAdminRequest(
       return { success: true as const, data: fullRequest };
     });
     if (result.success) {
-      revalidateMutationPaths("admin-request.write");
-      scheduleAdminRequestDecisionEmail(result.data);
-      void logActivity({
+      await logActivity({
         actorId: actor.id,
         action: "UPDATE",
         entityType: "admin-request",
         entityId: safeRequestId,
-        details: { status: "REJECTED" },
+        details: {
+          status: "REJECTED",
+          ...(result.data?.userId ? { userId: result.data.userId } : {}),
+        },
       });
+      revalidateMutationPaths("admin-request.write");
+      scheduleAdminRequestDecisionEmail(result.data);
     }
     return result;
   } catch (error) {
@@ -551,7 +569,19 @@ export async function cancelMyAdminRequest(
       return { success: true as const, data: fullRequest };
     });
 
-    if (result.success) revalidateMutationPaths("admin-request.write");
+    if (result.success) {
+      await logActivity({
+        actorId: actor.id,
+        action: "UPDATE",
+        entityType: "admin-request",
+        entityId: safeRequestId,
+        details: {
+          status: "CANCELLED",
+          userId: actor.id,
+        },
+      });
+      revalidateMutationPaths("admin-request.write");
+    }
     return result;
   } catch (error) {
     console.error("Error cancelling admin request:", error);
@@ -636,6 +666,17 @@ export async function removeAdminPrivileges(
       });
     });
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "admin-request",
+      entityId: revokedRequestId ?? null,
+      details: {
+        role: "USER",
+        status: "REVOKED",
+        userId: safeUserId,
+      },
+    });
     revalidateMutationPaths("admin-request.write");
     // Client densify Recent decisions when a ledger row was revoked.
     return {

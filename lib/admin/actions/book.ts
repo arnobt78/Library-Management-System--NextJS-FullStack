@@ -74,14 +74,14 @@ export const createBook = async (params: BookParams) => {
       return inserted[0];
     });
 
-    revalidateMutationPaths("book.write");
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "CREATE",
       entityType: "book",
       entityId: newBook.id,
       details: { title: newBook.title, author: newBook.author },
     });
+    revalidateMutationPaths("book.write");
     return {
       success: true,
       data: JSON.parse(JSON.stringify(newBook)),
@@ -206,14 +206,14 @@ export const updateBook = async (
       return rows[0];
     });
 
-    revalidateMutationPaths("book.write");
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "UPDATE",
       entityType: "book",
       entityId: updatedBook.id,
       details: { title: updatedBook.title },
     });
+    revalidateMutationPaths("book.write");
     return {
       success: true,
       data: JSON.parse(JSON.stringify(updatedBook)),

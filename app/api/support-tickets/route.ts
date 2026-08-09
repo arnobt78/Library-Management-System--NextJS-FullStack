@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     revalidateMutationPaths("ticket.write");
 
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "CREATE",
       entityType: "ticket",

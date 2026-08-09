@@ -14,6 +14,8 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,15 @@ import { useReminderStats, useExportStats } from "@/hooks/useQueries";
 import { showToast } from "@/lib/toast";
 import FineManagement from "@/components/FineManagement";
 import { useRouter } from "next/navigation";
+import { commitMutationCache } from "@/lib/query/mutationGateway";
+import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
+import {
+  adminExportActivityMeta,
+  downloadAdminExport,
+  type AdminExportFormat,
+  type AdminExportKind,
+} from "@/lib/utils/adminExportDownload";
+import { queryKeys } from "@/lib/query/keys";
 import {
   AlertTriangle,
   BarChart3,
@@ -120,11 +131,64 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   serverActions,
 }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const [exportBusyKind, setExportBusyKind] = useState<string | null>(null);
 
   // React Query hooks for dynamic stats (updates immediately)
   const { data: reminderStatsData } = useReminderStats(initialReminderStats);
 
   const { data: exportStatsData } = useExportStats(initialExportStats);
+
+  const runAdminExport = async (args: {
+    kind: AdminExportKind;
+    format: AdminExportFormat;
+    startDate?: string;
+    endDate?: string;
+  }) => {
+    const busyKey = `${args.kind}:${args.format}`;
+    setExportBusyKind(busyKey);
+    try {
+      await downloadAdminExport(args);
+      const meta = adminExportActivityMeta(args.kind);
+      const su = session?.user;
+      await commitMutationCache(queryClient, "operations.write", {
+        snapshot: () => undefined,
+        densify: () => {
+          densifyActivityLog(queryClient, {
+            actorId: su?.id ?? null,
+            actorName: su?.name?.trim() || null,
+            actorEmail: su?.email ?? null,
+            actorUniversityCard: null,
+            action: "UPDATE",
+            entityType: meta.entityType,
+            entityId: null,
+            details: {
+              status: meta.status,
+              format: args.format,
+              ...(args.startDate ? { startDate: args.startDate } : {}),
+              ...(args.endDate ? { endDate: args.endDate } : {}),
+            },
+          });
+          queryClient.setQueryData(
+            queryKeys.admin.exportStats,
+            (old: ExportStats | undefined) =>
+              old
+                ? { ...old, lastExportDate: new Date().toISOString() }
+                : old,
+          );
+        },
+      });
+      showToast.success("Export Ready", `Downloaded ${args.kind} ${args.format.toUpperCase()}.`);
+    } catch (error) {
+      showToast.error(
+        "Export Failed",
+        error instanceof Error ? error.message : "Unable to export data.",
+      );
+    } finally {
+      setExportBusyKind(null);
+    }
+  };
 
   // CRITICAL: Always prefer React Query data over initial data
   // React Query data is fresh and updates immediately after mutations
@@ -1254,20 +1318,30 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <form action="/api/admin/export/books" method="POST">
-                      <input type="hidden" name="format" value="csv" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        CSV
-                      </Button>
-                    </form>
-                    <form action="/api/admin/export/books" method="POST">
-                      <input type="hidden" name="format" value="json" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        JSON
-                      </Button>
-                    </form>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "books:csv"}
+                      onClick={() =>
+                        void runAdminExport({ kind: "books", format: "csv" })
+                      }
+                    >
+                      <Download className="size-4" />
+                      CSV
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "books:json"}
+                      onClick={() =>
+                        void runAdminExport({ kind: "books", format: "json" })
+                      }
+                    >
+                      <Download className="size-4" />
+                      JSON
+                    </Button>
                   </div>
                 </div>
 
@@ -1281,20 +1355,30 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <form action="/api/admin/export/users" method="POST">
-                      <input type="hidden" name="format" value="csv" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        CSV
-                      </Button>
-                    </form>
-                    <form action="/api/admin/export/users" method="POST">
-                      <input type="hidden" name="format" value="json" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        JSON
-                      </Button>
-                    </form>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "users:csv"}
+                      onClick={() =>
+                        void runAdminExport({ kind: "users", format: "csv" })
+                      }
+                    >
+                      <Download className="size-4" />
+                      CSV
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "users:json"}
+                      onClick={() =>
+                        void runAdminExport({ kind: "users", format: "json" })
+                      }
+                    >
+                      <Download className="size-4" />
+                      JSON
+                    </Button>
                   </div>
                 </div>
 
@@ -1308,20 +1392,30 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <form action="/api/admin/export/borrows" method="POST">
-                      <input type="hidden" name="format" value="csv" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        CSV
-                      </Button>
-                    </form>
-                    <form action="/api/admin/export/borrows" method="POST">
-                      <input type="hidden" name="format" value="json" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        JSON
-                      </Button>
-                    </form>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "borrows:csv"}
+                      onClick={() =>
+                        void runAdminExport({ kind: "borrows", format: "csv" })
+                      }
+                    >
+                      <Download className="size-4" />
+                      CSV
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "borrows:json"}
+                      onClick={() =>
+                        void runAdminExport({ kind: "borrows", format: "json" })
+                      }
+                    >
+                      <Download className="size-4" />
+                      JSON
+                    </Button>
                   </div>
                 </div>
 
@@ -1335,20 +1429,36 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <form action="/api/admin/export/analytics" method="POST">
-                      <input type="hidden" name="format" value="csv" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        CSV
-                      </Button>
-                    </form>
-                    <form action="/api/admin/export/analytics" method="POST">
-                      <input type="hidden" name="format" value="json" />
-                      <Button type="submit" size="sm" variant="outline">
-                        <Download className="size-4" />
-                        JSON
-                      </Button>
-                    </form>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "analytics:csv"}
+                      onClick={() =>
+                        void runAdminExport({
+                          kind: "analytics",
+                          format: "csv",
+                        })
+                      }
+                    >
+                      <Download className="size-4" />
+                      CSV
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={exportBusyKind === "analytics:json"}
+                      onClick={() =>
+                        void runAdminExport({
+                          kind: "analytics",
+                          format: "json",
+                        })
+                      }
+                    >
+                      <Download className="size-4" />
+                      JSON
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1366,9 +1476,24 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                     Export borrows data for a specific date range
                   </p>
                   <form
-                    action="/api/admin/export/borrows-range"
-                    method="POST"
                     className="mt-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const form = event.currentTarget;
+                      const startDate = (
+                        form.elements.namedItem("startDate") as HTMLInputElement
+                      ).value;
+                      const endDate = (
+                        form.elements.namedItem("endDate") as HTMLInputElement
+                      ).value;
+                      if (!startDate || !endDate) return;
+                      void runAdminExport({
+                        kind: "borrows-range",
+                        format: "csv",
+                        startDate,
+                        endDate,
+                      });
+                    }}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <input
@@ -1387,6 +1512,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                         type="submit"
                         size="sm"
                         className="w-full sm:w-auto"
+                        disabled={exportBusyKind === "borrows-range:csv"}
                       >
                         <Download className="size-4" />
                         Export

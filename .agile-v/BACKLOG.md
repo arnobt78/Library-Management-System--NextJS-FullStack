@@ -161,6 +161,22 @@ Owner approved plan `overview_inactive_titles`. Delivered: Health·Categories·Y
 
 Owner approved plan `featured_hero_densify`. Delivered: `featuredRoot` replace/evict + sibling `isFeatured` clear; inactive forces unfeature; HomeFeaturedHero skips inactive RQ[0]. Public `/all-books` stays invalidate+refetch (no invent). Tip `d8845bc` / HEAD `57333b5` pushed.
 
+## Activity History UI polish (2026-08-09)
+
+Owner approved plan `activity_history_ui_polish`. Delivered: When date/time; Actor PersonAttribution; Entity unlink+Tooltip; Details wrap; `activityLogDisplay` + universityCard join.
+
+## Activity History audit + densify (2026-08-10)
+
+Owner approved plan `activity_audit_densify`. Delivered: missing admin `logActivity` coverage; Entity borrow/admin-request links; `densifyActivityLog` gateway wiring; fine/ops/recs `activityLog` invalidation. Local Prove type/lint/unit PASS.
+
+## Densify softnav harden (2026-08-10)
+
+Owner approved plan `densify_softnav_harden`. Delivered: borrow create/reservation/renewal/registration audit+densify; PrefetchLink staleTime 0 for users/tickets; recs densified-empty featured; REJECTED user/review Entity links. Local Prove PASS.
+
+## Activity History matrix close (2026-08-10)
+
+Owner approved plan `admin_activity_matrix_close`. Delivered: export `logAdminExportActivity` + client blob densify; ops/export/recs Entity → `/admin/automation`; bulk Automation UI deferred. Local Prove type/lint/209 unit PASS.
+
 ## AdminPageShell KPI layout (2026-08-09)
 
 Owner approved plan `admin_kpi_page_shell`. Delivered: `AdminPageShell`; KPIs outside list panels; no top bar; no page-root overflow clip. Tip `bce8637` pushed.

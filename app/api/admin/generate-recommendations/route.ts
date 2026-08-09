@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateAllUserRecommendations } from "@/lib/admin/actions/recommendations";
 import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { logActivity } from "@/lib/admin/activityLog";
 
 export const runtime = "nodejs";
 
@@ -27,12 +28,23 @@ export async function POST(_request: NextRequest) {
     if (!authorization.ok) return authorization.response;
 
     const results = await generateAllUserRecommendations();
-    revalidateMutationPaths("recommendation.write");
     const totalUsers = results.length;
     const totalRecommendations = results.reduce(
       (sum, user) => sum + user.recommendations.length,
       0
     );
+    await logActivity({
+      actorId: authorization.actor.id,
+      action: "UPDATE",
+      entityType: "book",
+      entityId: null,
+      details: {
+        status: "RECOMMENDATIONS_GENERATED",
+        count: totalRecommendations,
+        users: totalUsers,
+      },
+    });
+    revalidateMutationPaths("recommendation.write");
 
     return NextResponse.json({
       success: true,

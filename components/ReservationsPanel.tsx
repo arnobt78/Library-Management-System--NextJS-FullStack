@@ -19,6 +19,7 @@ import {
   patchBorrowCachesOnCreate,
   snapshotBorrowCacheBaselines,
 } from "@/lib/utils/patchBorrowCaches";
+import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 import type { UserReservationItem } from "@/lib/services/reservations";
 import { showToast } from "@/lib/toast";
 import { BookOpen, X } from "lucide-react";
@@ -135,6 +136,17 @@ export default function ReservationsPanel({
                 borrowBaselines,
               );
             }
+            densifyActivityLog(queryClient, {
+              actorId: userId ?? null,
+              action: "UPDATE",
+              entityType: "reservation",
+              entityId: id,
+              details: {
+                status: nextStatus,
+                ...(resolvedBookId ? { bookId: resolvedBookId } : {}),
+                ...(userId ? { userId } : {}),
+              },
+            });
           },
         });
         showToast.success(

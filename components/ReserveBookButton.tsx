@@ -13,6 +13,7 @@ import {
   densifyReservationCreate,
   snapshotReservationBaselines,
 } from "@/lib/utils/patchReservationCaches";
+import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 import { showToast } from "@/lib/toast";
 
 export default function ReserveBookButton({ bookId }: { bookId: string }) {
@@ -55,6 +56,20 @@ export default function ReserveBookButton({ bookId }: { bookId: string }) {
                 },
                 snap ?? undefined,
               );
+              densifyActivityLog(queryClient, {
+                actorId: userId ?? null,
+                actorName: (session?.user as SessionUser | undefined)?.name ?? null,
+                actorEmail: (session?.user as SessionUser | undefined)?.email ?? null,
+                action: "CREATE",
+                entityType: "reservation",
+                entityId: result.data.id,
+                details: {
+                  status: "WAITING",
+                  bookId: result.data.bookId ?? bookId,
+                  userId: userId ?? null,
+                  title: bookTitle,
+                },
+              });
             },
           });
           showToast.success("Reserved", "You joined the waitlist for this book.");

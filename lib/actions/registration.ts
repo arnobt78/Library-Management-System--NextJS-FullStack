@@ -13,6 +13,7 @@ import {
   requireSignedInActor,
 } from "@/lib/auth/authorization";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { logActivity } from "@/lib/admin/activityLog";
 
 /**
  * Rejected applicants can request librarian review again.
@@ -67,6 +68,13 @@ export async function requestRegistrationReview(): Promise<{
       return { success: false, error: "Failed to update registration status" };
     }
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "user",
+      entityId: actor.id,
+      details: { status: "PENDING" },
+    });
     revalidateMutationPaths("user.write");
     return { success: true };
   } catch (error) {

@@ -37,6 +37,7 @@ import {
   revokeLatestApprovedAdminRequest,
   settlePendingOrInsertApprovedAdminRequest,
 } from "@/lib/admin/adminPrivilegeLedger";
+import { logActivity } from "@/lib/admin/activityLog";
 
 type BulkBookUpdates = Pick<typeof books.$inferInsert, "isActive">;
 type BulkUserUpdates = Pick<typeof users.$inferInsert, "role" | "status">;
@@ -61,6 +62,19 @@ export async function bulkUpdateBooks(
       })
       .where(inArray(books.id, safeBookIds));
 
+    // One summary audit row so bulk ops do not wipe the FIFO-50 feed.
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "book",
+      entityId: null,
+      details: {
+        count: safeBookIds.length,
+        ...(typeof updates.isActive === "boolean"
+          ? { status: updates.isActive ? "ACTIVE" : "INACTIVE" }
+          : {}),
+      },
+    });
     revalidateMutationPaths("book.write");
     return {
       success: true,
@@ -84,7 +98,7 @@ export async function bulkDeleteBooks(
   deleteSecret: string
 ) {
   try {
-    await requireAdminActor();
+    const actor = await requireAdminActor();
     if (bookIds.length === 0) {
       return { success: false, message: "No books selected" };
     }
@@ -160,6 +174,13 @@ export async function bulkDeleteBooks(
       };
     }
 
+    await logActivity({
+      actorId: actor.id,
+      action: "DELETE",
+      entityType: "book",
+      entityId: safeBookIds.length === 1 ? safeBookIds[0] : null,
+      details: { count: safeBookIds.length },
+    });
     revalidateMutationPaths("book.write");
     return {
       success: true,
@@ -309,6 +330,13 @@ export async function bulkApproveUsers(userIds: string[]) {
       );
     }
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "user",
+      entityId: null,
+      details: { status: "APPROVED", count: eligibleIds.length },
+    });
     revalidateMutationPaths("user.write");
 
     const toNotify = eligible.filter((u) => u.status !== "APPROVED");
@@ -392,6 +420,13 @@ export async function bulkRejectUsers(userIds: string[]) {
       );
     }
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "user",
+      entityId: null,
+      details: { status: "REJECTED", count: eligibleIds.length },
+    });
     revalidateMutationPaths("user.write");
 
     const toNotify = eligible.filter((u) => u.status !== "REJECTED");
@@ -478,6 +513,13 @@ export async function bulkMakeAdminUsers(userIds: string[]) {
       }
     });
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "admin-request",
+      entityId: null,
+      details: { status: "APPROVED", role: "ADMIN", count: eligible.length },
+    });
     revalidateMutationPaths("admin-request.write");
     return {
       success: true,
@@ -544,6 +586,13 @@ export async function bulkRemoveAdminUsers(userIds: string[]) {
       }
     });
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "admin-request",
+      entityId: null,
+      details: { status: "REVOKED", role: "USER", count: eligible.length },
+    });
     revalidateMutationPaths("admin-request.write");
     return {
       success: true,
@@ -570,6 +619,13 @@ export async function bulkApproveBorrowRequests(recordIds: string[]) {
       return { success: false, message: result.error };
     }
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "borrow",
+      entityId: null,
+      details: { status: "BORROWED", count: safeRecordIds.length },
+    });
     revalidateMutationPaths("borrow.lifecycle");
     return {
       success: true,
@@ -595,6 +651,13 @@ export async function bulkRejectBorrowRequests(recordIds: string[]) {
       return { success: false, message: result.error };
     }
 
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "borrow",
+      entityId: null,
+      details: { status: "CANCELLED", count: safeRecordIds.length },
+    });
     revalidateMutationPaths("borrow.lifecycle");
     return {
       success: true,

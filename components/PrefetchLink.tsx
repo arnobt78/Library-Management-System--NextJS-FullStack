@@ -111,10 +111,12 @@ export default function PrefetchLink({
         });
         break;
       case "admin-users":
+        // staleTime 0 — after user/admin-request densify, hover prefetch must
+        // not reuse a 30s-fresh pre-mutation All Users list.
         void queryClient.prefetchQuery({
           queryKey: queryKeys.users.adminList({}),
           queryFn: () => getUsersList({}),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         break;
       case "admin-book-requests":
@@ -138,10 +140,11 @@ export default function PrefetchLink({
         });
         break;
       case "admin-account-requests":
+        // staleTime 0 — signup approve/reject densify must win over warm cache.
         void queryClient.prefetchQuery({
           queryKey: queryKeys.users.pending(),
           queryFn: () => getPendingUsers(),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         break;
       case "admin-dashboard":
@@ -153,17 +156,18 @@ export default function PrefetchLink({
         });
         break;
       case "admin-tickets":
+        // staleTime 0 — ticket.write densify must win over warm queue cache.
         void queryClient.prefetchQuery({
           queryKey: queryKeys.tickets.adminList({}),
           queryFn: () => getAdminSupportTickets({}),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         break;
       case "user-tickets":
         void queryClient.prefetchQuery({
           queryKey: queryKeys.tickets.userRoot,
           queryFn: () => getUserSupportTickets({}),
-          staleTime: 30_000,
+          staleTime: 0,
         });
         break;
       case "my-profile":

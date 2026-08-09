@@ -207,7 +207,7 @@ export async function PUT(
 
     revalidateMutationPaths("ticket.write");
 
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "UPDATE",
       entityType: "ticket",
@@ -322,7 +322,7 @@ export async function DELETE(
     await db.delete(supportTickets).where(eq(supportTickets.id, id));
 
     revalidateMutationPaths("ticket.write");
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "DELETE",
       entityType: "ticket",

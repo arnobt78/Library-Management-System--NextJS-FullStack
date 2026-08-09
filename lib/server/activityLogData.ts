@@ -19,6 +19,8 @@ export interface ActivityLogRow {
   actorId: string | null;
   actorName: string | null;
   actorEmail: string | null;
+  /** University card / Robohash seed for PersonAttribution avatar */
+  actorUniversityCard: string | null;
   action: string;
   entityType: string;
   entityId: string | null;
@@ -76,6 +78,7 @@ export async function getActivityLogs(
       actorId: activityLogs.actorId,
       actorName: users.fullName,
       actorEmail: users.email,
+      actorUniversityCard: users.universityCard,
       action: activityLogs.action,
       entityType: activityLogs.entityType,
       entityId: activityLogs.entityId,

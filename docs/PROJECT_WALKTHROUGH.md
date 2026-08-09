@@ -35,6 +35,7 @@ Browser
 - Fine/ops/recs densify required (config + reminder sentToday + evict featured/recs); analytics charts use `evictAnalyticsCaches` (no invent series); insights `initialDataUpdatedAt: 0` on visit. PrefetchLink catalog/dashboard `staleTime: 0`. Book delete strips recommendations + borrowStats. Tip `4e4bd5f`.
 - Tip `d8845bc`: lendable KPIs; Inactive mid panel; books-nav; Top Rated rating↓/A-Z; featured densify.
 - Tip `bce8637`: `AdminPageShell` (header → StatCardGrid → panel); no KPI top bar; no page-root overflow clip.
+- Activity History: admin-visible lifecycle audit (borrow create, reservation/renewal, registration re-apply, Automation exports) + Entity routes (ops/export/recs → `/admin/automation`); PrefetchLink staleTime 0; recs densify blocks SSR featured reseed.
 
 ## Admin Stockly chrome (2026-08-07)
 

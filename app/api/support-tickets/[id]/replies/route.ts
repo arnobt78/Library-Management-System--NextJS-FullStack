@@ -136,7 +136,7 @@ export async function POST(
     // Reply mutates the ticket thread — audit as UPDATE so Activity History
     // shows it like create/update/delete. `ticket.write` already invalidates
     // activityLog on the client (no registry change needed).
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "UPDATE",
       entityType: "ticket",

@@ -85,6 +85,7 @@ import {
   patchBorrowCachesOnRenewal,
   snapshotBorrowListBaselines,
 } from "@/lib/utils/patchBorrowCaches";
+import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 import { showToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/query/keys";
 import { computeBorrowStats } from "@/lib/profile/borrowStats";
@@ -1025,6 +1026,19 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   },
                   baselines,
                 );
+                densifyActivityLog(queryClient, {
+                  actorId: userId,
+                  action: "UPDATE",
+                  entityType: "borrow",
+                  entityId: record.id,
+                  details: {
+                    status: "RENEWED",
+                    bookId: record.bookId,
+                    userId,
+                    title: record.book.title,
+                    dueDate: result.data.dueDate,
+                  },
+                });
               },
             });
             showToast.book.renewSuccess(record.book.title, result.data.dueDate);

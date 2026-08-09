@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/authorization";
 import { parseEntityId } from "@/lib/actionInputs";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { logActivity } from "@/lib/admin/activityLog";
 
 /**
  * Parameters for borrowing a book
@@ -66,7 +67,10 @@ export const borrowBook = async (
       // Locking the book serializes requests for the same title, preventing two
       // concurrent requests by one user from both passing the duplicate check.
       const [book] = await tx
-        .select({ availableCopies: books.availableCopies })
+        .select({
+          availableCopies: books.availableCopies,
+          title: books.title,
+        })
         .from(books)
         .where(and(eq(books.id, bookId), eq(books.isActive, true)))
         .limit(1)
@@ -109,10 +113,30 @@ export const borrowBook = async (
         })
         .returning();
 
-      return { success: true as const, data: [record] };
+      return {
+        success: true as const,
+        data: [record],
+        bookTitle: book.title,
+      };
     });
 
-    if (result.success) revalidateMutationPaths("borrow.lifecycle");
+    if (result.success) {
+      const recordId = result.data[0]?.id ?? null;
+      await logActivity({
+        actorId: actor.id,
+        action: "CREATE",
+        entityType: "borrow",
+        entityId: recordId,
+        details: {
+          status: "PENDING",
+          userId: actor.id,
+          ...(result.bookTitle ? { title: result.bookTitle } : {}),
+        },
+      });
+      revalidateMutationPaths("borrow.lifecycle");
+      // Strip audit-only bookTitle from the client response contract.
+      return { success: true as const, data: result.data };
+    }
     return result;
   } catch (error: unknown) {
     console.error("Failed to borrow book", error);

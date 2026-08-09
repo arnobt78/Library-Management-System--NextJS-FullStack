@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) AdminPageShell shipped; tip/HEAD `bce8637`; nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) Activity History matrix close (exports+ops Entity); nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - tip `bce8637` on `main`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - Activity History audit/densify + export coverage on `main` working tree; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `bce8637` (AdminPageShell + KPI no top bar)
+- Latest implementation tip: `bce8637` (AdminPageShell; Activity matrix close pending commit)
 - Latest HEAD: `bce8637`
 - Started: 2026-08-01
-- Last updated: 2026-08-09 (tip-bind `bce8637`)
+- Last updated: 2026-08-10 (Activity matrix close: exports + ops Entity)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,54 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline (resume reconcile)
+
+## Reconciliation snapshot (2026-08-10, Activity History matrix close)
+
+Verified facts:
+- Admin export routes: `await logAdminExportActivity` + `revalidateMutationPaths("operations.write")`; Automation client fetch→blob + `densifyActivityLog` (no HTML form POST).
+- Entity: ops/export/recs summary statuses (`EXPORT_*`, `RECOMMENDATIONS_*`, `TRENDING_*`, `FINE_*`, `*_REMINDERS`) → `/admin/automation`.
+- Bulk Automation UI still deferred (Coming Soon); server bulk already logs.
+- Local Prove: typecheck + lint + activityLogDisplay/adminExportDownload unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** smoke Automation CSV/JSON export → Activity History row + Entity link; commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-10, Densify + Activity History harden)
+
+Verified facts:
+- Lifecycle audit: borrow CREATE, reservation create/cancel/fulfill, renewal, registration re-apply — server `await logActivity` + client `densifyActivityLog`.
+- Registry: `reservation.lifecycle` / `renewal.write` include `activityLog` + RSC `/admin/activity-history`.
+- Entity: REJECTED user/review linkable; reservation → `/admin/books/{bookId}/edit`.
+- PrefetchLink users/pending/tickets `staleTime: 0`; recommendation densify marks featured densified-empty (blocks SSR reseed flash).
+- Local Prove: typecheck + lint + unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** superseded by Activity History matrix close snapshot.
+
+## Reconciliation snapshot (2026-08-10, Activity History audit + densify)
+
+Verified facts:
+- Missing `logActivity` gaps closed: returnBook, delete/bulk, admin-request create/cancel/demote, bulk summaries, fine/ops/recs APIs.
+- Entity routes: borrow → `/admin/book-requests`; admin-request → `/admin/users/{userId}`; CANCELLED/REJECTED still linkable for those types.
+- `patchActivityCaches` / `densifyActivityLog` wired into admin mutation densify; fine/ops/recs registry includes `activityLog` + RSC `/admin/activity-history`.
+- Follow-up harden: cold-seed default `7days` key; `await logActivity` before revalidate; promote logs as `admin-request`+`userId`; overdue densify `FINE_FORCE_UPDATE`.
+- Local Prove: typecheck + lint + activity/invalidation unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** superseded by densify softnav harden snapshot.
+
+## Reconciliation snapshot (2026-08-09, Activity History UI polish)
+
+Verified facts:
+- When date/time stack; Actor PersonAttribution + universityCard join; Entity DELETE/status unlink + Tooltip; Details wrap text-xs.
+- Helpers in `lib/ui/activityLogDisplay.ts` + unit tests.
+
+### Next Action
+
+**Human-Decision:** superseded by 2026-08-10 audit densify snapshot.
 
 ## Reconciliation snapshot (2026-08-09, AdminPageShell KPI layout)
 

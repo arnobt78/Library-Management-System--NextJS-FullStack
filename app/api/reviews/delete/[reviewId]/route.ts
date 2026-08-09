@@ -79,7 +79,7 @@ export async function DELETE(
     revalidateMutationPaths("review.write");
 
     if (actor.role === "ADMIN") {
-      void logActivity({
+      await logActivity({
         actorId: actor.id,
         action: "DELETE",
         entityType: "review",

@@ -2,7 +2,10 @@
 
 /**
  * ActivityLogSection — admin Activity History table (KPI row + period/search
- * toolbar + sortable TanStack table). Parent: CR-0003 / REQ-0034
+ * toolbar + sortable TanStack table).
+ * Columns: When (date/time stack), Actor (PersonAttribution), Action badge,
+ * Entity (sky link or tooltip when unavailable), Details (full wrap text-xs).
+ * Parent: CR-0003 / REQ-0034
  */
 
 import { useMemo, useState } from "react";
@@ -26,41 +29,33 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import { AuditActionBadge } from "@/lib/ui/semanticBadges";
-import { PersonNameEmailCell } from "@/components/ui/PersonNameEmailCell";
+import PersonAttribution from "@/components/PersonAttribution";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import {
   TABLE_CELL_STATIC,
   TABLE_CELL_TITLE,
 } from "@/lib/ui/tableCellStyles";
+import {
+  activityEntityHref,
+  activityEntityUnavailableReason,
+  formatActivityDetails,
+  formatActivityEntityLabel,
+  isActivityEntityLinkable,
+} from "@/lib/ui/activityLogDisplay";
 import { cn } from "@/lib/utils";
 import { periodFilterOptions } from "@/lib/ui/periodFilterOptions";
 
 const PERIOD_OPTIONS = periodFilterOptions("light");
-
-/** Books/users use their existing pages as the "detail" surface (no dedicated route). */
-const ENTITY_DETAIL_ROUTE: Record<string, (id: string) => string> = {
-  book: (id) => `/admin/books/${id}/edit`,
-  user: (id) => `/admin/users/${id}`,
-  ticket: (id) => `/admin/support-tickets/${id}`,
-  review: (id) => `/admin/book-reviews/${id}`,
-};
-
-function formatEntityLabel(entityType: string): string {
-  return entityType.charAt(0).toUpperCase() + entityType.slice(1).replace(/-/g, " ");
-}
-
-function summarizeDetails(details: Record<string, unknown> | null): string {
-  if (!details) return "—";
-  const preferred =
-    details.title ?? details.name ?? details.subject ?? details.email ?? details.status;
-  if (typeof preferred === "string") return preferred;
-  const keys = Object.keys(details);
-  return keys.length > 0 ? `${keys.length} field${keys.length > 1 ? "s" : ""} changed` : "—";
-}
 
 export default function ActivityLogSection({
   initialLogs,
@@ -91,6 +86,7 @@ export default function ActivityLogSection({
         log.action,
         log.entityType,
         log.entityId ?? "",
+        formatActivityDetails(log.details),
       ]
         .join(" ")
         .toLowerCase();
@@ -140,25 +136,61 @@ export default function ActivityLogSection({
     () => [
       {
         accessorKey: "createdAt",
-        header: ({ column }) => <SortableHeader column={column}>When</SortableHeader>,
-        cell: ({ row }) => (
-          <span className="whitespace-nowrap text-sm text-gray-600">
-            {new Date(row.original.createdAt).toLocaleString("en-US", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-          </span>
+        header: ({ column }) => (
+          <SortableHeader column={column}>When</SortableHeader>
         ),
+        cell: ({ row }) => {
+          const at = new Date(row.original.createdAt);
+          return (
+            <div className="flex flex-col whitespace-nowrap leading-tight">
+              <span className="text-sm text-gray-700">
+                {at.toLocaleDateString("en-US", { dateStyle: "medium" })}
+              </span>
+              <span className="text-xs text-gray-500">
+                {at.toLocaleTimeString("en-US", { timeStyle: "short" })}
+              </span>
+            </div>
+          );
+        },
       },
       {
         accessorKey: "actorName",
-        header: ({ column }) => <SortableHeader column={column}>Actor</SortableHeader>,
-        cell: ({ row }) => (
-          <PersonNameEmailCell
-            name={row.original.actorName ?? "System"}
-            email={row.original.actorEmail}
-          />
+        header: ({ column }) => (
+          <SortableHeader column={column}>Actor</SortableHeader>
         ),
+        cell: ({ row }) => {
+          const {
+            actorId,
+            actorName,
+            actorEmail,
+            actorUniversityCard,
+          } = row.original;
+          if (!actorId) {
+            return (
+              <PersonAttribution
+                layout="stack"
+                size={36}
+                emptyLabel="System"
+                person={null}
+              />
+            );
+          }
+          return (
+            <div className="min-w-0 max-w-56">
+              <PersonAttribution
+                layout="stack"
+                size={36}
+                href={`/admin/users/${actorId}`}
+                person={{
+                  id: actorId,
+                  fullName: actorName ?? "Admin",
+                  email: actorEmail ?? "",
+                  universityCard: actorUniversityCard,
+                }}
+              />
+            </div>
+          );
+        },
       },
       {
         accessorKey: "action",
@@ -171,21 +203,55 @@ export default function ActivityLogSection({
       },
       {
         accessorKey: "entityType",
-        header: ({ column }) => <SortableHeader column={column}>Entity</SortableHeader>,
+        header: ({ column }) => (
+          <SortableHeader column={column}>Entity</SortableHeader>
+        ),
         cell: ({ row }) => {
-          const { entityType, entityId } = row.original;
-          const label = formatEntityLabel(entityType);
-          const href = entityId ? ENTITY_DETAIL_ROUTE[entityType]?.(entityId) : undefined;
-          return href ? (
-            <Link
-              href={href}
-              prefetch={false}
-              className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
-            >
-              {label}
-            </Link>
-          ) : (
-            <span className={TABLE_CELL_STATIC}>{label}</span>
+          const { action, entityType, entityId, details } = row.original;
+          const label = formatActivityEntityLabel(entityType);
+          const linkable = isActivityEntityLinkable({
+            action,
+            entityType,
+            entityId,
+            details,
+          });
+          const href = activityEntityHref(entityType, entityId, details);
+
+          if (linkable && href) {
+            return (
+              <Link
+                href={href}
+                prefetch={false}
+                className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
+              >
+                {label}
+              </Link>
+            );
+          }
+
+          const reason = activityEntityUnavailableReason({
+            action,
+            entityType,
+            entityId,
+            details,
+          });
+
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className={cn(
+                    TABLE_CELL_STATIC,
+                    "cursor-default underline decoration-dotted decoration-gray-300 underline-offset-2",
+                  )}
+                >
+                  {label}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                {reason}
+              </TooltipContent>
+            </Tooltip>
           );
         },
       },
@@ -193,8 +259,8 @@ export default function ActivityLogSection({
         id: "details",
         header: "Details",
         cell: ({ row }) => (
-          <span className="block max-w-xs truncate text-sm text-gray-500">
-            {summarizeDetails(row.original.details)}
+          <span className="block min-w-32 max-w-md whitespace-pre-wrap break-words text-xs text-gray-600">
+            {formatActivityDetails(row.original.details)}
           </span>
         ),
       },
@@ -213,10 +279,30 @@ export default function ActivityLogSection({
       }
       kpis={
         <StatCardGrid>
-          <StatCard title="Total Activity" value={stats.total} icon={History} hue="blue" />
-          <StatCard title="Created" value={stats.created} icon={FilePlus} hue="emerald" />
-          <StatCard title="Updated" value={stats.updated} icon={FilePen} hue="amber" />
-          <StatCard title="Deleted" value={stats.deleted} icon={Trash2} hue="rose" />
+          <StatCard
+            title="Total Activity"
+            value={stats.total}
+            icon={History}
+            hue="blue"
+          />
+          <StatCard
+            title="Created"
+            value={stats.created}
+            icon={FilePlus}
+            hue="emerald"
+          />
+          <StatCard
+            title="Updated"
+            value={stats.updated}
+            icon={FilePen}
+            hue="amber"
+          />
+          <StatCard
+            title="Deleted"
+            value={stats.deleted}
+            icon={Trash2}
+            hue="rose"
+          />
         </StatCardGrid>
       }
     >
@@ -245,26 +331,30 @@ export default function ActivityLogSection({
             labelLayout="embedded"
             className="sm:min-w-[170px]"
             value={period}
-            onValueChange={(value) => setPeriod(value as ActivityLogFilters["period"])}
+            onValueChange={(value) =>
+              setPeriod(value as ActivityLogFilters["period"])
+            }
             options={PERIOD_OPTIONS}
           />
         </AdminListToolbar>
 
-        <DataTable
-          columns={columns}
-          data={logs}
-          isLoading={isPending && logs.length === 0}
-          emptyMessage={
-            <AdminFilterEmptyState
-              entityLabel="activity"
-              filtered={hasDisplayFilters}
-              onClear={handleResetFilters}
-              blankMessage="No activity recorded for this period."
-              className="py-4 sm:py-6"
-            />
-          }
-          initialPageSize={10}
-        />
+        <TooltipProvider delayDuration={200}>
+          <DataTable
+            columns={columns}
+            data={logs}
+            isLoading={isPending && logs.length === 0}
+            emptyMessage={
+              <AdminFilterEmptyState
+                entityLabel="activity"
+                filtered={hasDisplayFilters}
+                onClear={handleResetFilters}
+                blankMessage="No activity recorded for this period."
+                className="py-4 sm:py-6"
+              />
+            }
+            initialPageSize={10}
+          />
+        </TooltipProvider>
       </div>
     </AdminPageShell>
   );

@@ -90,14 +90,15 @@ export const updateUserRole = async (
       });
     });
 
-    revalidateMutationPaths("admin-request.write");
-    void logActivity({
+    // Persist audit row before RSC revalidate so Activity History refetch cannot race.
+    await logActivity({
       actorId: actor.id,
       action: "UPDATE",
-      entityType: "user",
-      entityId: safeUserId,
-      details: { role: "ADMIN" },
+      entityType: "admin-request",
+      entityId: ledgerRequestId,
+      details: { role: "ADMIN", status: "APPROVED", userId: safeUserId },
     });
+    revalidateMutationPaths("admin-request.write");
 
     const target = existing[0];
     after(async () => {
@@ -213,14 +214,14 @@ export const updateUserStatus = async (
     });
 
 
-    revalidateMutationPaths("user.write");
-    void logActivity({
+    await logActivity({
       actorId: actor.id,
       action: "UPDATE",
       entityType: "user",
       entityId: safeUserId,
       details: { status },
     });
+    revalidateMutationPaths("user.write");
 
     // Notify on APPROVED/REJECTED transitions only (not PENDING, not no-ops).
     if (

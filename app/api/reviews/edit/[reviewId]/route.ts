@@ -132,7 +132,7 @@ export async function PUT(
 
       revalidateMutationPaths("review.write");
 
-      void logActivity({
+      await logActivity({
         actorId: actor.id,
         action: "UPDATE",
         entityType: "review",
@@ -235,7 +235,7 @@ export async function PUT(
     revalidateMutationPaths("review.write");
 
     if (reentersModeration) {
-      void logActivity({
+      await logActivity({
         actorId: actor.id,
         action: "UPDATE",
         entityType: "review",

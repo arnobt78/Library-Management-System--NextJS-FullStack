@@ -34,6 +34,23 @@ import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { scheduleReservationOutboxDelivery } from "@/lib/circulation/scheduleOutbox";
 import { logActivity } from "@/lib/admin/activityLog";
 
+/** Cheap join for activity-log details (userId + title) after lifecycle writes. */
+async function borrowActivityDetails(recordId: string): Promise<{
+  userId: string;
+  title: string;
+} | null> {
+  const [row] = await db
+    .select({
+      userId: borrowRecords.userId,
+      title: books.title,
+    })
+    .from(borrowRecords)
+    .innerJoin(books, eq(borrowRecords.bookId, books.id))
+    .where(eq(borrowRecords.id, recordId))
+    .limit(1);
+  return row ?? null;
+}
+
 /**
  * Fetch all borrow requests with user and book details
  * 
@@ -100,14 +117,20 @@ export const updateBorrowStatus = async (
     if (status === "BORROWED") {
       const result = await approveBorrowRecord(safeRecordId, actor);
       if (result.success) {
-        revalidateMutationPaths("borrow.lifecycle");
-        void logActivity({
+        const meta = await borrowActivityDetails(safeRecordId);
+        // Await audit insert before RSC revalidate — avoids Activity History race.
+        await logActivity({
           actorId: actor.id,
           action: "UPDATE",
           entityType: "borrow",
           entityId: safeRecordId,
-          details: { status: "BORROWED" },
+          details: {
+            status: "BORROWED",
+            ...(meta?.userId ? { userId: meta.userId } : {}),
+            ...(meta?.title ? { title: meta.title } : {}),
+          },
         });
+        revalidateMutationPaths("borrow.lifecycle");
       }
       return result;
     }
@@ -120,14 +143,19 @@ export const updateBorrowStatus = async (
       );
       if (result.success) {
         scheduleReservationOutboxDelivery();
-        revalidateMutationPaths("borrow.lifecycle");
-        void logActivity({
+        const meta = await borrowActivityDetails(safeRecordId);
+        await logActivity({
           actorId: actor.id,
           action: "UPDATE",
           entityType: "borrow",
           entityId: safeRecordId,
-          details: { status: "RETURNED" },
+          details: {
+            status: "RETURNED",
+            ...(meta?.userId ? { userId: meta.userId } : {}),
+            ...(meta?.title ? { title: meta.title } : {}),
+          },
         });
+        revalidateMutationPaths("borrow.lifecycle");
       }
       return result;
     }
@@ -170,14 +198,19 @@ export const approveBorrowRequest = async (recordId: string) => {
     const safeRecordId = parseEntityId(recordId);
     const result = await approveBorrowRecord(safeRecordId, actor);
     if (result.success) {
-      revalidateMutationPaths("borrow.lifecycle");
-      void logActivity({
+      const meta = await borrowActivityDetails(safeRecordId);
+      await logActivity({
         actorId: actor.id,
         action: "UPDATE",
         entityType: "borrow",
         entityId: safeRecordId,
-        details: { status: "BORROWED" },
+        details: {
+          status: "BORROWED",
+          ...(meta?.userId ? { userId: meta.userId } : {}),
+          ...(meta?.title ? { title: meta.title } : {}),
+        },
       });
+      revalidateMutationPaths("borrow.lifecycle");
     }
     return result;
   } catch (error) {
@@ -195,14 +228,19 @@ export const rejectBorrowRequest = async (recordId: string) => {
     const safeRecordId = parseEntityId(recordId);
     const result = await rejectBorrowRecord(safeRecordId, actor.email);
     if (result.success) {
-      revalidateMutationPaths("borrow.lifecycle");
-      void logActivity({
+      const meta = await borrowActivityDetails(safeRecordId);
+      await logActivity({
         actorId: actor.id,
         action: "UPDATE",
         entityType: "borrow",
         entityId: safeRecordId,
-        details: { status: "CANCELLED" },
+        details: {
+          status: "CANCELLED",
+          ...(meta?.userId ? { userId: meta.userId } : {}),
+          ...(meta?.title ? { title: meta.title } : {}),
+        },
       });
+      revalidateMutationPaths("borrow.lifecycle");
     }
     return result;
   } catch (error) {
@@ -311,6 +349,13 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
     }
     return results;
   });
+  await logActivity({
+    actorId: actor.id,
+    action: "UPDATE",
+    entityType: "borrow",
+    entityId: null,
+    details: { status: "FINE_UPDATE", count: result.length },
+  });
   revalidateMutationPaths("fine.write");
   return result;
 };
@@ -391,6 +436,13 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
     }
     return results;
   });
+  await logActivity({
+    actorId: actor.id,
+    action: "UPDATE",
+    entityType: "borrow",
+    entityId: null,
+    details: { status: "FINE_FORCE_UPDATE", count: result.length },
+  });
   revalidateMutationPaths("fine.write");
   return result;
 };
@@ -398,14 +450,27 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
 export const returnBook = async (recordId: string) => {
   try {
     const actor = await requireAuthenticatedActor();
+    const safeRecordId = parseEntityId(recordId);
     const { getDailyFineAmount } = await import("./config");
     const result = await returnBorrowRecord(
-      parseEntityId(recordId),
+      safeRecordId,
       actor,
       await getDailyFineAmount()
     );
     if (result.success) {
       scheduleReservationOutboxDelivery();
+      const meta = await borrowActivityDetails(safeRecordId);
+      await logActivity({
+        actorId: actor.id,
+        action: "UPDATE",
+        entityType: "borrow",
+        entityId: safeRecordId,
+        details: {
+          status: "RETURNED",
+          ...(meta?.userId ? { userId: meta.userId } : {}),
+          ...(meta?.title ? { title: meta.title } : {}),
+        },
+      });
       revalidateMutationPaths("borrow.lifecycle");
     }
     return result;
