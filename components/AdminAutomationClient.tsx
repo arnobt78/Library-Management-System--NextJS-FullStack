@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 
 // Types for reminder and export stats
 interface ReminderStats {
@@ -262,7 +263,51 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   };
 
   return (
-    <div className="w-full max-w-full space-y-6 overflow-x-hidden">
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title="Automation"
+          description="Reminders, bulk jobs, and data export"
+          icon={Wand2}
+        />
+      }
+      kpis={
+        <StatCardGrid>
+          <StatCard
+            title="Due Soon"
+            value={reminderStats?.dueSoon || 0}
+            icon={Clock}
+            hue="blue"
+            badges={[{ label: "due in 2 days", hue: "blue" }]}
+          />
+          <StatCard
+            title="Overdue"
+            value={reminderStats?.overdue || 0}
+            icon={AlertTriangle}
+            hue="rose"
+            badges={[{ label: "past due date", hue: "rose" }]}
+          />
+          <StatCard
+            title="Reminders Sent"
+            value={reminderStats?.remindersSentToday || 0}
+            icon={Send}
+            hue="emerald"
+            badges={[{ label: "today", hue: "emerald" }]}
+          />
+          <StatCard
+            title="Total Records"
+            value={
+              (exportStats?.totalBooks || 0) +
+              (exportStats?.totalUsers || 0) +
+              (exportStats?.totalBorrows || 0)
+            }
+            icon={BarChart3}
+            hue="violet"
+            badges={[{ label: "books + users + borrows", hue: "violet" }]}
+          />
+        </StatCardGrid>
+      }
+    >
       {/* Success/Error Messages - Keep all existing messages */}
       {params.success === "due-soon-sent" && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
@@ -617,49 +662,6 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       {/* Continue with all other coming-soon messages... */}
       {/* For brevity, I'll include a comment indicating all messages are preserved */}
       {/* All other success/error/coming-soon messages from the original file are preserved here */}
-
-      {/* Page Header */}
-      <AdminPageHeader
-        title="Automation"
-        description="Reminders, bulk jobs, and data export"
-        icon={Wand2}
-      />
-
-      {/* Automation Overview Cards — shared StatCard grid (Wave 4 rollout) */}
-      <StatCardGrid>
-        <StatCard
-          title="Due Soon"
-          value={reminderStats?.dueSoon || 0}
-          icon={Clock}
-          hue="blue"
-          badges={[{ label: "due in 2 days", hue: "blue" }]}
-        />
-        <StatCard
-          title="Overdue"
-          value={reminderStats?.overdue || 0}
-          icon={AlertTriangle}
-          hue="rose"
-          badges={[{ label: "past due date", hue: "rose" }]}
-        />
-        <StatCard
-          title="Reminders Sent"
-          value={reminderStats?.remindersSentToday || 0}
-          icon={Send}
-          hue="emerald"
-          badges={[{ label: "today", hue: "emerald" }]}
-        />
-        <StatCard
-          title="Total Records"
-          value={
-            (exportStats?.totalBooks || 0) +
-            (exportStats?.totalUsers || 0) +
-            (exportStats?.totalBorrows || 0)
-          }
-          icon={BarChart3}
-          hue="violet"
-          badges={[{ label: "books + users + borrows", hue: "violet" }]}
-        />
-      </StatCardGrid>
 
       {/* Auto-Reminders Section */}
       <Card>
@@ -1408,7 +1410,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 };
 

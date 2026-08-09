@@ -628,7 +628,7 @@ html body[data-scroll-locked] {
   /*
    * KPI StatCard — admin light-theme dashboard rows (Parent: CR-0003 / REQ-0034).
    * Base is a white card matching .admin-panel; hue modifiers tint the icon tile
-   * and the top accent bar only, keeping every card readable on white.
+   * only (no top bar); shadow/hover provide depth.
    */
   /*
    * Canonical card padding (admin + root glass) — keep in sync with
@@ -638,14 +638,12 @@ html body[data-scroll-locked] {
     @apply p-2 sm:p-4;
   }
 
-  /* Borderless shell + hue top stroke; keep in sync with admin panel depth */
+  /*
+   * Borderless shell — accent via hue icon + badges only (no top bar).
+   * Shadow + hover depth kept in sync with admin panel cards.
+   */
   .kpi-card {
     @apply relative flex items-center gap-3 overflow-hidden rounded-xl bg-white p-2 shadow-md transition-shadow duration-200 hover:shadow-lg sm:p-4;
-  }
-
-  .kpi-card::before {
-    content: "";
-    @apply absolute inset-x-0 top-0 h-1 bg-gray-300;
   }
 
   .kpi-card__icon {
@@ -660,44 +658,26 @@ html body[data-scroll-locked] {
     @apply text-xs font-medium text-light-500 sm:text-sm;
   }
 
-  .kpi-card--blue::before {
-    @apply bg-blue-500;
-  }
   .kpi-card--blue .kpi-card__icon {
     @apply bg-blue-50 text-blue-600;
   }
 
-  .kpi-card--emerald::before {
-    @apply bg-emerald-500;
-  }
   .kpi-card--emerald .kpi-card__icon {
     @apply bg-emerald-50 text-emerald-600;
   }
 
-  .kpi-card--amber::before {
-    @apply bg-amber-500;
-  }
   .kpi-card--amber .kpi-card__icon {
     @apply bg-amber-50 text-amber-600;
   }
 
-  .kpi-card--rose::before {
-    @apply bg-rose-500;
-  }
   .kpi-card--rose .kpi-card__icon {
     @apply bg-rose-50 text-rose-600;
   }
 
-  .kpi-card--violet::before {
-    @apply bg-violet-500;
-  }
   .kpi-card--violet .kpi-card__icon {
     @apply bg-violet-50 text-violet-600;
   }
 
-  .kpi-card--slate::before {
-    @apply bg-slate-400;
-  }
   .kpi-card--slate .kpi-card__icon {
     @apply bg-slate-100 text-slate-600;
   }

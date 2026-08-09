@@ -81,6 +81,7 @@ import {
 import { isProtectedDemoAccount } from "@/constants";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
@@ -730,52 +731,56 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   return (
     <>
-      <AdminPageHeader
-        title="User Management"
-        description="Roles, status, and librarian privileges"
-        icon={UsersIcon}
-      />
-      <section className="admin-panel">
-        {/* KPI Statistics Cards */}
-        <StatCardGrid className="mb-4 sm:mb-6">
-          <StatCard
-            title="Total Users"
-            value={universeUsers.length}
+      <AdminPageShell
+        header={
+          <AdminPageHeader
+            title="User Management"
+            description="Roles, status, and librarian privileges"
             icon={UsersIcon}
-            hue="blue"
           />
-          <StatCard
-            title="Approved"
-            value={approvedUserCount}
-            icon={UserCheck}
-            hue="emerald"
-          />
-          <StatCard
-            title="Pending"
-            value={pendingUserCount}
-            icon={Hourglass}
-            hue="amber"
-          />
-          <StatCard
-            title="Rejected"
-            value={rejectedUserCount}
-            icon={XCircle}
-            hue="rose"
-          />
-          <StatCard
-            title="Admins"
-            value={adminUserCount}
-            icon={UserCog}
-            hue="violet"
-          />
-          <StatCard
-            title="Make Admin Requests"
-            value={adminRequests.length}
-            icon={Shield}
-            hue="slate"
-          />
-        </StatCardGrid>
-
+        }
+        kpis={
+          <StatCardGrid>
+            <StatCard
+              title="Total Users"
+              value={universeUsers.length}
+              icon={UsersIcon}
+              hue="blue"
+            />
+            <StatCard
+              title="Approved"
+              value={approvedUserCount}
+              icon={UserCheck}
+              hue="emerald"
+            />
+            <StatCard
+              title="Pending"
+              value={pendingUserCount}
+              icon={Hourglass}
+              hue="amber"
+            />
+            <StatCard
+              title="Rejected"
+              value={rejectedUserCount}
+              icon={XCircle}
+              hue="rose"
+            />
+            <StatCard
+              title="Admins"
+              value={adminUserCount}
+              icon={UserCog}
+              hue="violet"
+            />
+            <StatCard
+              title="Make Admin Requests"
+              value={adminRequests.length}
+              icon={Shield}
+              hue="slate"
+            />
+          </StatCardGrid>
+        }
+      >
+      <section className="admin-panel">
         {/* Success/Error Messages */}
         {successMessage && (
           <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
@@ -1142,6 +1147,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           />
         </div>
       </section>
+      </AdminPageShell>
 
       <AlertDialog
         open={approveOpen}

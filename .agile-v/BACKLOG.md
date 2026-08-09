@@ -159,4 +159,19 @@ Owner approved plan `overview_inactive_titles`. Delivered: Health·Categories·Y
 
 ## Featured hero densify (2026-08-09)
 
-Owner approved plan `featured_hero_densify`. Delivered: `featuredRoot` replace/evict + sibling `isFeatured` clear; inactive forces unfeature; HomeFeaturedHero skips inactive RQ[0]. Public `/all-books` stays invalidate+refetch (no invent). Tip `d8845bc` pushed.
+Owner approved plan `featured_hero_densify`. Delivered: `featuredRoot` replace/evict + sibling `isFeatured` clear; inactive forces unfeature; HomeFeaturedHero skips inactive RQ[0]. Public `/all-books` stays invalidate+refetch (no invent). Tip `d8845bc` / HEAD `57333b5` pushed.
+
+## AdminPageShell KPI layout (2026-08-09)
+
+Owner approved plan `admin_kpi_page_shell`. Delivered: `AdminPageShell`; KPIs outside list panels on books/borrow/users; remove page-root overflow clip on account-requests/automation/insights; adopt shell on Overview/tickets/reviews/activity.
+
+## Session resume note (2026-08-09, post featured densify)
+
+Repo reconciled: tip `d8845bc`, HEAD `57333b5`, `main` == `origin/main`, clean tree, no PENDING interrupt. Owner invoked Agile V core/pipeline **without a new product ask**. **Human-Decision:** pick one before coding:
+
+1. **Wave 5 / BL-0017** — nonlocal REQ-0032 evidence toward EvalGate / C2 Gate 2
+2. **REQ-0033 polish (BL-0018)** — concrete UX list
+3. **New Stage 1 CR** — name the feature/extension
+4. **Bug fix** — name symptom + expected behavior
+5. **Docs-only tip-bind commit** — ship this reconcile delta (no product code)
+6. **Other named scope** — explicit path/files/outcome

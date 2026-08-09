@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) featured hero densify shipped; tip `d8845bc`; nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) densify waves shipped; tip `d8845bc` / HEAD `57333b5`; nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - tip `d8845bc` on `main`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - `main` == `origin/main` @ `57333b5`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `d8845bc` (lendable KPIs + overview inactive + featured densify)
-- Latest HEAD: `d8845bc`
+- Latest HEAD: `57333b5` (docs tip-bind after `d8845bc`)
 - Started: 2026-08-01
-- Last updated: 2026-08-09 (tip-bind `d8845bc`)
+- Last updated: 2026-08-09 (AdminPageShell KPI layout)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,40 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline (featured densify)
+- Skills applied this session: agile-v-core, agile-v-pipeline (resume reconcile)
+
+## Reconciliation snapshot (2026-08-09, AdminPageShell KPI layout)
+
+Verified facts:
+- `AdminPageShell`: header → sibling StatCardGrid → panel children.
+- Lifted KPIs out of books/book-requests/users panels; removed overflow-x-hidden on account-requests/automation/insights.
+- Good pages adopt same shell. Local typecheck PASS.
+
+### Next Action
+
+**Human-Decision:** owner smoke admin KPI pages + commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-09, KPI accent remove top bar)
+
+Verified facts:
+- Removed `.kpi-card::before` accent; keep shadow-md / hover:shadow-lg; hue icons + badges only.
+- CSS-only `app/globals.css`.
+
+### Next Action
+
+**Human-Decision:** owner smoke + commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-09, Agile V resume)
+
+Verified facts:
+- HEAD `57333b5` == `origin/main`; product tip `d8845bc`; working tree clean.
+- No PENDING interrupt; INT-0005/0006 still RESOLVED.
+- EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`); Wave 5 / BL-0017 remains Gate 2 path.
+- Owner invoked Agile V core/pipeline **without a new product ask** — docs reconcile only; no coding.
+
+### Next Action
+
+**Human-Decision:** pick scoped work before coding. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
 
 ## Reconciliation snapshot (2026-08-09, featured hero densify)
 

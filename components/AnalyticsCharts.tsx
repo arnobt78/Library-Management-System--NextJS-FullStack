@@ -185,8 +185,9 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
+  // Sibling stack under AdminPageShell — no overflow-x-hidden (clips KPI shadows).
   return (
-    <div className="w-full max-w-full space-y-4 overflow-x-hidden sm:space-y-6">
+    <div className="w-full max-w-full space-y-4 sm:space-y-6">
       {/* Key Metrics Cards — shared StatCard grid (Wave 4 rollout) */}
       <StatCardGrid>
         <StatCard

@@ -34,6 +34,8 @@ Browser
 - Borrow create: upsert PENDING into admin `borrow-requests` (not temp-id replace-only) + nav/stats recount; PrefetchLink book-requests `staleTime: 0`. Renew densifies admin queue dueDate; All Users signup uses approve/reject decision path; direct Make Admin densifies Recent decisions ledger.
 - Fine/ops/recs densify required (config + reminder sentToday + evict featured/recs); analytics charts use `evictAnalyticsCaches` (no invent series); insights `initialDataUpdatedAt: 0` on visit. PrefetchLink catalog/dashboard `staleTime: 0`. Book delete strips recommendations + borrowStats. Tip `4e4bd5f`.
 - Tip `d8845bc`: lendable (active-only) KPIs; Overview Inactive mid panel; books-nav unfiltered; Top Rated rating↓/A-Z; homepage `featuredRoot` replace/evict on feature/inactive; inactive clears featured server-side.
+- KPI StatCard: no top accent bar; hue icon + badges + shadow/hover only.
+- Admin pages use `AdminPageShell`: KPIs sibling outside `.admin-panel`; no page-root overflow clip (books/borrow/users/account-requests/automation/insights aligned with Overview).
 
 ## Admin Stockly chrome (2026-08-07)
 

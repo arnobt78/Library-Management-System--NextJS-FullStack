@@ -38,6 +38,7 @@ import { computeTicketListStats } from "@/lib/ui/ticketStats";
 import PersonAttribution from "@/components/PersonAttribution";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { TicketSubjectCell } from "@/components/support-tickets/TicketSubjectCell";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
@@ -248,35 +249,39 @@ export default function SupportTicketList({
   );
 
   return (
-    <section className="space-y-4 sm:space-y-6">
-      <AdminPageHeader
-        title="Support Tickets"
-        description="Open and in-progress requester tickets"
-        icon={Ticket}
-      />
-      <StatCardGrid>
-        <StatCard title="Total Tickets" value={stats.total} icon={Ticket} hue="blue" />
-        <StatCard title="Open" value={stats.open} icon={CircleDot} hue="rose" />
-        <StatCard
-          title="In Progress"
-          value={stats.inProgress}
-          icon={Loader2}
-          hue="amber"
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title="Support Tickets"
+          description="Open and in-progress requester tickets"
+          icon={Ticket}
         />
-        <StatCard
-          title="Resolved"
-          value={stats.resolved}
-          icon={CheckCircle2}
-          hue="emerald"
-        />
-        <StatCard
-          title="Urgent Open"
-          value={stats.urgentOpen}
-          icon={AlertTriangle}
-          hue="violet"
-        />
-      </StatCardGrid>
-
+      }
+      kpis={
+        <StatCardGrid>
+          <StatCard title="Total Tickets" value={stats.total} icon={Ticket} hue="blue" />
+          <StatCard title="Open" value={stats.open} icon={CircleDot} hue="rose" />
+          <StatCard
+            title="In Progress"
+            value={stats.inProgress}
+            icon={Loader2}
+            hue="amber"
+          />
+          <StatCard
+            title="Resolved"
+            value={stats.resolved}
+            icon={CheckCircle2}
+            hue="emerald"
+          />
+          <StatCard
+            title="Urgent Open"
+            value={stats.urgentOpen}
+            icon={AlertTriangle}
+            hue="violet"
+          />
+        </StatCardGrid>
+      }
+    >
       <div className="admin-panel">
         <AdminListToolbar
           title="Support Tickets"
@@ -336,6 +341,6 @@ export default function SupportTicketList({
           initialPageSize={10}
         />
       </div>
-    </section>
+    </AdminPageShell>
   );
 }

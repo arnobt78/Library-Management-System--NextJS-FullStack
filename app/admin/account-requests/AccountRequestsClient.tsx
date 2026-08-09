@@ -52,6 +52,7 @@ import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 
@@ -226,70 +227,61 @@ const AccountRequestsClient = ({
   // Show skeleton while loading (only if no initial data)
   if (usersLoading && (!initialUsers || initialUsers.length === 0)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ">
-        <div className="w-full">
+      <AdminPageShell
+        header={
           <AdminPageHeader
             title="Registration Queue"
             description="Approve or reject new library sign-ups"
             icon={UserPlus}
           />
-
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <UserSkeleton key={`user-skeleton-${i}`} variant="card" />
-            ))}
-          </div>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <UserSkeleton key={`user-skeleton-${i}`} variant="card" />
+          ))}
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   // Show error state
   if (usersError && (!initialUsers || initialUsers.length === 0)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ">
-        <div className="w-full">
-          <div className="py-6 text-center sm:py-8">
-            <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
-              Failed to load sign-up requests
-            </p>
-            <p className="text-xs text-gray-500 sm:text-sm">
-              {usersErrorData instanceof Error
-                ? usersErrorData.message
-                : "An unknown error occurred"}
-            </p>
-          </div>
+      <AdminPageShell
+        header={
+          <AdminPageHeader
+            title="Registration Queue"
+            description="Approve or reject new library sign-ups"
+            icon={UserPlus}
+          />
+        }
+      >
+        <div className="py-6 text-center sm:py-8">
+          <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
+            Failed to load sign-up requests
+          </p>
+          <p className="text-xs text-gray-500 sm:text-sm">
+            {usersErrorData instanceof Error
+              ? usersErrorData.message
+              : "An unknown error occurred"}
+          </p>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gradient-to-br from-slate-50 to-blue-50 ">
-      <div className="w-full">
+    <AdminPageShell
+      header={
         <AdminPageHeader
           title="Registration Queue"
           description="Approve or reject new library sign-ups"
           icon={UserPlus}
         />
-        <AdminListToolbar title="Registration Queue" count={users.length}>
-          {/* Instant debounced search — URL push already debounced; debounceMs=0 */}
-          <SearchInput
-            value={localSearch}
-            onChange={setLocalSearch}
-            placeholder="Search name, email, ID…"
-            debounceMs={0}
-            className="sm:min-w-64"
-          />
-          <div className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 sm:px-3">
-            <span className="whitespace-nowrap text-xs font-medium text-orange-800 sm:text-sm">
-              {pendingUniverse.length} Pending
-            </span>
-          </div>
-        </AdminListToolbar>
-
-        {/* KPI Statistics Cards */}
-        <StatCardGrid className="mb-4 sm:mb-6">
+      }
+      kpis={
+        <StatCardGrid>
           <StatCard
             title="Pending Requests"
             value={pendingUniverse.length}
@@ -319,6 +311,24 @@ const AccountRequestsClient = ({
             hue="slate"
           />
         </StatCardGrid>
+      }
+    >
+      <section className="admin-panel">
+        <AdminListToolbar title="Registration Queue" count={users.length}>
+          {/* Instant debounced search — URL push already debounced; debounceMs=0 */}
+          <SearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            placeholder="Search name, email, ID…"
+            debounceMs={0}
+            className="sm:min-w-64"
+          />
+          <div className="shrink-0 rounded-full bg-orange-100 px-2.5 py-1 sm:px-3">
+            <span className="whitespace-nowrap text-xs font-medium text-orange-800 sm:text-sm">
+              {pendingUniverse.length} Pending
+            </span>
+          </div>
+        </AdminListToolbar>
 
         {/* Success/Error Messages */}
         {successMessage && (
@@ -479,8 +489,8 @@ const AccountRequestsClient = ({
             </div>
           </div>
         ) : null}
-      </div>
-    </div>
+      </section>
+    </AdminPageShell>
   );
 };
 

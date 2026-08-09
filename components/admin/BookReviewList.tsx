@@ -47,6 +47,7 @@ import PersonAttribution from "@/components/PersonAttribution";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { ModerateReviewAlertDialog } from "@/components/admin/ModerateReviewAlertDialog";
 import {
@@ -542,35 +543,39 @@ export default function BookReviewList({
   );
 
   return (
-    <section className="space-y-4 sm:space-y-6">
-      <AdminPageHeader
-        title="Review Moderation"
-        description="Approve or reject pending book reviews"
-        icon={Star}
-      />
-      <StatCardGrid>
-        <StatCard title="Total Reviews" value={stats.total} icon={Star} hue="blue" />
-        <StatCard title="Pending" value={stats.pending} icon={Clock} hue="amber" />
-        <StatCard
-          title="Approved"
-          value={stats.approved}
-          icon={CheckCircle2}
-          hue="emerald"
-        />
-        <StatCard
-          title="Rejected"
-          value={stats.rejected}
-          icon={XCircle}
-          hue="rose"
-        />
-        <StatCard
-          title="Avg Rating"
-          value={stats.avgRating.toFixed(1)}
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title="Review Moderation"
+          description="Approve or reject pending book reviews"
           icon={Star}
-          hue="violet"
         />
-      </StatCardGrid>
-
+      }
+      kpis={
+        <StatCardGrid>
+          <StatCard title="Total Reviews" value={stats.total} icon={Star} hue="blue" />
+          <StatCard title="Pending" value={stats.pending} icon={Clock} hue="amber" />
+          <StatCard
+            title="Approved"
+            value={stats.approved}
+            icon={CheckCircle2}
+            hue="emerald"
+          />
+          <StatCard
+            title="Rejected"
+            value={stats.rejected}
+            icon={XCircle}
+            hue="rose"
+          />
+          <StatCard
+            title="Avg Rating"
+            value={stats.avgRating.toFixed(1)}
+            icon={Star}
+            hue="violet"
+          />
+        </StatCardGrid>
+      }
+    >
       <div className="admin-panel">
         <AdminListToolbar
           title="Review Moderation"
@@ -616,6 +621,6 @@ export default function BookReviewList({
           initialPageSize={10}
         />
       </div>
-    </section>
+    </AdminPageShell>
   );
 }

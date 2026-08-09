@@ -29,6 +29,7 @@ import { AuditActionBadge } from "@/lib/ui/semanticBadges";
 import { PersonNameEmailCell } from "@/components/ui/PersonNameEmailCell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import {
@@ -202,19 +203,23 @@ export default function ActivityLogSection({
   );
 
   return (
-    <section className="space-y-4 sm:space-y-6">
-      <AdminPageHeader
-        title="Activity History"
-        description="Recent admin actions across the library"
-        icon={History}
-      />
-      <StatCardGrid>
-        <StatCard title="Total Activity" value={stats.total} icon={History} hue="blue" />
-        <StatCard title="Created" value={stats.created} icon={FilePlus} hue="emerald" />
-        <StatCard title="Updated" value={stats.updated} icon={FilePen} hue="amber" />
-        <StatCard title="Deleted" value={stats.deleted} icon={Trash2} hue="rose" />
-      </StatCardGrid>
-
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title="Activity History"
+          description="Recent admin actions across the library"
+          icon={History}
+        />
+      }
+      kpis={
+        <StatCardGrid>
+          <StatCard title="Total Activity" value={stats.total} icon={History} hue="blue" />
+          <StatCard title="Created" value={stats.created} icon={FilePlus} hue="emerald" />
+          <StatCard title="Updated" value={stats.updated} icon={FilePen} hue="amber" />
+          <StatCard title="Deleted" value={stats.deleted} icon={Trash2} hue="rose" />
+        </StatCardGrid>
+      }
+    >
       <div className="admin-panel">
         <AdminListToolbar
           title="Activity History"
@@ -261,6 +266,6 @@ export default function ActivityLogSection({
           initialPageSize={10}
         />
       </div>
-    </section>
+    </AdminPageShell>
   );
 }

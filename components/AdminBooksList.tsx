@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 
 interface AdminBooksListProps {
@@ -299,15 +300,16 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   const activeBookCount = universeBooks.filter((b) => isBookActive(b)).length;
 
   return (
-    <>
-      <AdminPageHeader
-        title="Book Catalog"
-        description="Create, edit, and manage library inventory"
-        icon={BookMarked}
-      />
-      <section className="admin-panel">
-        {/* KPI Statistics Cards */}
-        <StatCardGrid className="mb-4 sm:mb-6">
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title="Book Catalog"
+          description="Create, edit, and manage library inventory"
+          icon={BookMarked}
+        />
+      }
+      kpis={
+        <StatCardGrid>
           <StatCard
             title="Total Books"
             value={universeBooks.length}
@@ -345,7 +347,9 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             ]}
           />
         </StatCardGrid>
-
+      }
+    >
+      <section className="admin-panel">
         <AdminListToolbar
           title="Book Catalog"
           count={allBooks.length}
@@ -570,7 +574,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           )}
         </div>
       </section>
-    </>
+    </AdminPageShell>
   );
 };
 

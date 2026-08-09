@@ -48,6 +48,7 @@ import {
 import type { BorrowStatus } from "@/lib/services/borrows";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 
 interface AdminBookRequestsListProps {
@@ -322,15 +323,16 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   ).length;
 
   return (
-    <>
-      <AdminPageHeader
-        title="Borrow Queue"
-        description="Approve, reject, and return borrow requests"
-        icon={Bookmark}
-      />
-      <section className="admin-panel">
-        {/* KPI Statistics Cards */}
-        <StatCardGrid className="mb-4 sm:mb-6">
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title="Borrow Queue"
+          description="Approve, reject, and return borrow requests"
+          icon={Bookmark}
+        />
+      }
+      kpis={
+        <StatCardGrid>
           <StatCard
             title="Total Requests"
             value={universeRequests.length}
@@ -362,7 +364,9 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
             hue="rose"
           />
         </StatCardGrid>
-
+      }
+    >
+      <section className="admin-panel">
         {/* Success/Error Messages */}
         {successMessage && (
           <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
@@ -650,7 +654,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
           </div>
         </div>
       </section>
-    </>
+    </AdminPageShell>
   );
 };
 

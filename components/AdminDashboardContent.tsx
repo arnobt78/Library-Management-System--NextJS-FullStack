@@ -44,6 +44,7 @@ import {
 import type { AdminStats } from "@/lib/services/admin";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
 import { RecentBorrowRow } from "@/components/admin/RecentBorrowRow";
 import { RecentUserRow } from "@/components/admin/RecentUserRow";
@@ -182,45 +183,15 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     whole > 0 ? (part / whole) * 100 : 0;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <AdminPageHeader
-        title={getAdminNavItemByRoute("/admin")?.label ?? "Library Overview"}
-        description={getAdminNavItemByRoute("/admin")?.description}
-        icon={Home}
-      />
-      {/* Success Message */}
-      {successMessage === "admin-granted" && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <svg
-                className="size-5 text-green-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule={"evenodd" as const}
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule={"evenodd" as const}
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">
-                Admin Access Granted!
-              </h3>
-              <div className="mt-2 text-sm text-green-700">
-                <p>
-                  You are now an admin! You can access all admin features and
-                  manage the library system.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* KPI Statistics Cards — glass status badges (REQ-0033 count homes) */}
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title={getAdminNavItemByRoute("/admin")?.label ?? "Library Overview"}
+          description={getAdminNavItemByRoute("/admin")?.description}
+          icon={Home}
+        />
+      }
+      kpis={
       <StatCardGrid>
         <StatCard
           title="Total Users"
@@ -365,6 +336,39 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           ]}
         />
       </StatCardGrid>
+      }
+    >
+      {/* Success Message */}
+      {successMessage === "admin-granted" && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
+          <div className="flex items-center">
+            <div className="shrink-0">
+              <svg
+                className="size-5 text-green-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule={"evenodd" as const}
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule={"evenodd" as const}
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800">
+                Admin Access Granted!
+              </h3>
+              <div className="mt-2 text-sm text-green-700">
+                <p>
+                  You are now an admin! You can access all admin features and
+                  manage the library system.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
@@ -956,7 +960,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           </div>
         </AdminSurfacePanel>
       </div>
-    </div>
+    </AdminPageShell>
   );
 };
 

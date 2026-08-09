@@ -3,6 +3,7 @@
  *
  * Server Component that fetches analytics data server-side for SSR.
  * Passes initial data to Client Component for React Query integration.
+ * AdminPageShell: header outside Suspense; charts own KPI + panel stack (no overflow clip).
  */
 
 import React, { Suspense } from "react";
@@ -10,6 +11,7 @@ import { getCompleteAnalyticsSnapshot } from "@/lib/admin/actions/analytics";
 import AnalyticsCharts from "@/components/AnalyticsCharts";
 import type { AnalyticsData } from "@/lib/services/analytics";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { BarChart3 } from "lucide-react";
 
 export const runtime = "nodejs";
@@ -22,12 +24,15 @@ const AnalyticsData = async () => {
 };
 
 const AnalyticsPage = () => (
-  <section className="w-full max-w-full space-y-4 overflow-x-hidden sm:space-y-6">
-    <AdminPageHeader
-      title="Business Insights"
-      description="Circulation analytics and library trends"
-      icon={BarChart3}
-    />
+  <AdminPageShell
+    header={
+      <AdminPageHeader
+        title="Business Insights"
+        description="Circulation analytics and library trends"
+        icon={BarChart3}
+      />
+    }
+  >
     <Suspense
       fallback={
         <div
@@ -43,7 +48,7 @@ const AnalyticsPage = () => (
     >
       <AnalyticsData />
     </Suspense>
-  </section>
+  </AdminPageShell>
 );
 
 export default AnalyticsPage;
