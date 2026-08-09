@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) densify waves shipped; tip `d8845bc` / HEAD `57333b5`; nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) AdminPageShell shipped; tip/HEAD `bce8637`; nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - `main` == `origin/main` @ `57333b5`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - tip `bce8637` on `main`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `d8845bc` (lendable KPIs + overview inactive + featured densify)
-- Latest HEAD: `57333b5` (docs tip-bind after `d8845bc`)
+- Latest implementation tip: `bce8637` (AdminPageShell + KPI no top bar)
+- Latest HEAD: `bce8637`
 - Started: 2026-08-01
-- Last updated: 2026-08-09 (AdminPageShell KPI layout)
+- Last updated: 2026-08-09 (tip-bind `bce8637`)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -28,13 +28,12 @@
 ## Reconciliation snapshot (2026-08-09, AdminPageShell KPI layout)
 
 Verified facts:
-- `AdminPageShell`: header → sibling StatCardGrid → panel children.
-- Lifted KPIs out of books/book-requests/users panels; removed overflow-x-hidden on account-requests/automation/insights.
-- Good pages adopt same shell. Local typecheck PASS.
+- Tip `bce8637`: `AdminPageShell`; KPIs outside panels; no top bar; no page-root overflow clip.
+- Local Prove typecheck+lint PASS; Insights Suspense KPI slot deferred.
 
 ### Next Action
 
-**Human-Decision:** owner smoke admin KPI pages + commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+**Human-Decision:** smoke if desired. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
 
 ## Reconciliation snapshot (2026-08-09, KPI accent remove top bar)
 

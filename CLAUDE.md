@@ -109,6 +109,5 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - `patchAdminStatsCaches*`: borrow (explicit `fromStatus` + universe recount), user status/role, book CRUD, tickets, reviews, admin-requests, reservation waiting; claim → `patchBorrowCachesOnCreate`. Overview prefers densified `admin.stats` for ticket/review KPI values.
 - Profile: `glassCancelled` + Cancelled KPI (`borrowStats.cancelled`). Debug ingest removed. Gate 2 still EvalGate-blocked.
 - Densify tip `4e4bd5f` (2026-08-09): borrow create upserts admin queues; PrefetchLink lists/`staleTime: 0`; fine/ops/recs registry **required**; `evictAnalyticsCaches`; insights visit always refetches (`initialDataUpdatedAt: 0`). Bulk UI deferred.
-- KPI lendable + overview inactive + featured densify tip `d8845bc` / HEAD `57333b5` (2026-08-09): active-only copy KPIs; Inactive mid panel; books-nav unfiltered; Top Rated rating↓/A-Z; `featuredRoot` replace/evict; inactive clears featured.
-- KPI StatCard: no top bar; accent via hue icon + badges; keep `shadow-md` / `hover:shadow-lg`.
-- Admin KPI layout: shared `AdminPageShell` (header → sibling StatCardGrid → panel); never nest KPIs in `.admin-panel` or page-root `overflow-x-hidden`.
+- KPI lendable + overview inactive + featured densify tip `d8845bc` (2026-08-09).
+- Admin chrome tip `bce8637`: `AdminPageShell` KPI stack; no StatCard top bar; shadow/hover only; no nest/overflow clip.

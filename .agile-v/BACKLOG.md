@@ -163,7 +163,7 @@ Owner approved plan `featured_hero_densify`. Delivered: `featuredRoot` replace/e
 
 ## AdminPageShell KPI layout (2026-08-09)
 
-Owner approved plan `admin_kpi_page_shell`. Delivered: `AdminPageShell`; KPIs outside list panels on books/borrow/users; remove page-root overflow clip on account-requests/automation/insights; adopt shell on Overview/tickets/reviews/activity.
+Owner approved plan `admin_kpi_page_shell`. Delivered: `AdminPageShell`; KPIs outside list panels; no top bar; no page-root overflow clip. Tip `bce8637` pushed.
 
 ## Session resume note (2026-08-09, post featured densify)
 
