@@ -48,7 +48,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - C2 targets only library domains; supplier/warehouse/shipping commerce and gRPC are excluded absent a measured requirement.
 - Demo seed: `npm run seed:reset` (`scripts/reset-and-seed.ts`) wipes FK-safe transactional tables, reseeds 17 `dummybooks.json` books (`availableCopies=totalCopies`, Algorithms featured) + `TEST_ACCOUNTS`. Old `database/seed.ts` / ad-hoc scripts retired.
 - Nav `/my-profile` label: Borrow History. Profile SSR uses `BorrowRecordFull` + `initialDataUpdatedAt` so RQ does not flash Unknown Book.
-- Docs: educational `README.md` + `SECURITY.md` (contact@arnobmahmud.com); title/screenshots preserved; seed commands match `seed:reset`.
+- Docs: educational `README.md` + `SECURITY.md` (<contact@arnobmahmud.com>); title/screenshots preserved; seed commands match `seed:reset`.
 - Auth ops: apply `0009` before `users.updated_at`/`updated_by`; rehash-on-login non-fatal. Legacy + scrypt verify; keep prod deploy in sync with hash format. GitGuardian `$scrypt$ln` on `UNKNOWN_ACCOUNT_PASSWORD` is FP (dummy equal-cost hash).
 - UI shell: `.page-shell` + `max-w-9xl` (96rem) public only; root Header/main/`Footer`; auth `Footer variant="auth"`; admin full-bleed (no max-w) frosted Header+Sidebar over `bg-slate-50`.
 - Admin chrome: shared `components/Header` `tone="light"` (orphan `admin/Header` deleted); `.root-header` `py-2` + `items-center`; `--admin-header-offset` 3/3.5rem; admin logo `/icons/admin/logo.svg`; dual `@tailwind base` in `admin.css` kept (soft-nav residual).
@@ -91,7 +91,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin privilege ledger: All Users/bulk Make Admin → `adminPrivilegeLedger` (approve PENDING or insert `ADMIN_REQUEST_DIRECT_GRANT_REASON`); demote/`updateUserRole(USER)` → `removeAdminPrivileges` revoke. Invalidate `admin-request.write`.
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `3dd4594` / HEAD `0f64bc5`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip/HEAD `4e4bd5f`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
 - CR-0003 (REQ-0034–0037): tickets + review mod + activity FIFO-50 + bell + KPIs/tables; mig `0014`; `ticket.write` + `patchTicketCaches*`; Zod ticket/review; bell SSR unread; My Reviews SSR; reply thread single-source; Prove 110 tests.
 - Ticket UI polish: person stack; KPI/section/date/activity; `CARD_PAD` p-2/sm:p-4 (also `.admin-container` + api-docs/status/performance); `LIGHT_GLASS_CTA` primary-admin/red-800; Tailwind `./lib/**`; sky links; edit dialog; densify + back-nav. Instrumentation removed.
 - Densify Waves A–C + review CRUD: `patchBorrowCaches*`; `optimisticAdminRequestDecision`; await `book.write`; `patchReviewCaches*` (create/update/delete/moderate). Approve **upserts** public `book-reviews` (admin soft-nav). Gold: snapshot → await invalidate → re-patch. Prove 120 tests.
@@ -107,6 +107,9 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Admin filter UX Prove (2026-08-07): type/lint/**151** tests + Next 16.2.12 build PASS; tip `3dd4594` / HEAD `0f64bc5`.
 - REQ-0033 overview KPIs: shared `buildAdminDashboardStats` + types (SSR=`/admin`, API=`/api/admin/stats`); glass `StatCard` badges + icons; breakdowns via `adminRequestCounts` / ticket+review overview counts.
 - `patchAdminStatsCaches*`: borrow (explicit `fromStatus` + universe recount), user status/role, book CRUD, tickets, reviews, admin-requests, reservation waiting; claim → `patchBorrowCachesOnCreate`. Overview prefers densified `admin.stats` for ticket/review KPI values.
-- Profile: `glassCancelled` + Cancelled KPI (`borrowStats.cancelled`). Debug ingest removed. Analytics/automation densify still registry noop; Gate 2 still EvalGate-blocked. Tip `69a31ad` / HEAD `cef46ec` (pushed).
-- Densify P0/P1 (2026-08-09): borrow **create upserts** admin `borrow-requests` + universe recount; PrefetchLink `admin-book-requests` `staleTime: 0`; All Users → `useApproveUser`/`useRejectUser`; renew → admin lists; claim inventory; direct Make Admin / revoke ledger densify.
-- Densify expand (2026-08-09): PrefetchLink books/dashboard `staleTime: 0`; book delete strips recs/borrowStats; `fine.write`/`operations.write`/`recommendation.write` registry **required** (`patchFineCaches`/`patchOpsCaches`/`densifyRecommendationWrite`); `evictAnalyticsCaches` on book/borrow/user/fine/ops/recs; insights visit always refetches (`staleTime: 0`, `refetchOnMount: "always"`, `initialDataUpdatedAt: 0` — no frozen RSC frame). Bulk UI still deferred. Uncommitted until owner commit.
+- Profile: `glassCancelled` + Cancelled KPI (`borrowStats.cancelled`). Debug ingest removed. Gate 2 still EvalGate-blocked.
+- Densify tip `4e4bd5f` (2026-08-09): borrow create upserts admin queues; PrefetchLink lists/`staleTime: 0`; fine/ops/recs registry **required**; `evictAnalyticsCaches`; insights visit always refetches (`initialDataUpdatedAt: 0`). Bulk UI deferred.
+- KPI lendable (2026-08-09): `StatCardGrid` 3-col; KPI badges text-only (table `semanticBadges` keep icons); Overview/Books copy KPIs = active titles via `sumLendableCopies` + densify deactivate/reactivate; Book Availability shows Total copies row.
+- Overview mid panels: Health · Categories · Year / Top Rated · **Inactive Books** · Language; `inactiveTitles` on `admin.stats` + book.write list densify; inactive row shows star rating + centered empty.
+- Books nav densify: sidebar `books` from **unfiltered** universe only (no invent into filtered caches); Inactive / admin Book Catalog **title A-Z**; Top Rated = **rating desc then A-Z**.
+- Homepage featured densify: `book.write` **replaces/evicts** `featuredRoot` (swap + inactive fallback); inactive write forces `isFeatured=false`; HomeFeaturedHero ignores inactive RQ[0].

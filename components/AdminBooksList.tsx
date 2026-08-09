@@ -34,6 +34,10 @@ import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
 import type { BookFilters } from "@/lib/services/books";
 import { ADMIN_BOOKS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
+  isBookActive,
+  sumLendableCopies,
+} from "@/lib/admin/lendableBookCopies";
+import {
   Plus,
   Eye,
   Pencil,
@@ -179,24 +183,25 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   const allBooks: Book[] = React.useMemo(() => {
     const base =
       universeBooks.length > 0 ? universeBooks : (initialBooks ?? []);
-    if (!hasDisplayFilters) {
-      return base;
-    }
     const q = searchQuery.toLowerCase();
-    return base.filter((b) => {
-      if (currentGenre !== "all" && b.genre !== currentGenre) return false;
-      if (currentAvailability === "available" && b.availableCopies <= 0) {
-        return false;
-      }
-      if (currentAvailability === "unavailable" && b.availableCopies > 0) {
-        return false;
-      }
-      if (!q) return true;
-      return (
-        b.title.toLowerCase().includes(q) ||
-        b.author.toLowerCase().includes(q)
-      );
-    });
+    const filtered = !hasDisplayFilters
+      ? base
+      : base.filter((b) => {
+          if (currentGenre !== "all" && b.genre !== currentGenre) return false;
+          if (currentAvailability === "available" && b.availableCopies <= 0) {
+            return false;
+          }
+          if (currentAvailability === "unavailable" && b.availableCopies > 0) {
+            return false;
+          }
+          if (!q) return true;
+          return (
+            b.title.toLowerCase().includes(q) ||
+            b.author.toLowerCase().includes(q)
+          );
+        });
+    // Stable A-Z — densify must not reshuffle the grid.
+    return [...filtered].sort((a, b) => a.title.localeCompare(b.title));
   }, [
     universeBooks,
     initialBooks,
@@ -285,13 +290,13 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     );
   }
 
-  // KPI counts — full-universe catalog (not filtered table rows)
-  const totalCopies = universeBooks.reduce((sum, b) => sum + b.totalCopies, 0);
-  const availableCopies = universeBooks.reduce(
-    (sum, b) => sum + b.availableCopies,
-    0,
-  );
-  const activeBookCount = universeBooks.filter((b) => b.isActive).length;
+  // KPI counts — lendable pool from full-universe catalog (active titles only)
+  const {
+    totalCopies,
+    availableCopies,
+    borrowedCopies,
+  } = sumLendableCopies(universeBooks);
+  const activeBookCount = universeBooks.filter((b) => isBookActive(b)).length;
 
   return (
     <>
@@ -323,7 +328,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           />
           <StatCard
             title="Borrowed Copies"
-            value={totalCopies - availableCopies}
+            value={borrowedCopies}
             icon={BookX}
             hue="amber"
           />

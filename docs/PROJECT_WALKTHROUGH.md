@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-09 | Status: C2 Stage 4; borrow-create + P0/P1 densify gap wave local Prove; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-09 | Status: C2 Stage 4; densify tip `4e4bd5f` pushed; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -32,7 +32,11 @@ Browser
 - Admin nav badges: absolute `patchAdminNavCounts` after domain densify; SSR `getAdminNavCounts` + GET `/api/admin/nav-counts` (admin-authorized).
 - Library Overview (`admin.stats`): shared `buildAdminDashboardStats` for page + API parity; glass `StatCard` badges; `patchAdminStatsCaches*` on borrow/user/book/ticket/review/admin-request/reservation (borrow needs pre-mutate `fromStatus`; claim densifies BORROWED create). Analytics/automation KPIs stay invalidate-only.
 - Borrow create: upsert PENDING into admin `borrow-requests` (not temp-id replace-only) + nav/stats recount; PrefetchLink book-requests `staleTime: 0`. Renew densifies admin queue dueDate; All Users signup uses approve/reject decision path; direct Make Admin densifies Recent decisions ledger.
-- Fine/ops/recs densify required (config + reminder sentToday + evict featured/recs); analytics charts use `evictAnalyticsCaches` (no invent series). PrefetchLink catalog/dashboard `staleTime: 0`. Book delete strips recommendations + borrowStats.
+- Fine/ops/recs densify required (config + reminder sentToday + evict featured/recs); analytics charts use `evictAnalyticsCaches` (no invent series); insights `initialDataUpdatedAt: 0` on visit. PrefetchLink catalog/dashboard `staleTime: 0`. Book delete strips recommendations + borrowStats. Tip `4e4bd5f`.
+- Lendable copies (active-only): `sumLendableCopies` / `isBookActive` shared by Overview SSR, Book Catalog KPIs, and `patchAdminStatsOnBook*`; deactivate drops pool, reactivate restores. `StatCardGrid` = 3-col; KPI chips text-only.
+- Overview mid: Health · Categories · Year / Top Rated · Inactive Books · Language; `inactiveTitles` densified on `book.write`.
+- Book Catalog nav badge uses unfiltered list `total` only; admin catalog + Inactive lists sort title A-Z; Top Rated = rating desc then A-Z.
+- Homepage featured: `densifyBookWrite` replaces/evicts `featuredRoot` on feature/inactive flips (sibling admin `isFeatured` cleared); server clears featured when inactive; hero ignores inactive RQ cache.
 
 ## Admin Stockly chrome (2026-08-07)
 
@@ -42,18 +46,18 @@ Browser
 
 ## Main directories
 
-| Path | Responsibility |
-|---|---|
-| `app/` | Pages, layouts, route handlers, server-rendered composition |
-| `components/` | Product components and reusable shadcn/Radix UI |
-| `hooks/useQueries.ts` | Typed query consumers with SSR initial data |
-| `hooks/useMutations.ts` | Central mutations, rollback, toasts, invalidation |
-| `lib/query/keys.ts` | Query-key factory and prefix contract |
-| `lib/utils/queryInvalidation.ts` | Domain mapping and same-origin tab propagation |
-| `lib/admin/actions/` | Administrative reads/writes |
-| `database/` | Drizzle schema, PostgreSQL and Redis clients |
-| `migrations/` | Versioned SQL changes |
-| `.agile-v/` | Requirements, decisions, risks, tests and gate state |
+| Path                             | Responsibility                                              |
+| -------------------------------- | ----------------------------------------------------------- |
+| `app/`                           | Pages, layouts, route handlers, server-rendered composition |
+| `components/`                    | Product components and reusable shadcn/Radix UI             |
+| `hooks/useQueries.ts`            | Typed query consumers with SSR initial data                 |
+| `hooks/useMutations.ts`          | Central mutations, rollback, toasts, invalidation           |
+| `lib/query/keys.ts`              | Query-key factory and prefix contract                       |
+| `lib/utils/queryInvalidation.ts` | Domain mapping and same-origin tab propagation              |
+| `lib/admin/actions/`             | Administrative reads/writes                                 |
+| `database/`                      | Drizzle schema, PostgreSQL and Redis clients                |
+| `migrations/`                    | Versioned SQL changes                                       |
+| `.agile-v/`                      | Requirements, decisions, risks, tests and gate state        |
 
 ## Data freshness
 

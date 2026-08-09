@@ -1,11 +1,14 @@
 /**
  * Thin densify for book.write — detail + admin catalog + featured/related strips.
  * Used via commitMutationCache after invalidate.
+ * Featured strip: replace on featured+active; fallback/evict on unfeature/deactivate
+ * so soft-nav homepage never paints a stale hero (mirrors densifyRecommendationWrite).
  */
 
 import type { QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
 import type { BooksListResponse } from "@/lib/services/books";
+import { ADMIN_BOOKS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
   markDensifiedEmpty,
   clearDensifiedEmpty,
@@ -20,11 +23,22 @@ import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 
 type BookLike = { id: string; [key: string]: unknown };
 
+function titleOf(book: { title?: unknown }): string {
+  return typeof book.title === "string" ? book.title : "";
+}
+
+/** Stable A-Z by title for catalog densify inserts. */
+function sortBooksByTitle<T extends { title?: unknown }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => titleOf(a).localeCompare(titleOf(b)));
+}
+
 function toBookSnapshot(book: BookLike): AdminStatsBookSnapshot {
   return {
     id: book.id,
     isActive:
-      typeof book.isActive === "boolean" ? book.isActive : (book.isActive as boolean | null | undefined),
+      typeof book.isActive === "boolean"
+        ? book.isActive
+        : (book.isActive as boolean | null | undefined),
     totalCopies:
       typeof book.totalCopies === "number" ? book.totalCopies : null,
     availableCopies:
@@ -32,6 +46,18 @@ function toBookSnapshot(book: BookLike): AdminStatsBookSnapshot {
     isbn: typeof book.isbn === "string" ? book.isbn : null,
     publisher: typeof book.publisher === "string" ? book.publisher : null,
     pageCount: typeof book.pageCount === "number" ? book.pageCount : null,
+    title: typeof book.title === "string" ? book.title : null,
+    author: typeof book.author === "string" ? book.author : null,
+    rating: typeof book.rating === "number" ? book.rating : null,
+    coverUrl: typeof book.coverUrl === "string" ? book.coverUrl : null,
+    coverColor: typeof book.coverColor === "string" ? book.coverColor : null,
+    genre: typeof book.genre === "string" ? book.genre : null,
+    publicationYear:
+      typeof book.publicationYear === "number" ||
+      typeof book.publicationYear === "string"
+        ? book.publicationYear
+        : null,
+    language: typeof book.language === "string" ? book.language : null,
   };
 }
 
@@ -53,41 +79,68 @@ function findCachedBookSnapshot(
   return null;
 }
 
-/** Sync Book Catalog pill from densest cached admin list `total`. */
+/**
+ * Sync Book Catalog nav pill from unfiltered universe `total` only.
+ * Never Math.max across filtered caches — updates used to invent rows and inflate totals.
+ */
 function syncBooksNav(queryClient: QueryClient): void {
-  let found = false;
-  let densest = 0;
+  const unfiltered = queryClient.getQueryData<BooksListResponse>(
+    queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+  );
+  if (unfiltered && typeof unfiltered.total === "number") {
+    patchAdminNavCounts(queryClient, { books: unfiltered.total });
+    return;
+  }
+
+  // Fallback: prefer the largest books[] length whose total matches length (healthy page).
+  let best: number | null = null;
   for (const [, page] of queryClient.getQueriesData<BooksListResponse>({
     queryKey: queryKeys.books.adminRoot,
   })) {
     if (!page || typeof page.total !== "number") continue;
-    found = true;
-    densest = Math.max(densest, page.total);
+    if (page.books.length === page.total) {
+      if (best === null || page.total < best) best = page.total;
+    }
   }
-  if (found) {
-    patchAdminNavCounts(queryClient, { books: densest });
+  if (best !== null) {
+    patchAdminNavCounts(queryClient, { books: best });
   }
 }
 
+/**
+ * Patch one admin list page. On update (`allowInsert=false`), never invent into
+ * filtered caches that lack the row — that inflated sidebar totals.
+ */
 function upsertInListResponse(
   prev: BooksListResponse | undefined,
   book: BookLike,
+  allowInsert: boolean,
 ): BooksListResponse | undefined {
   if (!prev?.books) {
     // Do not invent a full list page from a single row.
     return prev;
   }
   const idx = prev.books.findIndex((b) => b.id === book.id);
-  const books =
-    idx === -1
-      ? ([book, ...prev.books] as BooksListResponse["books"])
-      : (prev.books.map((b, i) =>
-          i === idx ? { ...b, ...book } : b,
-        ) as BooksListResponse["books"]);
+  if (idx === -1) {
+    if (!allowInsert) return prev;
+    const books = sortBooksByTitle([
+      book as unknown as BooksListResponse["books"][number],
+      ...prev.books,
+    ]);
+    return {
+      ...prev,
+      books,
+      total: prev.total + 1,
+    };
+  }
+
+  const books = prev.books.map((b, i) =>
+    i === idx ? ({ ...b, ...book } as BooksListResponse["books"][number]) : b,
+  );
   return {
     ...prev,
     books,
-    total: idx === -1 ? prev.total + 1 : prev.total,
+    total: prev.total,
   };
 }
 
@@ -107,6 +160,158 @@ function removeFromBookArray(
 ): BookLike[] | undefined {
   if (!rows) return rows;
   return rows.filter((b) => !idSet.has(b.id));
+}
+
+/** Active when isActive is true or unset (matches lendableBookCopies). */
+function isActiveLike(book: BookLike): boolean {
+  return book.isActive !== false;
+}
+
+/** Curated homepage hero: featured + active only. */
+function isFeaturedHeroEligible(book: BookLike): boolean {
+  return book.isFeatured === true && isActiveLike(book);
+}
+
+function readCachedIsFeatured(
+  queryClient: QueryClient,
+  bookId: string,
+): boolean {
+  const detail = queryClient.getQueryData<BookLike>(
+    queryKeys.books.detail(bookId),
+  );
+  if (detail && typeof detail.isFeatured === "boolean") {
+    return detail.isFeatured;
+  }
+  for (const [, page] of queryClient.getQueriesData<BooksListResponse>({
+    queryKey: queryKeys.books.adminRoot,
+  })) {
+    const hit = page?.books?.find((b) => b.id === bookId) as
+      | BookLike
+      | undefined;
+    if (hit && typeof hit.isFeatured === "boolean") return hit.isFeatured;
+  }
+  return false;
+}
+
+function isInFeaturedStrip(queryClient: QueryClient, bookId: string): boolean {
+  for (const [, rows] of queryClient.getQueriesData<BookLike[]>({
+    queryKey: queryKeys.books.featuredRoot,
+  })) {
+    if (rows?.some((b) => b.id === bookId)) return true;
+  }
+  return false;
+}
+
+/**
+ * Newest active catalog row for homepage fallback (mirrors getHomepageHeroBook).
+ * Prefers another isFeatured row if densify left one; else createdAt desc.
+ */
+function pickHomepageHeroFallback(
+  queryClient: QueryClient,
+  excludeId: string,
+): BookLike | null {
+  const unfiltered = queryClient.getQueryData<BooksListResponse>(
+    queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+  );
+  const rows = (unfiltered?.books ?? []) as unknown as BookLike[];
+  const active = rows.filter(
+    (b) => b.id !== excludeId && isActiveLike(b),
+  );
+  const featured = active.find((b) => b.isFeatured === true);
+  if (featured) return featured;
+
+  const sorted = [...active].sort((a, b) => {
+    const ta = Date.parse(String(a.createdAt ?? "")) || 0;
+    const tb = Date.parse(String(b.createdAt ?? "")) || 0;
+    return tb - ta;
+  });
+  return sorted[0] ?? null;
+}
+
+/**
+ * Mirror DB featured exclusivity on cached admin list pages — never invent rows.
+ */
+function clearSiblingFeaturedFlags(
+  queryClient: QueryClient,
+  featuredBookId: string,
+): void {
+  queryClient.setQueriesData<BooksListResponse>(
+    { queryKey: queryKeys.books.adminRoot },
+    (old) => {
+      if (!old?.books) return old;
+      let changed = false;
+      const books = old.books.map((b) => {
+        if (b.id === featuredBookId) return b;
+        const row = b as unknown as BookLike;
+        if (row.isFeatured !== true) return b;
+        changed = true;
+        return { ...b, isFeatured: false };
+      });
+      return changed ? { ...old, books } : old;
+    },
+  );
+}
+
+/**
+ * Homepage featured strip densify (soft-nav must not paint stale hero).
+ * Featured+active → replace strip with [book]. Lost hero → fallback or evict
+ * so seedFromSsrIfEmpty can take SSR. Ordinary non-hero edits leave the strip alone.
+ */
+function syncFeaturedStripOnBookWrite(
+  queryClient: QueryClient,
+  book: BookLike,
+  previousWasFeatured: boolean,
+): void {
+  if (isFeaturedHeroEligible(book)) {
+    queryClient.setQueriesData<BookLike[]>(
+      { queryKey: queryKeys.books.featuredRoot },
+      () => [book],
+    );
+    clearDensifiedEmpty(queryKeys.books.featuredRoot);
+    return;
+  }
+
+  const wasInStrip = isInFeaturedStrip(queryClient, book.id);
+  // Title/copies edit of current strip member without clearing flags — patch in place.
+  if (
+    wasInStrip &&
+    book.isActive !== false &&
+    book.isFeatured !== false
+  ) {
+    queryClient.setQueriesData<BookLike[]>(
+      { queryKey: queryKeys.books.featuredRoot },
+      (old) => {
+        const next = patchBookArray(old, book);
+        if (next && next.length > 0) {
+          clearDensifiedEmpty(queryKeys.books.featuredRoot);
+        }
+        return next;
+      },
+    );
+    return;
+  }
+
+  if (!wasInStrip && !previousWasFeatured) {
+    return;
+  }
+
+  // Hero lost (unfeatured / deactivated) — remove then seed fallback or evict.
+  queryClient.setQueriesData<BookLike[]>(
+    { queryKey: queryKeys.books.featuredRoot },
+    (old) => removeFromBookArray(old, new Set([book.id])),
+  );
+
+  const fallback = pickHomepageHeroFallback(queryClient, book.id);
+  if (fallback) {
+    queryClient.setQueriesData<BookLike[]>(
+      { queryKey: queryKeys.books.featuredRoot },
+      () => [fallback],
+    );
+    clearDensifiedEmpty(queryKeys.books.featuredRoot);
+    return;
+  }
+
+  queryClient.removeQueries({ queryKey: queryKeys.books.featuredRoot });
 }
 
 /**
@@ -142,6 +347,10 @@ export function densifyBookWrite(
 
   // Snapshot before overwrite — overview Total Books / Availability / Book Information.
   const previous = findCachedBookSnapshot(queryClient, book.id);
+  // Read featured flag before detail overwrite (strip sync needs pre-mutation truth).
+  const previousWasFeatured = readCachedIsFeatured(queryClient, book.id);
+  // Create-only insert into admin lists; updates must not invent into filtered caches.
+  const allowInsert = previous == null;
 
   queryClient.setQueryData(queryKeys.books.detail(book.id), (prev: unknown) =>
     prev && typeof prev === "object"
@@ -151,18 +360,16 @@ export function densifyBookWrite(
 
   queryClient.setQueriesData<BooksListResponse>(
     { queryKey: queryKeys.books.adminRoot },
-    (old) => upsertInListResponse(old, book),
+    (old) => upsertInListResponse(old, book, allowInsert),
   );
 
-  // Homepage featured strip — patch in place when cached (no invent).
-  queryClient.setQueriesData<BookLike[]>(
-    { queryKey: queryKeys.books.featuredRoot },
-    (old) => {
-      const next = patchBookArray(old, book);
-      if (next && next.length > 0) clearDensifiedEmpty(queryKeys.books.featuredRoot);
-      return next;
-    },
-  );
+  // Featured exclusivity on admin badges — mirror clearOtherFeatured.
+  if (isFeaturedHeroEligible(book)) {
+    clearSiblingFeaturedFlags(queryClient, book.id);
+  }
+
+  // Homepage featured strip — replace / fallback / evict (no stale soft-nav hero).
+  syncFeaturedStripOnBookWrite(queryClient, book, previousWasFeatured);
 
   // Book-detail related strips — patch matching ids when cached.
   queryClient.setQueriesData<BookLike[]>(

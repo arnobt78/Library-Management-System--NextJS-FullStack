@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove complete (local) densify expand books+ops/fine/recs; nonlocal Verify still outstanding
-- SCOPE-V phase: Verify (densify expand Prove PASS locally; tip bind pending owner commit)
-- Status: ACTIVE - densify P0/P1 + expand waves uncommitted on tip base `69a31ad`; C2 Gate 2 still blocked by EvalGate FAIL (nonlocal evidence)
+- Stage: 4 - Prove (local) featured hero densify; tip base `4e4bd5f`; nonlocal Verify still outstanding
+- SCOPE-V phase: Prove (featured densify wave; EvalGate FAIL blocks Gate 2)
+- Status: ACTIVE - featured hero densify uncommitted on `4e4bd5f`; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `69a31ad` (overview KPI densify; densify waves pending commit)
-- Latest HEAD: `cef46ec` (`main` == `origin/main` until densify commit)
+- Latest implementation tip: `4e4bd5f` (featured densify pending commit)
+- Latest HEAD: `4e4bd5f` (`main` == `origin/main` until featured densify commit)
 - Started: 2026-08-01
-- Last updated: 2026-08-09 (densify expand books+ops Prove)
+- Last updated: 2026-08-09 (featured hero densify flash fix)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,19 +23,71 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline (resume reconcile)
+- Skills applied this session: agile-v-core, agile-v-pipeline (featured densify)
+
+## Reconciliation snapshot (2026-08-09, featured hero densify)
+
+Verified facts:
+- `densifyBookWrite` replaces/evicts `featuredRoot` on feature swap + inactive/unfeature (fallback from unfiltered catalog or removeQueries).
+- Admin list sibling `isFeatured` cleared; `updateBook`/`createBook` force `isFeatured=false` when inactive.
+- `HomeFeaturedHero` ignores inactive RQ[0]. Soft-nav `/` no stale hero flash.
+
+### Next Action
+
+**Human-Decision:** owner smoke + commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-09, books nav + A-Z)
+
+Verified facts:
+- book.write densify no longer invents into filtered admin list caches (`allowInsert` create-only).
+- `syncBooksNav` reads `ADMIN_BOOKS_UNFILTERED` total (fixes sidebar 19 vs KPI 17).
+- Top Rated / Inactive / AdminBooksList title A-Z.
+
+### Next Action
+
+**Human-Decision:** owner smoke + commit when ready.
+
+## Reconciliation snapshot (2026-08-09, Overview Inactive titles)
+
+Verified facts:
+- Mid panels: Health · Categories · Year / Top Rated · Inactive titles · Language.
+- `inactiveTitles` on admin.stats SSR + densify (categories/year/language/topRated lists on book.write).
+- Local Prove: typecheck + lint + stats unit tests PASS. Tip base `4e4bd5f` + uncommitted KPI lendable + this wave.
+
+### Next Action
+
+**Human-Decision:** owner smoke + commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-09, KPI lendable + StatCard 3-col)
+
+Verified facts:
+- `StatCardGrid` Stockly 3-col; StatCard badges text-only (semanticBadges unchanged).
+- Overview Book Availability adds Total copies; copy KPIs = active titles (`lendableBookCopies` + densify toggle).
+- Local Prove: typecheck + lint + lendable/stats unit tests PASS. Product tip still `4e4bd5f` until owner commit.
+
+### Next Action
+
+**Human-Decision:** owner smoke + commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-09, agile-v resume post densify push)
+
+Verified facts:
+- Product tip `4e4bd5f` on `main` == `origin/main` (borrow/ops densify + insights freshness).
+- Docs tip-bind delta pending (this reconcile); no product code in working tree.
+- No PENDING interrupt; INT-0005/0006 still RESOLVED.
+- EvalGate FAIL (`ER-C2-FINAL-CORRECTIVE-5`); Wave 5 / BL-0017 remains Gate 2 path.
+- Owner invoked Agile V without a new product ask — docs tip-bind only.
+
+### Next Action
+
+**Human-Decision:** pick scoped work before coding. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
 
 ## Reconciliation snapshot (2026-08-09, densify expand books+ops)
 
 Verified facts:
 - PrefetchLink books/dashboard `staleTime: 0`; book delete strips recommendations + borrowStats.
-- `fine.write` / `operations.write` / `recommendation.write` → registry required + densify adapters; `evictAnalyticsCaches` on mutating domains; insights visit always refetches (`initialDataUpdatedAt: 0`).
-- Prior P0/P1 borrow-create upsert wave still in working tree. Bulk UI densify deferred (map to existing adapters when shipped).
-- Local Prove: typecheck + lint + densify/registry unit tests PASS. EvalGate still FAIL; Gate 2 not opened. Commit/push deferred until owner asks.
-
-### Next Action
-
-**Human-Decision:** commit/push densify waves for prod retest. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+- `fine.write` / `operations.write` / `recommendation.write` → registry required + densify adapters; `evictAnalyticsCaches`; insights visit always refetches (`initialDataUpdatedAt: 0`).
+- Bulk UI densify deferred. Local Prove PASS. Superseded tip bind: shipped in `4e4bd5f`.
 
 ## Reconciliation snapshot (2026-08-09, densify P0/P1 gaps)
 

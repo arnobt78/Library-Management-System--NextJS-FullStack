@@ -48,6 +48,7 @@ import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
 import { RecentBorrowRow } from "@/components/admin/RecentBorrowRow";
 import { RecentUserRow } from "@/components/admin/RecentUserRow";
 import { OverviewTopRatedRow } from "@/components/admin/OverviewTopRatedRow";
+import { OverviewInactiveTitleRow } from "@/components/admin/OverviewInactiveTitleRow";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import { getAdminNavItemByRoute } from "@/lib/navigation/admin-nav-config";
 
@@ -71,10 +72,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     isLoading,
     isError,
     error,
-  } = useAdminStats(
-    initialStats,
-    initialStats ? ssrTimestamp : undefined,
-  );
+  } = useAdminStats(initialStats, initialStats ? ssrTimestamp : undefined);
   // Prefer admin.stats (densified on ticket/review CRUD) over separate count hooks
   // so Overview KPI value + badges cannot briefly disagree after mutations.
   const { data: openTicketCount, isLoading: ticketCountLoading } =
@@ -87,8 +85,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     return (
       <div className="space-y-4 sm:space-y-6">
         {/* Statistics Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-5">
-          {[...Array(5)].map((_, i) => (
+        {/* Match StatCardGrid: 3-per-row Stockly shell */}
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
             <AdminStatsSkeleton key={`stat-${i}`} variant="stat" />
           ))}
         </div>
@@ -164,11 +163,15 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     booksByYear = [],
     booksByLanguage = [],
     topRatedBooks = [],
+    inactiveTitles = [],
   } = statsData;
 
   // Densified admin.stats wins over dedicated count queries (same mutation paint).
   const openTicketsValue =
-    statsOpenTicketCount ?? openTicketCount ?? initialStats?.openTicketCount ?? 0;
+    statsOpenTicketCount ??
+    openTicketCount ??
+    initialStats?.openTicketCount ??
+    0;
   const pendingReviewsValue =
     statsPendingReviewCount ??
     pendingReviewCount ??
@@ -385,6 +388,18 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               />
             </div>
 
+            {/* Lendable pool (active titles only) — densified with book.write */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Total copies</span>
+              <span className="font-medium">{totalCopies}</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-slate-500"
+                style={{ width: `${totalCopies > 0 ? 100 : 0}%` }}
+              />
+            </div>
+
             <div className="flex items-center justify-between">
               <span className="text-sm">Available copies</span>
               <span className="font-medium">{availableCopies}</span>
@@ -525,12 +540,14 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             className="mb-0"
             align="center"
             icon={<BookOpen className="size-5" />}
-            title="Recent Borrows"
+            title="Recent 5 Borrows History"
             iconToneClassName="border-sky-200 bg-sky-50 text-sky-600"
           />
           <div className="space-y-2">
             {recentBorrows.length === 0 ? (
-              <p className="text-sm text-gray-500">No recent borrows</p>
+              <p className="text-sm text-gray-500">
+                No recent borrows currently available.
+              </p>
             ) : (
               recentBorrows.map((borrow) => (
                 <RecentBorrowRow key={borrow.id} borrow={borrow} />
@@ -544,12 +561,14 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             className="mb-0"
             align="center"
             icon={<Users className="size-5" />}
-            title="Recent Users"
+            title="Recent 5 Users Signups"
             iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
           />
           <div className="space-y-2">
             {recentUsers.length === 0 ? (
-              <p className="text-sm text-gray-500">No recent users</p>
+              <p className="text-sm text-gray-500">
+                No recent users currently available.
+              </p>
             ) : (
               recentUsers.map((user) => (
                 <RecentUserRow key={user.id} user={user} />
@@ -559,8 +578,208 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         </AdminSurfacePanel>
       </div>
 
-      {/* Book Categories Section */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+      {/* Mid panels: Health · Categories · Year | Top Rated · Inactive · Language */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<HeartPulse className="size-5" />}
+            title="Library Health"
+            iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
+          />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                Collection Diversity
+              </span>
+              <span className="text-sm font-medium text-indigo-600">
+                {categoryStats.length} categories
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500"
+                style={{
+                  width: `${Math.min((categoryStats.length / 10) * 100, 100)}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Availability Rate</span>
+              <span className="text-sm font-medium text-green-600">
+                {Math.round(pct(availableCopies, totalCopies))}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
+                style={{ width: `${pct(availableCopies, totalCopies)}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">User Engagement</span>
+              <span className="text-sm font-medium text-purple-600">
+                {Math.round(pct(activeBorrows, totalUsers))}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+                style={{
+                  width: `${Math.min(pct(activeBorrows, totalUsers), 100)}%`,
+                }}
+              />
+            </div>
+
+            {/* Extra state metrics — real counts only (REQ-0033 Library Health) */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                Pending Borrow Queue
+              </span>
+              <span className="text-sm font-medium text-amber-600">
+                {pendingBorrows}
+                {activeBorrows + pendingBorrows > 0
+                  ? ` · ${Math.round(pct(pendingBorrows, activeBorrows + pendingBorrows))}%`
+                  : ""}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                style={{
+                  width: `${pct(pendingBorrows, activeBorrows + pendingBorrows)}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                Reservations Waiting
+              </span>
+              <span className="text-sm font-medium text-sky-600">
+                {reservationsWaiting}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"
+                style={{
+                  width: `${Math.min(
+                    (reservationsWaiting / Math.max(reservationsWaiting, 5)) *
+                      100,
+                    100,
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Return Completion</span>
+              <span className="text-sm font-medium text-emerald-600">
+                {Math.round(pct(returnedBooks, returnedBooks + activeBorrows))}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
+                style={{
+                  width: `${pct(returnedBooks, returnedBooks + activeBorrows)}%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Catalog Active</span>
+              <span className="text-sm font-medium text-violet-600">
+                {activeBooks}/{totalBooks}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500"
+                style={{ width: `${pct(activeBooks, totalBooks)}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Signup Approved</span>
+              <span className="text-sm font-medium text-blue-600">
+                {Math.round(pct(approvedUsers, totalUsers))}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500"
+                style={{ width: `${pct(approvedUsers, totalUsers)}%` }}
+              />
+            </div>
+
+            {pendingUsers > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Signup Pending</span>
+                  <span className="text-sm font-medium text-amber-600">
+                    {pendingUsers}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-amber-300 to-yellow-500"
+                    style={{ width: `${pct(pendingUsers, totalUsers)}%` }}
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {rejectedUsers > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Signup Rejected</span>
+                  <span className="text-sm font-medium text-rose-600">
+                    {rejectedUsers}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-rose-400 to-red-500"
+                    style={{ width: `${pct(rejectedUsers, totalUsers)}%` }}
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {cancelledBorrows > 0 ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    Cancelled Borrows
+                  </span>
+                  <span className="text-sm font-medium text-slate-600">
+                    {cancelledBorrows}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-200">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-slate-400 to-slate-500"
+                    style={{
+                      width: `${pct(
+                        cancelledBorrows,
+                        cancelledBorrows +
+                          returnedBooks +
+                          activeBorrows +
+                          pendingBorrows,
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </>
+            ) : null}
+          </div>
+        </AdminSurfacePanel>
+
         <AdminSurfacePanel variant="stat" topStroke>
           <TicketSectionHeader
             className="mb-0"
@@ -655,8 +874,49 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         </AdminSurfacePanel>
       </div>
 
-      {/* Additional Statistics Section */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Star className="size-5" />}
+            title="Top 5 Rated Books"
+            iconToneClassName="border-amber-200 bg-amber-50 text-amber-600"
+          />
+          <div className="space-y-2">
+            {topRatedBooks.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No rated books currently available.
+              </p>
+            ) : (
+              topRatedBooks.map((book) => (
+                <OverviewTopRatedRow key={book.id} book={book} />
+              ))
+            )}
+          </div>
+        </AdminSurfacePanel>
+
+        <AdminSurfacePanel variant="stat" topStroke>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Ban className="size-5" />}
+            title="Inactive Books"
+            iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
+          />
+          <div className="flex min-h-40 flex-col space-y-2">
+            {inactiveTitles.length === 0 ? (
+              <p className="flex flex-1 items-center justify-center text-sm text-gray-500">
+                No inactive books currently in the library shelf.
+              </p>
+            ) : (
+              inactiveTitles.map((book) => (
+                <OverviewInactiveTitleRow key={book.id} book={book} />
+              ))
+            )}
+          </div>
+        </AdminSurfacePanel>
+
         <AdminSurfacePanel variant="stat" topStroke>
           <TicketSectionHeader
             className="mb-0"
@@ -667,7 +927,9 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="space-y-2">
             {booksByLanguage.length === 0 ? (
-              <p className="text-sm text-gray-500">No language data</p>
+              <p className="text-sm text-gray-500">
+                No language data currently available.
+              </p>
             ) : (
               booksByLanguage.map(([language, count]) => (
                 <div
@@ -691,219 +953,6 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                 </div>
               ))
             )}
-          </div>
-        </AdminSurfacePanel>
-
-        <AdminSurfacePanel variant="stat" topStroke>
-          <TicketSectionHeader
-            className="mb-0"
-            align="center"
-            icon={<Star className="size-5" />}
-            title="Top Rated Books"
-            iconToneClassName="border-amber-200 bg-amber-50 text-amber-600"
-          />
-          <div className="space-y-2">
-            {topRatedBooks.length === 0 ? (
-              <p className="text-sm text-gray-500">No rated books</p>
-            ) : (
-              topRatedBooks.map((book) => (
-                <OverviewTopRatedRow key={book.id} book={book} />
-              ))
-            )}
-          </div>
-        </AdminSurfacePanel>
-
-        <AdminSurfacePanel variant="stat" topStroke>
-          <TicketSectionHeader
-            className="mb-0"
-            align="center"
-            icon={<HeartPulse className="size-5" />}
-            title="Library Health"
-            iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
-          />
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Collection Diversity</span>
-              <span className="text-sm font-medium text-indigo-600">
-                {categoryStats.length} categories
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500"
-                style={{
-                  width: `${Math.min((categoryStats.length / 10) * 100, 100)}%`,
-                }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Availability Rate</span>
-              <span className="text-sm font-medium text-green-600">
-                {Math.round(pct(availableCopies, totalCopies))}%
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
-                style={{ width: `${pct(availableCopies, totalCopies)}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">User Engagement</span>
-              <span className="text-sm font-medium text-purple-600">
-                {Math.round(pct(activeBorrows, totalUsers))}%
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
-                style={{
-                  width: `${Math.min(pct(activeBorrows, totalUsers), 100)}%`,
-                }}
-              />
-            </div>
-
-            {/* Extra state metrics — real counts only (REQ-0033 Library Health) */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Pending Borrow Queue</span>
-              <span className="text-sm font-medium text-amber-600">
-                {pendingBorrows}
-                {activeBorrows + pendingBorrows > 0
-                  ? ` · ${Math.round(pct(pendingBorrows, activeBorrows + pendingBorrows))}%`
-                  : ""}
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
-                style={{
-                  width: `${pct(pendingBorrows, activeBorrows + pendingBorrows)}%`,
-                }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Reservations Waiting</span>
-              <span className="text-sm font-medium text-sky-600">
-                {reservationsWaiting}
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-sky-400 to-blue-500"
-                style={{
-                  width: `${Math.min(
-                    (reservationsWaiting / Math.max(reservationsWaiting, 5)) *
-                      100,
-                    100,
-                  )}%`,
-                }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Return Completion</span>
-              <span className="text-sm font-medium text-emerald-600">
-                {Math.round(
-                  pct(returnedBooks, returnedBooks + activeBorrows),
-                )}
-                %
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
-                style={{
-                  width: `${pct(returnedBooks, returnedBooks + activeBorrows)}%`,
-                }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Catalog Active</span>
-              <span className="text-sm font-medium text-violet-600">
-                {activeBooks}/{totalBooks}
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500"
-                style={{ width: `${pct(activeBooks, totalBooks)}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Signup Approved</span>
-              <span className="text-sm font-medium text-blue-600">
-                {Math.round(pct(approvedUsers, totalUsers))}%
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-200">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500"
-                style={{ width: `${pct(approvedUsers, totalUsers)}%` }}
-              />
-            </div>
-
-            {pendingUsers > 0 ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Signup Pending</span>
-                  <span className="text-sm font-medium text-amber-600">
-                    {pendingUsers}
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
-                  <div
-                    className="h-2 rounded-full bg-gradient-to-r from-amber-300 to-yellow-500"
-                    style={{ width: `${pct(pendingUsers, totalUsers)}%` }}
-                  />
-                </div>
-              </>
-            ) : null}
-
-            {rejectedUsers > 0 ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Signup Rejected</span>
-                  <span className="text-sm font-medium text-rose-600">
-                    {rejectedUsers}
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
-                  <div
-                    className="h-2 rounded-full bg-gradient-to-r from-rose-400 to-red-500"
-                    style={{ width: `${pct(rejectedUsers, totalUsers)}%` }}
-                  />
-                </div>
-              </>
-            ) : null}
-
-            {cancelledBorrows > 0 ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">
-                    Cancelled Borrows
-                  </span>
-                  <span className="text-sm font-medium text-slate-600">
-                    {cancelledBorrows}
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
-                  <div
-                    className="h-2 rounded-full bg-gradient-to-r from-slate-400 to-slate-500"
-                    style={{
-                      width: `${pct(
-                        cancelledBorrows,
-                        cancelledBorrows + returnedBooks + activeBorrows + pendingBorrows,
-                      )}%`,
-                    }}
-                  />
-                </div>
-              </>
-            ) : null}
           </div>
         </AdminSurfacePanel>
       </div>

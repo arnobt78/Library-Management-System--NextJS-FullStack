@@ -23,13 +23,18 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import type {
+  AdminDashboardCategoryStat,
+  AdminDashboardInactiveTitle,
   AdminDashboardStats,
+  AdminDashboardTopRatedBook,
   OverviewRecentBorrow,
   OverviewRecentUser,
 } from "@/lib/admin/adminDashboardStatsTypes";
+import { isBookActive } from "@/lib/admin/lendableBookCopies";
 import { queryKeys } from "@/lib/query/keys";
 
 const RECENT_CAP = 5;
+const LIST_CAP = 5;
 
 type BorrowStatus = "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED" | string;
 type AccountStatus = "PENDING" | "APPROVED" | "REJECTED" | string;
@@ -125,12 +130,17 @@ function writeAdminStats(
   queryClient.setQueryData(queryKeys.admin.stats, next);
 }
 
-/** Apply BORROWED enter/leave to catalog copy KPIs (Availability mid-card). */
+/**
+ * Apply BORROWED enter/leave to lendable catalog copy KPIs.
+ * Skip when the title is inactive — inactive inventory is outside the pool.
+ */
 function applyBorrowCopyDeltas(
   stats: AdminDashboardStats,
   fromStatus: BorrowStatus | null | undefined,
   toStatus: BorrowStatus,
+  bookIsActive: boolean,
 ): void {
+  if (!bookIsActive) return;
   const leftBorrowed = fromStatus === "BORROWED" && toStatus !== "BORROWED";
   const enteredBorrowed = fromStatus !== "BORROWED" && toStatus === "BORROWED";
   if (leftBorrowed) {
@@ -188,6 +198,11 @@ export function patchAdminStatsOnBorrowStatusChange(
     toStatus: BorrowStatus;
     /** Prefer enriched row when available (create / list densify). */
     recentRow?: OverviewRecentBorrow | null;
+    /**
+     * Lendable Available/Borrowed only move when the title is active.
+     * Default true when unknown (preserve prior densify for active catalog).
+     */
+    bookIsActive?: boolean;
   },
 ): void {
   const prev = readAdminStats(queryClient);
@@ -208,7 +223,12 @@ export function patchAdminStatsOnBorrowStatusChange(
   const fromField = fromStatus ? borrowStatusField(fromStatus) : null;
   if (fromField && fromField !== toField) bumpStatusCount(next, fromField, -1);
   if (toField && toField !== fromField) bumpStatusCount(next, toField, 1);
-  applyBorrowCopyDeltas(next, fromStatus, args.toStatus);
+  applyBorrowCopyDeltas(
+    next,
+    fromStatus,
+    args.toStatus,
+    args.bookIsActive !== false,
+  );
 
   const idx = next.recentBorrows.findIndex((r) => r.id === args.recordId);
   if (idx >= 0) {
@@ -422,7 +442,7 @@ export function patchAdminStatsOnUserRoleChange(
   writeAdminStats(queryClient, next);
 }
 
-/** Snapshot fields needed to densify Total Books / Availability / Book Information. */
+/** Snapshot fields needed to densify KPIs + Overview mid-panel lists. */
 export type AdminStatsBookSnapshot = {
   id: string;
   isActive?: boolean | null;
@@ -431,6 +451,14 @@ export type AdminStatsBookSnapshot = {
   isbn?: string | null;
   publisher?: string | null;
   pageCount?: number | null;
+  title?: string | null;
+  author?: string | null;
+  rating?: number | null;
+  coverUrl?: string | null;
+  coverColor?: string | null;
+  genre?: string | null;
+  publicationYear?: number | string | null;
+  language?: string | null;
 };
 
 function num(value: number | null | undefined): number {
@@ -439,6 +467,35 @@ function num(value: number | null | undefined): number {
 
 function hasText(value: string | null | undefined): boolean {
   return Boolean(value && String(value).trim());
+}
+
+function strOr(value: string | null | undefined, fallback: string): string {
+  return hasText(value) ? String(value).trim() : fallback;
+}
+
+/** Borrowed physical copies for one title (clamped). */
+function borrowedOf(book: AdminStatsBookSnapshot): number {
+  return Math.max(0, num(book.totalCopies) - num(book.availableCopies));
+}
+
+/** Add one title’s inventory into the lendable overview pool. */
+function addLendableCopies(
+  stats: AdminDashboardStats,
+  book: AdminStatsBookSnapshot,
+): void {
+  bumpStatusCount(stats, "totalCopies", num(book.totalCopies));
+  bumpStatusCount(stats, "availableCopies", num(book.availableCopies));
+  bumpStatusCount(stats, "borrowedCopies", borrowedOf(book));
+}
+
+/** Remove one title’s inventory from the lendable overview pool. */
+function removeLendableCopies(
+  stats: AdminDashboardStats,
+  book: AdminStatsBookSnapshot,
+): void {
+  bumpStatusCount(stats, "totalCopies", -num(book.totalCopies));
+  bumpStatusCount(stats, "availableCopies", -num(book.availableCopies));
+  bumpStatusCount(stats, "borrowedCopies", -borrowedOf(book));
 }
 
 function adjustAveragePageCount(
@@ -457,8 +514,238 @@ function adjustAveragePageCount(
   stats.averagePageCount = Math.max(0, (prevSum + pageCountDelta) / nextTotal);
 }
 
+function yearKey(book: AdminStatsBookSnapshot): string {
+  const y = book.publicationYear;
+  if (y === null || y === undefined || y === "") return "Unknown";
+  return String(y);
+}
+
+function languageKey(book: AdminStatsBookSnapshot): string {
+  return strOr(book.language, "Unknown");
+}
+
+function genreKey(book: AdminStatsBookSnapshot): string {
+  return strOr(book.genre, "Unknown");
+}
+
+function toInactiveRow(
+  book: AdminStatsBookSnapshot,
+): AdminDashboardInactiveTitle | null {
+  if (!hasText(book.title)) return null;
+  return {
+    id: book.id,
+    title: String(book.title),
+    author: strOr(book.author, "Unknown"),
+    coverUrl: book.coverUrl ?? null,
+    coverColor: book.coverColor ?? null,
+    genre: book.genre ?? null,
+    rating: num(book.rating),
+    totalCopies: num(book.totalCopies),
+    availableCopies: num(book.availableCopies),
+  };
+}
+
+function toTopRatedRow(
+  book: AdminStatsBookSnapshot,
+): AdminDashboardTopRatedBook | null {
+  const rating = num(book.rating);
+  if (!hasText(book.title) || rating <= 0) return null;
+  return {
+    id: book.id,
+    title: String(book.title),
+    author: strOr(book.author, "Unknown"),
+    rating,
+    coverUrl: book.coverUrl ?? null,
+    coverColor: book.coverColor ?? null,
+    genre: book.genre ?? null,
+  };
+}
+
+function upsertInactiveTitles(
+  list: AdminDashboardInactiveTitle[],
+  book: AdminStatsBookSnapshot,
+): AdminDashboardInactiveTitle[] {
+  const row = toInactiveRow(book);
+  if (!row) return list.filter((b) => b.id !== book.id);
+  const without = list.filter((b) => b.id !== book.id);
+  return [...without, row]
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .slice(0, LIST_CAP);
+}
+
+function removeInactiveTitle(
+  list: AdminDashboardInactiveTitle[],
+  bookId: string,
+): AdminDashboardInactiveTitle[] {
+  return list.filter((b) => b.id !== bookId);
+}
+
+function upsertTopRated(
+  list: AdminDashboardTopRatedBook[],
+  book: AdminStatsBookSnapshot,
+): AdminDashboardTopRatedBook[] {
+  const without = list.filter((b) => b.id !== book.id);
+  const row = toTopRatedRow(book);
+  if (!row) return without;
+  return [...without, row]
+    .sort((a, b) => {
+      const byRating = b.rating - a.rating;
+      if (byRating !== 0) return byRating;
+      return a.title.localeCompare(b.title);
+    })
+    .slice(0, LIST_CAP);
+}
+
+function removeTopRated(
+  list: AdminDashboardTopRatedBook[],
+  bookId: string,
+): AdminDashboardTopRatedBook[] {
+  return list.filter((b) => b.id !== bookId);
+}
+
+function bumpPairList(
+  pairs: Array<[string, number]>,
+  key: string,
+  delta: number,
+): Array<[string, number]> {
+  const map = new Map(pairs);
+  const next = (map.get(key) ?? 0) + delta;
+  if (next <= 0) map.delete(key);
+  else map.set(key, next);
+  return [...map.entries()]
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, LIST_CAP) as Array<[string, number]>;
+}
+
+/** Adjust category title count + lendable copies for one active contribution. */
+function applyCategoryDelta(
+  stats: AdminDashboardStats,
+  book: AdminStatsBookSnapshot,
+  sign: 1 | -1,
+  includeCopies: boolean,
+): void {
+  const genre = genreKey(book);
+  const list = [...(stats.categoryStats ?? [])];
+  const idx = list.findIndex((c) => c.genre === genre);
+  const copiesTotal = includeCopies ? num(book.totalCopies) * sign : 0;
+  const copiesAvail = includeCopies ? num(book.availableCopies) * sign : 0;
+  const rating = num(book.rating);
+
+  if (idx < 0) {
+    if (sign < 0) return;
+    const created: AdminDashboardCategoryStat = {
+      genre,
+      count: 1,
+      totalCopies: Math.max(0, copiesTotal),
+      availableCopies: Math.max(0, copiesAvail),
+      avgRating: rating > 0 ? rating : 0,
+      totalRating: rating > 0 ? rating : 0,
+      ratingCount: rating > 0 ? 1 : 0,
+    };
+    stats.categoryStats = [...list, created].sort((a, b) => b.count - a.count);
+    return;
+  }
+
+  const cur = { ...list[idx] };
+  cur.count = Math.max(0, cur.count + sign);
+  cur.totalCopies = Math.max(0, cur.totalCopies + copiesTotal);
+  cur.availableCopies = Math.max(0, cur.availableCopies + copiesAvail);
+  if (rating > 0) {
+    cur.totalRating = Math.max(0, cur.totalRating + rating * sign);
+    cur.ratingCount = Math.max(0, cur.ratingCount + sign);
+    cur.avgRating =
+      cur.ratingCount > 0 ? cur.totalRating / cur.ratingCount : 0;
+  }
+  if (cur.count === 0) {
+    list.splice(idx, 1);
+  } else {
+    list[idx] = cur;
+  }
+  stats.categoryStats = list.sort((a, b) => b.count - a.count);
+}
+
 /**
- * Catalog create/update densify for overview Total Books + Availability + Book Information.
+ * Densify Overview mid-panel lists (Inactive / Top Rated / Categories / Year / Language).
+ * Health bars reuse densified counters — no separate list patch.
+ */
+function densifyCatalogMidPanels(
+  stats: AdminDashboardStats,
+  before: AdminStatsBookSnapshot | null | undefined,
+  after: AdminStatsBookSnapshot | null,
+): void {
+  stats.inactiveTitles = [...(stats.inactiveTitles ?? [])];
+  stats.topRatedBooks = [...(stats.topRatedBooks ?? [])];
+  stats.booksByYear = [...(stats.booksByYear ?? [])];
+  stats.booksByLanguage = [...(stats.booksByLanguage ?? [])];
+  stats.categoryStats = [...(stats.categoryStats ?? [])];
+
+  if (!before && after) {
+    // Create
+    stats.booksByYear = bumpPairList(stats.booksByYear, yearKey(after), 1);
+    stats.booksByLanguage = bumpPairList(
+      stats.booksByLanguage,
+      languageKey(after),
+      1,
+    );
+    applyCategoryDelta(stats, after, 1, isBookActive(after));
+    if (!isBookActive(after)) {
+      stats.inactiveTitles = upsertInactiveTitles(stats.inactiveTitles, after);
+    }
+    stats.topRatedBooks = upsertTopRated(stats.topRatedBooks, after);
+    return;
+  }
+
+  if (before && !after) {
+    // Delete
+    stats.booksByYear = bumpPairList(stats.booksByYear, yearKey(before), -1);
+    stats.booksByLanguage = bumpPairList(
+      stats.booksByLanguage,
+      languageKey(before),
+      -1,
+    );
+    applyCategoryDelta(stats, before, -1, isBookActive(before));
+    stats.inactiveTitles = removeInactiveTitle(stats.inactiveTitles, before.id);
+    stats.topRatedBooks = removeTopRated(stats.topRatedBooks, before.id);
+    return;
+  }
+
+  if (!before || !after) return;
+
+  const wasActive = isBookActive(before);
+  const nowActive = isBookActive(after);
+
+  // Year / language: move buckets when keys change
+  const yBefore = yearKey(before);
+  const yAfter = yearKey(after);
+  if (yBefore !== yAfter) {
+    stats.booksByYear = bumpPairList(stats.booksByYear, yBefore, -1);
+    stats.booksByYear = bumpPairList(stats.booksByYear, yAfter, 1);
+  }
+  const lBefore = languageKey(before);
+  const lAfter = languageKey(after);
+  if (lBefore !== lAfter) {
+    stats.booksByLanguage = bumpPairList(stats.booksByLanguage, lBefore, -1);
+    stats.booksByLanguage = bumpPairList(stats.booksByLanguage, lAfter, 1);
+  }
+
+  // Categories: remove old contribution, add new
+  applyCategoryDelta(stats, before, -1, wasActive);
+  applyCategoryDelta(stats, after, 1, nowActive);
+
+  // Inactive titles list
+  if (!nowActive) {
+    stats.inactiveTitles = upsertInactiveTitles(stats.inactiveTitles, after);
+  } else {
+    stats.inactiveTitles = removeInactiveTitle(stats.inactiveTitles, after.id);
+  }
+
+  // Top rated — active or inactive titles with rating still show (SSR includes all)
+  stats.topRatedBooks = upsertTopRated(stats.topRatedBooks, after);
+}
+
+/**
+ * Catalog create/update densify for overview Total Books + Availability + mid panels.
+ * Lendable copy KPIs only include active titles (null isActive = active).
  * Pass `previous: null` for create.
  */
 export function patchAdminStatsOnBookChange(
@@ -476,53 +763,32 @@ export function patchAdminStatsOnBookChange(
 
   if (!before) {
     bumpStatusCount(nextStats, "totalBooks", 1);
-    bumpStatusCount(nextStats, "totalCopies", num(after.totalCopies));
-    bumpStatusCount(nextStats, "availableCopies", num(after.availableCopies));
-    const borrowed = Math.max(
-      0,
-      num(after.totalCopies) - num(after.availableCopies),
-    );
-    bumpStatusCount(nextStats, "borrowedCopies", borrowed);
-    if (after.isActive !== false) bumpStatusCount(nextStats, "activeBooks", 1);
+    if (isBookActive(after)) addLendableCopies(nextStats, after);
+    if (isBookActive(after)) bumpStatusCount(nextStats, "activeBooks", 1);
     else bumpStatusCount(nextStats, "inactiveBooks", 1);
     if (hasText(after.isbn)) bumpStatusCount(nextStats, "booksWithISBN", 1);
     if (hasText(after.publisher)) {
       bumpStatusCount(nextStats, "booksWithPublisher", 1);
     }
     adjustAveragePageCount(nextStats, num(after.pageCount), 1);
+    densifyCatalogMidPanels(nextStats, null, after);
     writeAdminStats(queryClient, nextStats);
     return;
   }
 
-  const wasActive = before.isActive !== false;
-  const isActive = after.isActive !== false;
-  if (wasActive && !isActive) {
+  const wasActive = isBookActive(before);
+  const nowActive = isBookActive(after);
+  if (wasActive && !nowActive) {
     bumpStatusCount(nextStats, "activeBooks", -1);
     bumpStatusCount(nextStats, "inactiveBooks", 1);
-  } else if (!wasActive && isActive) {
+  } else if (!wasActive && nowActive) {
     bumpStatusCount(nextStats, "activeBooks", 1);
     bumpStatusCount(nextStats, "inactiveBooks", -1);
   }
 
-  const copiesDelta = num(after.totalCopies) - num(before.totalCopies);
-  const availableDelta =
-    num(after.availableCopies) - num(before.availableCopies);
-  const borrowedBefore = Math.max(
-    0,
-    num(before.totalCopies) - num(before.availableCopies),
-  );
-  const borrowedAfter = Math.max(
-    0,
-    num(after.totalCopies) - num(after.availableCopies),
-  );
-  if (copiesDelta !== 0) bumpStatusCount(nextStats, "totalCopies", copiesDelta);
-  if (availableDelta !== 0) {
-    bumpStatusCount(nextStats, "availableCopies", availableDelta);
-  }
-  const borrowedDelta = borrowedAfter - borrowedBefore;
-  if (borrowedDelta !== 0) {
-    bumpStatusCount(nextStats, "borrowedCopies", borrowedDelta);
-  }
+  // Rebuild lendable pool contribution: drop previous active row, add next if active.
+  if (wasActive) removeLendableCopies(nextStats, before);
+  if (nowActive) addLendableCopies(nextStats, after);
 
   const hadIsbn = hasText(before.isbn);
   const hasIsbn = hasText(after.isbn);
@@ -541,10 +807,11 @@ export function patchAdminStatsOnBookChange(
   const pageDelta = num(after.pageCount) - num(before.pageCount);
   if (pageDelta !== 0) adjustAveragePageCount(nextStats, pageDelta, 0);
 
+  densifyCatalogMidPanels(nextStats, before, after);
   writeAdminStats(queryClient, nextStats);
 }
 
-/** Catalog delete densify for overview book KPIs. */
+/** Catalog delete densify for overview book KPIs + mid panels. */
 export function patchAdminStatsOnBookDelete(
   queryClient: QueryClient,
   book: AdminStatsBookSnapshot,
@@ -554,18 +821,13 @@ export function patchAdminStatsOnBookDelete(
   const next: AdminDashboardStats = { ...prev };
 
   bumpStatusCount(next, "totalBooks", -1);
-  bumpStatusCount(next, "totalCopies", -num(book.totalCopies));
-  bumpStatusCount(next, "availableCopies", -num(book.availableCopies));
-  const borrowed = Math.max(
-    0,
-    num(book.totalCopies) - num(book.availableCopies),
-  );
-  bumpStatusCount(next, "borrowedCopies", -borrowed);
-  if (book.isActive !== false) bumpStatusCount(next, "activeBooks", -1);
+  if (isBookActive(book)) removeLendableCopies(next, book);
+  if (isBookActive(book)) bumpStatusCount(next, "activeBooks", -1);
   else bumpStatusCount(next, "inactiveBooks", -1);
   if (hasText(book.isbn)) bumpStatusCount(next, "booksWithISBN", -1);
   if (hasText(book.publisher)) bumpStatusCount(next, "booksWithPublisher", -1);
   adjustAveragePageCount(next, -num(book.pageCount), -1);
+  densifyCatalogMidPanels(next, book, null);
 
   writeAdminStats(queryClient, next);
 }

@@ -9,6 +9,10 @@ import type {
   OverviewRecentBorrow,
   OverviewRecentUser,
 } from "@/lib/admin/adminDashboardStatsTypes";
+import {
+  isBookActive,
+  sumLendableCopies,
+} from "@/lib/admin/lendableBookCopies";
 
 /** Minimal user row needed for overview aggregates + recent users. */
 export type AdminStatsUserRow = {
@@ -162,16 +166,12 @@ export function buildAdminDashboardStats(
   const adminUsers = users.filter((u) => u.role === "ADMIN").length;
 
   const totalBooks = allBooks.length;
-  const totalCopies = allBooks.reduce((sum, book) => sum + book.totalCopies, 0);
-  const availableCopies = allBooks.reduce(
-    (sum, book) => sum + book.availableCopies,
-    0,
-  );
-  // Borrowed copies = physical inventory in use (not borrow-record count)
-  const borrowedCopies = totalCopies - availableCopies;
+  // Lending KPIs — active titles only (inactive stay in title counts/badges).
+  const { totalCopies, availableCopies, borrowedCopies } =
+    sumLendableCopies(allBooks);
 
-  const activeBooks = allBooks.filter((book) => book.isActive).length;
-  const inactiveBooks = allBooks.filter((book) => !book.isActive).length;
+  const activeBooks = allBooks.filter((book) => isBookActive(book)).length;
+  const inactiveBooks = allBooks.filter((book) => !isBookActive(book)).length;
   const booksWithISBN = allBooks.filter((book) => book.isbn).length;
   const booksWithPublisher = allBooks.filter((book) => book.publisher).length;
   const booksWithPages = allBooks.filter((book) => book.pageCount);
@@ -216,8 +216,11 @@ export function buildAdminDashboardStats(
         };
       }
       acc[genre].count += 1;
-      acc[genre].totalCopies += book.totalCopies;
-      acc[genre].availableCopies += book.availableCopies;
+      // Category copy rolls match Overview lendable pool (active only).
+      if (isBookActive(book)) {
+        acc[genre].totalCopies += book.totalCopies;
+        acc[genre].availableCopies += book.availableCopies;
+      }
       if (book.rating && book.rating > 0) {
         acc[genre].totalRating += book.rating;
         acc[genre].ratingCount += 1;
@@ -281,7 +284,12 @@ export function buildAdminDashboardStats(
 
   const topRatedBooks = allBooks
     .filter((book) => book.rating && book.rating > 0)
-    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    // Rating desc first, then A-Z for stable ties (slice keeps true top-rated).
+    .sort((a, b) => {
+      const ratingDelta = (b.rating || 0) - (a.rating || 0);
+      if (ratingDelta !== 0) return ratingDelta;
+      return a.title.localeCompare(b.title);
+    })
     .slice(0, 5)
     .map((book) => ({
       id: book.id,
@@ -291,6 +299,23 @@ export function buildAdminDashboardStats(
       coverUrl: book.coverUrl ?? null,
       coverColor: book.coverColor ?? null,
       genre: book.genre ?? null,
+    }));
+
+  // Shelf inventory for deactivated titles (not lendable Available KPIs).
+  const inactiveTitles = allBooks
+    .filter((book) => !isBookActive(book))
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .slice(0, 5)
+    .map((book) => ({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      coverUrl: book.coverUrl ?? null,
+      coverColor: book.coverColor ?? null,
+      genre: book.genre ?? null,
+      rating: book.rating || 0,
+      totalCopies: book.totalCopies,
+      availableCopies: book.availableCopies,
     }));
 
   return {
@@ -318,6 +343,7 @@ export function buildAdminDashboardStats(
     booksByYear,
     booksByLanguage,
     topRatedBooks,
+    inactiveTitles,
     reservationsWaiting: input.reservationsWaiting ?? 0,
     ...(input.openTicketCount !== undefined
       ? { openTicketCount: input.openTicketCount }

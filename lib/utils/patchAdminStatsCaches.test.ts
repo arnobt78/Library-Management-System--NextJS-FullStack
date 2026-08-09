@@ -78,6 +78,7 @@ function seedStats(
     booksByYear: [],
     booksByLanguage: [],
     topRatedBooks: [],
+    inactiveTitles: [],
     reservationsWaiting: 0,
     ...overrides,
   };
@@ -218,6 +219,7 @@ describe("patchAdminStatsCaches", () => {
     expect(next?.booksWithISBN).toBe(6);
     expect(next?.booksWithPublisher).toBe(6);
 
+    // Deactivate drops the title from the lendable copy pool (before snapshot).
     patchAdminStatsOnBookChange(client, {
       previous: {
         id: "b-new",
@@ -241,9 +243,11 @@ describe("patchAdminStatsCaches", () => {
     next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
     expect(next?.activeBooks).toBe(5);
     expect(next?.inactiveBooks).toBe(1);
-    expect(next?.availableCopies).toBe(9);
-    expect(next?.borrowedCopies).toBe(4);
+    expect(next?.totalCopies).toBe(10);
+    expect(next?.availableCopies).toBe(8);
+    expect(next?.borrowedCopies).toBe(2);
 
+    // Inactive delete: titles only — pool already excluded copies.
     patchAdminStatsOnBookDelete(client, {
       id: "b-new",
       isActive: false,
@@ -256,6 +260,160 @@ describe("patchAdminStatsCaches", () => {
     next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
     expect(next?.totalBooks).toBe(5);
     expect(next?.inactiveBooks).toBe(0);
+    expect(next?.totalCopies).toBe(10);
+    expect(next?.availableCopies).toBe(8);
+  });
+
+  it("create inactive skips lendable copies; reactivate restores them", () => {
+    const client = new QueryClient();
+    seedStats(client);
+    patchAdminStatsOnBookChange(client, {
+      previous: null,
+      next: {
+        id: "b-off",
+        isActive: false,
+        totalCopies: 5,
+        availableCopies: 4,
+      },
+    });
+    let next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
+    expect(next?.totalBooks).toBe(6);
+    expect(next?.inactiveBooks).toBe(1);
+    expect(next?.totalCopies).toBe(10);
+    expect(next?.availableCopies).toBe(8);
+
+    patchAdminStatsOnBookChange(client, {
+      previous: {
+        id: "b-off",
+        isActive: false,
+        totalCopies: 5,
+        availableCopies: 4,
+      },
+      next: {
+        id: "b-off",
+        isActive: true,
+        totalCopies: 5,
+        availableCopies: 4,
+      },
+    });
+    next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
+    expect(next?.activeBooks).toBe(6);
+    expect(next?.inactiveBooks).toBe(0);
+    expect(next?.totalCopies).toBe(15);
+    expect(next?.availableCopies).toBe(12);
+    expect(next?.borrowedCopies).toBe(3);
+  });
+
+  it("upserts Inactive titles on deactivate and clears on reactivate", () => {
+    const client = new QueryClient();
+    seedStats(client);
+    patchAdminStatsOnBookChange(client, {
+      previous: {
+        id: "b-off",
+        title: "Quiet Book",
+        author: "Ada",
+        isActive: true,
+        totalCopies: 4,
+        availableCopies: 4,
+        genre: "CS",
+        rating: 4,
+        publicationYear: 2020,
+        language: "English",
+      },
+      next: {
+        id: "b-off",
+        title: "Quiet Book",
+        author: "Ada",
+        isActive: false,
+        totalCopies: 4,
+        availableCopies: 4,
+        genre: "CS",
+        rating: 4,
+        publicationYear: 2020,
+        language: "English",
+      },
+    });
+    let next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
+    expect(next?.inactiveBooks).toBe(1);
+    expect(next?.inactiveTitles).toHaveLength(1);
+    expect(next?.inactiveTitles[0]?.title).toBe("Quiet Book");
+    expect(next?.inactiveTitles[0]?.totalCopies).toBe(4);
+    expect(next?.inactiveTitles[0]?.rating).toBe(4);
+    expect(next?.totalCopies).toBe(6);
+    expect(next?.availableCopies).toBe(4);
+
+    patchAdminStatsOnBookChange(client, {
+      previous: {
+        id: "b-off",
+        title: "Quiet Book",
+        author: "Ada",
+        isActive: false,
+        totalCopies: 4,
+        availableCopies: 4,
+        genre: "CS",
+        rating: 4,
+        publicationYear: 2020,
+        language: "English",
+      },
+      next: {
+        id: "b-off",
+        title: "Quiet Book",
+        author: "Ada",
+        isActive: true,
+        totalCopies: 4,
+        availableCopies: 4,
+        genre: "CS",
+        rating: 4,
+        publicationYear: 2020,
+        language: "English",
+      },
+    });
+    next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
+    expect(next?.inactiveBooks).toBe(0);
+    expect(next?.inactiveTitles).toHaveLength(0);
+    expect(next?.totalCopies).toBe(10);
+    expect(next?.availableCopies).toBe(8);
+  });
+
+  it("create inactive seeds Inactive titles without lendable copies", () => {
+    const client = new QueryClient();
+    seedStats(client);
+    patchAdminStatsOnBookChange(client, {
+      previous: null,
+      next: {
+        id: "b-new-off",
+        title: "Shelf Only",
+        author: "Bob",
+        isActive: false,
+        totalCopies: 2,
+        availableCopies: 2,
+        genre: "Fiction",
+        publicationYear: 2019,
+        language: "German",
+      },
+    });
+    const next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
+    expect(next?.inactiveTitles.some((b) => b.id === "b-new-off")).toBe(true);
+    expect(next?.totalCopies).toBe(10);
+    expect(next?.booksByLanguage.some(([lang]) => lang === "German")).toBe(
+      true,
+    );
+  });
+
+  it("skips lendable Available/Borrowed deltas when book is inactive", () => {
+    const client = new QueryClient();
+    seedStats(client);
+    patchAdminStatsOnBorrowStatusChange(client, {
+      recordId: "br-1",
+      fromStatus: "PENDING",
+      toStatus: "BORROWED",
+      bookIsActive: false,
+    });
+    const next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
+    expect(next?.pendingBorrows).toBe(0);
+    expect(next?.activeBorrows).toBe(2);
+    expect(next?.availableCopies).toBe(8);
+    expect(next?.borrowedCopies).toBe(2);
   });
 
   it("drops open ticket KPIs on delete", () => {

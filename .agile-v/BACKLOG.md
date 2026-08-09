@@ -132,4 +132,31 @@ Owner reported soft-nav stale Borrow Queue after user borrow create. Delivered: 
 
 ## Densify expand books + ops/fine/recs/analytics (2026-08-09)
 
-Owner asked no stale soft-nav on books + former noop domains. Delivered: PrefetchLink catalog/dashboard `staleTime: 0`; book delete strips recs/borrowStats; `patchFineCaches` / `patchOpsCaches` / `densifyRecommendationWrite`; registry required for fine/ops/recommendation; `evictAnalyticsCaches` on book/borrow/user/fine/ops/recs; insights staleTime 0. Bulk UI still deferred. Prove type/lint/densify tests PASS. Commit/push deferred until owner confirms.
+Owner asked no stale soft-nav on books + former noop domains. Delivered: PrefetchLink catalog/dashboard `staleTime: 0`; book delete strips recs/borrowStats; `patchFineCaches` / `patchOpsCaches` / `densifyRecommendationWrite`; registry required for fine/ops/recommendation; `evictAnalyticsCaches`; insights visit refetch (`initialDataUpdatedAt: 0`). Bulk UI deferred. Tip `4e4bd5f` pushed.
+
+## Session resume note (2026-08-09, post densify tip)
+
+Repo reconciled: tip/HEAD `4e4bd5f`, `main` == `origin/main`, clean tree, no PENDING interrupt. Owner invoked Agile V core/pipeline **without a new product ask**. **Human-Decision:** pick one before coding:
+
+1. **Wave 5 / BL-0017** — nonlocal REQ-0032 evidence toward EvalGate / C2 Gate 2
+2. **REQ-0033 polish (BL-0018)** — concrete UX list
+3. **New Stage 1 CR** — name the feature/extension
+4. **Bug fix** — name symptom + expected behavior
+5. **Docs-only tip-bind commit** — ship this reconcile delta (no product code)
+6. **Other named scope** — explicit path/files/outcome
+
+## KPI lendable + StatCard 3-col (2026-08-09)
+
+Owner approved plan `kpi_layout_lendable`. Delivered: Stockly `StatCardGrid` 3-col; KPI chips text-only; `lendableBookCopies` shared SSR + Book Catalog; densify activate/deactivate/borrow gate; Overview Total copies row. Shipped with featured densify wave.
+
+## Overview Inactive titles mid panels (2026-08-09)
+
+Owner approved plan `overview_inactive_titles`. Delivered: Health·Categories·Year / Top Rated·Inactive titles·Language; `inactiveTitles` + mid-panel densify on book.write. Shipped with KPI/featured wave.
+
+## Books nav + Top Rated sort (2026-08-09)
+
+`allowInsert` create-only; `syncBooksNav` from unfiltered; Top Rated = rating desc then A-Z; Inactive/catalog title A-Z.
+
+## Featured hero densify (2026-08-09)
+
+Owner approved plan `featured_hero_densify`. Delivered: `featuredRoot` replace/evict + sibling `isFeatured` clear; inactive forces unfeature; HomeFeaturedHero skips inactive RQ[0]. Public `/all-books` stays invalidate+refetch (no invent). Local Prove PASS.

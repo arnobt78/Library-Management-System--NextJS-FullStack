@@ -23,11 +23,36 @@ import {
   syncAdminStatsBorrowCountsFromRows,
 } from "@/lib/utils/patchAdminStatsCaches";
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
+import { isBookActive } from "@/lib/admin/lendableBookCopies";
 import {
   clearDensifiedEmpty,
   markDensifiedEmpty,
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
+
+/**
+ * Resolve title active flag for overview lendable copy deltas.
+ * Prefer detail cache, then admin list row; default active when unknown.
+ */
+function resolveBookIsActiveForStats(
+  queryClient: QueryClient,
+  bookId: string | null | undefined,
+): boolean {
+  if (!bookId) return true;
+  const detail = queryClient.getQueryData<{ isActive?: boolean | null }>(
+    queryKeys.books.detail(bookId),
+  );
+  if (detail && "isActive" in detail) return isBookActive(detail);
+
+  const adminLists = queryClient.getQueriesData<{
+    books?: Array<{ id: string; isActive?: boolean | null }>;
+  }>({ queryKey: queryKeys.books.adminRoot });
+  for (const [, data] of adminLists) {
+    const row = data?.books?.find((b) => b.id === bookId);
+    if (row) return isBookActive(row);
+  }
+  return true;
+}
 
 export type BorrowListBaselines = {
   /** userId → densest cached user-borrows list */
@@ -507,6 +532,7 @@ export function patchBorrowCachesOnStatusChange(
       recordId: args.recordId,
       fromStatus,
       toStatus: args.patch.status,
+      bookIsActive: resolveBookIsActiveForStats(queryClient, bookId),
     });
   }
 
@@ -708,6 +734,10 @@ export function patchBorrowCachesOnCreate(
     recordId: args.serverRecord.id,
     fromStatus: null,
     toStatus: args.serverRecord.status ?? "PENDING",
+    bookIsActive: resolveBookIsActiveForStats(
+      queryClient,
+      args.serverRecord.bookId,
+    ),
   });
   const universe = queryClient.getQueryData<BorrowRecordWithDetails[]>(
     queryKeys.borrows.requests({ status: undefined, search: undefined }),

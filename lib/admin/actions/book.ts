@@ -6,6 +6,7 @@
  * Featured exclusivity:
  * When isFeatured is true, all other books are cleared in the same transaction
  * so the homepage hero has a single curated source of truth.
+ * Inactive books cannot stay featured — isActive=false forces isFeatured=false.
  */
 
 import { db } from "@/database/drizzle";
@@ -49,9 +50,12 @@ export const createBook = async (params: BookParams) => {
       assertPersistedMediaUrl(safeParams.videoUrl, "video"),
     ]);
     const wantFeatured = safeParams.isFeatured === true;
+    // Inactive cannot be curated homepage hero.
+    const isActive = safeParams.isActive ?? true;
+    const isFeatured = wantFeatured && isActive;
 
     const newBook = await db.transaction(async (tx) => {
-      if (wantFeatured) {
+      if (isFeatured) {
         await clearOtherFeatured(tx);
       }
 
@@ -61,8 +65,8 @@ export const createBook = async (params: BookParams) => {
           ...safeParams,
           availableCopies: safeParams.totalCopies,
           updatedBy: actor.id,
-          isActive: safeParams.isActive ?? true,
-          isFeatured: wantFeatured,
+          isActive,
+          isFeatured,
           updatedAt: new Date(),
         })
         .returning();
@@ -121,9 +125,23 @@ export const updateBook = async (
         : Promise.resolve(),
     ]);
     const wantFeatured = safeParams.isFeatured === true;
+    // Inactive cannot remain featured; clear in the same write as isActive=false.
+    const forceUnfeature = safeParams.isActive === false;
+    const resolveFeaturedPatch = (): { isFeatured?: boolean } => {
+      if (forceUnfeature) return { isFeatured: false };
+      if (safeParams.isFeatured !== undefined) {
+        return { isFeatured: wantFeatured };
+      }
+      return {};
+    };
+    const featuredPatch = resolveFeaturedPatch();
+    const clearSiblings =
+      !forceUnfeature &&
+      wantFeatured &&
+      safeParams.isFeatured !== undefined;
 
     const updatedBook = await db.transaction(async (tx) => {
-      if (wantFeatured) {
+      if (clearSiblings) {
         await clearOtherFeatured(tx, bookId);
       }
 
@@ -160,9 +178,7 @@ export const updateBook = async (
             availableCopies: newAvailableCopies,
             updatedBy: actor.id,
             updatedAt: new Date(),
-            ...(safeParams.isFeatured !== undefined
-              ? { isFeatured: wantFeatured }
-              : {}),
+            ...featuredPatch,
           })
           .where(eq(books.id, bookId))
           .returning();
@@ -179,9 +195,7 @@ export const updateBook = async (
           ...safeParams,
           updatedBy: actor.id,
           updatedAt: new Date(),
-          ...(safeParams.isFeatured !== undefined
-            ? { isFeatured: wantFeatured }
-            : {}),
+          ...featuredPatch,
         })
         .where(eq(books.id, bookId))
         .returning();

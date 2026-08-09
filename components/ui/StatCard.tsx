@@ -7,6 +7,9 @@
  * Every admin page renders a row of these at the top (Wave 4 KPI rollout).
  * `valueLoading` shows a skeleton pulse instead of the value so SSR shells can
  * render instantly while a client query reconciles in the background.
+ *
+ * KPI chips are text-only (Stockly). `badge.icon` is accepted for type compat
+ * but never rendered here — table/list `semanticBadges` keep their icons.
  */
 "use client";
 
@@ -26,7 +29,10 @@ export type StatCardHue =
 export interface StatCardBadge {
   label: string;
   hue?: StatCardHue;
-  /** Optional Lucide icon (semantic badge parity) */
+  /**
+   * Accepted for call-site parity with semantic badges; StatCard never renders it.
+   * Table/list badges use `lib/ui/semanticBadges` instead.
+   */
   icon?: LucideIcon;
 }
 
@@ -96,23 +102,17 @@ export function StatCard({
               ? badges.map((_, i) => (
                   <Skeleton key={i} className="h-5 w-14 rounded-md" />
                 ))
-              : badges.map((badge, i) => {
-                  const BadgeIcon = badge.icon;
-                  return (
-                    <span
-                      key={`${badge.label}-${i}`}
-                      className={cn(
-                        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-medium leading-none",
-                        BADGE_GLASS_CLASS[badge.hue ?? "slate"],
-                      )}
-                    >
-                      {BadgeIcon ? (
-                        <BadgeIcon className="size-3 shrink-0" aria-hidden />
-                      ) : null}
-                      {badge.label}
-                    </span>
-                  );
-                })}
+              : badges.map((badge, i) => (
+                  <span
+                    key={`${badge.label}-${i}`}
+                    className={cn(
+                      "inline-flex shrink-0 items-center whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-medium leading-none",
+                      BADGE_GLASS_CLASS[badge.hue ?? "slate"],
+                    )}
+                  >
+                    {badge.label}
+                  </span>
+                ))}
           </div>
         ) : null}
       </div>
@@ -120,9 +120,7 @@ export function StatCard({
   );
 }
 
-/** Responsive grid wrapper shared by every admin page's KPI row.
- * auto-fit fills the row for 4–6 cards (no empty xl:grid-cols-5 track).
- */
+/** Stockly-style 3-per-row KPI grid (5 cards → 3+2, 6 cards → 3+3). */
 export function StatCardGrid({
   children,
   className,
@@ -133,7 +131,7 @@ export function StatCardGrid({
   return (
     <div
       className={cn(
-        "grid w-full grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-[repeat(auto-fit,minmax(11.5rem,1fr))]",
+        "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3",
         className,
       )}
     >

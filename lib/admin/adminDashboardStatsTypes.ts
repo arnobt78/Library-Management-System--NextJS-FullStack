@@ -62,6 +62,20 @@ export type AdminDashboardTopRatedBook = {
   genre: string | null;
 };
 
+/** Off-shelf / inactive catalog titles for Overview mid-panel (shelf copies). */
+export type AdminDashboardInactiveTitle = {
+  id: string;
+  title: string;
+  author: string;
+  coverUrl: string | null;
+  coverColor: string | null;
+  genre: string | null;
+  /** Catalog rating (0 = unset); shown as star beside genre when > 0. */
+  rating: number;
+  totalCopies: number;
+  availableCopies: number;
+};
+
 /** Full dashboard stats — same shape from SSR and client refetch. */
 export type AdminDashboardStats = {
   totalUsers: number;
@@ -88,6 +102,8 @@ export type AdminDashboardStats = {
   booksByYear: Array<[string, number]>;
   booksByLanguage: Array<[string, number]>;
   topRatedBooks: AdminDashboardTopRatedBook[];
+  /** Cap 5 — inactive shelf list (not lendable KPI pool). */
+  inactiveTitles: AdminDashboardInactiveTitle[];
   reservationsWaiting: number;
   openTicketCount?: number;
   pendingReviewCount?: number;

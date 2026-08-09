@@ -419,6 +419,7 @@ describe("patchBorrowCaches", () => {
       booksByYear: [],
       booksByLanguage: [],
       topRatedBooks: [],
+      inactiveTitles: [],
       reservationsWaiting: 0,
     });
     const unfilteredKey = queryKeys.borrows.requests({

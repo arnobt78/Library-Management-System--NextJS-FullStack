@@ -6,6 +6,7 @@
  * Client hydrator for the homepage book hero. Mirrors HomeRecommendations:
  * SSR paints via initialHero; React Query key ["featured-books", 1] updates
  * after book create/update/delete without a hard reload.
+ * Inactive RQ[0] is ignored so soft-nav never flashes a deactivated hero.
  */
 
 import React from "react";
@@ -41,7 +42,12 @@ const HomeFeaturedHero: React.FC<HomeFeaturedHeroProps> = ({
     isError,
   } = useFeaturedBooks(1, initialHero ? [initialHero] : []);
 
-  const hero = featuredBooks?.[0] ?? initialHero ?? null;
+  // Ignore inactive RQ[0] — densify primary; SSR initialHero is the fallback.
+  const rqHero = featuredBooks?.[0];
+  const hero =
+    (rqHero && rqHero.isActive !== false ? rqHero : null) ??
+    initialHero ??
+    null;
 
   // Emergency skeleton only when we have no SSR hero and are still loading
   if (isLoading && !initialHero) {
