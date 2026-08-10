@@ -8,9 +8,9 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `b9c5e4d` (people IA + densify freshness + cross-domain densify)
-- Latest HEAD: `b9c5e4d`
+- Latest HEAD: `bee0eef` (== `origin/main`)
 - Started: 2026-08-01
-- Last updated: 2026-08-10 (tip-bound + push)
+- Last updated: 2026-08-10 (pushed; tip-bound)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
