@@ -10,6 +10,7 @@ import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { requireAdminActor } from "@/lib/auth/authorization";
 import { parseEntityId } from "@/lib/actionInputs";
+import { getAdminPrivilegeFieldsForUser } from "@/lib/admin/mapPendingAdminRequestIds";
 import type { User } from "@/lib/services/users";
 
 export async function getAdminUserDetailCache(
@@ -37,6 +38,8 @@ export async function getAdminUserDetailCache(
 
   if (!row) return null;
 
+  const privilege = await getAdminPrivilegeFieldsForUser(id);
+
   return {
     id: row.id,
     fullName: row.fullName,
@@ -50,5 +53,7 @@ export async function getAdminUserDetailCache(
       : null,
     lastLogin: row.lastLogin,
     createdAt: row.createdAt,
+    pendingAdminRequestId: privilege.pendingAdminRequestId,
+    latestAdminRequestStatus: privilege.latestAdminRequestStatus,
   };
 }

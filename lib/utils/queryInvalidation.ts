@@ -153,6 +153,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.users.pendingRoot,
     queryKeys.users.signupDecisionsRoot,
     queryKeys.users.signupRequestDetailRoot,
+    queryKeys.users.adminPrivilegeHistoryRoot,
     queryKeys.users.currentRoot,
   ],
   borrows: [
@@ -212,7 +213,10 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.notifications.root,
     queryKeys.notifications.unreadCountRoot,
   ],
-  activityLog: [queryKeys.activityLog.root],
+  activityLog: [
+    queryKeys.activityLog.root,
+    queryKeys.activityLog.userRoot,
+  ],
 };
 
 const ALL_DOMAINS = Object.freeze(

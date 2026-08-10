@@ -27,6 +27,10 @@ import {
 } from "@/lib/ui/ticketOptions";
 import { REVIEW_STATUS_LABELS } from "@/lib/ui/reviewOptions";
 import type { TicketPriority, TicketStatus } from "@/lib/validations/supportTicket";
+import {
+  ADMIN_PRIVILEGE_STATUS_LABELS,
+  type AdminPrivilegeStatus,
+} from "@/lib/admin/adminPrivilegeStatus";
 
 type AuditAction = "CREATE" | "UPDATE" | "DELETE";
 type BadgeSurface = "light" | "dark";
@@ -322,6 +326,53 @@ export function AccountStatusBadge({
     <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
       <Icon className="size-3" aria-hidden />
       {ACCOUNT_STATUS_LABELS[normalized]}
+    </Badge>
+  );
+}
+
+/** Make-admin privilege signal — not registration AccountStatusBadge. */
+export function AdminPrivilegeBadge({
+  status,
+  className,
+  variant = "light",
+}: {
+  status: AdminPrivilegeStatus;
+  className?: string;
+  variant?: BadgeSurface;
+}) {
+  const config: Record<
+    AdminPrivilegeStatus,
+    { icon: typeof Clock; light: string; dark: string }
+  > = {
+    NOT_REQUESTED: {
+      icon: Minus,
+      light:
+        "border-slate-200/80 bg-slate-50/90 text-slate-600 shadow-sm backdrop-blur-sm",
+      dark: "border-slate-400/30 bg-slate-500/15 text-slate-100 shadow-[0_0_12px_rgba(148,163,184,0.15)]",
+    },
+    PENDING: {
+      icon: Clock,
+      light:
+        "border-amber-200 bg-amber-50/90 text-amber-700 shadow-sm backdrop-blur-sm",
+      dark: "border-amber-400/30 bg-amber-500/15 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.15)]",
+    },
+    APPROVED: {
+      icon: Shield,
+      light:
+        "border-emerald-200 bg-emerald-50/90 text-emerald-700 shadow-sm backdrop-blur-sm",
+      dark: "border-emerald-400/30 bg-emerald-500/15 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
+    },
+    REJECTED: {
+      icon: ShieldAlert,
+      light: "border-rose-200 bg-rose-50/90 text-rose-700 shadow-sm backdrop-blur-sm",
+      dark: "border-rose-400/30 bg-rose-500/15 text-rose-100 shadow-[0_0_12px_rgba(244,63,94,0.15)]",
+    },
+  };
+  const { icon: Icon, light, dark } = config[status];
+  return (
+    <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
+      <Icon className="size-3" aria-hidden />
+      {ADMIN_PRIVILEGE_STATUS_LABELS[status]}
     </Badge>
   );
 }

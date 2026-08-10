@@ -127,4 +127,60 @@ describe("optimisticAdminRequestDecision", () => {
       pendingAdminRequests: 1,
     });
   });
+
+  it("clears pendingAdminRequestId and paints latestAdminRequestStatus on users.detail", async () => {
+    const client = new QueryClient();
+    const pending = makeRequest({ id: "req-1", userId: "user-1" });
+    client.setQueryData(queryKeys.admin.pendingRequests, [pending]);
+    client.setQueryData(queryKeys.users.detail("user-1"), {
+      id: "user-1",
+      fullName: "Applicant",
+      email: "a@b.com",
+      universityId: 1,
+      universityCard: "",
+      status: "APPROVED" as const,
+      role: "USER" as const,
+      lastActivityDate: null,
+      lastLogin: null,
+      createdAt: null,
+      pendingAdminRequestId: "req-1",
+      latestAdminRequestStatus: "PENDING" as const,
+    });
+    client.setQueryData(queryKeys.users.adminPrivilegeHistory("user-1"), [
+      {
+        id: "req-1",
+        status: "PENDING",
+        requestReason: pending.requestReason,
+        rejectionReason: null,
+        createdAt: pending.createdAt,
+        reviewedAt: null,
+        reviewer: null,
+      },
+    ]);
+
+    await applyOptimisticAdminRequestDecision(client, {
+      requestId: "req-1",
+      status: "REJECTED",
+      reviewer: {
+        id: "admin-1",
+        fullName: "Librarian",
+        email: "lib@uni.edu",
+        universityCard: null,
+      },
+    });
+
+    expect(client.getQueryData(queryKeys.users.detail("user-1"))).toMatchObject({
+      pendingAdminRequestId: null,
+      latestAdminRequestStatus: "REJECTED",
+    });
+    expect(
+      client.getQueryData(queryKeys.users.adminPrivilegeHistory("user-1")),
+    ).toMatchObject([
+      {
+        id: "req-1",
+        status: "REJECTED",
+        reviewer: { fullName: "Librarian" },
+      },
+    ]);
+  });
 });

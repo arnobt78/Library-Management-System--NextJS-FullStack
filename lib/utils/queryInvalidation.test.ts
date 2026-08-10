@@ -344,8 +344,11 @@ describe("query invalidation contract", () => {
   it("invalidates signup + admin-request detail keys via domain roots", async () => {
     const client = createQueryClient();
     const signupDetailKey = queryKeys.users.signupRequestDetail("user-1");
+    const privilegeHistoryKey =
+      queryKeys.users.adminPrivilegeHistory("user-1");
     const adminDetailKey = queryKeys.admin.requestDetail("req-1");
     client.setQueryData(signupDetailKey, { id: "user-1", status: "PENDING" });
+    client.setQueryData(privilegeHistoryKey, []);
     client.setQueryData(adminDetailKey, { id: "req-1", status: "PENDING" });
 
     await invalidateMutation(client, "user.write");
@@ -353,5 +356,17 @@ describe("query invalidation contract", () => {
 
     await invalidateMutation(client, "admin-request.write");
     expect(client.getQueryState(adminDetailKey)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(privilegeHistoryKey)?.isInvalidated).toBe(
+      true,
+    );
+  });
+
+  it("invalidates User 360 activity via activityLog.userRoot", async () => {
+    const client = createQueryClient();
+    const userActivityKey = queryKeys.activityLog.user("user-1");
+    client.setQueryData(userActivityKey, []);
+
+    await invalidateMutation(client, "user.write");
+    expect(client.getQueryState(userActivityKey)?.isInvalidated).toBe(true);
   });
 });

@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) people Decision & Actor polish; nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) User 360 densify committed; nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - People DecisionActorStack committed `4f258de`; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - User 360 privilege→360 + side-panel densify + gap fix shipping; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `4f258de` (people DecisionActorStack + Decision & Actor)
-- Latest HEAD: `2223ad5` (== tip-bind on origin/main)
+- Latest implementation tip: (bind after commit)
+- Latest HEAD: (bind after commit)
 - Started: 2026-08-01
-- Last updated: 2026-08-10 (Decision & Actor merge + DecisionActorStack)
+- Last updated: 2026-08-11 (User 360 densify commit)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,104 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, security-review (people DecisionActorStack commit)
+- Skills applied this session: agile-v-core
+
+## Reconciliation snapshot (2026-08-11, User 360 densify ship)
+
+Verified facts:
+- Unified User 360 shell (directory/registration/privilege); privilege history + reservations + activity densify; Insights SSR-only.
+- `prefetchAdminUser360Caches` + `activityHistoryForUserWhere` + `seedFromSsrIfEmpty` gap fix.
+- Prove: typecheck/lint prior PASS; targeted densify unit tests PASS (20).
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke + detail UI polish tomorrow. Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-11, User 360 densify gap fix)
+
+Verified facts:
+- `prefetchAdminUser360Caches` shared warm (detail/privilege/reservations/activity); signup + directory + privilege PrefetchLink parity.
+- `activityHistoryForUserWhere` (actor | entity user | details.userId) shared by SSR profile + slim loader.
+- `seedFromSsrIfEmpty` on privilege history + user activity hooks.
+- Prove: typecheck + lint + 17 targeted unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke registration entry warm + activity densify survive refetch. Commit when owner asks.
+
+## Reconciliation snapshot (2026-08-11, User 360 Activity + Reservations densify)
+
+Verified facts:
+- Reservations panel → `circulation.userReservations` RQ (`AdminUserReservationsPanel` + `getAdminUserReservations`).
+- Activity panel → `activityLog.user` / `user-activity-history` + `densifyActivityLog` subject prepend (`details.userId` | entity user).
+- Explainable insights stay SSR (no invent densify of formula aggregates).
+- PrefetchLink warms reservations + user activity on User 360 / privilege entry.
+- Prove: typecheck + lint + activity densify/invalidation unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke User 360 reservations/activity densify after mutation. Commit when owner asks.
+
+## Reconciliation snapshot (2026-08-11, privilege history densify)
+
+Verified facts:
+- `users.adminPrivilegeHistory` + `AdminUserPrivilegePanel` RQ (SSR seed); densify/optimistic on admin-request.write.
+- PrefetchLink privilege entry warms history; DOMAIN_KEYS users includes root.
+- Prove: typecheck + lint + densify/optimistic/invalidation unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke Approve/Decline on User 360 — table + banner densify with KPI. Commit when owner asks.
+
+## Reconciliation snapshot (2026-08-11, User 360 signup vs privilege clarity)
+
+Verified facts:
+- Signup KPIs renamed (Registration status / Signup approvals|rejections / Signup decision timeline); Registered moved into Applicant details.
+- Admin privilege KPI + `AdminPrivilegeBadge`; `latestAdminRequestStatus` SSR + densify/optimistic with `pendingAdminRequestId`.
+- Privilege card: **Admin privilege requests**; short header-actions hint; domains not merged.
+- PrefetchLink privilege entry warms `users.detail`; Prove type/lint + optimistic/privilege unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke labels + Admin privilege KPI densify. Commit when owner asks. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-11, queue counts + privilege → User 360)
+
+Verified facts:
+- Registration / Admin Requests toolbars: no misleading `(pending+recent)` counts.
+- `pendingAdminRequestId` on users list SSR/API + `users.detail`; densify via `patchUsersPendingAdminRequestId`.
+- Users kebab + User 360 header: **Approve Admin / Decline** when PENDING make-admin; else **Make Admin** (direct grant); signup stays Approve Student / Reject.
+- `/admin/admin-requests/[id]` → `AdminUser360Shell` `entry="privilege"`; deleted `AdminRequestDetailClient`.
+- Prove: typecheck + lint 0 PASS.
+
+### Next Action
+
+**Human-Decision:** superseded by User 360 label clarity snapshot.
+
+## Reconciliation snapshot (2026-08-10, Agile V resume)
+
+Verified facts:
+- Protocol: `docs/AGILE_V_PROTOCOL.md`; HEAD `a15cf85` == `origin/main`; tip feature `4f258de`.
+- No PENDING interrupt in `CHECKPOINTS.md` for this work; EvalGate still FAIL (Gate 2 blocked).
+- Working tree: unified User 360 (`AdminUser360Shell` + `AdminUserRegistrationPanel`; both detail routes; ledger in `getAdminUserProfile`; inline header actions; deleted `SignupRequestDetailClient`). Docs partially updated (STATE/TRACE/CLAUDE/WALKTHROUGH).
+- Owner: UI polish deferred (“guide later”); prior audit PASS (type/lint/216 densify paths OK).
+- Exclude from commit: `agile_v_skills/` (untracked).
+
+### Next Action
+
+**Human-Decision:** superseded by 2026-08-11 privilege→360 snapshot.
+
+## Reconciliation snapshot (2026-08-10, unify User 360 shell)
+
+Verified facts:
+- Shared `AdminUser360Shell` on `/admin/users/[id]` + `/admin/account-requests/[userId]` (`entry` Back).
+- `getAdminUserProfile` + `loadSignupDecisionEntries`; `AdminUserRegistrationPanel` densifies via `signupRequestDetail`.
+- Inline header actions (no kebab); dropped single-stamp Registration card + cross-detail hops.
+- Prove: typecheck + lint 0 + **216** unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** superseded by Agile V resume snapshot.
 
 ## Reconciliation snapshot (2026-08-10, Decision & Actor + DecisionActorStack)
 

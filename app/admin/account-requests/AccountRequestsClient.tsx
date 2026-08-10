@@ -567,10 +567,7 @@ const AccountRequestsClient = ({
       }
     >
       <section className="admin-panel space-y-6">
-        <AdminListToolbar
-          title="User Registration Queue"
-          count={filteredPending.length + filteredDecisions.length}
-        >
+        <AdminListToolbar title="User Registration Queue">
           <SearchInput
             value={localSearch}
             onChange={setLocalSearch}

@@ -36,6 +36,10 @@ export const queryKeys = {
     signupRequestDetailRoot: ["signup-request-detail"] as const,
     signupRequestDetail: (userId: string) =>
       ["signup-request-detail", userId] as const,
+    /** User 360 make-admin request history (privilege panel densify). */
+    adminPrivilegeHistoryRoot: ["admin-privilege-history"] as const,
+    adminPrivilegeHistory: (userId: string) =>
+      ["admin-privilege-history", userId] as const,
     currentRoot: ["current-user"] as const,
   },
   borrows: {
@@ -101,6 +105,12 @@ export const queryKeys = {
   activityLog: {
     root: ["activity-logs"] as const,
     list: <TFilters>(filters: TFilters) => ["activity-logs", filters] as const,
+    /**
+     * Per-user User 360 activity — separate prefix so activity-logs root
+     * setQueriesData does not double-paint these caches.
+     */
+    userRoot: ["user-activity-history"] as const,
+    user: (userId: string) => ["user-activity-history", userId] as const,
   },
   admin: {
     root: ["admin"] as const,

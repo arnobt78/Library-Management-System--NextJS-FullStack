@@ -28,6 +28,11 @@ import {
 } from "@/lib/services/users";
 import { getAdminRequestDetail } from "@/lib/admin/actions/admin-requests";
 import { getAdminUserDetailCache } from "@/lib/admin/actions/user-detail";
+import { getAdminUserPrivilegeHistory } from "@/lib/admin/actions/admin-privilege-history";
+import { getAdminUserReservations } from "@/lib/admin/actions/admin-user-reservations";
+import { getAdminUserActivityHistory } from "@/lib/admin/actions/admin-user-activity";
+import type { AdminPrivilegeHistoryEntry } from "@/lib/admin/adminPrivilegeHistory";
+import type { AdminUserActivityEntry } from "@/lib/admin/adminUserActivity";
 import {
   getRecentSignupStatusDecisions,
   getSignupRequestDetail,
@@ -540,6 +545,33 @@ export const useSignupRequestDetail = (
 };
 
 /**
+ * User 360 make-admin privilege history — SSR seed; densify on admin-request.write.
+ */
+export const useAdminPrivilegeHistory = (
+  userId: string,
+  initialData?: AdminPrivilegeHistoryEntry[],
+  initialDataUpdatedAt?: number,
+) => {
+  const queryClient = useQueryClient();
+  const { trackQuery } = useQueryPerformance();
+  const queryKey = queryKeys.users.adminPrivilegeHistory(userId);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
+
+  return useQuery<AdminPrivilegeHistoryEntry[]>({
+    queryKey,
+    queryFn: () =>
+      trackQuery(`admin-privilege-history-${userId}`, () =>
+        getAdminUserPrivilegeHistory(userId),
+      ),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData: seed,
+    initialDataUpdatedAt,
+  });
+};
+
+/**
  * Admin User 360 header row — status/role densify via users.detail.
  * Object SSR seed; densifyUserWrite patches status/role without remount flash.
  */
@@ -666,6 +698,60 @@ export const useUserReservations = (
     queryKey,
     queryFn: () =>
       trackQuery("user-reservations", async () => getMyReservations()),
+    enabled: Boolean(userId),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData: seed,
+    initialDataUpdatedAt,
+  });
+};
+
+/**
+ * Admin User 360 reservations — same densify key as profile; admin-scoped loader.
+ */
+export const useAdminUserReservations = (
+  userId: string,
+  initialData?: UserReservationItem[],
+  initialDataUpdatedAt?: number,
+) => {
+  const queryClient = useQueryClient();
+  const { trackQuery } = useQueryPerformance();
+  const queryKey = queryKeys.circulation.userReservations(userId);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
+
+  return useQuery({
+    queryKey,
+    queryFn: () =>
+      trackQuery(`admin-user-reservations-${userId}`, () =>
+        getAdminUserReservations(userId),
+      ),
+    enabled: Boolean(userId),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData: seed,
+    initialDataUpdatedAt,
+  });
+};
+
+/**
+ * Admin User 360 activity — densify via densifyActivityLog → user-activity-history.
+ */
+export const useAdminUserActivityHistory = (
+  userId: string,
+  initialData?: AdminUserActivityEntry[],
+  initialDataUpdatedAt?: number,
+) => {
+  const queryClient = useQueryClient();
+  const { trackQuery } = useQueryPerformance();
+  const queryKey = queryKeys.activityLog.user(userId);
+  const seed = seedFromSsrIfEmpty(queryClient, queryKey, initialData);
+
+  return useQuery<AdminUserActivityEntry[]>({
+    queryKey,
+    queryFn: () =>
+      trackQuery(`admin-user-activity-${userId}`, () =>
+        getAdminUserActivityHistory(userId),
+      ),
     enabled: Boolean(userId),
     staleTime: 30 * 1000,
     refetchOnMount: true,

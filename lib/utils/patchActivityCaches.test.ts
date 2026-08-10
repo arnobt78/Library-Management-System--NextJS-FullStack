@@ -7,10 +7,15 @@ import { describe, expect, it } from "vitest";
 import { queryKeys } from "@/lib/query/keys";
 import type { ActivityLogItem } from "@/lib/services/activityLogs";
 import {
+  USER_ACTIVITY_CACHE_RETENTION,
+  type AdminUserActivityEntry,
+} from "@/lib/admin/adminUserActivity";
+import {
   ACTIVITY_LOG_CACHE_RETENTION,
   densifyActivityLog,
   inventActivityLogItem,
   patchActivityCachesOnLog,
+  resolveActivitySubjectUserId,
 } from "@/lib/utils/patchActivityCaches";
 
 function sampleRow(id: string): ActivityLogItem {
@@ -98,5 +103,74 @@ describe("patchActivityCaches", () => {
     const next = client.getQueryData<ActivityLogItem[]>(key)!;
     expect(next).toHaveLength(1);
     expect(next[0]?.entityId).toBe("br-cold");
+  });
+
+  it("resolveActivitySubjectUserId prefers details.userId over entity", () => {
+    expect(
+      resolveActivitySubjectUserId({
+        action: "UPDATE",
+        entityType: "admin-request",
+        entityId: "req-1",
+        details: { userId: "subject-1" },
+      }),
+    ).toBe("subject-1");
+    expect(
+      resolveActivitySubjectUserId({
+        action: "UPDATE",
+        entityType: "user",
+        entityId: "u-entity",
+      }),
+    ).toBe("u-entity");
+    expect(
+      resolveActivitySubjectUserId({
+        action: "UPDATE",
+        entityType: "borrow",
+        entityId: "br-1",
+        actorId: "admin-1",
+      }),
+    ).toBeNull();
+  });
+
+  it("densifyActivityLog prepends User 360 activity when details.userId set", () => {
+    const client = new QueryClient();
+    const userKey = queryKeys.activityLog.user("subject-1");
+    const filled = Array.from(
+      { length: USER_ACTIVITY_CACHE_RETENTION },
+      (_, i) =>
+        ({
+          id: `old-${i}`,
+          action: "UPDATE",
+          entityType: "user",
+          entityId: "subject-1",
+          details: null,
+          createdAt: new Date().toISOString(),
+        }) satisfies AdminUserActivityEntry,
+    );
+    client.setQueryData(userKey, filled);
+
+    densifyActivityLog(client, {
+      action: "UPDATE",
+      entityType: "admin-request",
+      entityId: "req-9",
+      details: { userId: "subject-1", status: "APPROVED" },
+      actorId: "admin-1",
+    });
+
+    const next = client.getQueryData<AdminUserActivityEntry[]>(userKey)!;
+    expect(next[0]?.entityId).toBe("req-9");
+    expect(next[0]?.details).toMatchObject({ userId: "subject-1" });
+    expect(next).toHaveLength(USER_ACTIVITY_CACHE_RETENTION);
+  });
+
+  it("densifyActivityLog does not paint user panel without subject", () => {
+    const client = new QueryClient();
+    densifyActivityLog(client, {
+      action: "CREATE",
+      entityType: "book",
+      entityId: "b1",
+    });
+    expect(
+      client.getQueryData(queryKeys.activityLog.user("anyone")),
+    ).toBeUndefined();
   });
 });

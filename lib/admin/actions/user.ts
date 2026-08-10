@@ -17,6 +17,7 @@ import {
 import { settlePendingOrInsertApprovedAdminRequest } from "@/lib/admin/adminPrivilegeLedger";
 import { notifyAdminRequestDecision } from "@/lib/admin/adminRequestEmails";
 import { removeAdminPrivileges } from "@/lib/admin/actions/admin-requests";
+import { mapAdminPrivilegeFields } from "@/lib/admin/mapPendingAdminRequestIds";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { isProtectedDemoAccount } from "@/constants";
 import { logActivity } from "@/lib/admin/activityLog";
@@ -281,7 +282,19 @@ export const getAllUsers = async () => {
       .leftJoin(statusReviewer, eq(users.statusReviewedBy, statusReviewer.id))
       .orderBy(desc(users.createdAt));
 
-    return { success: true, data: allUsers };
+    const privilegeByUser = await mapAdminPrivilegeFields(
+      allUsers.map((u) => u.id),
+    );
+    const data = allUsers.map((u) => {
+      const privilege = privilegeByUser.get(u.id);
+      return {
+        ...u,
+        pendingAdminRequestId: privilege?.pendingAdminRequestId ?? null,
+        latestAdminRequestStatus: privilege?.latestAdminRequestStatus ?? null,
+      };
+    });
+
+    return { success: true, data };
   } catch (error) {
     console.error("Error fetching users:", error);
     return { success: false, error: "Failed to fetch users" };

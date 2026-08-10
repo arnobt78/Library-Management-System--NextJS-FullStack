@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps, FocusEvent, MouseEvent } from "react";
 import { queryKeys } from "@/lib/query/keys";
+import { prefetchAdminUser360Caches } from "@/lib/query/prefetchAdminUser360Caches";
 import { getBook, getBooksList } from "@/lib/services/books";
 import { getAdminBookReviews, getBookReviews } from "@/lib/services/reviews";
 import { getBorrowRequests, getUserBorrows } from "@/lib/services/borrows";
@@ -20,7 +21,6 @@ import {
   getUsersList,
 } from "@/lib/services/users";
 import { getAdminRequestDetail } from "@/lib/admin/actions/admin-requests";
-import { getAdminUserDetailCache } from "@/lib/admin/actions/user-detail";
 import { getSignupRequestDetail } from "@/lib/admin/signupStatusDecisions";
 import { getAdminStats } from "@/lib/services/admin";
 import {
@@ -130,23 +130,26 @@ export default function PrefetchLink({
         break;
       }
       case "signup-request-detail": {
-        const userId = signupDetailMatch?.[1];
-        if (!userId) break;
+        const subjectUserId = signupDetailMatch?.[1];
+        if (!subjectUserId) break;
         // staleTime 0 — approve/reject densify must win over warm detail.
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.users.signupRequestDetail(userId),
+          queryKey: queryKeys.users.signupRequestDetail(subjectUserId),
           queryFn: async () => {
-            const detail = await getSignupRequestDetail(userId);
+            const detail = await getSignupRequestDetail(subjectUserId);
             if (!detail) throw new Error("Signup request not found");
             return detail;
           },
           staleTime: 0,
         });
+        // Registration entry is User 360 — same side caches as directory.
+        prefetchAdminUser360Caches(queryClient, subjectUserId);
         break;
       }
       case "admin-request-detail": {
         const requestId = adminRequestDetailMatch?.[1];
         if (!requestId) break;
+        // Privilege entry is User 360 — warm request + side caches.
         void queryClient.prefetchQuery({
           queryKey: queryKeys.admin.requestDetail(requestId),
           queryFn: async () => {
@@ -154,15 +157,19 @@ export default function PrefetchLink({
             if (!result.success || !result.data) {
               throw new Error(result.error || "Admin request not found");
             }
-            return result.data;
+            const req = result.data;
+            if (req.userId) {
+              prefetchAdminUser360Caches(queryClient, req.userId);
+            }
+            return req;
           },
           staleTime: 0,
         });
         break;
       }
       case "admin-user-detail": {
-        const userId = adminUserDetailMatch?.[1];
-        if (!userId) break;
+        const subjectUserId = adminUserDetailMatch?.[1];
+        if (!subjectUserId) break;
         // Prefer list-cache seed then network — densify must win (staleTime 0).
         for (const [, page] of queryClient.getQueriesData<{
           users?: Array<{
@@ -178,21 +185,16 @@ export default function PrefetchLink({
             createdAt: Date | null;
           }>;
         }>({ queryKey: queryKeys.users.adminRoot })) {
-          const hit = page?.users?.find((u) => u.id === userId);
+          const hit = page?.users?.find((u) => u.id === subjectUserId);
           if (hit) {
-            queryClient.setQueryData(queryKeys.users.detail(userId), hit);
+            queryClient.setQueryData(
+              queryKeys.users.detail(subjectUserId),
+              hit,
+            );
             break;
           }
         }
-        void queryClient.prefetchQuery({
-          queryKey: queryKeys.users.detail(userId),
-          queryFn: async () => {
-            const user = await getAdminUserDetailCache(userId);
-            if (!user) throw new Error("User not found");
-            return user;
-          },
-          staleTime: 0,
-        });
+        prefetchAdminUser360Caches(queryClient, subjectUserId);
         break;
       }
       case "all-books":

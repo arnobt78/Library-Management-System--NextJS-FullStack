@@ -5,19 +5,32 @@
  *
  * reviewer MUST come from the logged-in admin session — null would flash “an admin”.
  * Last-item empty pending is densify-empty-marked so soft-nav cannot SSR-reseed.
+ * Also paints users.detail privilege fields + User 360 privilege history table.
  */
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { RECENT_ADMIN_REQUEST_DECISIONS_LIMIT } from "@/lib/admin/adminRequestConstants";
+import {
+  adminRequestToPrivilegeHistoryEntry,
+  type AdminPrivilegeHistoryEntry,
+} from "@/lib/admin/adminPrivilegeHistory";
 import { queryKeys } from "@/lib/query/keys";
-import type { AdminRequest } from "@/lib/services/users";
+import type { AdminRequest, User, UsersListResponse } from "@/lib/services/users";
 import { markDensifiedEmpty } from "@/lib/utils/queryCacheLists";
-import { syncPendingAdminNav } from "@/lib/utils/patchAdminRequestCaches";
+import {
+  densifyAdminPrivilegeHistoryUpsert,
+  patchUsersAdminPrivilegeFields,
+  syncPendingAdminNav,
+} from "@/lib/utils/patchAdminRequestCaches";
 
 export type AdminRequestDecisionOptimisticContext = {
   previousPending: Array<[QueryKey, AdminRequest[] | undefined]>;
   previousDecisions: Array<[QueryKey, AdminRequest[] | undefined]>;
+  previousUsersLists: Array<[QueryKey, UsersListResponse | undefined]>;
+  previousUserDetail: User | undefined;
+  previousPrivilegeHistory: AdminPrivilegeHistoryEntry[] | undefined;
+  userId: string | null;
 };
 
 function findCachedPendingRequest(
@@ -68,6 +81,21 @@ export async function applyOptimisticAdminRequestDecision(
   });
 
   const cached = findCachedPendingRequest(queryClient, args.requestId);
+  const userId = cached?.userId || null;
+  const previousUsersLists = userId
+    ? queryClient.getQueriesData<UsersListResponse>({
+        queryKey: queryKeys.users.adminRoot,
+      })
+    : [];
+  const previousUserDetail = userId
+    ? queryClient.getQueryData<User>(queryKeys.users.detail(userId))
+    : undefined;
+  const previousPrivilegeHistory = userId
+    ? queryClient.getQueryData<AdminPrivilegeHistoryEntry[]>(
+        queryKeys.users.adminPrivilegeHistory(userId),
+      )
+    : undefined;
+
   const reviewedAt = new Date();
   const optimistic: AdminRequest = {
     id: cached?.id ?? args.requestId,
@@ -116,13 +144,32 @@ export async function applyOptimisticAdminRequestDecision(
     optimistic,
   );
 
-  // Zero-lag User Management pill before onSuccess densify.
+  // Zero-lag User Management pill + Users kebab / 360 Admin privilege KPI + table.
   syncPendingAdminNav(queryClient);
+  if (userId) {
+    patchUsersAdminPrivilegeFields(queryClient, {
+      userId,
+      pendingAdminRequestId: null,
+      latestAdminRequestStatus: args.status,
+    });
+    densifyAdminPrivilegeHistoryUpsert(
+      queryClient,
+      userId,
+      adminRequestToPrivilegeHistoryEntry(optimistic),
+    );
+  }
 
-  return { previousPending, previousDecisions };
+  return {
+    previousPending,
+    previousDecisions,
+    previousUsersLists,
+    previousUserDetail,
+    previousPrivilegeHistory,
+    userId,
+  };
 }
 
-/** Restore pending + decisions snapshots after a failed approve/reject. */
+/** Restore pending + decisions + privilege field snapshots after a failed decide. */
 export function rollbackOptimisticAdminRequestDecision(
   queryClient: QueryClient,
   context: AdminRequestDecisionOptimisticContext | undefined,
@@ -133,4 +180,17 @@ export function rollbackOptimisticAdminRequestDecision(
   context?.previousDecisions?.forEach(([key, data]) => {
     queryClient.setQueryData(key, data);
   });
+  context?.previousUsersLists?.forEach(([key, data]) => {
+    queryClient.setQueryData(key, data);
+  });
+  if (context?.userId) {
+    queryClient.setQueryData(
+      queryKeys.users.detail(context.userId),
+      context.previousUserDetail,
+    );
+    queryClient.setQueryData(
+      queryKeys.users.adminPrivilegeHistory(context.userId),
+      context.previousPrivilegeHistory,
+    );
+  }
 }

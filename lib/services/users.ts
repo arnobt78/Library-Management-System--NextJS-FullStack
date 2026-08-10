@@ -49,6 +49,10 @@ export interface User {
   statusReviewedByName?: string | null;
   statusReviewedByEmail?: string | null;
   statusReviewedByUniversityCard?: string | null;
+  /** PENDING make-admin request id — Users kebab Approve Admin / Decline. */
+  pendingAdminRequestId?: string | null;
+  /** Newest admin_requests.status — Admin privilege KPI densify. */
+  latestAdminRequestStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
   // Note: password is excluded from API responses for security
 }
 

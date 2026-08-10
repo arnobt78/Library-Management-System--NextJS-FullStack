@@ -6,9 +6,16 @@
  * so soft-nav to `/admin/activity-history` paints the new row immediately
  * (no stale SSR flash). Server `logActivity` remains the source of truth;
  * invented client rows use provisional ids and reconcile on refetch.
+ *
+ * Also paints User 360 per-user activity (`user-activity-history`) when the
+ * log targets a subject userId (details.userId or entityType user).
  */
 
 import type { QueryClient } from "@tanstack/react-query";
+import {
+  USER_ACTIVITY_CACHE_RETENTION,
+  type AdminUserActivityEntry,
+} from "@/lib/admin/adminUserActivity";
 import { queryKeys } from "@/lib/query/keys";
 import type { ActivityLogItem } from "@/lib/services/activityLogs";
 
@@ -57,6 +64,28 @@ function prependFifo(
   return next.slice(0, ACTIVITY_LOG_CACHE_RETENTION);
 }
 
+function prependUserActivityFifo(
+  rows: AdminUserActivityEntry[] | undefined,
+  row: AdminUserActivityEntry,
+): AdminUserActivityEntry[] {
+  const without = (rows ?? []).filter((r) => r.id !== row.id);
+  return [row, ...without].slice(0, USER_ACTIVITY_CACHE_RETENTION);
+}
+
+/** Subject user for User 360 panel — prefer details.userId (admin acting on user). */
+export function resolveActivitySubjectUserId(
+  input: InventActivityLogInput,
+): string | null {
+  const fromDetails = input.details?.userId;
+  if (typeof fromDetails === "string" && fromDetails.length > 0) {
+    return fromDetails;
+  }
+  if (input.entityType === "user" && input.entityId) {
+    return input.entityId;
+  }
+  return null;
+}
+
 /**
  * Densest cached activity list (optional baseline helper for callers that
  * snapshot before invalidate). Invent-prepend densify does not require this.
@@ -93,10 +122,37 @@ export function patchActivityCachesOnLog(
   }
 }
 
-/** Convenience: invent + prepend in one call from mutation densify adapters. */
+/** Prepend into User 360 per-user activity cache (cold-seeds when missing). */
+export function densifyUserActivityHistory(
+  queryClient: QueryClient,
+  userId: string,
+  row: AdminUserActivityEntry,
+): void {
+  if (!userId) return;
+  const key = queryKeys.activityLog.user(userId);
+  queryClient.setQueryData<AdminUserActivityEntry[]>(key, (old) =>
+    prependUserActivityFifo(old, row),
+  );
+}
+
+/** Convenience: invent + prepend admin FIFO + User 360 subject panel. */
 export function densifyActivityLog(
   queryClient: QueryClient,
   input: InventActivityLogInput,
 ): void {
-  patchActivityCachesOnLog(queryClient, inventActivityLogItem(input));
+  const item = inventActivityLogItem(input);
+  patchActivityCachesOnLog(queryClient, item);
+
+  const subjectUserId = resolveActivitySubjectUserId(input);
+  if (subjectUserId) {
+    densifyUserActivityHistory(queryClient, subjectUserId, {
+      id: item.id,
+      action: item.action,
+      entityType: item.entityType,
+      entityId: item.entityId,
+      details: item.details,
+      createdAt: item.createdAt,
+      actorId: item.actorId,
+    });
+  }
 }

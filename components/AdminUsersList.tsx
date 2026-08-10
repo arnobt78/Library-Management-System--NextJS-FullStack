@@ -47,7 +47,10 @@ import {
   useApproveUser,
   useRejectUser,
   useRemoveAdminPrivileges,
+  useApproveAdminRequest,
+  useRejectAdminRequest,
 } from "@/hooks/useMutations";
+import AdminRequestDeclineDialog from "@/components/admin/AdminRequestDeclineDialog";
 import type {
   User,
   UsersListResponse,
@@ -94,6 +97,8 @@ function UserRowActions({
   onApprove,
   onReject,
   onMakeAdmin,
+  onApproveAdmin,
+  onDeclineAdmin,
   onRemoveAdmin,
   busy,
 }: {
@@ -103,11 +108,14 @@ function UserRowActions({
   onApprove: () => void;
   onReject: () => void;
   onMakeAdmin: () => void;
+  onApproveAdmin: () => void;
+  onDeclineAdmin: () => void;
   onRemoveAdmin: () => void;
   busy: boolean;
 }) {
   const selfId = currentUserId || sessionUserId;
   const detailHref = `/admin/users/${user.id}`;
+  const pendingAdminId = user.pendingAdminRequestId;
 
   if (isProtectedDemoAccount(user)) {
     // Stacked Lock + Demo — fits Actions col size 64 (avoid inline "Demo account").
@@ -167,16 +175,40 @@ function UserRowActions({
             </DropdownMenuItem>
           </>
         )}
-        {user.status === "APPROVED" && user.role === "USER" && (
-          <DropdownMenuItem
-            className={`${LIGHT_MENU.item} text-violet-700 focus:bg-violet-50 focus:text-violet-700 data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-700`}
-            onSelect={onMakeAdmin}
-            disabled={busy}
-          >
-            <Shield className="size-3.5" />
-            Make Admin
-          </DropdownMenuItem>
-        )}
+        {user.status === "APPROVED" &&
+          user.role === "USER" &&
+          pendingAdminId && (
+            <>
+              <DropdownMenuItem
+                className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
+                onSelect={onApproveAdmin}
+                disabled={busy}
+              >
+                <CheckCircle className="size-3.5" />
+                Approve Admin
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className={`${LIGHT_MENU.item} text-red-700 focus:bg-red-50 focus:text-red-700 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700`}
+                onSelect={onDeclineAdmin}
+                disabled={busy}
+              >
+                <XCircle className="size-3.5" />
+                Decline
+              </DropdownMenuItem>
+            </>
+          )}
+        {user.status === "APPROVED" &&
+          user.role === "USER" &&
+          !pendingAdminId && (
+            <DropdownMenuItem
+              className={`${LIGHT_MENU.item} text-violet-700 focus:bg-violet-50 focus:text-violet-700 data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-700`}
+              onSelect={onMakeAdmin}
+              disabled={busy}
+            >
+              <Shield className="size-3.5" />
+              Make Admin
+            </DropdownMenuItem>
+          )}
         {user.role === "ADMIN" && user.id !== selfId && (
           <DropdownMenuItem
             className={LIGHT_MENU.itemDestructive}
@@ -308,6 +340,11 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const approveUserMutation = useApproveUser();
   const rejectUserMutation = useRejectUser();
   const removeAdminPrivilegesMutation = useRemoveAdminPrivileges();
+  const approveAdminRequestMutation = useApproveAdminRequest();
+  const rejectAdminRequestMutation = useRejectAdminRequest();
+  const [declineAdminTarget, setDeclineAdminTarget] = useState<User | null>(
+    null,
+  );
 
   const updateSearchParams = (newParams: Record<string, string>) => {
     const params = new URLSearchParams(searchParamsHook.toString());
@@ -444,11 +481,35 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     rejectUserMutation.mutate(payload);
   };
 
+  const handleApproveAdminRequest = (user: User) => {
+    if (!user.pendingAdminRequestId) return;
+    approveAdminRequestMutation.mutate({
+      requestId: user.pendingAdminRequestId,
+      userName: user.fullName,
+    });
+  };
+
+  const handleConfirmDeclineAdmin = (rejectionReason: string) => {
+    if (!declineAdminTarget?.pendingAdminRequestId) return;
+    rejectAdminRequestMutation.mutate(
+      {
+        requestId: declineAdminTarget.pendingAdminRequestId,
+        rejectionReason,
+        userName: declineAdminTarget.fullName,
+      },
+      {
+        onSuccess: () => setDeclineAdminTarget(null),
+      },
+    );
+  };
+
   const actionsBusy =
     approveUserMutation.isPending ||
     rejectUserMutation.isPending ||
     updateUserRoleMutation.isPending ||
-    removeAdminPrivilegesMutation.isPending;
+    removeAdminPrivilegesMutation.isPending ||
+    approveAdminRequestMutation.isPending ||
+    rejectAdminRequestMutation.isPending;
 
   if (usersLoading && users.length === 0) {
     return (
@@ -631,6 +692,8 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             onApprove={() => handleUpdateUserStatus(user.id, "APPROVED")}
             onReject={() => handleUpdateUserStatus(user.id, "REJECTED")}
             onMakeAdmin={() => openMakeAdminConfirm(user)}
+            onApproveAdmin={() => handleApproveAdminRequest(user)}
+            onDeclineAdmin={() => setDeclineAdminTarget(user)}
             onRemoveAdmin={() => openRemoveAdminConfirm(user)}
           />
         );
@@ -910,6 +973,22 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {declineAdminTarget?.pendingAdminRequestId ? (
+        <AdminRequestDeclineDialog
+          key={declineAdminTarget.pendingAdminRequestId}
+          open={declineAdminTarget != null}
+          applicantName={declineAdminTarget.fullName}
+          applicantEmail={declineAdminTarget.email}
+          isPending={rejectAdminRequestMutation.isPending}
+          onOpenChange={(open) => {
+            if (!open && !rejectAdminRequestMutation.isPending) {
+              setDeclineAdminTarget(null);
+            }
+          }}
+          onConfirm={handleConfirmDeclineAdmin}
+        />
+      ) : null}
     </>
   );
 };

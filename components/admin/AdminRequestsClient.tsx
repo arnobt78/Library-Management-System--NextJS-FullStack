@@ -583,10 +583,7 @@ export default function AdminRequestsClient({
             </div>
           ) : null}
 
-          <AdminListToolbar
-            title="Admin Requests"
-            count={filteredPending.length + filteredDecisions.length}
-          >
+          <AdminListToolbar title="Admin Requests">
             <SearchInput
               value={localSearch}
               onChange={setLocalSearch}

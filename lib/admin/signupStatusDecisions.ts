@@ -49,6 +49,51 @@ export type SignupRequestDetail = {
   decisions: SignupRequestDecisionEntry[];
 };
 
+/** Shared ledger query for signup detail + User 360 densify seed. */
+export async function loadSignupDecisionEntries(
+  userId: string,
+): Promise<SignupRequestDecisionEntry[]> {
+  const decisionRows = await db
+    .select({
+      id: userStatusDecisions.id,
+      decision: userStatusDecisions.decision,
+      decidedAt: userStatusDecisions.decidedAt,
+      actorId: decisionActorUsers.id,
+      actorFullName: decisionActorUsers.fullName,
+      actorEmail: decisionActorUsers.email,
+      actorUniversityCard: decisionActorUsers.universityCard,
+    })
+    .from(userStatusDecisions)
+    .leftJoin(
+      decisionActorUsers,
+      eq(userStatusDecisions.decidedBy, decisionActorUsers.id),
+    )
+    .where(eq(userStatusDecisions.userId, userId))
+    .orderBy(desc(userStatusDecisions.decidedAt));
+
+  return decisionRows
+    .filter(
+      (
+        row,
+      ): row is typeof row & { decision: "APPROVED" | "REJECTED" } =>
+        row.decision === "APPROVED" || row.decision === "REJECTED",
+    )
+    .map((row) => ({
+      id: row.id,
+      status: row.decision,
+      decidedAt: row.decidedAt ?? null,
+      decisionActor:
+        row.actorEmail && row.actorFullName
+          ? {
+              id: row.actorId ?? null,
+              fullName: row.actorFullName,
+              email: row.actorEmail,
+              universityCard: row.actorUniversityCard ?? null,
+            }
+          : null,
+    }));
+}
+
 export async function getSignupRequestDetail(
   userId: string,
 ): Promise<SignupRequestDetail | null> {
@@ -71,45 +116,7 @@ export async function getSignupRequestDetail(
 
   if (!userRow) return null;
 
-  const decisionRows = await db
-    .select({
-      id: userStatusDecisions.id,
-      decision: userStatusDecisions.decision,
-      decidedAt: userStatusDecisions.decidedAt,
-      actorId: decisionActorUsers.id,
-      actorFullName: decisionActorUsers.fullName,
-      actorEmail: decisionActorUsers.email,
-      actorUniversityCard: decisionActorUsers.universityCard,
-    })
-    .from(userStatusDecisions)
-    .leftJoin(
-      decisionActorUsers,
-      eq(userStatusDecisions.decidedBy, decisionActorUsers.id),
-    )
-    .where(eq(userStatusDecisions.userId, userId))
-    .orderBy(desc(userStatusDecisions.decidedAt));
-
-  const decisions: SignupRequestDecisionEntry[] = decisionRows
-    .filter(
-      (
-        row,
-      ): row is typeof row & { decision: "APPROVED" | "REJECTED" } =>
-        row.decision === "APPROVED" || row.decision === "REJECTED",
-    )
-    .map((row) => ({
-      id: row.id,
-      status: row.decision,
-      decidedAt: row.decidedAt ?? null,
-      decisionActor:
-        row.actorEmail && row.actorFullName
-          ? {
-              id: row.actorId ?? null,
-              fullName: row.actorFullName,
-              email: row.actorEmail,
-              universityCard: row.actorUniversityCard ?? null,
-            }
-          : null,
-    }));
+  const decisions = await loadSignupDecisionEntries(userId);
 
   return {
     id: userRow.id,

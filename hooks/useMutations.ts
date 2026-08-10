@@ -2366,6 +2366,7 @@ export const useCancelMyAdminRequest = () => {
         densify: () => {
           densifyAdminRequestRemovePending(queryClient, variables.requestId, {
             overviewWithdraw: true,
+            clearLatestStatus: true,
           });
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),

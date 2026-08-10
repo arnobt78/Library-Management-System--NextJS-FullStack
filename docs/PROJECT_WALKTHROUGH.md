@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-10 | Status: C2 Stage 4; people IA + cross-domain densify on main; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-11 | Status: C2 Stage 4; User 360 densify on main pending tip-bind; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -36,7 +36,7 @@ Browser
 - Tip `d8845bc`: lendable KPIs; Inactive mid panel; books-nav; Top Rated rating↓/A-Z; featured densify.
 - Tip `bce8637`: `AdminPageShell` (header → StatCardGrid → panel); no KPI top bar; no page-root overflow clip.
 - Activity History: admin-visible lifecycle audit (borrow create, reservation/renewal, registration re-apply, Automation exports) + Entity routes (ops/export/recs → `/admin/automation`); PrefetchLink staleTime 0; recs densify blocks SSR featured reseed.
-- Admin people: Registration Queue · Admin Requests · User Management; detail routes for signup + make-admin; User 360 privilege/tickets/reviews/activity; signup/request detail RQ densify; PrefetchLink UUID warm (`staleTime: 0`).
+- Admin people: Registration Queue · Admin Requests · User Directory; **unified User 360** (`AdminUser360Shell`, entries directory|registration|privilege); privilege/reservations/activity RQ densify; Insights SSR-only; `prefetchAdminUser360Caches`; PrefetchLink UUID warm (`staleTime: 0`).
 - People tables (2026-08-10): DataTable ticket sizing; `DecisionActorStack` (badge·by·actor·`DecisionDateMeta`); `CopyableText`/`UserRoleBadge`; `statusReviewed*` join densify; queues FIFO-50 + period filter; Applicant Requested/Registered under stack.
 - Cross-domain densify (2026-08-10): `review.write` RSC `/admin`; AdminBooksList prefer densify-empty over SSR; ticket detail `auditEvents` + `densifyTicketDetailAudit`; PrefetchLink my-profile/`book-detail` `staleTime: 0`.
 

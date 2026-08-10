@@ -1,8 +1,16 @@
 // Parent: REQ-0029, REQ-0031
 
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/database/drizzle";
+import { requireAdminActor } from "@/lib/auth/authorization";
+import { getDeterministicInsights } from "@/lib/admin/actions/analytics";
+import { parseProfilePagination } from "@/lib/actionInputs";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import type { AdminPrivilegeHistoryEntry } from "@/lib/admin/adminPrivilegeHistory";
+import { activityHistoryForUserWhere } from "@/lib/admin/adminUserActivity";
+import { loadSignupDecisionEntries } from "@/lib/admin/signupStatusDecisions";
+import type { SignupRequestDecisionEntry } from "@/lib/admin/signupStatusDecisions";
 import {
   activityLogs,
   adminRequests,
@@ -13,10 +21,6 @@ import {
   supportTickets,
   users,
 } from "@/database/schema";
-import { requireAdminActor } from "@/lib/auth/authorization";
-import { getDeterministicInsights } from "@/lib/admin/actions/analytics";
-import { parseProfilePagination } from "@/lib/actionInputs";
-import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
 const signupDecisionUsers = alias(users, "profile_signup_decision_actor");
 const adminRequestReviewerUsers = alias(users, "profile_admin_request_reviewer");
@@ -37,6 +41,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     metrics,
     genres,
     libraryInsights,
+    signupDecisions,
   ] = await Promise.all([
     db
       .select({
@@ -159,15 +164,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         actorId: activityLogs.actorId,
       })
       .from(activityLogs)
-      .where(
-        or(
-          eq(activityLogs.actorId, userId),
-          and(
-            eq(activityLogs.entityType, "user"),
-            eq(activityLogs.entityId, userId),
-          ),
-        ),
-      )
+      .where(activityHistoryForUserWhere(userId))
       .orderBy(desc(activityLogs.createdAt))
       .limit(25),
     db.execute(
@@ -187,6 +184,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
       .orderBy(desc(sql`COUNT(*)`))
       .limit(5),
     getDeterministicInsights(),
+    loadSignupDecisionEntries(userId),
   ]);
 
   const signupDecisionActor: AdminRequestReviewer | null =
@@ -218,23 +216,25 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
       }
     : undefined;
 
-  const requestHistory = requestHistoryRows.map((row) => ({
-    id: row.id,
-    status: row.status,
-    requestReason: row.requestReason,
-    rejectionReason: row.rejectionReason,
-    createdAt: row.createdAt,
-    reviewedAt: row.reviewedAt,
-    reviewer:
-      row.reviewerEmail && row.reviewerFullName
-        ? ({
-            id: row.reviewedBy ?? null,
-            fullName: row.reviewerFullName,
-            email: row.reviewerEmail,
-            universityCard: row.reviewerUniversityCard ?? null,
-          } satisfies AdminRequestReviewer)
-        : null,
-  }));
+  const requestHistory: AdminPrivilegeHistoryEntry[] = requestHistoryRows.map(
+    (row) => ({
+      id: row.id,
+      status: row.status,
+      requestReason: row.requestReason,
+      rejectionReason: row.rejectionReason,
+      createdAt: row.createdAt,
+      reviewedAt: row.reviewedAt,
+      reviewer:
+        row.reviewerEmail && row.reviewerFullName
+          ? ({
+              id: row.reviewedBy ?? null,
+              fullName: row.reviewerFullName,
+              email: row.reviewerEmail,
+              universityCard: row.reviewerUniversityCard ?? null,
+            } satisfies AdminRequestReviewer)
+          : null,
+    }),
+  );
 
   return {
     user,
@@ -244,6 +244,8 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     reservationHistory,
     ticketHistory,
     activityHistory,
+    /** Full user_status_decisions ledger — densify via signupRequestDetail. */
+    signupDecisions: signupDecisions as SignupRequestDecisionEntry[],
     metrics: metrics.rows[0] as Record<string, string | number>,
     topGenres: genres,
     libraryInsights,

@@ -25,6 +25,7 @@ import { desc, asc, eq, and, ilike, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 import { parsePagination } from "@/lib/pagination";
+import { mapAdminPrivilegeFields } from "@/lib/admin/mapPendingAdminRequestIds";
 
 export const runtime = "nodejs";
 
@@ -140,6 +141,18 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
 
+    const privilegeByUser = await mapAdminPrivilegeFields(
+      allUsers.map((u) => u.id),
+    );
+    const usersWithPending = allUsers.map((u) => {
+      const privilege = privilegeByUser.get(u.id);
+      return {
+        ...u,
+        pendingAdminRequestId: privilege?.pendingAdminRequestId ?? null,
+        latestAdminRequestStatus: privilege?.latestAdminRequestStatus ?? null,
+      };
+    });
+
     // Get total count for pagination
     const totalUsersResult = await db
       .select({ count: sql<number>`count(*)` })
@@ -151,7 +164,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      users: allUsers,
+      users: usersWithPending,
       total: totalUsers,
       page,
       totalPages,
