@@ -13,6 +13,7 @@ export type AdminSidebarIconKey =
   | "book"
   | "bookmark"
   | "userPlus"
+  | "shield"
   | "chart"
   | "wand"
   | "ticket"
@@ -34,10 +35,7 @@ export type AdminNavItemConfig = {
   label: string;
   icon: AdminSidebarIconKey;
   prefetchKind?: PrefetchKind;
-  /**
-   * Primary count key. User Management uses pendingAdmin when >0 else users
-   * (resolved in Sidebar resolveNavBadge).
-   */
+  /** Badge count key (Admin Requests → pendingAdminRequests; Users → users). */
   countKey?: AdminNavCountKey;
   /** Page subtitle for AdminPageHeader */
   description: string;
@@ -105,7 +103,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroupConfig[] = [
         icon: "users",
         prefetchKind: "admin-users",
         countKey: "users",
-        description: "Roles, status, and librarian privileges",
+        description: "Directory of library accounts and roles",
       },
       {
         route: "/admin/account-requests",
@@ -114,6 +112,14 @@ export const ADMIN_NAV_GROUPS: AdminNavGroupConfig[] = [
         prefetchKind: "admin-account-requests",
         countKey: "pendingSignUps",
         description: "Approve or reject new library sign-ups",
+      },
+      {
+        route: "/admin/admin-requests",
+        label: "Admin Requests",
+        icon: "shield",
+        prefetchKind: "admin-admin-requests",
+        countKey: "pendingAdminRequests",
+        description: "Review make-admin privilege applications",
       },
     ],
   },
@@ -153,19 +159,11 @@ export function getAdminNavItemByRoute(
   return ADMIN_NAV_ITEMS.find((item) => item.route === route);
 }
 
-/**
- * Resolve badge for a nav item.
- * User Management: prefer pending make-admin when >0, else total users.
- */
+/** Resolve badge for a nav item (countKey only — no cross-route stealing). */
 export function resolveNavBadgeCount(
   item: AdminNavItemConfig,
   counts: Record<AdminNavCountKey, number>,
 ): number {
-  if (item.route === "/admin/users") {
-    const pending = counts.pendingAdminRequests ?? 0;
-    if (pending > 0) return pending;
-    return counts.users ?? 0;
-  }
   if (!item.countKey) return 0;
   return counts[item.countKey] ?? 0;
 }

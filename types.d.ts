@@ -142,6 +142,11 @@ interface SupportTicketDetail extends SupportTicketListItem {
   updatedByName: string | null;
   updatedByEmail: string | null;
   updatedByUniversityCard: string | null;
+  /**
+   * Admin Activity timeline audits (SSR seed + ticket.write densify).
+   * Optional — list payloads omit; detail soft-nav must not freeze on SSR-only.
+   */
+  auditEvents?: TicketActivityEvent[];
 }
 
 /** Audit row for ticket detail Activity timeline (admin + densified feed). */

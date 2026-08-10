@@ -5,7 +5,7 @@
  */
 "use client";
 
-import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import { Star } from "lucide-react";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import type { AdminDashboardInactiveTitle } from "@/lib/admin/adminDashboardStatsTypes";
@@ -28,12 +28,12 @@ export function OverviewInactiveTitleRow({
         size={48}
       />
       <div className="min-w-0 flex-1 space-y-0.5">
-        <Link
+        <PrefetchLink
           href={`/books/${book.id}`}
           className={cn("block truncate text-sm font-medium", SKY_LINK_LIGHT)}
         >
           {book.title}
-        </Link>
+        </PrefetchLink>
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
           <span className="min-w-0 truncate">{book.author}</span>
           <OverviewGenreChip genre={book.genre} />

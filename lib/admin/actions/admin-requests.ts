@@ -92,6 +92,12 @@ export interface GetAdminRequestsResult {
   data?: AdminRequest[];
 }
 
+export interface GetAdminRequestDetailResult {
+  success: boolean;
+  error?: string;
+  data?: AdminRequest;
+}
+
 export interface UpdateAdminRequestResult {
   success: boolean;
   error?: string;
@@ -274,6 +280,27 @@ export async function getAllAdminRequests(): Promise<GetAdminRequestsResult> {
     return {
       success: false,
       error: "Failed to fetch admin requests",
+    };
+  }
+}
+
+/** Single make-admin request with applicant + reviewer joins (admin detail route). */
+export async function getAdminRequestDetail(
+  id: string,
+): Promise<GetAdminRequestDetailResult> {
+  try {
+    await requireAdminActor();
+    const safeId = parseEntityId(id);
+    const request = await selectAdminRequestById(db, safeId);
+    if (!request) {
+      return { success: false, error: "Admin request not found" };
+    }
+    return { success: true, data: request };
+  } catch (error) {
+    console.error("Error fetching admin request detail:", error);
+    return {
+      success: false,
+      error: getActionErrorMessage(error, "Failed to fetch admin request"),
     };
   }
 }

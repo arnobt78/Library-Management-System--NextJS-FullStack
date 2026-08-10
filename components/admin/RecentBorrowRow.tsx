@@ -7,7 +7,7 @@
  */
 "use client";
 
-import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import { Star } from "lucide-react";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import { ReviewBorrowMeta } from "@/components/reviews/ReviewBorrowMeta";
@@ -36,7 +36,7 @@ export function RecentBorrowRow({ borrow }: { borrow: OverviewRecentBorrow }) {
         />
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-start justify-between gap-2">
-            <Link
+            <PrefetchLink
               href={bookHref}
               className={cn(
                 "min-w-0 line-clamp-1 text-sm font-medium sm:text-base",
@@ -44,7 +44,7 @@ export function RecentBorrowRow({ borrow }: { borrow: OverviewRecentBorrow }) {
               )}
             >
               {borrow.bookTitle}
-            </Link>
+            </PrefetchLink>
             <BorrowStatusBadge status={borrow.status} className="shrink-0" />
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-600">

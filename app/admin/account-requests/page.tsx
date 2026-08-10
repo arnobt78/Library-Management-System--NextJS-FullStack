@@ -3,7 +3,7 @@
  *
  * SSR-fetches pending user registrations (users.status = PENDING)
  * plus recent APPROVED/REJECTED decisions with statusReviewed* attribution.
- * Not make-admin privilege requests (those live on /admin/users).
+ * Not make-admin privilege requests (those live on /admin/admin-requests).
  */
 
 import React from "react";

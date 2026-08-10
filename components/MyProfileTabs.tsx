@@ -72,7 +72,7 @@ import {
   RotateCwFadingClock,
   FilterX,
 } from "lucide-react";
-import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUserBorrows, useUserBookReviews } from "@/hooks/useQueries";
 import { useReturnBook } from "@/hooks/useMutations";
@@ -1135,13 +1135,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base font-medium sm:text-xl">
-                      <Link
+                      <PrefetchLink
                         href={`/books/${record.book.id}`}
-                        prefetch={false}
                         className="text-light-100 transition-colors hover:text-light-100/70"
                       >
                         {record.book.title}
-                      </Link>
+                      </PrefetchLink>
                     </h3>
                     <p className="text-xs sm:text-sm">
                       <span className="text-light-100/70">by </span>

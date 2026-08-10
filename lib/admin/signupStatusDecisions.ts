@@ -31,6 +31,100 @@ export type SignupStatusDecision = {
   decisionActor: AdminRequestReviewer | null;
 };
 
+export type SignupRequestDecisionEntry = {
+  id: string;
+  status: "APPROVED" | "REJECTED";
+  decidedAt: Date | null;
+  decisionActor: AdminRequestReviewer | null;
+};
+
+export type SignupRequestDetail = {
+  id: string;
+  fullName: string;
+  email: string;
+  universityId: number;
+  universityCard: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  role: "USER" | "ADMIN" | null;
+  createdAt: Date | null;
+  decisions: SignupRequestDecisionEntry[];
+};
+
+export async function getSignupRequestDetail(
+  userId: string,
+): Promise<SignupRequestDetail | null> {
+  await requireAdminActor();
+
+  const [userRow] = await db
+    .select({
+      id: users.id,
+      fullName: users.fullName,
+      email: users.email,
+      universityId: users.universityId,
+      universityCard: users.universityCard,
+      status: users.status,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!userRow) return null;
+
+  const decisionRows = await db
+    .select({
+      id: userStatusDecisions.id,
+      decision: userStatusDecisions.decision,
+      decidedAt: userStatusDecisions.decidedAt,
+      actorId: decisionActorUsers.id,
+      actorFullName: decisionActorUsers.fullName,
+      actorEmail: decisionActorUsers.email,
+      actorUniversityCard: decisionActorUsers.universityCard,
+    })
+    .from(userStatusDecisions)
+    .leftJoin(
+      decisionActorUsers,
+      eq(userStatusDecisions.decidedBy, decisionActorUsers.id),
+    )
+    .where(eq(userStatusDecisions.userId, userId))
+    .orderBy(desc(userStatusDecisions.decidedAt));
+
+  const decisions: SignupRequestDecisionEntry[] = decisionRows
+    .filter(
+      (
+        row,
+      ): row is typeof row & { decision: "APPROVED" | "REJECTED" } =>
+        row.decision === "APPROVED" || row.decision === "REJECTED",
+    )
+    .map((row) => ({
+      id: row.id,
+      status: row.decision,
+      decidedAt: row.decidedAt ?? null,
+      decisionActor:
+        row.actorEmail && row.actorFullName
+          ? {
+              id: row.actorId ?? null,
+              fullName: row.actorFullName,
+              email: row.actorEmail,
+              universityCard: row.actorUniversityCard ?? null,
+            }
+          : null,
+    }));
+
+  return {
+    id: userRow.id,
+    fullName: userRow.fullName,
+    email: userRow.email,
+    universityId: userRow.universityId,
+    universityCard: userRow.universityCard ?? null,
+    status: userRow.status,
+    role: userRow.role,
+    createdAt: userRow.createdAt,
+    decisions,
+  };
+}
+
 export async function getRecentSignupStatusDecisions(
   limit: number = RECENT_SIGNUP_DECISIONS_LIMIT,
 ): Promise<{

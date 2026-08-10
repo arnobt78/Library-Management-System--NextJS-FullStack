@@ -10,8 +10,8 @@
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { Check, Copy } from "lucide-react";
+import PrefetchLink from "@/components/PrefetchLink";
 import UserAvatar from "@/components/UserAvatar";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import {
@@ -153,9 +153,9 @@ export default function PersonAttribution({
 
   const nameEl =
     linked && href ? (
-      <Link prefetch={false} href={href} className={cn("truncate", nameClass)}>
+      <PrefetchLink prefetch={false} href={href} className={cn("truncate", nameClass)}>
         {person.fullName}
-      </Link>
+      </PrefetchLink>
     ) : (
       <span className={cn("truncate", nameClass)}>{person.fullName}</span>
     );

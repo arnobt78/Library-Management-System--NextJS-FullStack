@@ -1,16 +1,10 @@
 /**
- * Admin Users Page
- *
- * SSR: users + pending admin requests + recent decisions (reviewer attribution).
- * Client list hydrates via React Query; admin-request.write invalidates both queues.
+ * Admin Users directory page.
+ * Make-admin queue lives at /admin/admin-requests (separate IA).
  */
 
 import React from "react";
 import { getAllUsers } from "@/lib/admin/actions/user";
-import {
-  getPendingAdminRequests,
-  getRecentAdminRequestDecisions,
-} from "@/lib/admin/actions/admin-requests";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AdminUsersList from "@/components/AdminUsersList";
@@ -29,13 +23,7 @@ const Page = async ({
     redirect("/sign-in");
   }
 
-  const [usersResult, adminRequestsResult, decisionsResult] = await Promise.all(
-    [
-      getAllUsers(),
-      getPendingAdminRequests(),
-      getRecentAdminRequestDecisions(),
-    ],
-  );
+  const usersResult = await getAllUsers();
 
   if (!usersResult.success) {
     return (
@@ -55,18 +43,10 @@ const Page = async ({
   }
 
   const users = usersResult.data || [];
-  const adminRequests = adminRequestsResult.success
-    ? adminRequestsResult.data || []
-    : [];
-  const recentDecisions = decisionsResult.success
-    ? decisionsResult.data || []
-    : [];
 
   return (
     <AdminUsersList
       initialUsers={users}
-      initialAdminRequests={adminRequests}
-      initialRecentDecisions={recentDecisions}
       successMessage={params.success}
       errorMessage={params.error}
       currentUserId={session.user.id}

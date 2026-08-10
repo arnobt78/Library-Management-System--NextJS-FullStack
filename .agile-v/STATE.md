@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Activity History matrix close (exports+ops Entity); nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) cross-domain densify gaps closed; nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Activity History audit/densify + export coverage on `main` working tree; C2 Gate 2 blocked by EvalGate FAIL (nonlocal evidence)
+- Status: ACTIVE - People IA + densify freshness + cross-domain densify closing via commit/push; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `d266fe3` (Activity History audit densify + matrix close)
-- Latest HEAD: `d266fe3`
+- Latest implementation tip: (pending this commit)
+- Latest HEAD: `2151b8c` (== `origin/main` pre-push)
 - Started: 2026-08-01
-- Last updated: 2026-08-10 (Activity matrix close: exports + ops Entity)
+- Last updated: 2026-08-10 (audit OK; commit+push)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,80 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline (resume reconcile)
+- Skills applied this session: agile-v-core, agile-v-pipeline (cross-domain densify gap close)
+
+## Reconciliation snapshot (2026-08-10, cross-domain densify gap close)
+
+Verified facts:
+- P0: `review.write` RSC includes `/admin`; Overview prefers densified `pendingReviewCount` when stats cache present; invalidation contract test updated.
+- P1: AdminBooksList prefers densified universe `[]` over `initialBooks` SSR reseed.
+- P1: Ticket detail `auditEvents` on RQ + `densifyTicketDetailAudit` on ticket.write (no frozen SSR-only timeline).
+- P2: PrefetchLink `my-profile` `staleTime: 0`; BookCard + hot book title Links → PrefetchLink `book-detail`.
+- Local Prove: typecheck + lint 0 + **213** unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** optional soft-nav smoke; optional admin people UI polish (separate). Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER. Wave 5 / BL-0017 remains Gate 2 path.
+
+## Reconciliation snapshot (2026-08-10, people polish densify close)
+
+Verified facts:
+- Wave 1: `currentAdmin` wired into AccountRequestsClient + AdminUserDetailActions decisionActor.
+- Wave 2: `useAdminUserDetail` + `getAdminUserDetailCache`; User 360 header RQ + AdminPageShell; PrefetchLink `/admin/users/[uuid]`.
+- Wave 3: Signup detail AdminPageShell/AdminPageHeader parity; Open User 360 PrefetchLink on signup + admin-request details.
+- Gateway densify audit: still no mutation bypasses.
+- Local Prove: typecheck + lint 0 + **213** unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** smoke Registration Queue / Admin Requests / Users list→detail→decide→Back; commit when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-10, densify freshness A+B+C)
+
+Verified facts:
+- Wave A: `signupRequestDetail` key + DOMAIN_KEYS; `useSignupRequestDetail`; SignupRequestDetailClient on RQ; optimistic + `densifySignupRequestDetail` / densifyUserWrite timeline.
+- Wave B: `admin.requestDetailRoot` in DOMAIN_KEYS; PrefetchLink UUID warm for signup + admin-request detail (`staleTime: 0`); View kebab PrefetchLink; PersonAttribution → PrefetchLink.
+- Wave C: orphan-key spot-check — no further orphans; invalidation + densify unit contracts extended.
+- Local Prove: typecheck + lint 0 + **213** unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** smoke soft-nav (signup/admin-request detail after decide → Back); commit people IA + densify when ready. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-10, densify freshness plan)
+
+Verified facts:
+- HEAD `2151b8c` == `origin/main`; tip `d266fe3`; no PENDING interrupt; EvalGate still FAIL.
+- Working tree: Admin people IA (A–F) still uncommitted (queues, detail routes, User 360, RSC/prefetch registry).
+- Gold contract (playbook §8.5 / RQ guide §4.6): `commitMutationCache` = snapshot → await invalidate → densify; soft-nav must not flash stale SSR/`initialData`.
+- Gap audit (people IA): superseded by densify A+B+C delivery above.
+
+### Next Action
+
+**Human-Decision:** superseded by densify freshness A+B+C snapshot.
+
+## Reconciliation snapshot (2026-08-10, Admin people IA Wave F)
+
+Verified facts:
+- Lint close: unused `formatMediumDate`; stable `ssrUpdatedAt` for admin-request detail; AccountRequests `useCallback` deps; User 360 Tailwind.
+- People IA (A–E) + Wave F: typecheck + lint 0 warnings + 209 unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** superseded by densify freshness plan snapshot.
+
+## Reconciliation snapshot (2026-08-10, Admin people IA)
+
+Verified facts:
+- Nav: Registration Queue · Admin Requests · User Management (badges no longer steal make-admin count onto Users).
+- Queues: TanStack pending + recent decisions; details `/admin/account-requests/[userId]`, `/admin/admin-requests/[id]`.
+- Users directory kebab-only; User 360 tickets/reviews/privilege/activity + header actions.
+- Registry RSC paths + PrefetchLink `admin-admin-requests`; densify via existing `user.write` / `admin-request.write`.
+- Local Prove: typecheck + lint + 209 unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** superseded by Wave F lint close.
 
 ## Reconciliation snapshot (2026-08-10, Activity History matrix close)
 
@@ -35,7 +108,7 @@ Verified facts:
 
 ### Next Action
 
-**Human-Decision:** smoke Automation export → Activity History if desired. Tip `d266fe3` on `main`. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+**Human-Decision:** superseded by Admin people IA snapshot.
 
 ## Reconciliation snapshot (2026-08-10, Densify + Activity History harden)
 

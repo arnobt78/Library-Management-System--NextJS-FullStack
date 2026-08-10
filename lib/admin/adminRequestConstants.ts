@@ -21,8 +21,8 @@ export const ADMIN_REQUEST_REVOKED_REASON =
 export const ADMIN_REQUEST_DIRECT_GRANT_REASON =
   "Admin privileges granted directly by a librarian (All Users / bulk promote).";
 
-/** Cap for /admin/users Recent decisions list (newest reviewedAt first). */
-export const RECENT_ADMIN_REQUEST_DECISIONS_LIMIT = 20;
+/** Cap for Admin Requests Recent decisions table (newest reviewedAt first). */
+export const RECENT_ADMIN_REQUEST_DECISIONS_LIMIT = 25;
 
 /**
  * Prefill for admin Decline dialog (editable). Shown to applicant as Reason:.

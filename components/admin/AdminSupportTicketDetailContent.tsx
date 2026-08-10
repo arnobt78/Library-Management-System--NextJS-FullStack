@@ -64,16 +64,25 @@ export default function AdminSupportTicketDetailContent({
     "ticket.write",
     "/admin/support-tickets",
   );
-  const { data: ticket = initialTicket } = useSupportTicket(
+  // Seed auditEvents onto detail RQ so ticket.write densify can prepend
+  // (SSR-only initialAuditEvents would freeze the Activity timeline).
+  const seededTicket = useMemo<SupportTicketDetail>(
+    () => ({
+      ...initialTicket,
+      auditEvents: initialTicket.auditEvents ?? initialAuditEvents,
+    }),
+    [initialTicket, initialAuditEvents],
+  );
+  const { data: ticket = seededTicket } = useSupportTicket(
     initialTicket.id,
-    initialTicket,
+    seededTicket,
   );
   const deleteMutation = useDeleteSupportTicket();
   const [editOpen, setEditOpen] = useState(false);
 
   const activityEvents = useMemo(
-    () => buildTicketActivityTimeline(ticket, initialAuditEvents),
-    [ticket, initialAuditEvents],
+    () => buildTicketActivityTimeline(ticket, ticket.auditEvents ?? []),
+    [ticket],
   );
 
   const handleDelete = () => {

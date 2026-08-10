@@ -79,6 +79,11 @@ export function densifyAdminRequestDecision(
 ): void {
   densifyAdminRequestRemovePending(queryClient, request.id);
 
+  queryClient.setQueryData(
+    queryKeys.admin.requestDetail(request.id),
+    request,
+  );
+
   queryClient.setQueryData<AdminRequest[]>(
     queryKeys.admin.recentRequestDecisions,
     (old) => {

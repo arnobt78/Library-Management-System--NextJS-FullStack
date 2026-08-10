@@ -9,7 +9,7 @@ import {
   rollbackOptimisticSignupDecision,
 } from "@/lib/query/optimisticSignupDecision";
 import { queryKeys } from "@/lib/query/keys";
-import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
+import type { SignupRequestDetail, SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { User } from "@/lib/services/users";
 import {
   isDensifiedEmpty,
@@ -124,5 +124,42 @@ describe("applyOptimisticSignupDecision", () => {
     expect(client.getQueryData(queryKeys.admin.navCounts)).toMatchObject({
       pendingSignUps: 1,
     });
+  });
+
+  it("paints signup request detail status + timeline; rollback restores detail", async () => {
+    const client = new QueryClient();
+    const detailKey = queryKeys.users.signupRequestDetail("u-1");
+    const priorDetail: SignupRequestDetail = {
+      id: "u-1",
+      fullName: "Ada Lovelace",
+      email: "ada@example.com",
+      universityId: 42,
+      universityCard: "/cards/ada.jpg",
+      status: "PENDING",
+      role: "USER",
+      createdAt: new Date("2026-08-01T12:00:00Z"),
+      decisions: [],
+    };
+    client.setQueryData(detailKey, priorDetail);
+    client.setQueryData(queryKeys.users.pending(), [pendingUser]);
+
+    const ctx = await applyOptimisticSignupDecision(client, {
+      userId: "u-1",
+      status: "APPROVED",
+      decisionActor: {
+        id: "admin-1",
+        fullName: "Test Admin",
+        email: "test@admin.com",
+        universityCard: null,
+      },
+    });
+
+    const painted = client.getQueryData<SignupRequestDetail>(detailKey);
+    expect(painted?.status).toBe("APPROVED");
+    expect(painted?.decisions[0]?.status).toBe("APPROVED");
+    expect(painted?.decisions[0]?.decisionActor?.email).toBe("test@admin.com");
+
+    rollbackOptimisticSignupDecision(client, ctx);
+    expect(client.getQueryData(detailKey)).toEqual(priorDetail);
   });
 });

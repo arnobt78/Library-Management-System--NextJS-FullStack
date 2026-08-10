@@ -177,6 +177,18 @@ Owner approved plan `densify_softnav_harden`. Delivered: borrow create/reservati
 
 Owner approved plan `admin_activity_matrix_close`. Delivered: export `logAdminExportActivity` + client blob densify; ops/export/recs Entity → `/admin/automation`; bulk Automation UI deferred. Tip `d266fe3`.
 
+## Admin people IA refactor (2026-08-10)
+
+Owner approved plan `admin_people_ia_refactor`. Delivered: Registration Queue + Admin Requests + Users directory; TanStack queues; details for signup/make-admin; User 360 enrich; densify RSC/prefetch. Local Prove type/lint/209 unit PASS.
+
+## Densify freshness close — people IA + matrix (2026-08-10) — DELIVERED
+
+Owner approved plan `densify_people_freshness`. Delivered BL-0023–0025: signup detail RQ + densify; admin.requestDetailRoot invalidation; PrefetchLink detail warm; contracts. Local Prove type/lint/213 unit PASS.
+
+## Cross-domain densify gap close (2026-08-10) — DELIVERED
+
+Owner approved plan `cross_domain_densify_gaps`. Delivered: `review.write` RSC `/admin`; AdminBooksList densify-empty; ticket `auditEvents` densify; PrefetchLink my-profile/`book-detail` staleTime 0. Audit PASS; type/lint/213. Admin people UI polish deferred.
+
 ## AdminPageShell KPI layout (2026-08-09)
 
 Owner approved plan `admin_kpi_page_shell`. Delivered: `AdminPageShell`; KPIs outside list panels; no top bar; no page-root overflow clip. Tip `bce8637` pushed.

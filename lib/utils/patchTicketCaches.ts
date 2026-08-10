@@ -43,6 +43,83 @@ function toListItem(ticket: SupportTicketDetail): SupportTicketListItem {
   };
 }
 
+/** Label for ticket detail Activity audit (mirrors getTicketAuditEvents). */
+function ticketAuditLabel(
+  action: "CREATE" | "UPDATE" | "DELETE",
+  details?: Record<string, unknown> | null,
+): string {
+  const status = typeof details?.status === "string" ? details.status : null;
+  const priority =
+    typeof details?.priority === "string" ? details.priority : null;
+  const notesUpdated = details?.notesUpdated === true;
+  const assigneeTouched = Object.prototype.hasOwnProperty.call(
+    details ?? {},
+    "assignedToId",
+  );
+  if (action === "CREATE") return "Ticket created";
+  if (action === "DELETE") return "Ticket deleted";
+  if (status) return `Status → ${String(status).split("_").join(" ")}`;
+  if (priority) return `Priority → ${priority}`;
+  if (assigneeTouched) return "Assignee updated";
+  if (notesUpdated) return "Internal notes updated";
+  if (details?.reply === true) return "Reply added";
+  return "Ticket updated";
+}
+
+/**
+ * Prepend an audit row onto ticket detail RQ (Activity timeline densify).
+ * Preserves SSR-seeded audits; soft-nav must not freeze on initialAuditEvents alone.
+ */
+export function densifyTicketDetailAudit(
+  queryClient: QueryClient,
+  args: {
+    ticketId: string;
+    action: "CREATE" | "UPDATE" | "DELETE";
+    actorId?: string | null;
+    actorName?: string | null;
+    actorEmail?: string | null;
+    actorUniversityCard?: string | null;
+    details?: Record<string, unknown> | null;
+  },
+): void {
+  const at = new Date().toISOString();
+  const event: TicketActivityEvent = {
+    id: `densify-ticket-audit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    kind: "audit",
+    at,
+    label: ticketAuditLabel(args.action, args.details),
+    actorId: args.actorId ?? null,
+    actorName: args.actorName ?? null,
+    actorEmail: args.actorEmail ?? null,
+    actorUniversityCard: args.actorUniversityCard ?? null,
+    detail:
+      typeof args.details?.subject === "string" ? args.details.subject : null,
+  };
+
+  queryClient.setQueryData<SupportTicketDetail | undefined>(
+    queryKeys.tickets.detail(args.ticketId),
+    (prev) => {
+      if (!prev) return prev;
+      const existing = prev.auditEvents ?? [];
+      return { ...prev, auditEvents: [event, ...existing] };
+    },
+  );
+}
+
+/** Write detail while preserving densified/SSR auditEvents (API omits the field). */
+function writeTicketDetail(
+  queryClient: QueryClient,
+  ticket: SupportTicketDetail,
+): void {
+  queryClient.setQueryData<SupportTicketDetail>(
+    queryKeys.tickets.detail(ticket.id),
+    (prev) => ({
+      ...ticket,
+      auditEvents: ticket.auditEvents ?? prev?.auditEvents,
+    }),
+  );
+}
+
 function bumpOpenCount(queryClient: QueryClient, delta: number): void {
   if (delta === 0) return;
   queryClient.setQueryData<number>(queryKeys.tickets.openCount, (old) =>
@@ -181,7 +258,7 @@ export function patchTicketCachesOnCreate(
   ticket: SupportTicketDetail,
   baselines?: TicketListBaselines,
 ): void {
-  queryClient.setQueryData(queryKeys.tickets.detail(ticket.id), ticket);
+  writeTicketDetail(queryClient, ticket);
   const row = toListItem(ticket);
   mapTicketLists(
     queryClient,
@@ -207,7 +284,7 @@ export function patchTicketCachesOnUpdate(
   baselines?: TicketListBaselines,
   previousPriority?: string | null,
 ): void {
-  queryClient.setQueryData(queryKeys.tickets.detail(ticket.id), ticket);
+  writeTicketDetail(queryClient, ticket);
   const row = toListItem(ticket);
   mapTicketLists(
     queryClient,
@@ -302,6 +379,7 @@ export function patchTicketCachesOnReply(
             replies,
             replyCount: replies.length,
             updatedAt,
+            auditEvents: prev.auditEvents,
           }
         : prev,
   );

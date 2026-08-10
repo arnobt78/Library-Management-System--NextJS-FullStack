@@ -1,6 +1,7 @@
 /**
  * Optimistic Sign-up Requests cache updates:
  * remove from pending queue + prepend Recent decisions so UI paints before refetch.
+ * Also paints signup-request detail (status + timeline) so detail route does not stay PENDING.
  * Server ledger + await invalidateMutation("user.write") remains source of truth.
  *
  * decisionActor MUST come from the logged-in admin session — null would flash “an admin”.
@@ -9,7 +10,10 @@
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
-import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
+import type {
+  SignupRequestDetail,
+  SignupStatusDecision,
+} from "@/lib/admin/signupStatusDecisions";
 import { queryKeys } from "@/lib/query/keys";
 import type { User } from "@/lib/services/users";
 import { markDensifiedEmpty } from "@/lib/utils/queryCacheLists";
@@ -20,6 +24,8 @@ const SIGNUP_DECISIONS_CAP = 25;
 export type SignupDecisionOptimisticContext = {
   previousPending: Array<[QueryKey, User[] | undefined]>;
   previousDecisions: Array<[QueryKey, SignupStatusDecision[] | undefined]>;
+  previousSignupDetail: SignupRequestDetail | undefined;
+  signupDetailKey: QueryKey;
 };
 
 function findCachedPendingUser(
@@ -49,11 +55,14 @@ export async function applyOptimisticSignupDecision(
     decisionActor?: AdminRequestReviewer | null;
   },
 ): Promise<SignupDecisionOptimisticContext> {
+  const signupDetailKey = queryKeys.users.signupRequestDetail(args.userId);
+
   await Promise.all([
     queryClient.cancelQueries({ queryKey: queryKeys.users.pendingRoot }),
     queryClient.cancelQueries({
       queryKey: queryKeys.users.signupDecisionsRoot,
     }),
+    queryClient.cancelQueries({ queryKey: signupDetailKey }),
   ]);
 
   const previousPending = queryClient.getQueriesData<User[]>({
@@ -62,6 +71,8 @@ export async function applyOptimisticSignupDecision(
   const previousDecisions = queryClient.getQueriesData<SignupStatusDecision[]>({
     queryKey: queryKeys.users.signupDecisionsRoot,
   });
+  const previousSignupDetail =
+    queryClient.getQueryData<SignupRequestDetail>(signupDetailKey);
 
   const cached = findCachedPendingUser(queryClient, args.userId);
   const decidedAt = new Date();
@@ -100,13 +111,46 @@ export async function applyOptimisticSignupDecision(
     },
   );
 
+  // Detail page: status + timeline so Approve/Reject UI updates without remount.
+  queryClient.setQueryData<SignupRequestDetail>(signupDetailKey, (prev) => {
+    const base: SignupRequestDetail = prev ?? {
+      id: args.userId,
+      fullName: cached?.fullName ?? args.userName ?? "User",
+      email: cached?.email ?? "",
+      universityId: cached?.universityId ?? 0,
+      universityCard: cached?.universityCard ?? null,
+      status: args.status,
+      role: (cached?.role as SignupRequestDetail["role"]) ?? "USER",
+      createdAt: cached?.createdAt ? new Date(cached.createdAt) : decidedAt,
+      decisions: [],
+    };
+    return {
+      ...base,
+      status: args.status,
+      decisions: [
+        {
+          id: optimistic.id,
+          status: args.status,
+          decidedAt,
+          decisionActor: args.decisionActor ?? null,
+        },
+        ...base.decisions,
+      ],
+    };
+  });
+
   // Zero-lag Registration Queue pill before onSuccess densify.
   syncPendingSignUpsNav(queryClient);
 
-  return { previousPending, previousDecisions };
+  return {
+    previousPending,
+    previousDecisions,
+    previousSignupDetail,
+    signupDetailKey,
+  };
 }
 
-/** Restore pending + decisions snapshots after a failed approve/reject. */
+/** Restore pending + decisions + detail snapshots after a failed approve/reject. */
 export function rollbackOptimisticSignupDecision(
   queryClient: QueryClient,
   context: SignupDecisionOptimisticContext | undefined,
@@ -117,4 +161,10 @@ export function rollbackOptimisticSignupDecision(
   context?.previousDecisions?.forEach(([key, data]) => {
     queryClient.setQueryData(key, data);
   });
+  if (context?.signupDetailKey) {
+    queryClient.setQueryData(
+      context.signupDetailKey,
+      context.previousSignupDetail,
+    );
+  }
 }

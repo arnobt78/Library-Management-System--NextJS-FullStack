@@ -8,6 +8,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
 import type { UsersListResponse } from "@/lib/services/users";
+import type {
+  SignupRequestDetail,
+  SignupRequestDecisionEntry,
+} from "@/lib/admin/signupStatusDecisions";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import {
   clearDensifiedEmpty,
   markDensifiedEmpty,
@@ -25,6 +30,54 @@ type UserLike = {
   role?: string;
   [key: string]: unknown;
 };
+
+/**
+ * Re-paint signup-request detail after approve/reject so soft-nav / in-place UI
+ * does not keep PENDING KPIs or miss the new timeline row.
+ */
+export function densifySignupRequestDetail(
+  queryClient: QueryClient,
+  args: {
+    userId: string;
+    status: "APPROVED" | "REJECTED" | "PENDING";
+    decisionActor?: AdminRequestReviewer | null;
+    decidedAt?: Date | string | null;
+  },
+): void {
+  const key = queryKeys.users.signupRequestDetail(args.userId);
+  const decidedAt =
+    args.decidedAt == null
+      ? new Date()
+      : typeof args.decidedAt === "string"
+        ? new Date(args.decidedAt)
+        : args.decidedAt;
+
+  queryClient.setQueryData<SignupRequestDetail>(key, (prev) => {
+    if (!prev) return prev;
+    const next: SignupRequestDetail = {
+      ...prev,
+      status: args.status,
+    };
+    if (args.status === "APPROVED" || args.status === "REJECTED") {
+      const priorHead = prev.decisions[0];
+      // Prefer mutation actor; fall back to optimistic head so densify never flashes emptyLabel.
+      const actor =
+        args.decisionActor ??
+        (priorHead?.status === args.status ? priorHead.decisionActor : null);
+      const entry: SignupRequestDecisionEntry = {
+        id: `densify-${args.userId}-${decidedAt.getTime()}`,
+        status: args.status,
+        decidedAt,
+        decisionActor: actor,
+      };
+      const withoutBurst = prev.decisions.filter(
+        (d) => !d.id.startsWith("optimistic-") && !d.id.startsWith("densify-"),
+      );
+      next.decisions = [entry, ...withoutBurst];
+    }
+    return next;
+  });
+}
 
 /** Sync Registration Queue pill + overview pending-sign-ups badge from pending cache. */
 export function syncPendingSignUpsNav(queryClient: QueryClient): void {
@@ -176,6 +229,27 @@ export function densifyUserWrite(
       ...(patch.role !== undefined ? { role: patch.role } : {}),
     };
   });
+
+  // Signup detail route: status (+ timeline when leaving PENDING).
+  if (
+    patch.status === "APPROVED" ||
+    patch.status === "REJECTED" ||
+    patch.status === "PENDING"
+  ) {
+    densifySignupRequestDetail(queryClient, {
+      userId: patch.userId,
+      status: patch.status,
+      decisionActor: patch.reviewer
+        ? {
+            id: patch.reviewer.id || null,
+            fullName: patch.reviewer.fullName,
+            email: patch.reviewer.email,
+            universityCard: patch.reviewer.universityCard,
+          }
+        : null,
+      decidedAt: patch.statusReviewedAt ?? null,
+    });
+  }
 
   patchAdminUsersListRows(queryClient, patch);
 

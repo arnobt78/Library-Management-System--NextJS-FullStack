@@ -4,7 +4,7 @@
  * Parent: CR-0003 / REQ-0035 polish
  */
 
-import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import { Library, Star } from "lucide-react";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import StarRow from "@/components/ui/StarRow";
@@ -52,9 +52,8 @@ export default function ReviewBookIdentity({
   const rating = typeof bookRating === "number" ? bookRating : 0;
   const isLight = variant === "light";
   const titleNode = bookId ? (
-    <Link
+    <PrefetchLink
       href={`/books/${bookId}`}
-      prefetch={false}
       className={cn(
         "truncate text-base font-medium sm:text-lg",
         isLight
@@ -64,7 +63,7 @@ export default function ReviewBookIdentity({
       )}
     >
       {title}
-    </Link>
+    </PrefetchLink>
   ) : (
     <p
       className={cn(

@@ -111,6 +111,11 @@ export async function applyOptimisticAdminRequestDecision(
     },
   );
 
+  queryClient.setQueryData(
+    queryKeys.admin.requestDetail(args.requestId),
+    optimistic,
+  );
+
   // Zero-lag User Management pill before onSuccess densify.
   syncPendingAdminNav(queryClient);
 

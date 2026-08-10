@@ -103,6 +103,7 @@ import {
 import { densifyReminderStats } from "@/lib/utils/patchOpsCaches";
 import { densifyRecommendationWrite } from "@/lib/utils/patchRecommendationCaches";
 import {
+  densifyTicketDetailAudit,
   findCachedTicketStatus,
   patchTicketCachesOnCreate,
   patchTicketCachesOnDelete,
@@ -684,6 +685,16 @@ export const useApproveUser = () => {
             userId: variables.userId,
             status: "APPROVED",
             fromStatus: "PENDING",
+            reviewer: variables.decisionActor
+              ? {
+                  id: variables.decisionActor.id ?? "",
+                  fullName: variables.decisionActor.fullName,
+                  email: variables.decisionActor.email,
+                  universityCard:
+                    variables.decisionActor.universityCard ?? null,
+                }
+              : null,
+            statusReviewedAt: new Date().toISOString(),
           });
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),
@@ -787,6 +798,16 @@ export const useRejectUser = () => {
             userId: variables.userId,
             status: "REJECTED",
             fromStatus: "PENDING",
+            reviewer: variables.decisionActor
+              ? {
+                  id: variables.decisionActor.id ?? "",
+                  fullName: variables.decisionActor.fullName,
+                  email: variables.decisionActor.email,
+                  universityCard:
+                    variables.decisionActor.universityCard ?? null,
+                }
+              : null,
+            statusReviewedAt: new Date().toISOString(),
           });
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),
@@ -3228,11 +3249,18 @@ export const useCreateSupportTicket = () => {
         snapshot: snapshotTicketListBaselines,
         densify: (baselines) => {
           patchTicketCachesOnCreate(queryClient, ticket, baselines);
+          const actor = activityActorFromSession(session);
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...actor,
             action: "CREATE",
             entityType: "ticket",
             entityId: ticket.id,
+            details: { subject: ticket.subject },
+          });
+          densifyTicketDetailAudit(queryClient, {
+            ticketId: ticket.id,
+            action: "CREATE",
+            ...actor,
             details: { subject: ticket.subject },
           });
         },
@@ -3297,15 +3325,24 @@ export const useUpdateSupportTicket = () => {
             baselines,
             previousPriority,
           );
+          const actor = activityActorFromSession(session);
+          const details = {
+            subject: data.subject,
+            ...(data.status ? { status: data.status } : {}),
+            ...(data.priority ? { priority: data.priority } : {}),
+          };
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...actor,
             action: "UPDATE",
             entityType: "ticket",
             entityId: data.id,
-            details: {
-              subject: data.subject,
-              ...(data.status ? { status: data.status } : {}),
-            },
+            details,
+          });
+          densifyTicketDetailAudit(queryClient, {
+            ticketId: data.id,
+            action: "UPDATE",
+            ...actor,
+            details,
           });
         },
       });
@@ -3403,15 +3440,23 @@ export const useCreateSupportTicketReply = () => {
             detail?.userId ?? null,
             baselines,
           );
+          const actor = activityActorFromSession(session);
+          const details = {
+            ...(detail?.subject ? { subject: detail.subject } : {}),
+            reply: true,
+          };
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...actor,
             action: "UPDATE",
             entityType: "ticket",
             entityId: variables.ticketId,
-            details: {
-              ...(detail?.subject ? { subject: detail.subject } : {}),
-              reply: true,
-            },
+            details,
+          });
+          densifyTicketDetailAudit(queryClient, {
+            ticketId: variables.ticketId,
+            action: "UPDATE",
+            ...actor,
+            details,
           });
         },
       });

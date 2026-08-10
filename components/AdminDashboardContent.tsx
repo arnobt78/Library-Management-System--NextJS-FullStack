@@ -168,16 +168,16 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   } = statsData;
 
   // Densified admin.stats wins over dedicated count queries (same mutation paint).
+  // Prefer stats cache whenever present — including pendingReviewCount: 0 after
+  // moderate — so soft-nav Overview never falls through to stale SSR counts.
   const openTicketsValue =
-    statsOpenTicketCount ??
-    openTicketCount ??
-    initialStats?.openTicketCount ??
-    0;
+    statsData != null && statsOpenTicketCount !== undefined
+      ? statsOpenTicketCount
+      : (openTicketCount ?? initialStats?.openTicketCount ?? 0);
   const pendingReviewsValue =
-    statsPendingReviewCount ??
-    pendingReviewCount ??
-    initialStats?.pendingReviewCount ??
-    0;
+    statsData != null && statsPendingReviewCount !== undefined
+      ? statsPendingReviewCount
+      : (pendingReviewCount ?? initialStats?.pendingReviewCount ?? 0);
 
   const pct = (part: number, whole: number) =>
     whole > 0 ? (part / whole) * 100 : 0;

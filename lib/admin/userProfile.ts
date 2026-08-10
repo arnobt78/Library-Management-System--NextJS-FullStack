@@ -1,14 +1,16 @@
 // Parent: REQ-0029, REQ-0031
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/database/drizzle";
 import {
+  activityLogs,
   adminRequests,
   bookReviews,
   books,
   borrowRecords,
   reservations,
+  supportTickets,
   users,
 } from "@/database/schema";
 import { requireAdminActor } from "@/lib/auth/authorization";
@@ -30,6 +32,8 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     reviewHistory,
     requestHistoryRows,
     reservationHistory,
+    ticketHistory,
+    activityHistory,
     metrics,
     genres,
     libraryInsights,
@@ -86,6 +90,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         id: bookReviews.id,
         rating: bookReviews.rating,
         comment: bookReviews.comment,
+        status: bookReviews.status,
         createdAt: bookReviews.createdAt,
         bookId: books.id,
         bookTitle: books.title,
@@ -129,6 +134,41 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
       .innerJoin(books, eq(reservations.bookId, books.id))
       .where(eq(reservations.userId, userId))
       .orderBy(desc(reservations.createdAt))
+      .limit(25),
+    db
+      .select({
+        id: supportTickets.id,
+        subject: supportTickets.subject,
+        status: supportTickets.status,
+        priority: supportTickets.priority,
+        createdAt: supportTickets.createdAt,
+        updatedAt: supportTickets.updatedAt,
+      })
+      .from(supportTickets)
+      .where(eq(supportTickets.userId, userId))
+      .orderBy(desc(supportTickets.createdAt))
+      .limit(25),
+    db
+      .select({
+        id: activityLogs.id,
+        action: activityLogs.action,
+        entityType: activityLogs.entityType,
+        entityId: activityLogs.entityId,
+        details: activityLogs.details,
+        createdAt: activityLogs.createdAt,
+        actorId: activityLogs.actorId,
+      })
+      .from(activityLogs)
+      .where(
+        or(
+          eq(activityLogs.actorId, userId),
+          and(
+            eq(activityLogs.entityType, "user"),
+            eq(activityLogs.entityId, userId),
+          ),
+        ),
+      )
+      .orderBy(desc(activityLogs.createdAt))
       .limit(25),
     db.execute(
       sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'PENDING')::int AS pending, COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS current, COUNT(*) FILTER (WHERE status = 'RETURNED')::int AS returned, COUNT(*) FILTER (WHERE status = 'BORROWED' AND due_date < CURRENT_DATE)::int AS overdue, COALESCE(SUM(fine_amount) FILTER (WHERE status = 'BORROWED'), 0)::numeric AS outstanding_fine, COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR return_date <= due_date)) / NULLIF(COUNT(*) FILTER (WHERE status = 'RETURNED'), 0), 1), 0)::numeric AS on_time_rate, COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (COALESCE(return_date::timestamp, CURRENT_DATE::timestamp) - borrow_date)) / 86400.0), 1), 0)::numeric AS average_loan_days FROM borrow_records WHERE user_id = ${userId}`,
@@ -202,6 +242,8 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     reviewHistory,
     requestHistory,
     reservationHistory,
+    ticketHistory,
+    activityHistory,
     metrics: metrics.rows[0] as Record<string, string | number>,
     topGenres: genres,
     libraryInsights,

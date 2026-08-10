@@ -9,6 +9,7 @@ import {
   invalidateAfterBorrowChange,
   invalidateAfterUserChange,
   invalidateDomains,
+  invalidateMutation,
   isInvalidationMessage,
   MUTATION_DOMAIN_REGISTRY,
   MUTATION_RSC_PATH_REGISTRY,
@@ -257,6 +258,9 @@ describe("query invalidation contract", () => {
         "/make-admin",
         "/admin",
         "/admin/account-requests",
+        "/admin/account-requests/[userId]",
+        "/admin/admin-requests",
+        "/admin/admin-requests/[id]",
         "/admin/users",
         "/admin/users/[id]",
         "/admin/business-insights",
@@ -281,9 +285,11 @@ describe("query invalidation contract", () => {
         "/admin/business-insights",
         "/admin/activity-history",
       ],
-      "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights", "/admin/book-reviews", "/admin/book-reviews/[id]", "/admin/activity-history"],
+      "review.write": ["/books/[id]", "/my-profile", "/admin", "/admin/users/[id]", "/admin/business-insights", "/admin/book-reviews", "/admin/book-reviews/[id]", "/admin/activity-history"],
       "admin-request.write": [
         "/make-admin",
+        "/admin/admin-requests",
+        "/admin/admin-requests/[id]",
         "/admin/users",
         "/admin/users/[id]",
         "/admin/business-insights",
@@ -333,5 +339,19 @@ describe("query invalidation contract", () => {
         expect(MUTATION_RSC_PATH_REGISTRY[mutation].length).toBeGreaterThan(0);
       }
     }
+  });
+
+  it("invalidates signup + admin-request detail keys via domain roots", async () => {
+    const client = createQueryClient();
+    const signupDetailKey = queryKeys.users.signupRequestDetail("user-1");
+    const adminDetailKey = queryKeys.admin.requestDetail("req-1");
+    client.setQueryData(signupDetailKey, { id: "user-1", status: "PENDING" });
+    client.setQueryData(adminDetailKey, { id: "req-1", status: "PENDING" });
+
+    await invalidateMutation(client, "user.write");
+    expect(client.getQueryState(signupDetailKey)?.isInvalidated).toBe(true);
+
+    await invalidateMutation(client, "admin-request.write");
+    expect(client.getQueryState(adminDetailKey)?.isInvalidated).toBe(true);
   });
 });

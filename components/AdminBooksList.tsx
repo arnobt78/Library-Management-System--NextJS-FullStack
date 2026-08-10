@@ -26,6 +26,7 @@ import {
   availabilityFilterOptions,
 } from "@/lib/ui/filterOptionStyles";
 import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import BookCover from "@/components/BookCover";
 import { useAllBooks } from "@/hooks/useQueries";
 import { getBookGenres } from "@/lib/services/books";
@@ -165,10 +166,14 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     ADMIN_BOOKS_UNFILTERED,
     ssrBooksResponse,
   );
-  const universeBooks: Book[] = React.useMemo(
-    () => (universeData?.books ?? initialBooks ?? []) as Book[],
-    [universeData, initialBooks],
-  );
+  // Prefer densified universe (including intentional []) over SSR — last delete
+  // must not resurrect rows via initialBooks when books: [] is already cached.
+  const universeBooks: Book[] = React.useMemo(() => {
+    if (universeData !== undefined) {
+      return (universeData.books ?? []) as Book[];
+    }
+    return (initialBooks ?? []) as Book[];
+  }, [universeData, initialBooks]);
 
   // Filtered table query — warms filtered keys for invalidation / other consumers.
   // Table rows come from universe (+ client filter); do not bind to this result.
@@ -182,12 +187,10 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   // filter on localSearch + select filters). Instant from first keystroke;
   // URL search stays debounced for shareable links / RQ warming.
   const allBooks: Book[] = React.useMemo(() => {
-    const base =
-      universeBooks.length > 0 ? universeBooks : (initialBooks ?? []);
     const q = searchQuery.toLowerCase();
     const filtered = !hasDisplayFilters
-      ? base
-      : base.filter((b) => {
+      ? universeBooks
+      : universeBooks.filter((b) => {
           if (currentGenre !== "all" && b.genre !== currentGenre) return false;
           if (currentAvailability === "available" && b.availableCopies <= 0) {
             return false;
@@ -205,7 +208,6 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
     return [...filtered].sort((a, b) => a.title.localeCompare(b.title));
   }, [
     universeBooks,
-    initialBooks,
     hasDisplayFilters,
     searchQuery,
     currentGenre,
@@ -455,13 +457,12 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                     />
 
                     <div className="flex-1">
-                      <Link
-                        prefetch={false}
+                      <PrefetchLink
                         href={`/books/${book.id}`}
                         className="line-clamp-2 text-base font-medium text-blue-700 hover:text-blue-600 sm:text-lg"
                       >
                         {book.title}
-                      </Link>
+                      </PrefetchLink>
                       <p className="text-sm text-gray-600">by {book.author}</p>
                       <p className="mt-1 text-xs text-gray-500">{book.genre}</p>
 
@@ -543,14 +544,13 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
                       <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
                         <Button size="sm" asChild>
-                          <Link
+                          <PrefetchLink
                             href={`/books/${book.id}`}
-                            prefetch={false}
                             className="inline-flex items-center gap-2 text-white"
                           >
                             <Eye className="size-4" />
                             View Details
-                          </Link>
+                          </PrefetchLink>
                         </Button>
                         <Button size="sm" variant="outline" asChild>
                           <Link

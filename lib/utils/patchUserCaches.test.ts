@@ -8,10 +8,12 @@ import { describe, expect, it } from "vitest";
 import { queryKeys } from "@/lib/query/keys";
 import type { User, UsersListResponse } from "@/lib/services/users";
 import {
+  densifySignupRequestDetail,
   densifyUserRegistrationPending,
   densifyUserWrite,
 } from "@/lib/utils/patchUserCaches";
 import { EMPTY_ADMIN_NAV_COUNTS } from "@/lib/admin/adminNavCountTypes";
+import type { SignupRequestDetail } from "@/lib/admin/signupStatusDecisions";
 
 function makeUser(overrides: Partial<User> & Pick<User, "id">): User {
   return {
@@ -109,5 +111,81 @@ describe("patchUserCaches", () => {
     expect(client.getQueryData(queryKeys.admin.navCounts)).toMatchObject({
       pendingSignUps: 1,
     });
+  });
+
+  it("densifyUserWrite paints signup request detail status + timeline actor", () => {
+    const client = new QueryClient();
+    const detailKey = queryKeys.users.signupRequestDetail("u-1");
+    const detail: SignupRequestDetail = {
+      id: "u-1",
+      fullName: "Test User",
+      email: "test@user.com",
+      universityId: 1,
+      universityCard: null,
+      status: "PENDING",
+      role: "USER",
+      createdAt: new Date("2026-08-01"),
+      decisions: [],
+    };
+    client.setQueryData(detailKey, detail);
+    client.setQueryData(queryKeys.users.pending(), [
+      makeUser({ id: "u-1", status: "PENDING" }),
+    ]);
+
+    densifyUserWrite(client, {
+      userId: "u-1",
+      status: "REJECTED",
+      fromStatus: "PENDING",
+      reviewer: {
+        id: "admin-1",
+        fullName: "Test Admin",
+        email: "test@admin.com",
+        universityCard: null,
+      },
+      statusReviewedAt: "2026-08-10T12:00:00.000Z",
+    });
+
+    const painted = client.getQueryData<SignupRequestDetail>(detailKey);
+    expect(painted?.status).toBe("REJECTED");
+    expect(painted?.decisions[0]?.status).toBe("REJECTED");
+    expect(painted?.decisions[0]?.decisionActor?.email).toBe("test@admin.com");
+  });
+
+  it("densifySignupRequestDetail keeps optimistic actor when densify actor is null", () => {
+    const client = new QueryClient();
+    const detailKey = queryKeys.users.signupRequestDetail("u-1");
+    client.setQueryData<SignupRequestDetail>(detailKey, {
+      id: "u-1",
+      fullName: "Test User",
+      email: "test@user.com",
+      universityId: 1,
+      universityCard: null,
+      status: "APPROVED",
+      role: "USER",
+      createdAt: null,
+      decisions: [
+        {
+          id: "optimistic-u-1-1",
+          status: "APPROVED",
+          decidedAt: new Date(),
+          decisionActor: {
+            id: "admin-1",
+            fullName: "Test Admin",
+            email: "test@admin.com",
+            universityCard: null,
+          },
+        },
+      ],
+    });
+
+    densifySignupRequestDetail(client, {
+      userId: "u-1",
+      status: "APPROVED",
+      decisionActor: null,
+    });
+
+    const painted = client.getQueryData<SignupRequestDetail>(detailKey);
+    expect(painted?.decisions[0]?.id).toMatch(/^densify-u-1-/);
+    expect(painted?.decisions[0]?.decisionActor?.email).toBe("test@admin.com");
   });
 });

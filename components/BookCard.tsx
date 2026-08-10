@@ -1,5 +1,5 @@
 import React from "react";
-import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import BookCover from "@/components/BookCover";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const BookCard = ({
   isLoanedBook = false,
 }: BookCardProps) => (
   <li className="w-full">
-    <Link
+    <PrefetchLink
       href={`/books/${id}`}
       className={cn(
         "book-card group flex w-full flex-col items-center",
@@ -77,7 +77,7 @@ const BookCard = ({
           <Button className="book-btn">Download receipt</Button>
         </div>
       )}
-    </Link>
+    </PrefetchLink>
   </li>
 );
 

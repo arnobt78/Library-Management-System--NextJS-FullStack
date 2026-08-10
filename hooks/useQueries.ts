@@ -26,8 +26,16 @@ import {
   type UsersListResponse,
   type AdminRequest,
 } from "@/lib/services/users";
-import { getRecentSignupStatusDecisions } from "@/lib/admin/signupStatusDecisions";
-import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
+import { getAdminRequestDetail } from "@/lib/admin/actions/admin-requests";
+import { getAdminUserDetailCache } from "@/lib/admin/actions/user-detail";
+import {
+  getRecentSignupStatusDecisions,
+  getSignupRequestDetail,
+} from "@/lib/admin/signupStatusDecisions";
+import type {
+  SignupRequestDetail,
+  SignupStatusDecision,
+} from "@/lib/admin/signupStatusDecisions";
 import {
   getBorrowRequests,
   getUserBorrows,
@@ -500,6 +508,65 @@ export const useSignupStatusDecisions = (
   });
 };
 
+/**
+ * Single signup applicant detail + decision timeline (Registration Queue detail).
+ * Object SSR seed via initialData — list-only seedFromSsrIfEmpty does not apply.
+ * Densify/optimistic paint signupRequestDetail so soft-nav never flashes PENDING.
+ */
+export const useSignupRequestDetail = (
+  userId: string,
+  initialData?: SignupRequestDetail,
+  initialDataUpdatedAt?: number,
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<SignupRequestDetail>({
+    queryKey: queryKeys.users.signupRequestDetail(userId),
+    queryFn: () =>
+      trackQuery(`signup-request-detail-${userId}`, async () => {
+        const detail = await getSignupRequestDetail(userId);
+        if (!detail) {
+          throw new Error("Failed to fetch signup request detail");
+        }
+        return detail;
+      }),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
+    initialDataUpdatedAt,
+  });
+};
+
+/**
+ * Admin User 360 header row — status/role densify via users.detail.
+ * Object SSR seed; densifyUserWrite patches status/role without remount flash.
+ */
+export const useAdminUserDetail = (
+  userId: string,
+  initialData?: User,
+  initialDataUpdatedAt?: number,
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<User>({
+    queryKey: queryKeys.users.detail(userId),
+    queryFn: () =>
+      trackQuery(`admin-user-detail-${userId}`, async () => {
+        const user = await getAdminUserDetailCache(userId);
+        if (!user) {
+          throw new Error("Failed to fetch user detail");
+        }
+        return user;
+      }),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
+    initialDataUpdatedAt,
+  });
+};
+
 // Borrow records queries
 /**
  * Hook to fetch user-specific borrow records.
@@ -786,6 +853,32 @@ export const useRecentAdminRequestDecisions = (
     staleTime: 30 * 1000,
     refetchOnMount: true,
     initialData: seed,
+  });
+};
+
+/** Single make-admin request detail — admin privilege detail page. */
+export const useAdminRequestDetail = (
+  requestId: string,
+  initialData?: AdminRequest,
+  initialDataUpdatedAt?: number,
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<AdminRequest>({
+    queryKey: queryKeys.admin.requestDetail(requestId),
+    queryFn: () =>
+      trackQuery(`admin-request-detail-${requestId}`, async () => {
+        const result = await getAdminRequestDetail(requestId);
+        if (!result.success || !result.data) {
+          throw new Error(result.error || "Failed to fetch admin request");
+        }
+        return result.data;
+      }),
+    enabled: !!requestId,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData,
+    initialDataUpdatedAt,
   });
 };
 

@@ -52,6 +52,9 @@ export const MUTATION_RSC_PATH_REGISTRY = {
     "/make-admin",
     "/admin",
     "/admin/account-requests",
+    "/admin/account-requests/[userId]",
+    "/admin/admin-requests",
+    "/admin/admin-requests/[id]",
     "/admin/users",
     "/admin/users/[id]",
     "/admin/business-insights",
@@ -76,10 +79,22 @@ export const MUTATION_RSC_PATH_REGISTRY = {
     "/admin/business-insights",
     "/admin/activity-history",
   ],
-  "review.write": ["/books/[id]", "/my-profile", "/admin/users/[id]", "/admin/business-insights", "/admin/book-reviews", "/admin/book-reviews/[id]", "/admin/activity-history"],
-  // Make-admin decisions land on /make-admin + All Users (+ user 360); signup queue is user.write
+  // /admin — Overview Pending Reviews StatCards after moderate (cold admin.stats no-op)
+  "review.write": [
+    "/books/[id]",
+    "/my-profile",
+    "/admin",
+    "/admin/users/[id]",
+    "/admin/business-insights",
+    "/admin/book-reviews",
+    "/admin/book-reviews/[id]",
+    "/admin/activity-history",
+  ],
+  // Make-admin decisions land on Admin Requests + /make-admin (+ user 360)
   "admin-request.write": [
     "/make-admin",
+    "/admin/admin-requests",
+    "/admin/admin-requests/[id]",
     "/admin/users",
     "/admin/users/[id]",
     "/admin/business-insights",
@@ -137,6 +152,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.users.detailRoot,
     queryKeys.users.pendingRoot,
     queryKeys.users.signupDecisionsRoot,
+    queryKeys.users.signupRequestDetailRoot,
     queryKeys.users.currentRoot,
   ],
   borrows: [
@@ -161,6 +177,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.admin.requestsRoot,
     queryKeys.admin.pendingRequests,
     queryKeys.admin.recentRequestDecisions,
+    queryKeys.admin.requestDetailRoot,
     queryKeys.admin.fineConfig,
     queryKeys.admin.navCounts,
   ],

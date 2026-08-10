@@ -32,6 +32,10 @@ export const queryKeys = {
     signupDecisionsRoot: ["signup-status-decisions"] as const,
     signupDecisions: (limit?: number) =>
       ["signup-status-decisions", limit ?? 25] as const,
+    /** Single signup applicant detail + decision timeline (detail route densify). */
+    signupRequestDetailRoot: ["signup-request-detail"] as const,
+    signupRequestDetail: (userId: string) =>
+      ["signup-request-detail", userId] as const,
     currentRoot: ["current-user"] as const,
   },
   borrows: {
@@ -105,6 +109,10 @@ export const queryKeys = {
     pendingRequests: ["pending-admin-requests"] as const,
     /** Recent APPROVED/REJECTED make-admin decisions (reviewer attribution). */
     recentRequestDecisions: ["admin-request-decisions"] as const,
+    /** Prefix for invalidateMutation — covers all requestDetail(id) keys. */
+    requestDetailRoot: ["admin-request-detail"] as const,
+    /** Single make-admin request detail (detail route prefetch). */
+    requestDetail: (id: string) => ["admin-request-detail", id] as const,
     analytics: ["admin-analytics"] as const,
     businessInsightsRoot: ["business-insights"] as const,
     businessInsights: <TOptions>(options: TOptions) =>

@@ -1,27 +1,14 @@
 "use client";
 
 /**
- * AdminUsersList Component
- *
- * Client component that displays all users and pending admin requests for admin management.
- * Uses React Query for data fetching and caching, with SSR initial data support.
- *
- * Features:
- * - Uses useAllUsers and usePendingAdminRequests hooks with initialData from SSR
- * - Displays skeleton loaders while fetching
- * - Shows error state if fetch fails
- * - Integrates mutations for user role/status updates and admin request approvals
- * - Displays users in a table, pending admin requests, and recent decisions
- *   (who approved/rejected — reviewer join via admin-request.write invalidation)
+ * Admin Users directory — roles/status only.
+ * Make-admin queue lives at /admin/admin-requests (separate IA).
+ * Mutations use commitMutationCache densify (user.write / admin-request.write).
  */
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
-import PersonAttribution from "@/components/PersonAttribution";
-import DateMetaLine from "@/components/DateMetaLine";
-import AdminRequestDeclineDialog from "@/components/admin/AdminRequestDeclineDialog";
+import PrefetchLink from "@/components/PrefetchLink";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +19,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
@@ -43,18 +36,12 @@ import {
 import { useSession } from "next-auth/react";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  useAllUsers,
-  usePendingAdminRequests,
-  useRecentAdminRequestDecisions,
-} from "@/hooks/useQueries";
+import { useAllUsers } from "@/hooks/useQueries";
 import { ADMIN_USERS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
   useUpdateUserRole,
   useApproveUser,
   useRejectUser,
-  useApproveAdminRequest,
-  useRejectAdminRequest,
   useRemoveAdminPrivileges,
 } from "@/hooks/useMutations";
 import type {
@@ -62,8 +49,6 @@ import type {
   UsersListResponse,
   UserFilters,
 } from "@/lib/services/users";
-import type { AdminRequest } from "@/lib/services/users";
-import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import {
   Shield,
   ShieldOff,
@@ -71,12 +56,13 @@ import {
   XCircle,
   Lock,
   Loader2,
-  CalendarPlus,
-  CalendarCheck,
   Users as UsersIcon,
   UserCheck,
   Hourglass,
   UserCog,
+  MoreVertical,
+  Eye,
+  X,
 } from "lucide-react";
 import { isProtectedDemoAccount } from "@/constants";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
@@ -90,47 +76,130 @@ import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState"
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
 import { AccountStatusBadge } from "@/lib/ui/semanticBadges";
+import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import { cn } from "@/lib/utils";
 
-const DECISION_REASON_MAX = 120;
-
-function truncateDecisionText(text: string): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= DECISION_REASON_MAX) return trimmed;
-  return `${trimmed.slice(0, DECISION_REASON_MAX - 1)}…`;
+interface AdminUsersListProps {
+  initialUsers?: User[];
+  successMessage?: string;
+  errorMessage?: string;
+  currentUserId?: string;
 }
 
-interface AdminUsersListProps {
-  /**
-   * Initial users data from SSR (prevents duplicate fetch)
-   */
-  initialUsers?: User[];
-  /**
-   * Initial admin requests data from SSR (prevents duplicate fetch)
-   */
-  initialAdminRequests?: AdminRequest[];
-  /**
-   * Recent APPROVED/REJECTED decisions from SSR (reviewer attribution)
-   */
-  initialRecentDecisions?: AdminRequest[];
-  /**
-   * Success message from URL params
-   */
-  successMessage?: string;
-  /**
-   * Error message from URL params
-   */
-  errorMessage?: string;
-  /**
-   * Current user ID (for preventing self-removal)
-   */
+function UserRowActions({
+  user,
+  currentUserId,
+  sessionUserId,
+  onApprove,
+  onReject,
+  onMakeAdmin,
+  onRemoveAdmin,
+  busy,
+}: {
+  user: User;
   currentUserId?: string;
+  sessionUserId?: string;
+  onApprove: () => void;
+  onReject: () => void;
+  onMakeAdmin: () => void;
+  onRemoveAdmin: () => void;
+  busy: boolean;
+}) {
+  const selfId = currentUserId || sessionUserId;
+  const detailHref = `/admin/users/${user.id}`;
+
+  if (isProtectedDemoAccount(user)) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
+        <Lock className="size-3.5 shrink-0" aria-hidden />
+        Demo account
+      </span>
+    );
+  }
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="User actions"
+          className={LIGHT_MENU.trigger}
+          onClick={(e) => e.stopPropagation()}
+          disabled={busy}
+        >
+          <MoreVertical className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className={LIGHT_MENU.content}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuItem asChild className={LIGHT_MENU.item}>
+          <PrefetchLink href={detailHref} prefetch={false}>
+            <Eye className="size-3.5" />
+            View profile
+          </PrefetchLink>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className={LIGHT_MENU.separator} />
+        {user.status === "PENDING" && (
+          <>
+            <DropdownMenuItem
+              className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
+              onSelect={onApprove}
+              disabled={busy}
+            >
+              <CheckCircle className="size-3.5" />
+              Approve Student
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className={`${LIGHT_MENU.item} text-red-700 focus:bg-red-50 focus:text-red-700 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700`}
+              onSelect={onReject}
+              disabled={busy}
+            >
+              <XCircle className="size-3.5" />
+              Reject
+            </DropdownMenuItem>
+          </>
+        )}
+        {user.status === "APPROVED" && user.role === "USER" && (
+          <DropdownMenuItem
+            className={`${LIGHT_MENU.item} text-violet-700 focus:bg-violet-50 focus:text-violet-700 data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-700`}
+            onSelect={onMakeAdmin}
+            disabled={busy}
+          >
+            <Shield className="size-3.5" />
+            Make Admin
+          </DropdownMenuItem>
+        )}
+        {user.role === "ADMIN" && user.id !== selfId && (
+          <DropdownMenuItem
+            className={LIGHT_MENU.itemDestructive}
+            onSelect={onRemoveAdmin}
+            disabled={busy}
+          >
+            <ShieldOff className="size-3.5" />
+            Remove Admin
+          </DropdownMenuItem>
+        )}
+        {user.role === "ADMIN" && user.id === selfId && (
+          <DropdownMenuItem className={LIGHT_MENU.item} disabled>
+            <Shield className="size-3.5" />
+            You
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator className={LIGHT_MENU.separator} />
+        <DropdownMenuItem className={LIGHT_MENU.item}>
+          <X className="size-3.5" />
+          Cancel
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 const AdminUsersList: React.FC<AdminUsersListProps> = ({
   initialUsers,
-  initialAdminRequests,
-  initialRecentDecisions,
   successMessage,
   errorMessage,
   currentUserId,
@@ -139,7 +208,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const router = useRouter();
   const searchParamsHook = useSearchParams();
 
-  // Get current search params from URL (default sort to "created" for most recent first)
   const currentSearch = searchParamsHook.get("search") || "";
   const currentStatus = searchParamsHook.get("status") || "all";
   const currentRole = searchParamsHook.get("role") || "all";
@@ -147,13 +215,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   const [localSearch, setLocalSearch] = useState(currentSearch);
   const lastSyncedSearchRef = React.useRef(currentSearch);
-  /** Pending request selected for Approve confirm / Decline dialog */
-  const [decisionTarget, setDecisionTarget] = useState<AdminRequest | null>(
-    null,
-  );
-  const [approveOpen, setApproveOpen] = useState(false);
-  const [declineOpen, setDeclineOpen] = useState(false);
-  /** Table Make Admin / Remove Admin confirm target */
   const [roleTarget, setRoleTarget] = useState<{
     id: string;
     fullName: string;
@@ -162,37 +223,23 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     action: "make" | "remove";
   } | null>(null);
 
-  // Debounce search input for instant filtering
   React.useEffect(() => {
     const timer = setTimeout(() => {
       if (localSearch !== currentSearch) {
         const params = new URLSearchParams(searchParamsHook.toString());
         const trimmedSearch = localSearch.trim();
-
-        if (trimmedSearch) {
-          params.set("search", trimmedSearch);
-        } else {
-          params.delete("search");
-        }
-
-        if (!params.get("sort")) {
-          params.set("sort", "created");
-        }
-
-        const newUrl = `/admin/users?${params.toString()}`;
-        // Update ref before navigation to prevent sync effect from overwriting
+        if (trimmedSearch) params.set("search", trimmedSearch);
+        else params.delete("search");
+        if (!params.get("sort")) params.set("sort", "created");
         lastSyncedSearchRef.current = trimmedSearch;
-        router.replace(newUrl, { scroll: false });
+        router.replace(`/admin/users?${params.toString()}`, { scroll: false });
       }
-    }, 300); // 300ms debounce
-
+    }, 300);
     return () => clearTimeout(timer);
   }, [localSearch, currentSearch, searchParamsHook, router]);
 
-  // URL filters drive RQ cache keys (debounced). Display search uses localSearch
-  // so the table filters on the first keystroke.
-  const filters: UserFilters = React.useMemo(() => {
-    return {
+  const filters: UserFilters = React.useMemo(
+    () => ({
       search: currentSearch || undefined,
       status:
         currentStatus !== "all"
@@ -203,15 +250,14 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           ? (currentRole as UserFilters["role"])
           : undefined,
       sort: (currentSort as UserFilters["sort"]) || "created",
-    };
-  }, [currentSearch, currentStatus, currentRole, currentSort]);
+    }),
+    [currentSearch, currentStatus, currentRole, currentSort],
+  );
 
   const searchQuery = localSearch.trim();
   const hasDisplayFilters = Boolean(
     searchQuery || currentStatus !== "all" || currentRole !== "all",
   );
-
-  // URL filters (SSR initialData / empty state chips)
   const hasActiveFilters = Boolean(
     currentSearch || currentStatus !== "all" || currentRole !== "all",
   );
@@ -230,12 +276,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     [initialUsers],
   );
 
-  // Only use initialData on first load (when no filters are active)
   const initialUsersData: UsersListResponse | undefined = !hasActiveFilters
     ? ssrUsersResponse
     : undefined;
 
-  // Full-universe KPIs — dedicated unfiltered query (stays warm under filters)
   const { data: universeUsersData } = useAllUsers(
     ADMIN_USERS_UNFILTERED,
     ssrUsersResponse,
@@ -245,52 +289,25 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     [universeUsersData, initialUsers],
   );
 
-  // Filtered query warms cache; table rows come from universe (+ client filter).
   const {
     isLoading: usersLoading,
     isError: usersError,
     error: usersErrorData,
   } = useAllUsers(filters, initialUsersData);
 
-  const {
-    data: adminRequestsData,
-    isLoading: adminRequestsLoading,
-    isError: adminRequestsError,
-    error: adminRequestsErrorData,
-  } = usePendingAdminRequests(initialAdminRequests);
-
-  const { data: recentDecisionsData } = useRecentAdminRequestDecisions(
-    initialRecentDecisions,
-  );
-
-  // React Query mutations (Approve/Reject Student use signup-decision densify path)
   const updateUserRoleMutation = useUpdateUserRole();
   const approveUserMutation = useApproveUser();
   const rejectUserMutation = useRejectUser();
-  const approveAdminRequestMutation = useApproveAdminRequest();
-  const rejectAdminRequestMutation = useRejectAdminRequest();
   const removeAdminPrivilegesMutation = useRemoveAdminPrivileges();
 
-  // Update search params in URL and trigger refetch
   const updateSearchParams = (newParams: Record<string, string>) => {
     const params = new URLSearchParams(searchParamsHook.toString());
-
     Object.entries(newParams).forEach(([key, value]) => {
-      if (value && value !== "all") {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
+      if (value && value !== "all") params.set(key, value);
+      else params.delete(key);
     });
-
-    // Always include sort if not present
-    if (!params.get("sort")) {
-      params.set("sort", "created");
-    }
-
-    const newUrl = `/admin/users?${params.toString()}`;
-    // Use replace to avoid adding to history and ensure immediate update
-    router.replace(newUrl, { scroll: false });
+    if (!params.get("sort")) params.set("sort", "created");
+    router.replace(`/admin/users?${params.toString()}`, { scroll: false });
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -302,13 +319,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     router.push("/admin/users?sort=created");
   };
 
-  // Sync localSearch with URL params when they change externally (e.g., browser back/forward)
-  // Only sync if the change didn't come from our own debounced update
   React.useEffect(() => {
-    // Only sync if:
-    // 1. currentSearch changed from an external source (not our debounce)
-    // 2. localSearch matches the last synced value (user isn't actively typing)
-    // This prevents overwriting user input while typing
     if (
       currentSearch !== lastSyncedSearchRef.current &&
       localSearch === lastSyncedSearchRef.current
@@ -318,7 +329,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     }
   }, [currentSearch, localSearch]);
 
-  // Ensure sort param is set on initial load (most recent first)
   React.useEffect(() => {
     if (!searchParamsHook.get("sort")) {
       const params = new URLSearchParams(searchParamsHook.toString());
@@ -327,14 +337,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     }
   }, [searchParamsHook, router]);
 
-  // Table: warm universe + client filter on localSearch (instant first keystroke).
-  // URL search stays debounced for shareable links / RQ warming.
   const users: User[] = React.useMemo(() => {
     const base =
       universeUsers.length > 0 ? universeUsers : (initialUsers ?? []);
-    if (!hasDisplayFilters) {
-      return base;
-    }
+    if (!hasDisplayFilters) return base;
     const q = searchQuery.toLowerCase();
     return base.filter((u) => {
       if (currentStatus !== "all" && u.status !== currentStatus) return false;
@@ -355,15 +361,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     currentRole,
   ]);
 
-  // usePendingAdminRequests returns AdminRequest[] directly
-  const adminRequests: AdminRequest[] = ((adminRequestsData ??
-    initialAdminRequests) ||
-    []) as AdminRequest[];
-  const recentDecisions: AdminRequest[] = ((recentDecisionsData ??
-    initialRecentDecisions) ||
-    []) as AdminRequest[];
-
-  // Handler functions for mutations — role changes go through confirm dialogs
   const openMakeAdminConfirm = (user: User) => {
     setRoleTarget({
       id: user.id,
@@ -395,9 +392,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           userEmail: roleTarget.email,
           userUniversityCard: roleTarget.universityCard ?? null,
         },
-        {
-          onSuccess: () => setRoleTarget(null),
-        },
+        { onSuccess: () => setRoleTarget(null) },
       );
       return;
     }
@@ -408,9 +403,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         userEmail: roleTarget.email,
         userUniversityCard: roleTarget.universityCard ?? null,
       },
-      {
-        onSuccess: () => setRoleTarget(null),
-      },
+      { onSuccess: () => setRoleTarget(null) },
     );
   };
 
@@ -443,79 +436,18 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     rejectUserMutation.mutate(payload);
   };
 
-  const openApproveConfirm = (request: AdminRequest) => {
-    setDecisionTarget(request);
-    setApproveOpen(true);
-  };
+  const actionsBusy =
+    approveUserMutation.isPending ||
+    rejectUserMutation.isPending ||
+    updateUserRoleMutation.isPending ||
+    removeAdminPrivilegesMutation.isPending;
 
-  const openDeclineDialog = (request: AdminRequest) => {
-    setDecisionTarget(request);
-    setDeclineOpen(true);
-  };
-
-  const handleConfirmApprove = () => {
-    if (!decisionTarget) return;
-    approveAdminRequestMutation.mutate(
-      {
-        requestId: decisionTarget.id,
-        userName: decisionTarget.userFullName,
-      },
-      {
-        onSuccess: () => {
-          setApproveOpen(false);
-          setDecisionTarget(null);
-        },
-      },
-    );
-  };
-
-  const handleConfirmDecline = (rejectionReason: string) => {
-    if (!decisionTarget) return;
-    rejectAdminRequestMutation.mutate(
-      {
-        requestId: decisionTarget.id,
-        rejectionReason,
-        userName: decisionTarget.userFullName,
-      },
-      {
-        onSuccess: () => {
-          setDeclineOpen(false);
-          setDecisionTarget(null);
-        },
-      },
-    );
-  };
-
-  // Show skeleton while loading (only if nothing displayable yet)
-  if (
-    (usersLoading && users.length === 0) ||
-    (adminRequestsLoading &&
-      (!initialAdminRequests || initialAdminRequests.length === 0) &&
-      adminRequests.length === 0)
-  ) {
+  if (usersLoading && users.length === 0) {
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-medium sm:text-xl">User Management</h2>
         </div>
-
-        {/* Admin Requests Skeleton */}
-        <div className="mt-4 sm:mt-6">
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Pending Admin Requests
-          </h3>
-          <div className="space-y-2 sm:space-y-4">
-            {[...Array(2)].map((_, i) => (
-              <UserSkeleton
-                key={`admin-request-skeleton-${i}`}
-                variant="card"
-                className="rounded-lg border border-yellow-200 bg-yellow-50"
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Users Table Skeleton */}
         <div className="mt-4 w-full overflow-hidden sm:mt-7">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-200">
@@ -543,13 +475,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     );
   }
 
-  // Show error state
-  if (
-    (usersError && users.length === 0) ||
-    (adminRequestsError &&
-      (!initialAdminRequests || initialAdminRequests.length === 0) &&
-      adminRequests.length === 0)
-  ) {
+  if (usersError && users.length === 0) {
     return (
       <section className="admin-panel">
         <div className="py-6 text-center sm:py-8">
@@ -559,16 +485,13 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           <p className="text-xs text-gray-500 sm:text-sm">
             {usersErrorData instanceof Error
               ? usersErrorData.message
-              : adminRequestsErrorData instanceof Error
-                ? adminRequestsErrorData.message
-                : "An unknown error occurred"}
+              : "An unknown error occurred"}
           </p>
         </div>
       </section>
     );
   }
 
-  // KPI counts — full-universe directory (not filtered table rows)
   const approvedUserCount = universeUsers.filter(
     (u) => u.status === "APPROVED",
   ).length;
@@ -580,8 +503,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   ).length;
   const adminUserCount = universeUsers.filter((u) => u.role === "ADMIN").length;
 
-  // Table column defs — same cell content/handlers as the previous plain <table>,
-  // now with asc/desc sorting + pagination via the shared DataTable (Wave 5 retrofit).
   const userColumns: ColumnDef<User>[] = [
     {
       accessorKey: "fullName",
@@ -589,13 +510,13 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         <SortableHeader column={column}>Name</SortableHeader>
       ),
       cell: ({ row }) => (
-        <Link
+        <PrefetchLink
           prefetch={false}
           href={`/admin/users/${row.original.id}`}
           className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
         >
           {row.original.fullName}
-        </Link>
+        </PrefetchLink>
       ),
     },
     {
@@ -658,72 +579,16 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       cell: ({ row }) => {
         const user = row.original;
         return (
-          <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-            {isProtectedDemoAccount(user) ? (
-              <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
-                <Lock className="size-3.5 shrink-0" aria-hidden />
-                Demo account
-              </span>
-            ) : user.status === "PENDING" ? (
-              <>
-                <Button
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={() => handleUpdateUserStatus(user.id, "APPROVED")}
-                  disabled={
-                    approveUserMutation.isPending || rejectUserMutation.isPending
-                  }
-                >
-                  <CheckCircle className="size-4" />
-                  Approve Student
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={() => handleUpdateUserStatus(user.id, "REJECTED")}
-                  disabled={
-                    approveUserMutation.isPending || rejectUserMutation.isPending
-                  }
-                >
-                  <XCircle className="size-4" />
-                  Reject
-                </Button>
-              </>
-            ) : (
-              <>
-                {user.role === "ADMIN" &&
-                  user.id !== (currentUserId || session?.user?.id) && (
-                    <Button
-                      size="sm"
-                      className="bg-red-600 text-white hover:bg-red-700"
-                      onClick={() => openRemoveAdminConfirm(user)}
-                      disabled={removeAdminPrivilegesMutation.isPending}
-                    >
-                      <ShieldOff className="size-4" />
-                      Remove Admin
-                    </Button>
-                  )}
-                {user.role === "USER" && user.status === "APPROVED" && (
-                  <Button
-                    size="sm"
-                    className="bg-purple-600 text-white hover:bg-purple-700"
-                    onClick={() => openMakeAdminConfirm(user)}
-                    disabled={updateUserRoleMutation.isPending}
-                  >
-                    <Shield className="size-4" />
-                    Make Admin
-                  </Button>
-                )}
-                {user.role === "ADMIN" &&
-                  user.id === (currentUserId || session?.user?.id) && (
-                    <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
-                      <Shield className="size-3.5 shrink-0" aria-hidden />
-                      You
-                    </span>
-                  )}
-              </>
-            )}
-          </div>
+          <UserRowActions
+            user={user}
+            currentUserId={currentUserId}
+            sessionUserId={session?.user?.id}
+            busy={actionsBusy}
+            onApprove={() => handleUpdateUserStatus(user.id, "APPROVED")}
+            onReject={() => handleUpdateUserStatus(user.id, "REJECTED")}
+            onMakeAdmin={() => openMakeAdminConfirm(user)}
+            onRemoveAdmin={() => openRemoveAdminConfirm(user)}
+          />
         );
       },
     },
@@ -735,7 +600,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         header={
           <AdminPageHeader
             title="User Management"
-            description="Roles, status, and librarian privileges"
+            description="Directory of library accounts and roles"
             icon={UsersIcon}
           />
         }
@@ -771,435 +636,128 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
               icon={UserCog}
               hue="violet"
             />
-            <StatCard
-              title="Make Admin Requests"
-              value={adminRequests.length}
-              icon={Shield}
-              hue="slate"
-            />
           </StatCardGrid>
         }
       >
-      <section className="admin-panel">
-        {/* Success/Error Messages */}
-        {successMessage && (
-          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
-            <div className="flex items-center">
-              <div className="shrink-0">
-                <svg
-                  className="size-5 text-green-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule={"evenodd" as const}
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule={"evenodd" as const}
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
-                  {successMessage === "role-updated" &&
-                    "✅ Role Updated Successfully!"}
-                  {successMessage === "user-approved" &&
-                    "✅ User Approved Successfully!"}
-                  {successMessage === "user-rejected" &&
-                    "✅ User Rejected Successfully!"}
-                  {successMessage === "admin-approved" &&
-                    "✅ Admin Request Approved Successfully!"}
-                  {successMessage === "admin-rejected" &&
-                    "✅ Admin Request Rejected Successfully!"}
-                  {successMessage === "admin-removed" &&
-                    "✅ Admin Privileges Removed Successfully!"}
-                </h3>
-              </div>
+        <section className="admin-panel">
+          {successMessage && (
+            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
+              <h3 className="text-sm font-medium text-green-800">
+                {successMessage === "role-updated" &&
+                  "Role Updated Successfully!"}
+                {successMessage === "user-approved" &&
+                  "User Approved Successfully!"}
+                {successMessage === "user-rejected" &&
+                  "User Rejected Successfully!"}
+                {successMessage === "admin-removed" &&
+                  "Admin Privileges Removed Successfully!"}
+              </h3>
             </div>
-          </div>
-        )}
+          )}
 
-        {errorMessage && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
-            <div className="flex items-center">
-              <div className="shrink-0">
-                <svg
-                  className="size-5 text-red-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule={"evenodd" as const}
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule={"evenodd" as const}
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
-                  ❌ Operation Failed
-                </h3>
-              </div>
+          {errorMessage && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
+              <h3 className="text-sm font-medium text-red-800">
+                Operation Failed
+              </h3>
             </div>
-          </div>
-        )}
+          )}
 
-        <AdminListToolbar
-          title="User Management"
-          count={users.length}
-          chips={
-            <DismissibleFilterChips
-              variant="light"
-              groups={[
-                ...(currentStatus !== "all"
-                  ? [
-                      {
-                        label: "Status",
-                        values: [currentStatus],
-                        onClear: () => handleFilterChange("status", "all"),
-                        renderBadge: (value: string) => {
-                          const opt = userStatusFilterOptions().find(
-                            (o) => o.value === value,
-                          );
-                          return (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              {opt?.label ?? value}
-                            </span>
-                          );
+          <AdminListToolbar
+            title="User Management"
+            count={users.length}
+            chips={
+              <DismissibleFilterChips
+                variant="light"
+                groups={[
+                  ...(currentStatus !== "all"
+                    ? [
+                        {
+                          label: "Status",
+                          values: [currentStatus],
+                          onClear: () => handleFilterChange("status", "all"),
+                          renderBadge: (value: string) => {
+                            const opt = userStatusFilterOptions().find(
+                              (o) => o.value === value,
+                            );
+                            return (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                {opt?.label ?? value}
+                              </span>
+                            );
+                          },
                         },
-                      },
-                    ]
-                  : []),
-                ...(currentRole !== "all"
-                  ? [
-                      {
-                        label: "Role",
-                        values: [currentRole],
-                        onClear: () => handleFilterChange("role", "all"),
-                        renderBadge: (value: string) => {
-                          const opt = userRoleFilterOptions().find(
-                            (o) => o.value === value,
-                          );
-                          return (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                              {opt?.label ?? value}
-                            </span>
-                          );
+                      ]
+                    : []),
+                  ...(currentRole !== "all"
+                    ? [
+                        {
+                          label: "Role",
+                          values: [currentRole],
+                          onClear: () => handleFilterChange("role", "all"),
+                          renderBadge: (value: string) => {
+                            const opt = userRoleFilterOptions().find(
+                              (o) => o.value === value,
+                            );
+                            return (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                                {opt?.label ?? value}
+                              </span>
+                            );
+                          },
                         },
-                      },
-                    ]
-                  : []),
-              ]}
-              onReset={clearFilters}
-            />
-          }
-        >
-          {/* Parent already debounces URL; SearchInput debounceMs=0 */}
-          <SearchInput
-            value={localSearch}
-            onChange={setLocalSearch}
-            placeholder="Search users…"
-            debounceMs={0}
-            className="sm:min-w-64"
-          />
-          <FilterSelect
-            label="Status"
-            variant="light"
-            labelLayout="embedded"
-            className="shrink-0 sm:min-w-[150px]"
-            value={currentStatus || "all"}
-            onValueChange={(v) => handleFilterChange("status", v)}
-            options={userStatusFilterOptions()}
-          />
-          <FilterSelect
-            label="Role"
-            variant="light"
-            labelLayout="embedded"
-            className="shrink-0 sm:min-w-[150px]"
-            value={currentRole || "all"}
-            onValueChange={(v) => handleFilterChange("role", v)}
-            options={userRoleFilterOptions()}
-          />
-        </AdminListToolbar>
-        {/* Admin Requests Section - Only shows PENDING requests */}
-        {adminRequests.length > 0 && (
-          <div className="mt-4 sm:mt-6">
-            <h3 className="mb-4 text-base font-medium sm:text-lg">
-              Pending Admin Requests ({adminRequests.length})
-            </h3>
-            <div className="space-y-2 sm:space-y-4">
-              {adminRequests.map((request) => {
-                const demoLocked = isProtectedDemoAccount({
-                  email: request.userEmail,
-                });
-                const actionsBusy =
-                  approveAdminRequestMutation.isPending ||
-                  rejectAdminRequestMutation.isPending;
-
-                return (
-                  <div
-                    key={request.id}
-                    className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 sm:p-4"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex-1">
-                        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                          <PersonAttribution
-                            person={{
-                              id: request.userId,
-                              fullName: request.userFullName,
-                              email: request.userEmail,
-                              universityCard:
-                                request.userUniversityCard ?? null,
-                            }}
-                            href={`/admin/users/${request.userId}`}
-                            size={28}
-                            className="text-sm text-yellow-800"
-                            textClassName="text-yellow-900"
-                          />
-                        </div>
-                        <p className="mb-2 text-xs text-yellow-800 sm:text-sm">
-                          <strong>Reason:</strong> {request.requestReason}
-                        </p>
-                        <DateMetaLine
-                          icon={CalendarPlus}
-                          className="text-yellow-600"
-                        >
-                          Requested on:{" "}
-                          {request.createdAt
-                            ? new Date(request.createdAt).toLocaleString()
-                            : "N/A"}
-                        </DateMetaLine>
-                      </div>
-                      <div className="flex flex-col gap-2 sm:ml-4 sm:flex-row sm:items-start">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex flex-col gap-2 sm:flex-row">
-                            <Button
-                              size="sm"
-                              className={
-                                demoLocked
-                                  ? "bg-green-600/40 text-white/70 hover:bg-green-600/40"
-                                  : "bg-green-600 hover:bg-green-700"
-                              }
-                              onClick={() => openApproveConfirm(request)}
-                              disabled={actionsBusy || demoLocked}
-                              title={
-                                demoLocked
-                                  ? "Demo account — role locked"
-                                  : undefined
-                              }
-                            >
-                              <CheckCircle className="size-4" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-red-600 hover:bg-red-700"
-                              onClick={() => openDeclineDialog(request)}
-                              disabled={actionsBusy}
-                            >
-                              <XCircle className="size-4" />
-                              Decline
-                            </Button>
-                          </div>
-                          {demoLocked ? (
-                            <p className="inline-flex items-center gap-1 text-xs text-yellow-800">
-                              <Lock className="size-3.5 shrink-0" aria-hidden />
-                              Demo account — role locked (Decline still
-                              allowed).
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Recent decisions — who approved / rejected / withdrew (baseline; polish later) */}
-        {recentDecisions.length > 0 && (
-          <div className="mt-4 sm:mt-6">
-            <h3 className="mb-4 text-base font-medium sm:text-lg">
-              Recent decisions ({recentDecisions.length})
-            </h3>
-            <div className="space-y-2 sm:space-y-4">
-              {recentDecisions.map((decision) => {
-                const withdrawn =
-                  decision.status === "REJECTED" &&
-                  decision.rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON;
-                const statusLabel = withdrawn
-                  ? "Withdrawn"
-                  : decision.status === "APPROVED"
-                    ? "Approved"
-                    : "Rejected";
-                const borderClass = withdrawn
-                  ? "border-gray-200 bg-gray-50"
-                  : decision.status === "APPROVED"
-                    ? "border-green-200 bg-green-50"
-                    : "border-red-200 bg-red-50";
-                const textClass = withdrawn
-                  ? "text-gray-800"
-                  : decision.status === "APPROVED"
-                    ? "text-green-900"
-                    : "text-red-900";
-                const mutedClass = withdrawn
-                  ? "text-gray-600"
-                  : decision.status === "APPROVED"
-                    ? "text-green-700"
-                    : "text-red-700";
-
-                return (
-                  <div
-                    key={decision.id}
-                    className={`rounded-lg border p-3 sm:p-4 ${borderClass}`}
-                  >
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
-                          withdrawn
-                            ? "bg-gray-200 text-gray-800"
-                            : decision.status === "APPROVED"
-                              ? "bg-green-200 text-green-900"
-                              : "bg-red-200 text-red-900"
-                        }`}
-                      >
-                        {decision.status === "APPROVED" ? (
-                          <CheckCircle className="size-3" aria-hidden />
-                        ) : (
-                          <XCircle className="size-3" aria-hidden />
-                        )}
-                        {statusLabel}
-                      </span>
-                      <PersonAttribution
-                        person={{
-                          id: decision.userId,
-                          fullName: decision.userFullName,
-                          email: decision.userEmail,
-                          universityCard: decision.userUniversityCard ?? null,
-                        }}
-                        href={`/admin/users/${decision.userId}`}
-                        size={28}
-                        className={`text-sm ${mutedClass}`}
-                        textClassName={textClass}
-                      />
-                    </div>
-                    <p
-                      className={`mb-1 text-xs sm:text-sm ${mutedClass}`}
-                      title={decision.requestReason}
-                    >
-                      <strong>Request:</strong>{" "}
-                      {truncateDecisionText(decision.requestReason)}
-                    </p>
-                    {decision.rejectionReason && !withdrawn ? (
-                      <p className={`mb-1 text-xs sm:text-sm ${mutedClass}`}>
-                        <strong>Reason:</strong> {decision.rejectionReason}
-                      </p>
-                    ) : null}
-                    <AdminRequestReviewerAttribution
-                      reviewer={decision.reviewer}
-                      prefix={
-                        withdrawn
-                          ? "Withdrawn by"
-                          : decision.status === "APPROVED"
-                            ? "Approved by"
-                            : "Rejected by"
-                      }
-                      size={28}
-                      className={`mt-2 text-xs sm:text-sm ${mutedClass}`}
-                      textClassName={textClass}
-                      href={
-                        decision.reviewer?.id
-                          ? `/admin/users/${decision.reviewer.id}`
-                          : null
-                      }
-                    />
-                    <DateMetaLine
-                      icon={CalendarCheck}
-                      className={`mt-1 ${mutedClass}`}
-                    >
-                      {decision.reviewedAt
-                        ? new Date(decision.reviewedAt).toLocaleString()
-                        : "N/A"}
-                    </DateMetaLine>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-4 w-full overflow-hidden sm:mt-7">
-          <DataTable
-            columns={userColumns}
-            data={users}
-            emptyMessage={
-              <AdminFilterEmptyState
-                entityLabel="users"
-                filtered={hasDisplayFilters}
-                onClear={clearFilters}
-                blankMessage="No users found."
-                className="py-4 sm:py-6"
+                      ]
+                    : []),
+                ]}
+                onReset={clearFilters}
               />
             }
-            initialPageSize={20}
-          />
-        </div>
-      </section>
-      </AdminPageShell>
+          >
+            <SearchInput
+              value={localSearch}
+              onChange={setLocalSearch}
+              placeholder="Search users…"
+              debounceMs={0}
+              className="sm:min-w-64"
+            />
+            <FilterSelect
+              label="Status"
+              variant="light"
+              labelLayout="embedded"
+              className="shrink-0 sm:min-w-[150px]"
+              value={currentStatus || "all"}
+              onValueChange={(v) => handleFilterChange("status", v)}
+              options={userStatusFilterOptions()}
+            />
+            <FilterSelect
+              label="Role"
+              variant="light"
+              labelLayout="embedded"
+              className="shrink-0 sm:min-w-[150px]"
+              value={currentRole || "all"}
+              onValueChange={(v) => handleFilterChange("role", v)}
+              options={userRoleFilterOptions()}
+            />
+          </AdminListToolbar>
 
-      <AlertDialog
-        open={approveOpen}
-        onOpenChange={(open) => {
-          if (approveAdminRequestMutation.isPending) return;
-          setApproveOpen(open);
-          if (!open) setDecisionTarget(null);
-        }}
-      >
-        <AlertDialogContent className="border-gray-600 bg-gray-800/95">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-light-100">
-              Promote to admin?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-light-200">
-              Grant administrator privileges to{" "}
-              <span className="font-medium text-light-100">
-                {decisionTarget?.userFullName ?? "this user"}
-              </span>
-              {decisionTarget?.userEmail
-                ? ` (${decisionTarget.userEmail})`
-                : ""}
-              ? They will be able to manage users, books, and borrow requests.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              disabled={approveAdminRequestMutation.isPending}
-              className="border-gray-500 bg-gray-600 text-white hover:bg-gray-500 hover:text-white"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleConfirmApprove();
-              }}
-              disabled={approveAdminRequestMutation.isPending}
-              className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
-            >
-              {approveAdminRequestMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <CheckCircle className="size-4" />
-              )}
-              {approveAdminRequestMutation.isPending
-                ? "Promoting…"
-                : "Promote to admin"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <div className="mt-4 w-full overflow-hidden sm:mt-7">
+            <DataTable
+              columns={userColumns}
+              data={users}
+              emptyMessage={
+                <AdminFilterEmptyState
+                  entityLabel="users"
+                  filtered={hasDisplayFilters}
+                  onClear={clearFilters}
+                  blankMessage="No users found."
+                  className="py-4 sm:py-6"
+                />
+              }
+              initialPageSize={20}
+            />
+          </div>
+        </section>
+      </AdminPageShell>
 
       <AlertDialog
         open={roleTarget != null}
@@ -1291,19 +849,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AdminRequestDeclineDialog
-        key={decisionTarget?.id ?? "admin-decline"}
-        open={declineOpen}
-        applicantName={decisionTarget?.userFullName ?? "Applicant"}
-        applicantEmail={decisionTarget?.userEmail ?? ""}
-        isPending={rejectAdminRequestMutation.isPending}
-        onOpenChange={(open) => {
-          setDeclineOpen(open);
-          if (!open) setDecisionTarget(null);
-        }}
-        onConfirm={handleConfirmDecline}
-      />
     </>
   );
 };
