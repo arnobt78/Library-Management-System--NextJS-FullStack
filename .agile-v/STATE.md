@@ -7,8 +7,8 @@
 - Status: ACTIVE - User 360 privilege→360 + side-panel densify + gap fix shipping; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: (bind after commit)
-- Latest HEAD: (bind after commit)
+- Latest implementation tip: `a905b6f` (User 360 densify)
+- Latest HEAD: `a905b6f`
 - Started: 2026-08-01
 - Last updated: 2026-08-11 (User 360 densify commit)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
