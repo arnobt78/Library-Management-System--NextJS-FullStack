@@ -8,7 +8,7 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `4f258de` (people DecisionActorStack + Decision & Actor)
-- Latest HEAD: `4f258de`
+- Latest HEAD: `2223ad5` (== tip-bind on origin/main)
 - Started: 2026-08-01
 - Last updated: 2026-08-10 (Decision & Actor merge + DecisionActorStack)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
