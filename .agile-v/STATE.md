@@ -4,11 +4,11 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) people Decision & Actor polish; nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - People table DecisionActorStack polish ready to commit; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - People DecisionActorStack committed `4f258de`; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: (pending commit — people tables + DecisionActorStack)
-- Latest HEAD: `19d961c` (== `origin/main` pre-polish)
+- Latest implementation tip: `4f258de` (people DecisionActorStack + Decision & Actor)
+- Latest HEAD: `4f258de`
 - Started: 2026-08-01
 - Last updated: 2026-08-10 (Decision & Actor merge + DecisionActorStack)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -35,7 +35,7 @@ Verified facts:
 
 ### Next Action
 
-**Human-Decision:** soft-nav smoke Recent queues + Users Status; tip-bind after push. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+**Human-Decision:** soft-nav smoke Recent queues + Users Status after pull. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
 
 ## Reconciliation snapshot (2026-08-10, admin people table UI polish)
 
