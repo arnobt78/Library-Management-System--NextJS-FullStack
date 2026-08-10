@@ -41,6 +41,14 @@ export interface User {
   lastActivityDate: string | null;
   lastLogin: Date | null;
   createdAt: Date | null;
+  /** Signup approve/reject actor (joined) — Status column densify. */
+  statusReviewedAt?: string | Date | null;
+  /** Raw FK — overview stats builder + densify. */
+  statusReviewedBy?: string | null;
+  statusReviewedById?: string | null;
+  statusReviewedByName?: string | null;
+  statusReviewedByEmail?: string | null;
+  statusReviewedByUniversityCard?: string | null;
   // Note: password is excluded from API responses for security
 }
 

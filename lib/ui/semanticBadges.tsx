@@ -14,7 +14,9 @@ import {
   FilePen,
   Trash2,
   Minus,
+  Shield,
   ShieldAlert,
+  UserRound,
   XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -233,6 +235,50 @@ export function BorrowStatusBadge({
     <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
       <Icon className="size-3" aria-hidden />
       {BORROW_STATUS_LABELS[normalized]}
+    </Badge>
+  );
+}
+
+type UserRoleValue = "ADMIN" | "USER";
+
+const USER_ROLE_LABELS: Record<UserRoleValue, string> = {
+  ADMIN: "Admin",
+  USER: "User",
+};
+
+/** Glass role pill — replaces ad-hoc purple/blue spans on User Management. */
+export function UserRoleBadge({
+  role,
+  className,
+  variant = "light",
+}: {
+  role: UserRoleValue | string | null | undefined;
+  className?: string;
+  variant?: BadgeSurface;
+}) {
+  const normalized = (role === "ADMIN" ? "ADMIN" : "USER") as UserRoleValue;
+  const config: Record<
+    UserRoleValue,
+    { icon: typeof Shield; light: string; dark: string }
+  > = {
+    ADMIN: {
+      icon: Shield,
+      light:
+        "border-violet-200 bg-violet-50/90 text-violet-700 shadow-sm backdrop-blur-sm",
+      dark: "border-violet-400/30 bg-violet-500/15 text-violet-100 shadow-[0_0_12px_rgba(139,92,246,0.15)]",
+    },
+    USER: {
+      icon: UserRound,
+      light:
+        "border-blue-200 bg-blue-50/90 text-blue-700 shadow-sm backdrop-blur-sm",
+      dark: "border-blue-400/30 bg-blue-500/15 text-blue-100 shadow-[0_0_12px_rgba(59,130,246,0.15)]",
+    },
+  };
+  const { icon: Icon, light, dark } = config[normalized];
+  return (
+    <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
+      <Icon className="size-3" aria-hidden />
+      {USER_ROLE_LABELS[normalized]}
     </Badge>
   );
 }

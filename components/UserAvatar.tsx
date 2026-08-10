@@ -4,6 +4,7 @@
  * Circle user avatar:
  * university_card (local / remote / ImageKit) → Robohash(email) → initials.
  * Circle chrome is always `bg-light-100` so load gaps never flash black.
+ * Ready is keyed by source — parent re-renders do not re-hide a loaded image.
  */
 
 import { useState } from "react";
@@ -56,9 +57,11 @@ const UserAvatar = ({
       resolved.kind === "imagekit");
   const showRobohash = !showPrimary && Boolean(roboSrc) && !roboFailed;
 
-  // Hide decoded pixels until load so only bg-light-100 shows (no black flash).
-  const [primaryReady, setPrimaryReady] = useState(false);
-  const [roboReady, setRoboReady] = useState(false);
+  // Keyed ready — when sourceKey/roboSrc changes, ready is false without an effect.
+  const [readyPrimaryKey, setReadyPrimaryKey] = useState<string | null>(null);
+  const [readyRoboKey, setReadyRoboKey] = useState<string | null>(null);
+  const primaryReady = readyPrimaryKey === sourceKey && Boolean(sourceKey);
+  const roboReady = readyRoboKey === roboSrc && Boolean(roboSrc);
 
   // Prefer Tailwind size-full when parent already sizes the circle (header buttons)
   const useParentSize = className?.includes("size-full");
@@ -90,7 +93,7 @@ const UserAvatar = ({
           )}
           sizes={sizesAttr}
           onError={onPrimaryError}
-          onLoad={() => setPrimaryReady(true)}
+          onLoad={() => setReadyPrimaryKey(sourceKey)}
         />
       ) : showPrimary && resolved.kind === "imagekit" ? (
         <ImageKitImage
@@ -103,7 +106,7 @@ const UserAvatar = ({
             primaryReady ? "opacity-100" : "opacity-0",
           )}
           onError={onPrimaryError}
-          onLoad={() => setPrimaryReady(true)}
+          onLoad={() => setReadyPrimaryKey(sourceKey)}
         />
       ) : showRobohash ? (
         <SafeImage
@@ -116,7 +119,7 @@ const UserAvatar = ({
           )}
           sizes={sizesAttr}
           onError={onRoboError}
-          onLoad={() => setRoboReady(true)}
+          onLoad={() => setReadyRoboKey(roboSrc)}
         />
       ) : (
         <div className="flex size-full items-center justify-center bg-light-100 text-dark-100">

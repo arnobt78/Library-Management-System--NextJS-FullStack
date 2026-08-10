@@ -1,5 +1,6 @@
 /**
  * Created / Updated meta with Lucide icons — list densify + detail headers.
+ * Optional labels for Joined / Registered / Requested under PersonAttribution.
  * Parent: CR-0003 / REQ-0034
  */
 import { CalendarClock, CalendarPlus } from "lucide-react";
@@ -12,17 +13,27 @@ export function TicketDateMeta({
   variant = "light",
   /** stack = two lines (lists); inline = · separators (headers) */
   layout = "stack",
+  /** Created-line label (e.g. Joined, Registered, Requested). */
+  createdLabel = "Created",
+  /** Updated-line label; omit line when updatedAt is null/undefined and hideUpdated. */
+  updatedLabel = "Updated",
+  /** When true, skip Updated row even if updatedAt is set. */
+  hideUpdated = false,
   className,
 }: {
   createdAt: string | Date | null | undefined;
-  updatedAt: string | Date | null | undefined;
+  updatedAt?: string | Date | null | undefined;
   variant?: "light" | "dark";
   layout?: "stack" | "inline";
+  createdLabel?: string;
+  updatedLabel?: string;
+  hideUpdated?: boolean;
   className?: string;
 }) {
   const isDark = variant === "dark";
   const createdTone = isDark ? "text-emerald-300/90" : "text-emerald-700";
   const updatedTone = isDark ? "text-amber-200/80" : "text-amber-700/90";
+  const showUpdated = !hideUpdated;
 
   if (layout === "inline") {
     return (
@@ -35,38 +46,45 @@ export function TicketDateMeta({
       >
         <span className={cn("inline-flex items-center gap-1", createdTone)}>
           <CalendarPlus className="size-3.5 shrink-0 opacity-80" aria-hidden />
-          <span className="opacity-70">Created</span>{" "}
+          <span className="opacity-70">{createdLabel}</span>{" "}
           {formatMediumDateTime(createdAt)}
         </span>
-        <span className="opacity-40" aria-hidden>
-          ·
-        </span>
-        <span className={cn("inline-flex items-center gap-1", updatedTone)}>
-          <CalendarClock className="size-3.5 shrink-0 opacity-80" aria-hidden />
-          <span className="opacity-70">Updated</span>{" "}
-          {formatMediumDateTime(updatedAt)}
-        </span>
+        {showUpdated ? (
+          <>
+            <span className="opacity-40" aria-hidden>
+              ·
+            </span>
+            <span className={cn("inline-flex items-center gap-1", updatedTone)}>
+              <CalendarClock className="size-3.5 shrink-0 opacity-80" aria-hidden />
+              <span className="opacity-70">{updatedLabel}</span>{" "}
+              {formatMediumDateTime(updatedAt)}
+            </span>
+          </>
+        ) : null}
       </p>
     );
   }
 
+  // gap-0 + leading-none — flush under PersonAttribution email (no mt-0.5).
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col gap-0.5 whitespace-nowrap text-xs",
+        "flex min-w-0 flex-col gap-0 whitespace-nowrap text-xs leading-none",
         className,
       )}
     >
-      <p className={cn("inline-flex items-center gap-1", createdTone)}>
+      <p className={cn("inline-flex items-center gap-1 leading-none", createdTone)}>
         <CalendarPlus className="size-3 shrink-0 opacity-80" aria-hidden />
-        <span className="opacity-70">Created:</span>{" "}
+        <span className="opacity-70">{createdLabel}:</span>{" "}
         {formatMediumDateTime(createdAt)}
       </p>
-      <p className={cn("inline-flex items-center gap-1", updatedTone)}>
-        <CalendarClock className="size-3 shrink-0 opacity-80" aria-hidden />
-        <span className="opacity-70">Updated:</span>{" "}
-        {formatMediumDateTime(updatedAt)}
-      </p>
+      {showUpdated ? (
+        <p className={cn("inline-flex items-center gap-1 leading-none", updatedTone)}>
+          <CalendarClock className="size-3 shrink-0 opacity-80" aria-hidden />
+          <span className="opacity-70">{updatedLabel}:</span>{" "}
+          {formatMediumDateTime(updatedAt)}
+        </p>
+      ) : null}
     </div>
   );
 }

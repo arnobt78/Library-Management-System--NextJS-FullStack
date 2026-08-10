@@ -11,12 +11,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  FilePen,
-  FilePlus,
-  History,
-  Trash2,
-} from "lucide-react";
+import { FilePen, FilePlus, History, Trash2 } from "lucide-react";
 import { useActivityLogs } from "@/hooks/useQueries";
 import type {
   ActivityLogFilters,
@@ -41,10 +36,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
-import {
-  TABLE_CELL_STATIC,
-  TABLE_CELL_TITLE,
-} from "@/lib/ui/tableCellStyles";
+import { TABLE_CELL_STATIC, TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
 import {
   activityEntityHref,
   activityEntityUnavailableReason,
@@ -67,14 +59,11 @@ export default function ActivityLogSection({
 
   // Period drives the server fetch; search filters the loaded rows locally so
   // typing matches from the first character (no RQ refetch per keystroke).
-  const filters = useMemo<ActivityLogFilters>(
-    () => ({ period }),
-    [period],
+  const filters = useMemo<ActivityLogFilters>(() => ({ period }), [period]);
+  const { data: periodLogs = [], isPending } = useActivityLogs(
+    filters,
+    initialLogs,
   );
-  const {
-    data: periodLogs = [],
-    isPending,
-  } = useActivityLogs(filters, initialLogs);
 
   const logs = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -159,12 +148,8 @@ export default function ActivityLogSection({
           <SortableHeader column={column}>Actor</SortableHeader>
         ),
         cell: ({ row }) => {
-          const {
-            actorId,
-            actorName,
-            actorEmail,
-            actorUniversityCard,
-          } = row.original;
+          const { actorId, actorName, actorEmail, actorUniversityCard } =
+            row.original;
           if (!actorId) {
             return (
               <PersonAttribution
@@ -273,7 +258,7 @@ export default function ActivityLogSection({
       header={
         <AdminPageHeader
           title="Activity History"
-          description="Recent admin actions across the library"
+          description="Recent admin actions across the system"
           icon={History}
         />
       }
@@ -308,7 +293,7 @@ export default function ActivityLogSection({
     >
       <div className="admin-panel">
         <AdminListToolbar
-          title="Activity History"
+          title="Admin Activity History"
           count={logs.length}
           chips={
             <DismissibleFilterChips

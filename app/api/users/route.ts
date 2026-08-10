@@ -22,6 +22,7 @@ import ratelimit from "@/lib/ratelimit";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { desc, asc, eq, and, ilike, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { authorizeAdminRoute } from "@/lib/auth/routeAuthorization";
 import { parsePagination } from "@/lib/pagination";
 
@@ -109,8 +110,9 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Fetch users with pagination
+    // Fetch users with pagination (+ signup status reviewer for Status column)
     const offset = (page - 1) * limit;
+    const statusReviewer = alias(users, "status_reviewer");
     const allUsers = await db
       .select({
         id: users.id,
@@ -123,9 +125,16 @@ export async function GET(request: NextRequest) {
         lastActivityDate: users.lastActivityDate,
         lastLogin: users.lastLogin,
         createdAt: users.createdAt,
+        statusReviewedAt: users.statusReviewedAt,
+        statusReviewedBy: users.statusReviewedBy,
+        statusReviewedById: users.statusReviewedBy,
+        statusReviewedByName: statusReviewer.fullName,
+        statusReviewedByEmail: statusReviewer.email,
+        statusReviewedByUniversityCard: statusReviewer.universityCard,
         // Exclude password for security
       })
       .from(users)
+      .leftJoin(statusReviewer, eq(users.statusReviewedBy, statusReviewer.id))
       .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
       .orderBy(orderBy)
       .limit(limit)

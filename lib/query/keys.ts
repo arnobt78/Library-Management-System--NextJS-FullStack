@@ -31,7 +31,7 @@ export const queryKeys = {
     /** Recent signup APPROVED/REJECTED with statusReviewed* (Sign-up Requests). */
     signupDecisionsRoot: ["signup-status-decisions"] as const,
     signupDecisions: (limit?: number) =>
-      ["signup-status-decisions", limit ?? 25] as const,
+      ["signup-status-decisions", limit ?? 50] as const,
     /** Single signup applicant detail + decision timeline (detail route densify). */
     signupRequestDetailRoot: ["signup-request-detail"] as const,
     signupRequestDetail: (userId: string) =>

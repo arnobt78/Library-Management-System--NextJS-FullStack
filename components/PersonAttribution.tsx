@@ -3,13 +3,14 @@
 /**
  * Shared person line: UserAvatar + name + copyable email.
  * Stack layout matches AuthForm test-account Select (size 36, items-center, gap-2).
- * - layout="stack" (default): avatar | name / email — tables + detail densify
+ * - layout="stack" (default): avatar | name / email; optional meta full-width under avatar
  * - layout="inline": avatar · name · email on one wrapping row (attribution strips)
+ * `meta` = Joined / decision date under the circle (leftmost — saves column width).
  * Profile Link only when `href` is explicitly passed (admin surfaces only).
  * Sky link colors apply only when linked; static names use attributionStyles.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Check, Copy } from "lucide-react";
 import PrefetchLink from "@/components/PrefetchLink";
 import UserAvatar from "@/components/UserAvatar";
@@ -58,6 +59,10 @@ type PersonAttributionProps = {
   layout?: "stack" | "inline";
   /** Email / name tone for dark glass vs light admin panels */
   variant?: "light" | "dark";
+  /**
+   * Stack-only: Joined / Approved date under avatar (leftmost, not name-aligned).
+   */
+  meta?: ReactNode;
 };
 
 export default function PersonAttribution({
@@ -71,6 +76,7 @@ export default function PersonAttribution({
   linkClassName,
   layout = "stack",
   variant = "light",
+  meta,
 }: PersonAttributionProps) {
   const [copied, setCopied] = useState(false);
   const linked = Boolean(person && href);
@@ -171,40 +177,42 @@ export default function PersonAttribution({
   );
 
   if (layout === "stack") {
-    // AuthForm parity: items-center so the 2-line text block centers vs the circle
+    // Outer gap-1 = email row → Joined/Approved only; name↔email stay flush.
     return (
       <div
         className={cn(
-          "inline-flex min-w-0 max-w-full items-center gap-2",
+          "flex min-w-0 max-w-full flex-col gap-1 leading-none",
           className,
         )}
       >
-        {prefix ? <span className={prefixClass}>{prefix}</span> : null}
-        {avatar}
-        {/* Stock-inventory parity: tight flex-col, leading-none (no name↔email gap) */}
-        <div className="flex min-w-0 flex-1 flex-col leading-none">
-          <div
-            className={cn(
-              "truncate leading-none",
-              ATTRIBUTION_NAME_WEIGHT,
-              ATTRIBUTION_PERSON_SIZE,
-            )}
-          >
-            {nameEl}
-          </div>
-          {person.email ? (
+        <div className="inline-flex min-w-0 max-w-full items-center gap-2">
+          {prefix ? <span className={prefixClass}>{prefix}</span> : null}
+          {avatar}
+          <div className="flex min-w-0 flex-1 flex-col leading-none">
             <div
               className={cn(
-                "inline-flex min-w-0 max-w-full items-center gap-1 leading-none",
-                emailSize,
-                emailTone,
+                "truncate leading-none",
+                ATTRIBUTION_NAME_WEIGHT,
+                ATTRIBUTION_PERSON_SIZE,
               )}
             >
-              <span className="truncate">{person.email}</span>
-              {copyBtn}
+              {nameEl}
             </div>
-          ) : null}
+            {person.email ? (
+              <div
+                className={cn(
+                  "inline-flex min-w-0 max-w-full items-center gap-1 leading-none",
+                  emailSize,
+                  emailTone,
+                )}
+              >
+                <span className="truncate">{person.email}</span>
+                {copyBtn}
+              </div>
+            ) : null}
+          </div>
         </div>
+        {meta}
       </div>
     );
   }

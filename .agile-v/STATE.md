@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) cross-domain densify gaps closed; nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) people Decision & Actor polish; nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - People IA + densify freshness + cross-domain densify closing via commit/push; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - People table DecisionActorStack polish ready to commit; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `b9c5e4d` (people IA + densify freshness + cross-domain densify)
-- Latest HEAD: `1eb9965` (== `origin/main`)
+- Latest implementation tip: (pending commit — people tables + DecisionActorStack)
+- Latest HEAD: `19d961c` (== `origin/main` pre-polish)
 - Started: 2026-08-01
-- Last updated: 2026-08-10 (pushed)
+- Last updated: 2026-08-10 (Decision & Actor merge + DecisionActorStack)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,7 +23,31 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline (cross-domain densify gap close)
+- Skills applied this session: agile-v-core, security-review (people DecisionActorStack commit)
+
+## Reconciliation snapshot (2026-08-10, Decision & Actor + DecisionActorStack)
+
+Verified facts:
+- Dropped duplicate Decision/Status on Recent tables; header **Decision & Actor**.
+- Shared `DecisionActorStack` + `decisionActorByTone`; signup/admin badge PrefetchLink to detail; Applicant Requested meta on admin Recent.
+- FIFO-50 + client period filter; Users Status densify via `statusReviewed*` join (password excluded from `getAllUsers` projection).
+- Security review PASS; type/lint + **216** unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke Recent queues + Users Status; tip-bind after push. Do **not** open C2 Gate 2 until EvalGate PASS or WAIVER.
+
+## Reconciliation snapshot (2026-08-10, admin people table UI polish)
+
+Verified facts:
+- Shared: `UserRoleBadge`, `CopyableText`, `TicketDateMeta` createdLabel/hideUpdated.
+- Users list: PersonAttribution + Joined meta; glass role; Status actor via SSR/API join + densify; column sizes; no outer overflow-hidden.
+- Registration/Admin Requests: identity merge, glass decisions, sizes, Requested/Registered under stack.
+- Local Prove: typecheck + lint 0 + **213** unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** superseded by Decision & Actor snapshot.
 
 ## Reconciliation snapshot (2026-08-10, cross-domain densify gap close)
 

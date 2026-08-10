@@ -54,10 +54,22 @@ describe("patchUserCaches", () => {
     densifyUserWrite(client, {
       userId: "u-1",
       status: "APPROVED",
+      reviewer: {
+        id: "admin-1",
+        fullName: "Test Admin",
+        email: "test@admin.com",
+        universityCard: null,
+      },
+      statusReviewedAt: "2026-08-10T12:00:00.000Z",
     });
 
     const list = client.getQueryData<UsersListResponse>(listKey);
-    expect(list?.users.find((u) => u.id === "u-1")?.status).toBe("APPROVED");
+    const painted = list?.users.find((u) => u.id === "u-1");
+    expect(painted?.status).toBe("APPROVED");
+    expect(painted?.statusReviewedById).toBe("admin-1");
+    expect(painted?.statusReviewedByName).toBe("Test Admin");
+    expect(painted?.statusReviewedByEmail).toBe("test@admin.com");
+    expect(painted?.statusReviewedAt).toBe("2026-08-10T12:00:00.000Z");
     expect(list?.total).toBe(2);
     expect(client.getQueryData(queryKeys.users.pending())).toEqual([]);
     expect(client.getQueryData(queryKeys.admin.navCounts)).toMatchObject({

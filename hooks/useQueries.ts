@@ -36,6 +36,7 @@ import type {
   SignupRequestDetail,
   SignupStatusDecision,
 } from "@/lib/admin/signupStatusDecisions";
+import { RECENT_SIGNUP_DECISIONS_LIMIT } from "@/lib/admin/signupDecisionConstants";
 import {
   getBorrowRequests,
   getUserBorrows,
@@ -485,7 +486,7 @@ export const usePendingUsers = (
  */
 export const useSignupStatusDecisions = (
   initialData?: SignupStatusDecision[],
-  limit = 25,
+  limit = RECENT_SIGNUP_DECISIONS_LIMIT,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();

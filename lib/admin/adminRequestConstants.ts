@@ -22,7 +22,7 @@ export const ADMIN_REQUEST_DIRECT_GRANT_REASON =
   "Admin privileges granted directly by a librarian (All Users / bulk promote).";
 
 /** Cap for Admin Requests Recent decisions table (newest reviewedAt first). */
-export const RECENT_ADMIN_REQUEST_DECISIONS_LIMIT = 25;
+export const RECENT_ADMIN_REQUEST_DECISIONS_LIMIT = 50;
 
 /**
  * Prefill for admin Decline dialog (editable). Shown to applicant as Reason:.

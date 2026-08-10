@@ -3,6 +3,7 @@
 import { db } from "@/database/drizzle";
 import { users, userStatusDecisions } from "@/database/schema";
 import { eq, desc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { after } from "next/server";
 import {
   getActionErrorMessage,
@@ -256,9 +257,28 @@ export const updateUserStatus = async (
 export const getAllUsers = async () => {
   try {
     await requireAdminActor();
+    const statusReviewer = alias(users, "status_reviewer");
     const allUsers = await db
-      .select()
+      .select({
+        id: users.id,
+        fullName: users.fullName,
+        email: users.email,
+        universityId: users.universityId,
+        universityCard: users.universityCard,
+        status: users.status,
+        role: users.role,
+        lastActivityDate: users.lastActivityDate,
+        lastLogin: users.lastLogin,
+        createdAt: users.createdAt,
+        statusReviewedAt: users.statusReviewedAt,
+        statusReviewedBy: users.statusReviewedBy,
+        statusReviewedById: users.statusReviewedBy,
+        statusReviewedByName: statusReviewer.fullName,
+        statusReviewedByEmail: statusReviewer.email,
+        statusReviewedByUniversityCard: statusReviewer.universityCard,
+      })
       .from(users)
+      .leftJoin(statusReviewer, eq(users.statusReviewedBy, statusReviewer.id))
       .orderBy(desc(users.createdAt));
 
     return { success: true, data: allUsers };

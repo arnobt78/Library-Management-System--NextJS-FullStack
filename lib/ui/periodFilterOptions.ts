@@ -1,6 +1,6 @@
 /**
  * Shared period FilterSelect options (Today / 7 / 30 / All).
- * Used by admin Activity History and My Profile tab list filters.
+ * Used by admin Activity History, queue Recent tables, and My Profile tab filters.
  */
 import {
   CalendarClock,
@@ -49,4 +49,25 @@ export function periodFilterOptions(
       iconClassName: muted,
     },
   ];
+}
+
+/** Client-side FIFO feed period gate (Activity-style; no extra fetch). */
+export function matchesListPeriod(
+  at: string | Date | null | undefined,
+  period: ListPeriod,
+): boolean {
+  if (period === "all") return true;
+  if (!at) return false;
+  const ts = at instanceof Date ? at.getTime() : new Date(at).getTime();
+  if (Number.isNaN(ts)) return false;
+  const now = new Date();
+  if (period === "today") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return ts >= start.getTime();
+  }
+  if (period === "7days") {
+    return ts >= now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  }
+  return ts >= now.getTime() - 30 * 24 * 60 * 60 * 1000;
 }

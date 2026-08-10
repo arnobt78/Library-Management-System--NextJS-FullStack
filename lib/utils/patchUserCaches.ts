@@ -127,12 +127,25 @@ export function syncUsersNav(queryClient: QueryClient): void {
   }
 }
 
-/** Patch role/status on cached all-users list rows (no invent, no total change). */
+/** Patch role/status (+ optional status-reviewer) on cached all-users list rows. */
 function patchAdminUsersListRows(
   queryClient: QueryClient,
-  patch: { userId: string; status?: string; role?: string },
+  patch: {
+    userId: string;
+    status?: string;
+    role?: string;
+    reviewer?: {
+      id: string;
+      fullName: string;
+      email: string;
+      universityCard: string | null;
+    } | null;
+    statusReviewedAt?: string | null;
+  },
 ): void {
-  if (patch.status === undefined && patch.role === undefined) return;
+  const touchesStatus = patch.status !== undefined;
+  const touchesRole = patch.role !== undefined;
+  if (!touchesStatus && !touchesRole) return;
 
   queryClient.setQueriesData<UsersListResponse>(
     { queryKey: queryKeys.users.adminRoot },
@@ -142,11 +155,37 @@ function patchAdminUsersListRows(
       const users = old.users.map((u) => {
         if (u.id !== patch.userId) return u;
         changed = true;
-        return {
+        const next = {
           ...u,
-          ...(patch.status !== undefined ? { status: patch.status as typeof u.status } : {}),
-          ...(patch.role !== undefined ? { role: patch.role as typeof u.role } : {}),
+          ...(touchesStatus ? { status: patch.status as typeof u.status } : {}),
+          ...(touchesRole ? { role: patch.role as typeof u.role } : {}),
         };
+        // Approve/reject densify paints Status actor; PENDING clears it.
+        if (touchesStatus) {
+          if (patch.status === "PENDING") {
+            next.statusReviewedAt = null;
+            next.statusReviewedBy = null;
+            next.statusReviewedById = null;
+            next.statusReviewedByName = null;
+            next.statusReviewedByEmail = null;
+            next.statusReviewedByUniversityCard = null;
+          } else if (
+            patch.status === "APPROVED" ||
+            patch.status === "REJECTED"
+          ) {
+            next.statusReviewedAt =
+              patch.statusReviewedAt ?? new Date().toISOString();
+            if (patch.reviewer) {
+              next.statusReviewedBy = patch.reviewer.id;
+              next.statusReviewedById = patch.reviewer.id;
+              next.statusReviewedByName = patch.reviewer.fullName;
+              next.statusReviewedByEmail = patch.reviewer.email;
+              next.statusReviewedByUniversityCard =
+                patch.reviewer.universityCard;
+            }
+          }
+        }
+        return next;
       });
       return changed ? { ...old, users } : old;
     },

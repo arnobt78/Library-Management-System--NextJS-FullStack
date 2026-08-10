@@ -17,17 +17,20 @@ import {
   Lock,
   MoreVertical,
   Shield,
+  UserPlus,
   X,
   XCircle,
 } from "lucide-react";
 import PersonAttribution from "@/components/PersonAttribution";
-import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
 import AdminRequestDeclineDialog from "@/components/admin/AdminRequestDeclineDialog";
+import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
 import PrefetchLink from "@/components/PrefetchLink";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { FilterSelect } from "@/components/ui/filter-select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,10 +52,10 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
-import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
 import {
   usePendingAdminRequests,
   useRecentAdminRequestDecisions,
+  useAdminNavCounts,
 } from "@/hooks/useQueries";
 import {
   useApproveAdminRequest,
@@ -61,10 +64,14 @@ import {
 import type { AdminRequest } from "@/lib/services/users";
 import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
-import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
 import { isProtectedDemoAccount } from "@/constants";
-import { cn } from "@/lib/utils";
+import {
+  matchesListPeriod,
+  periodFilterOptions,
+  type ListPeriod,
+} from "@/lib/ui/periodFilterOptions";
 
+const PERIOD_OPTIONS = periodFilterOptions("light");
 const REASON_SNIPPET_MAX = 80;
 const DECISION_SNIPPET_MAX = 120;
 
@@ -74,7 +81,10 @@ function truncateText(text: string, max: number): string {
   return `${trimmed.slice(0, max - 1)}…`;
 }
 
-function matchesAdminRequestSearch(request: AdminRequest, query: string): boolean {
+function matchesAdminRequestSearch(
+  request: AdminRequest,
+  query: string,
+): boolean {
   const q = query.toLowerCase();
   return (
     request.userFullName.toLowerCase().includes(q) ||
@@ -87,46 +97,6 @@ function isWithdrawnDecision(decision: AdminRequest): boolean {
   return (
     decision.status === "REJECTED" &&
     decision.rejectionReason === ADMIN_REQUEST_WITHDRAWN_REASON
-  );
-}
-
-function decisionStatusLabel(decision: AdminRequest): string {
-  if (isWithdrawnDecision(decision)) return "Withdrawn";
-  if (decision.status === "APPROVED") return "Approved";
-  return "Rejected";
-}
-
-function DecisionStatusBadge({
-  decision,
-  detailHref,
-}: {
-  decision: AdminRequest;
-  detailHref: string;
-}) {
-  const withdrawn = isWithdrawnDecision(decision);
-  const approved = decision.status === "APPROVED";
-  const badgeClass = withdrawn
-    ? "bg-gray-200 text-gray-800"
-    : approved
-      ? "bg-green-100 text-green-800"
-      : "bg-red-100 text-red-800";
-
-  return (
-    <PrefetchLink
-      href={detailHref}
-      prefetch={false}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium hover:opacity-90",
-        badgeClass,
-      )}
-    >
-      {approved ? (
-        <CheckCircle className="size-3" aria-hidden />
-      ) : (
-        <XCircle className="size-3" aria-hidden />
-      )}
-      {decisionStatusLabel(decision)}
-    </PrefetchLink>
   );
 }
 
@@ -215,6 +185,8 @@ export default function AdminRequestsClient({
   errorMessage,
 }: AdminRequestsClientProps) {
   const [localSearch, setLocalSearch] = useState("");
+  const [decisionPeriod, setDecisionPeriod] =
+    useState<ListPeriod>("7days");
   const [decisionTarget, setDecisionTarget] = useState<AdminRequest | null>(
     null,
   );
@@ -234,6 +206,8 @@ export default function AdminRequestsClient({
   const { data: recentData } = useRecentAdminRequestDecisions(
     initialRecentDecisions,
   );
+  const { data: navCounts } = useAdminNavCounts();
+  const pendingSignUps = navCounts?.pendingSignUps ?? 0;
 
   const approveAdminRequestMutation = useApproveAdminRequest();
   const rejectAdminRequestMutation = useRejectAdminRequest();
@@ -256,11 +230,20 @@ export default function AdminRequestsClient({
   }, [pendingUniverse, searchQuery]);
 
   const filteredDecisions = useMemo(() => {
-    if (!searchQuery) return recentUniverse;
-    return recentUniverse.filter((r) =>
-      matchesAdminRequestSearch(r, searchQuery),
-    );
-  }, [recentUniverse, searchQuery]);
+    return recentUniverse.filter((r) => {
+      if (!matchesListPeriod(r.reviewedAt, decisionPeriod)) return false;
+      if (!searchQuery) return true;
+      return matchesAdminRequestSearch(r, searchQuery);
+    });
+  }, [recentUniverse, searchQuery, decisionPeriod]);
+
+  const periodFilteredDecisionCount = useMemo(
+    () =>
+      recentUniverse.filter((r) =>
+        matchesListPeriod(r.reviewedAt, decisionPeriod),
+      ).length,
+    [recentUniverse, decisionPeriod],
+  );
 
   const approvedCount = recentUniverse.filter(
     (d) => d.status === "APPROVED",
@@ -323,27 +306,44 @@ export default function AdminRequestsClient({
       {
         id: "applicant",
         accessorKey: "userFullName",
+        size: 240,
+        minSize: 180,
         header: ({ column }) => (
           <SortableHeader column={column}>Applicant</SortableHeader>
         ),
         cell: ({ row }) => {
           const r = row.original;
           return (
-            <PersonAttribution
-              person={{
-                id: r.userId,
-                fullName: r.userFullName,
-                email: r.userEmail,
-                universityCard: r.userUniversityCard ?? null,
-              }}
-              href={`/admin/users/${r.userId}`}
-              size={28}
-            />
+            <div
+              className="flex min-w-0 flex-col leading-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PersonAttribution
+                layout="stack"
+                size={36}
+                person={{
+                  id: r.userId,
+                  fullName: r.userFullName,
+                  email: r.userEmail,
+                  universityCard: r.userUniversityCard ?? null,
+                }}
+                href={`/admin/users/${r.userId}`}
+                meta={
+                  <TicketDateMeta
+                    createdAt={r.createdAt}
+                    createdLabel="Requested"
+                    hideUpdated
+                  />
+                }
+              />
+            </div>
           );
         },
       },
       {
         accessorKey: "requestReason",
+        size: 220,
+        minSize: 160,
         header: "Reason",
         cell: ({ row }) => (
           <span
@@ -355,21 +355,9 @@ export default function AdminRequestsClient({
         ),
       },
       {
-        accessorKey: "createdAt",
-        header: ({ column }) => (
-          <SortableHeader column={column}>Requested</SortableHeader>
-        ),
-        cell: ({ row }) => formatMediumDateTime(row.original.createdAt),
-        sortingFn: (a, b) =>
-          (a.original.createdAt
-            ? new Date(a.original.createdAt).getTime()
-            : 0) -
-          (b.original.createdAt
-            ? new Date(b.original.createdAt).getTime()
-            : 0),
-      },
-      {
         id: "actions",
+        size: 64,
+        minSize: 56,
         header: "Actions",
         cell: ({ row }) => (
           <PendingRowActions
@@ -387,40 +375,46 @@ export default function AdminRequestsClient({
   const decisionColumns = useMemo<ColumnDef<AdminRequest>[]>(
     () => [
       {
-        id: "status",
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => (
-          <DecisionStatusBadge
-            decision={row.original}
-            detailHref={`/admin/admin-requests/${row.original.id}`}
-          />
-        ),
-      },
-      {
         id: "applicant",
         accessorKey: "userFullName",
+        size: 220,
+        minSize: 180,
         header: ({ column }) => (
           <SortableHeader column={column}>Applicant</SortableHeader>
         ),
         cell: ({ row }) => {
           const r = row.original;
           return (
-            <PersonAttribution
-              person={{
-                id: r.userId,
-                fullName: r.userFullName,
-                email: r.userEmail,
-                universityCard: r.userUniversityCard ?? null,
-              }}
-              href={`/admin/users/${r.userId}`}
-              size={28}
-            />
+            <div
+              className="flex min-w-0 flex-col leading-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PersonAttribution
+                layout="stack"
+                size={36}
+                person={{
+                  id: r.userId,
+                  fullName: r.userFullName,
+                  email: r.userEmail,
+                  universityCard: r.userUniversityCard ?? null,
+                }}
+                href={`/admin/users/${r.userId}`}
+                meta={
+                  <TicketDateMeta
+                    createdAt={r.createdAt}
+                    createdLabel="Requested"
+                    hideUpdated
+                  />
+                }
+              />
+            </div>
           );
         },
       },
       {
         accessorKey: "requestReason",
+        size: 200,
+        minSize: 140,
         header: "Request",
         cell: ({ row }) => (
           <span
@@ -432,42 +426,25 @@ export default function AdminRequestsClient({
         ),
       },
       {
-        id: "reviewer",
-        header: "Actor",
+        id: "actor",
+        size: 220,
+        minSize: 180,
+        header: "Decision & Actor",
         cell: ({ row }) => {
           const r = row.original;
-          const withdrawn = isWithdrawnDecision(r);
           return (
-            <AdminRequestReviewerAttribution
-              reviewer={r.reviewer}
-              prefix={
-                withdrawn
-                  ? "Withdrawn by"
-                  : r.status === "APPROVED"
-                    ? "Approved by"
-                    : "Rejected by"
-              }
-              size={28}
-              href={
+            <DecisionActorStack
+              status={r.status}
+              actor={r.reviewer}
+              actorHref={
                 r.reviewer?.id ? `/admin/users/${r.reviewer.id}` : null
               }
+              decidedAt={r.reviewedAt}
+              badgeHref={`/admin/admin-requests/${r.id}`}
+              withdrawn={isWithdrawnDecision(r)}
             />
           );
         },
-      },
-      {
-        accessorKey: "reviewedAt",
-        header: ({ column }) => (
-          <SortableHeader column={column}>Reviewed</SortableHeader>
-        ),
-        cell: ({ row }) => formatMediumDateTime(row.original.reviewedAt),
-        sortingFn: (a, b) =>
-          (a.original.reviewedAt
-            ? new Date(a.original.reviewedAt).getTime()
-            : 0) -
-          (b.original.reviewedAt
-            ? new Date(b.original.reviewedAt).getTime()
-            : 0),
       },
     ],
     [],
@@ -537,19 +514,19 @@ export default function AdminRequestsClient({
         kpis={
           <StatCardGrid>
             <StatCard
-              title="Pending"
+              title="Admin Pending"
               value={pendingUniverse.length}
               icon={Hourglass}
               hue="amber"
             />
             <StatCard
-              title="Approved"
+              title="Decisions Approved"
               value={approvedCount}
               icon={CheckCircle}
               hue="emerald"
             />
             <StatCard
-              title="Rejected"
+              title="Decisions Rejected"
               value={rejectedCount}
               icon={XCircle}
               hue="rose"
@@ -560,12 +537,29 @@ export default function AdminRequestsClient({
               icon={Shield}
               hue="slate"
             />
+            <PrefetchLink
+              href="/admin/account-requests"
+              className="block rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`Registration Pending: ${pendingSignUps}. Open Registration Queue.`}
+            >
+              <StatCard
+                title="Registration Pending"
+                value={pendingSignUps}
+                icon={UserPlus}
+                hue="violet"
+                badges={
+                  pendingSignUps > 0
+                    ? [{ label: "Open Queue", hue: "amber" }]
+                    : undefined
+                }
+              />
+            </PrefetchLink>
           </StatCardGrid>
         }
       >
-        <section className="admin-panel">
+        <section className="admin-panel space-y-6">
           {successMessage ? (
-            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
               <div className="flex items-center gap-2">
                 <CheckCircle className="size-4 text-green-500 sm:size-5" />
                 <h3 className="text-xs font-medium text-green-800 sm:text-sm">
@@ -579,7 +573,7 @@ export default function AdminRequestsClient({
           ) : null}
 
           {errorMessage ? (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
               <div className="flex items-center gap-2">
                 <XCircle className="size-4 text-red-500 sm:size-5" />
                 <h3 className="text-xs font-medium text-red-800 sm:text-sm">
@@ -602,45 +596,61 @@ export default function AdminRequestsClient({
             />
           </AdminListToolbar>
 
-          <AdminSurfacePanel className="mb-4 sm:mb-6">
+          <div>
             <h3 className="mb-3 text-base font-medium text-dark-400 sm:mb-4 sm:text-lg">
-              Pending requests ({filteredPending.length})
+              Pending Make-Admin Privilege Requests ({filteredPending.length})
             </h3>
             <DataTable
               columns={pendingColumns}
               data={filteredPending}
               emptyMessage={
                 <AdminFilterEmptyState
-                  entityLabel="pending admin requests"
+                  entityLabel="pending make-admin privilege requests"
                   filtered={hasActiveFilters}
                   onClear={clearFilters}
-                  blankMessage="No pending admin requests."
+                  blankMessage="No pending make-admin privilege requests yet."
                   className="py-4 sm:py-6"
                 />
               }
               initialPageSize={10}
             />
-          </AdminSurfacePanel>
+          </div>
 
-          <AdminSurfacePanel>
-            <h3 className="mb-3 text-base font-medium text-dark-400 sm:mb-4 sm:text-lg">
-              Recent decisions ({filteredDecisions.length})
-            </h3>
+          <div>
+            <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-base font-medium text-dark-400 sm:text-lg">
+                Recent Make-Admin Privilege Decisions (
+                {periodFilteredDecisionCount})
+              </h3>
+              <FilterSelect
+                label="Period"
+                variant="light"
+                labelLayout="embedded"
+                value={decisionPeriod}
+                onValueChange={(v) => setDecisionPeriod(v as ListPeriod)}
+                options={PERIOD_OPTIONS}
+                placeholder="Period"
+                className="w-full sm:w-44 sm:min-w-[170px]"
+              />
+            </div>
             <DataTable
               columns={decisionColumns}
               data={filteredDecisions}
               emptyMessage={
                 <AdminFilterEmptyState
-                  entityLabel="recent decisions"
-                  filtered={hasActiveFilters}
-                  onClear={clearFilters}
-                  blankMessage="No recent admin request decisions."
+                  entityLabel="recent make-admin privilege decisions"
+                  filtered={hasActiveFilters || decisionPeriod !== "all"}
+                  onClear={() => {
+                    clearFilters();
+                    setDecisionPeriod("all");
+                  }}
+                  blankMessage="No recent make-admin privilege decisions yet."
                   className="py-4 sm:py-6"
                 />
               }
               initialPageSize={10}
             />
-          </AdminSurfacePanel>
+          </div>
         </section>
       </AdminPageShell>
 

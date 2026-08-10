@@ -37,6 +37,7 @@ Browser
 - Tip `bce8637`: `AdminPageShell` (header → StatCardGrid → panel); no KPI top bar; no page-root overflow clip.
 - Activity History: admin-visible lifecycle audit (borrow create, reservation/renewal, registration re-apply, Automation exports) + Entity routes (ops/export/recs → `/admin/automation`); PrefetchLink staleTime 0; recs densify blocks SSR featured reseed.
 - Admin people: Registration Queue · Admin Requests · User Management; detail routes for signup + make-admin; User 360 privilege/tickets/reviews/activity; signup/request detail RQ densify; PrefetchLink UUID warm (`staleTime: 0`).
+- People tables (2026-08-10): DataTable ticket sizing; `DecisionActorStack` (badge·by·actor·`DecisionDateMeta`); `CopyableText`/`UserRoleBadge`; `statusReviewed*` join densify; queues FIFO-50 + period filter; Applicant Requested/Registered under stack.
 - Cross-domain densify (2026-08-10): `review.write` RSC `/admin`; AdminBooksList prefer densify-empty over SSR; ticket detail `auditEvents` + `densifyTicketDetailAudit`; PrefetchLink my-profile/`book-detail` `staleTime: 0`.
 
 ## Admin Stockly chrome (2026-08-07)

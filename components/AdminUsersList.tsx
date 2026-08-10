@@ -1,14 +1,18 @@
 "use client";
 
 /**
- * Admin Users directory — roles/status only.
- * Make-admin queue lives at /admin/admin-requests (separate IA).
+ * Admin Users directory — roles/status + densified Admin pending KPI.
+ * Make-admin queue stays at /admin/admin-requests (KPI links there).
  * Mutations use commitMutationCache densify (user.write / admin-request.write).
  */
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrefetchLink from "@/components/PrefetchLink";
+import PersonAttribution from "@/components/PersonAttribution";
+import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
+import CopyableText from "@/components/ui/CopyableText";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +40,7 @@ import {
 import { useSession } from "next-auth/react";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAllUsers } from "@/hooks/useQueries";
+import { useAllUsers, useAdminNavCounts } from "@/hooks/useQueries";
 import { ADMIN_USERS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
   useUpdateUserRole,
@@ -73,11 +77,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
-import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
-import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
-import { AccountStatusBadge } from "@/lib/ui/semanticBadges";
+import { UserRoleBadge } from "@/lib/ui/semanticBadges";
 import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
-import { cn } from "@/lib/utils";
 
 interface AdminUsersListProps {
   initialUsers?: User[];
@@ -109,10 +110,14 @@ function UserRowActions({
   const detailHref = `/admin/users/${user.id}`;
 
   if (isProtectedDemoAccount(user)) {
+    // Stacked Lock + Demo — fits Actions col size 64 (avoid inline "Demo account").
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-gray-500 sm:text-sm">
+      <span
+        className="inline-flex max-w-[3.25rem] flex-col items-center gap-0.5 leading-none text-gray-500"
+        title="Demo account"
+      >
         <Lock className="size-3.5 shrink-0" aria-hidden />
-        Demo account
+        <span className="text-xs font-medium">Demo</span>
       </span>
     );
   }
@@ -295,6 +300,10 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     error: usersErrorData,
   } = useAllUsers(filters, initialUsersData);
 
+  /** Shared with sidebar — densify via patchAdminNavCounts on admin-request.write. */
+  const { data: navCounts } = useAdminNavCounts();
+  const pendingAdminRequests = navCounts?.pendingAdminRequests ?? 0;
+
   const updateUserRoleMutation = useUpdateUserRole();
   const approveUserMutation = useApproveUser();
   const rejectUserMutation = useRejectUser();
@@ -413,8 +422,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   ) => {
     const user = users.find((u) => u.id === userId);
     const su = session?.user as
-      | { id?: string; name?: string | null; email?: string | null }
-      | undefined;
+      { id?: string; name?: string | null; email?: string | null } | undefined;
     const decisionActor =
       su?.email && (su.name || su.email)
         ? {
@@ -446,14 +454,16 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     return (
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-medium sm:text-xl">User Management</h2>
+          <h2 className="text-lg font-medium sm:text-xl">
+            Library User/Admin Management
+          </h2>
         </div>
-        <div className="mt-4 w-full overflow-hidden sm:mt-7">
+        <div className="mt-4 w-full sm:mt-7">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-200">
               <thead>
                 <tr className="bg-gray-50">
-                  {[...Array(7)].map((_, i) => (
+                  {[...Array(5)].map((_, i) => (
                     <th
                       key={`header-${i}`}
                       className="border border-gray-200 px-2 py-1.5 text-left text-xs sm:px-4 sm:py-2 sm:text-sm"
@@ -506,75 +516,109 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const userColumns: ColumnDef<User>[] = [
     {
       accessorKey: "fullName",
+      size: 260,
+      minSize: 200,
       header: ({ column }) => (
-        <SortableHeader column={column}>Name</SortableHeader>
+        <SortableHeader column={column}>Users</SortableHeader>
       ),
-      cell: ({ row }) => (
-        <PrefetchLink
-          prefetch={false}
-          href={`/admin/users/${row.original.id}`}
-          className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
-        >
-          {row.original.fullName}
-        </PrefetchLink>
-      ),
-    },
-    {
-      accessorKey: "email",
-      header: ({ column }) => (
-        <SortableHeader column={column}>Email</SortableHeader>
-      ),
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {row.original.email}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const u = row.original;
+        return (
+          <div
+            className="flex min-w-0 flex-col leading-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PersonAttribution
+              layout="stack"
+              size={36}
+              href={`/admin/users/${u.id}`}
+              person={{
+                id: u.id,
+                fullName: u.fullName,
+                email: u.email,
+                universityCard: u.universityCard ?? null,
+              }}
+              meta={
+                <TicketDateMeta
+                  createdAt={u.createdAt}
+                  createdLabel="Joined"
+                  hideUpdated
+                />
+              }
+            />
+          </div>
+        );
+      },
     },
     {
       accessorKey: "universityId",
+      size: 130,
+      minSize: 110,
       header: ({ column }) => (
         <SortableHeader column={column}>University ID</SortableHeader>
+      ),
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <CopyableText
+            value={String(row.original.universityId)}
+            label="university ID"
+          />
+        </div>
       ),
     },
     {
       accessorKey: "role",
+      size: 110,
+      minSize: 96,
       header: "Role",
       cell: ({ row }) => (
-        <span
-          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${
-            row.original.role === "ADMIN"
-              ? "bg-purple-100 text-purple-800"
-              : "bg-blue-100 text-blue-800"
-          }`}
-        >
-          {row.original.role}
-        </span>
+        <div className="inline-flex">
+          <UserRoleBadge role={row.original.role} />
+        </div>
       ),
     },
     {
       accessorKey: "status",
+      size: 220,
+      minSize: 180,
       header: ({ column }) => (
         <SortableHeader column={column}>Status</SortableHeader>
       ),
-      cell: ({ row }) => (
-        <AccountStatusBadge status={row.original.status || "PENDING"} />
-      ),
-    },
-    {
-      accessorKey: "createdAt",
-      header: ({ column }) => (
-        <SortableHeader column={column}>Joined</SortableHeader>
-      ),
-      cell: ({ row }) =>
-        row.original.createdAt
-          ? new Date(row.original.createdAt).toLocaleDateString()
-          : "N/A",
-      sortingFn: (a, b) =>
-        (a.original.createdAt ? new Date(a.original.createdAt).getTime() : 0) -
-        (b.original.createdAt ? new Date(b.original.createdAt).getTime() : 0),
+      cell: ({ row }) => {
+        const u = row.original;
+        const status = u.status || "PENDING";
+        const showActor =
+          (status === "APPROVED" || status === "REJECTED") &&
+          Boolean(u.statusReviewedById || u.statusReviewedByName);
+        return (
+          <DecisionActorStack
+            status={status}
+            showActor={showActor}
+            actor={
+              u.statusReviewedById || u.statusReviewedByName
+                ? {
+                    id: u.statusReviewedById ?? "",
+                    fullName: u.statusReviewedByName ?? "an admin",
+                    email: u.statusReviewedByEmail ?? "",
+                    universityCard:
+                      u.statusReviewedByUniversityCard ?? null,
+                  }
+                : null
+            }
+            actorHref={
+              u.statusReviewedById
+                ? `/admin/users/${u.statusReviewedById}`
+                : null
+            }
+            decidedAt={u.statusReviewedAt}
+          />
+        );
+      },
     },
     {
       id: "actions",
+      size: 64,
+      minSize: 56,
       header: "Actions",
       cell: ({ row }) => {
         const user = row.original;
@@ -599,43 +643,60 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       <AdminPageShell
         header={
           <AdminPageHeader
-            title="User Management"
-            description="Directory of library accounts and roles"
+            title="User/Admin Management"
+            description="Directory of library accounts, roles, and pending admin requests"
             icon={UsersIcon}
           />
         }
         kpis={
           <StatCardGrid>
             <StatCard
-              title="Total Users"
+              title="All Accounts"
               value={universeUsers.length}
               icon={UsersIcon}
               hue="blue"
             />
             <StatCard
-              title="Approved"
+              title="Approved Accounts"
               value={approvedUserCount}
               icon={UserCheck}
               hue="emerald"
             />
             <StatCard
-              title="Pending"
+              title="Registration Pending"
               value={pendingUserCount}
               icon={Hourglass}
               hue="amber"
             />
             <StatCard
-              title="Rejected"
+              title="Rejected Accounts"
               value={rejectedUserCount}
               icon={XCircle}
               hue="rose"
             />
             <StatCard
-              title="Admins"
+              title="Admin Accounts"
               value={adminUserCount}
               icon={UserCog}
               hue="violet"
             />
+            <PrefetchLink
+              href="/admin/admin-requests"
+              className="block rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`Admin Pending: ${pendingAdminRequests}. Open Admin Requests.`}
+            >
+              <StatCard
+                title="Admin Pending"
+                value={pendingAdminRequests}
+                icon={Shield}
+                hue="slate"
+                badges={
+                  pendingAdminRequests > 0
+                    ? [{ label: "Open Queue", hue: "amber" }]
+                    : undefined
+                }
+              />
+            </PrefetchLink>
           </StatCardGrid>
         }
       >
@@ -664,7 +725,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           )}
 
           <AdminListToolbar
-            title="User Management"
+            title="Library User/Admin Management"
             count={users.length}
             chips={
               <DismissibleFilterChips
@@ -740,7 +801,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
             />
           </AdminListToolbar>
 
-          <div className="mt-4 w-full overflow-hidden sm:mt-7">
+          <div className="mt-4 w-full sm:mt-7">
             <DataTable
               columns={userColumns}
               data={users}

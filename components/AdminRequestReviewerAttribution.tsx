@@ -3,9 +3,11 @@
 /**
  * Compact reviewer line for admin-request / signup decisions.
  * Thin wrapper around PersonAttribution (avatar + Name · email + optional profile link).
+ * Pass meta (DecisionDateMeta) for stack under-email date; forces layout="stack".
  * Pass variant="dark" on root/profile glass; default light for admin white panels.
  */
 
+import type { ReactNode } from "react";
 import PersonAttribution from "@/components/PersonAttribution";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
@@ -21,6 +23,8 @@ type AdminRequestReviewerAttributionProps = {
   linkClassName?: string;
   /** dark = root/profile glass; light = admin white (default). */
   variant?: "light" | "dark";
+  /** DecisionDateMeta under email — switches to stack layout. */
+  meta?: ReactNode;
 };
 
 export default function AdminRequestReviewerAttribution({
@@ -32,6 +36,7 @@ export default function AdminRequestReviewerAttribution({
   href = null,
   linkClassName,
   variant = "light",
+  meta,
 }: AdminRequestReviewerAttributionProps) {
   return (
     <PersonAttribution
@@ -43,8 +48,9 @@ export default function AdminRequestReviewerAttribution({
       emptyLabel="an admin"
       href={href}
       linkClassName={linkClassName}
-      layout="inline"
+      layout={meta ? "stack" : "inline"}
       variant={variant}
+      meta={meta}
     />
   );
 }

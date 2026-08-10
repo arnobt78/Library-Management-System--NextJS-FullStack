@@ -13,14 +13,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  CalendarPlus,
   CheckCircle2,
   Clock,
   Eye,
   Library,
   Loader2,
   MoreVertical,
-  ShieldCheck,
   Star,
   Trash2,
   X,
@@ -45,6 +43,8 @@ import {
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
+import { DecisionDateMeta } from "@/components/support-tickets/DecisionDateMeta";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
@@ -70,7 +70,6 @@ import {
 import { useSession } from "next-auth/react";
 import { LIGHT_ALERT, LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
-import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
 import { cn } from "@/lib/utils";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
@@ -418,12 +417,14 @@ export default function BookReviewList({
                   email: r.userEmail,
                   universityCard: r.userUniversityCard,
                 }}
+                meta={
+                  <TicketDateMeta
+                    createdAt={r.createdAt}
+                    createdLabel="Submitted"
+                    hideUpdated
+                  />
+                }
               />
-              <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-700">
-                <CalendarPlus className="size-3 shrink-0 opacity-80" aria-hidden />
-                <span className="opacity-70">Submitted</span>{" "}
-                {formatMediumDateTime(r.createdAt)}
-              </p>
             </div>
           );
         },
@@ -506,26 +507,13 @@ export default function BookReviewList({
                   email: r.reviewedByEmail || "",
                   universityCard: r.reviewedByUniversityCard,
                 }}
-              />
-              {r.reviewedAt ? (
-                <p
-                  className={cn(
-                    "mt-0.5 inline-flex items-center gap-1 text-[10px]",
-                    r.status === "REJECTED"
-                      ? "text-rose-700"
-                      : "text-emerald-700",
-                  )}
-                >
-                  <ShieldCheck
-                    className="size-3 shrink-0 opacity-80"
-                    aria-hidden
+                meta={
+                  <DecisionDateMeta
+                    status={r.status}
+                    at={r.reviewedAt}
                   />
-                  <span className="opacity-70">
-                    {r.status === "REJECTED" ? "Rejected" : "Approved"}
-                  </span>{" "}
-                  {formatMediumDateTime(r.reviewedAt)}
-                </p>
-              ) : null}
+                }
+              />
             </div>
           );
         },

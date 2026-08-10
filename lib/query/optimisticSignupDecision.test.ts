@@ -34,7 +34,7 @@ describe("applyOptimisticSignupDecision", () => {
   it("removes pending user and prepends a Recent decision; rollback restores both", async () => {
     const client = new QueryClient();
     const pendingKey = queryKeys.users.pending();
-    const decisionsKey = queryKeys.users.signupDecisions(25);
+    const decisionsKey = queryKeys.users.signupDecisions(50);
     const priorDecision: SignupStatusDecision = {
       id: "old-1",
       userId: "u-0",

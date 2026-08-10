@@ -11,8 +11,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { requireAdminActor } from "@/lib/auth/authorization";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
-
-const RECENT_SIGNUP_DECISIONS_LIMIT = 25;
+import { RECENT_SIGNUP_DECISIONS_LIMIT } from "@/lib/admin/signupDecisionConstants";
 
 const applicantUsers = alias(users, "signup_status_decision_applicant");
 const decisionActorUsers = alias(users, "signup_status_decision_actor");

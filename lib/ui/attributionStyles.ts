@@ -4,8 +4,8 @@
  * Parent: REQ-0035 / REQ-0033 attribution polish
  */
 
-/** Prefix + ReviewDateMeta chip size (Submitted / Approved / …). */
-export const ATTRIBUTION_META_SIZE = "text-[10px] sm:text-xs";
+/** Prefix + Joined / decision meta — text-xs only (no text-[10px]). */
+export const ATTRIBUTION_META_SIZE = "text-xs";
 
 /** Dark glass meta label (Submitted, Approved by). */
 export const ATTRIBUTION_META_TONE_DARK = "text-light-100";
@@ -35,3 +35,15 @@ export const ATTRIBUTION_EMAIL_TONE = "text-muted-foreground";
 
 /** Table / attribution names — normal weight (headers keep font-medium). */
 export const ATTRIBUTION_NAME_WEIGHT = "font-normal";
+
+/**
+ * “by” label beside Decision & Actor status badges (Users / queues).
+ * Withdrawn make-admin decisions use slate; reject = rose; approve/pending = emerald.
+ */
+export function decisionActorByTone(
+  status: string,
+  options?: { withdrawn?: boolean },
+): string {
+  if (options?.withdrawn) return "text-slate-500";
+  return status === "REJECTED" ? "text-rose-600" : "text-emerald-600";
+}

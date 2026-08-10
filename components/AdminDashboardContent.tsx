@@ -192,150 +192,150 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         />
       }
       kpis={
-      <StatCardGrid>
-        <StatCard
-          title="Total Users"
-          value={totalUsers}
-          icon={Users}
-          hue="blue"
-          badges={[
-            {
-              label: `${approvedUsers} approved`,
-              hue: "emerald",
-              icon: CheckCircle2,
-            },
-            {
-              label: `${pendingUsers} pending sign-ups`,
-              hue: "amber",
-              icon: Clock,
-            },
-            ...(rejectedUsers > 0
-              ? [
-                  {
-                    label: `${rejectedUsers} rejected`,
-                    hue: "rose" as const,
-                    icon: XCircle,
-                  },
-                ]
-              : []),
-          ]}
-        />
-        <StatCard
-          title="Total Books"
-          value={totalBooks}
-          icon={BookMarked}
-          hue="emerald"
-          badges={[
-            {
-              label: `${activeBooks} active`,
-              hue: "emerald",
-              icon: CheckCircle2,
-            },
-            {
-              label: `${inactiveBooks} inactive`,
-              hue: "rose",
-              icon: Ban,
-            },
-          ]}
-        />
-        <StatCard
-          title="Active Borrows"
-          value={activeBorrows}
-          icon={BookOpenCheck}
-          hue="violet"
-          badges={[
-            {
-              label: `${pendingBorrows} pending`,
-              hue: "amber",
-              icon: Clock,
-            },
-            {
-              label: `${returnedBooks} returned`,
-              hue: "emerald",
-              icon: CheckCircle2,
-            },
-            {
-              label: `${cancelledBorrows} cancelled`,
-              hue: "slate",
-              icon: Ban,
-            },
-          ]}
-        />
-        <StatCard
-          title="Admins"
-          value={adminUsers}
-          icon={ShieldCheck}
-          hue="slate"
-          badges={[
-            {
-              label: `${pendingAdminRequests} pending requests`,
-              hue: "amber",
-              icon: Clock,
-            },
-            {
-              label: `${rejectedAdminRequests} rejected`,
-              hue: "rose",
-              icon: XCircle,
-            },
-          ]}
-        />
-        <StatCard
-          title="Open Tickets"
-          value={openTicketsValue}
-          valueLoading={
-            ticketCountLoading &&
-            statsOpenTicketCount === undefined &&
-            openTicketCount === undefined
-          }
-          icon={Ticket}
-          hue="rose"
-          badges={[
-            {
-              label: `${ticketsOpen} open`,
-              hue: "rose",
-              icon: Ticket,
-            },
-            {
-              label: `${ticketsInProgress} in progress`,
-              hue: "amber",
-              icon: Clock,
-            },
-            {
-              label: `${ticketsResolved} resolved`,
-              hue: "emerald",
-              icon: CheckCircle2,
-            },
-            {
-              label: `${ticketsUrgentOpen} urgent open`,
-              hue: "rose",
-              icon: AlertTriangle,
-            },
-          ]}
-        />
-        <StatCard
-          title="Pending Reviews"
-          value={pendingReviewsValue}
-          valueLoading={
-            reviewCountLoading &&
-            statsPendingReviewCount === undefined &&
-            pendingReviewCount === undefined
-          }
-          icon={Star}
-          hue="amber"
-          badges={[
-            {
-              label: `${reviewsApproved} approved`,
-              hue: "emerald",
-              icon: CheckCircle2,
-            },
-            {
-              label: `${reviewsRejected} rejected`,
-              hue: "rose",
-              icon: XCircle,
-            },
-          ]}
-        />
-      </StatCardGrid>
+        <StatCardGrid>
+          <StatCard
+            title="Total Users"
+            value={totalUsers}
+            icon={Users}
+            hue="blue"
+            badges={[
+              {
+                label: `${approvedUsers} approved`,
+                hue: "emerald",
+                icon: CheckCircle2,
+              },
+              {
+                label: `${pendingUsers} pending sign-ups`,
+                hue: "amber",
+                icon: Clock,
+              },
+              ...(rejectedUsers > 0
+                ? [
+                    {
+                      label: `${rejectedUsers} rejected`,
+                      hue: "rose" as const,
+                      icon: XCircle,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          <StatCard
+            title="Total Books"
+            value={totalBooks}
+            icon={BookMarked}
+            hue="emerald"
+            badges={[
+              {
+                label: `${activeBooks} active`,
+                hue: "emerald",
+                icon: CheckCircle2,
+              },
+              {
+                label: `${inactiveBooks} inactive`,
+                hue: "rose",
+                icon: Ban,
+              },
+            ]}
+          />
+          <StatCard
+            title="Active Borrows"
+            value={activeBorrows}
+            icon={BookOpenCheck}
+            hue="violet"
+            badges={[
+              {
+                label: `${pendingBorrows} pending`,
+                hue: "amber",
+                icon: Clock,
+              },
+              {
+                label: `${returnedBooks} returned`,
+                hue: "emerald",
+                icon: CheckCircle2,
+              },
+              {
+                label: `${cancelledBorrows} cancelled`,
+                hue: "slate",
+                icon: Ban,
+              },
+            ]}
+          />
+          <StatCard
+            title="Admins"
+            value={adminUsers}
+            icon={ShieldCheck}
+            hue="slate"
+            badges={[
+              {
+                label: `${pendingAdminRequests} pending requests`,
+                hue: "amber",
+                icon: Clock,
+              },
+              {
+                label: `${rejectedAdminRequests} rejected`,
+                hue: "rose",
+                icon: XCircle,
+              },
+            ]}
+          />
+          <StatCard
+            title="Open Tickets"
+            value={openTicketsValue}
+            valueLoading={
+              ticketCountLoading &&
+              statsOpenTicketCount === undefined &&
+              openTicketCount === undefined
+            }
+            icon={Ticket}
+            hue="rose"
+            badges={[
+              {
+                label: `${ticketsOpen} open`,
+                hue: "rose",
+                icon: Ticket,
+              },
+              {
+                label: `${ticketsInProgress} in progress`,
+                hue: "amber",
+                icon: Clock,
+              },
+              {
+                label: `${ticketsResolved} resolved`,
+                hue: "emerald",
+                icon: CheckCircle2,
+              },
+              {
+                label: `${ticketsUrgentOpen} urgent open`,
+                hue: "rose",
+                icon: AlertTriangle,
+              },
+            ]}
+          />
+          <StatCard
+            title="Pending Reviews"
+            value={pendingReviewsValue}
+            valueLoading={
+              reviewCountLoading &&
+              statsPendingReviewCount === undefined &&
+              pendingReviewCount === undefined
+            }
+            icon={Star}
+            hue="amber"
+            badges={[
+              {
+                label: `${reviewsApproved} approved`,
+                hue: "emerald",
+                icon: CheckCircle2,
+              },
+              {
+                label: `${reviewsRejected} rejected`,
+                hue: "rose",
+                icon: XCircle,
+              },
+            ]}
+          />
+        </StatCardGrid>
       }
     >
       {/* Success Message */}
@@ -550,7 +550,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <div className="space-y-2">
             {recentBorrows.length === 0 ? (
               <p className="text-sm text-gray-500">
-                No recent borrows currently available.
+                No recent borrows history yet.
               </p>
             ) : (
               recentBorrows.map((borrow) => (
@@ -571,7 +571,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           <div className="space-y-2">
             {recentUsers.length === 0 ? (
               <p className="text-sm text-gray-500">
-                No recent users currently available.
+                No recent users signups yet.
               </p>
             ) : (
               recentUsers.map((user) => (

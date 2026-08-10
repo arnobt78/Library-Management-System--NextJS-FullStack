@@ -22,12 +22,15 @@ import {
 } from "lucide-react";
 import PersonAttribution from "@/components/PersonAttribution";
 import PrefetchLink from "@/components/PrefetchLink";
-import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
+import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
+import CopyableText from "@/components/ui/CopyableText";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import UserSkeleton from "@/components/skeletons/UserSkeleton";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { FilterSelect } from "@/components/ui/filter-select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,16 +42,24 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
-import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
-import { usePendingUsers, useSignupStatusDecisions } from "@/hooks/useQueries";
+import {
+  usePendingUsers,
+  useSignupStatusDecisions,
+  useAdminNavCounts,
+} from "@/hooks/useQueries";
 import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
 import type { User as UserType } from "@/lib/services/users";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { AccountStatusBadge } from "@/lib/ui/semanticBadges";
 import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
-import { formatMediumDate, formatMediumDateTime } from "@/lib/ui/formatMediumDate";
-import { cn } from "@/lib/utils";
+import {
+  matchesListPeriod,
+  periodFilterOptions,
+  type ListPeriod,
+} from "@/lib/ui/periodFilterOptions";
+
+const PERIOD_OPTIONS = periodFilterOptions("light");
 
 interface AccountRequestsClientProps {
   initialUsers?: UserType[];
@@ -67,7 +78,10 @@ function matchesPendingSearch(user: UserType, query: string): boolean {
   );
 }
 
-function matchesDecisionSearch(decision: SignupStatusDecision, query: string): boolean {
+function matchesDecisionSearch(
+  decision: SignupStatusDecision,
+  query: string,
+): boolean {
   const q = query.toLowerCase();
   return (
     decision.fullName.toLowerCase().includes(q) ||
@@ -75,29 +89,6 @@ function matchesDecisionSearch(decision: SignupStatusDecision, query: string): b
     String(decision.universityId).includes(q) ||
     (decision.decisionActor?.fullName.toLowerCase().includes(q) ?? false) ||
     (decision.decisionActor?.email.toLowerCase().includes(q) ?? false)
-  );
-}
-
-function DecisionStatusBadge({
-  status,
-}: {
-  status: "APPROVED" | "REJECTED";
-}) {
-  const approved = status === "APPROVED";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium",
-        approved ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800",
-      )}
-    >
-      {approved ? (
-        <CheckCircle className="size-3" aria-hidden />
-      ) : (
-        <XCircle className="size-3" aria-hidden />
-      )}
-      {approved ? "Approved" : "Rejected"}
-    </span>
   );
 }
 
@@ -178,6 +169,9 @@ const AccountRequestsClient = ({
   const currentSearch = searchParamsHook.get("search") || "";
   const [localSearch, setLocalSearch] = useState(currentSearch);
   const lastSyncedSearchRef = React.useRef(currentSearch);
+  /** Recent decisions period — client filter on FIFO-50 feed (default 7days). */
+  const [decisionPeriod, setDecisionPeriod] =
+    useState<ListPeriod>("7days");
 
   React.useEffect(() => {
     if (
@@ -218,6 +212,8 @@ const AccountRequestsClient = ({
   const { data: recentDecisionsData } = useSignupStatusDecisions(
     initialRecentDecisions,
   );
+  const { data: navCounts } = useAdminNavCounts();
+  const pendingAdminRequests = navCounts?.pendingAdminRequests ?? 0;
 
   const approveUserMutation = useApproveUser();
   const rejectUserMutation = useRejectUser();
@@ -238,11 +234,20 @@ const AccountRequestsClient = ({
   }, [pendingUniverse, searchQuery]);
 
   const filteredDecisions = useMemo(() => {
-    if (!searchQuery) return recentUniverse;
-    return recentUniverse.filter((d) =>
-      matchesDecisionSearch(d, searchQuery),
-    );
-  }, [recentUniverse, searchQuery]);
+    return recentUniverse.filter((d) => {
+      if (!matchesListPeriod(d.decidedAt, decisionPeriod)) return false;
+      if (!searchQuery) return true;
+      return matchesDecisionSearch(d, searchQuery);
+    });
+  }, [recentUniverse, searchQuery, decisionPeriod]);
+
+  const periodFilteredDecisionCount = useMemo(
+    () =>
+      recentUniverse.filter((d) =>
+        matchesListPeriod(d.decidedAt, decisionPeriod),
+      ).length,
+    [recentUniverse, decisionPeriod],
+  );
 
   const actionsBusy =
     approveUserMutation.isPending || rejectUserMutation.isPending;
@@ -258,8 +263,7 @@ const AccountRequestsClient = ({
       };
     }
     const su = session?.user as
-      | { id?: string; name?: string | null; email?: string | null }
-      | undefined;
+      { id?: string; name?: string | null; email?: string | null } | undefined;
     if (!su?.email || !(su.name || su.email)) return null;
     return {
       id: su.id ?? null,
@@ -299,65 +303,73 @@ const AccountRequestsClient = ({
   const pendingColumns = useMemo<ColumnDef<UserType>[]>(
     () => [
       {
-        id: "name",
+        id: "applicant",
         accessorKey: "fullName",
+        size: 260,
+        minSize: 200,
         header: ({ column }) => (
-          <SortableHeader column={column}>Name</SortableHeader>
+          <SortableHeader column={column}>Users</SortableHeader>
         ),
         cell: ({ row }) => {
           const u = row.original;
           return (
-            <PersonAttribution
-              person={{
-                id: u.id,
-                fullName: u.fullName,
-                email: u.email,
-                universityCard: u.universityCard ?? null,
-              }}
-              href={`/admin/account-requests/${u.id}`}
-              size={28}
-            />
+            <div
+              className="flex min-w-0 flex-col leading-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PersonAttribution
+                layout="stack"
+                size={36}
+                person={{
+                  id: u.id,
+                  fullName: u.fullName,
+                  email: u.email,
+                  universityCard: u.universityCard ?? null,
+                }}
+                href={`/admin/account-requests/${u.id}`}
+                meta={
+                  <TicketDateMeta
+                    createdAt={u.createdAt}
+                    createdLabel="Registered"
+                    hideUpdated
+                  />
+                }
+              />
+            </div>
           );
         },
       },
       {
-        accessorKey: "email",
-        header: ({ column }) => (
-          <SortableHeader column={column}>Email</SortableHeader>
-        ),
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground sm:text-sm">
-            {row.original.email}
-          </span>
-        ),
-      },
-      {
         accessorKey: "universityId",
+        size: 130,
+        minSize: 110,
         header: ({ column }) => (
           <SortableHeader column={column}>University ID</SortableHeader>
         ),
-      },
-      {
-        accessorKey: "createdAt",
-        header: ({ column }) => (
-          <SortableHeader column={column}>Registered</SortableHeader>
+        cell: ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <CopyableText
+              value={String(row.original.universityId)}
+              label="university ID"
+            />
+          </div>
         ),
-        cell: ({ row }) => formatMediumDate(row.original.createdAt),
-        sortingFn: (a, b) =>
-          (a.original.createdAt
-            ? new Date(a.original.createdAt).getTime()
-            : 0) -
-          (b.original.createdAt
-            ? new Date(b.original.createdAt).getTime()
-            : 0),
       },
       {
         id: "status",
+        size: 118,
+        minSize: 110,
         header: "Status",
-        cell: () => <AccountStatusBadge status="PENDING" />,
+        cell: () => (
+          <div className="inline-flex">
+            <AccountStatusBadge status="PENDING" />
+          </div>
+        ),
       },
       {
         id: "actions",
+        size: 64,
+        minSize: 56,
         header: "Actions",
         cell: ({ row }) => (
           <PendingRowActions
@@ -377,81 +389,78 @@ const AccountRequestsClient = ({
       {
         id: "applicant",
         accessorKey: "fullName",
+        size: 220,
+        minSize: 180,
         header: ({ column }) => (
           <SortableHeader column={column}>Applicant</SortableHeader>
         ),
         cell: ({ row }) => {
           const d = row.original;
           return (
-            <PersonAttribution
-              person={{
-                id: d.userId,
-                fullName: d.fullName,
-                email: d.email,
-                universityCard: d.universityCard,
-              }}
-              href={`/admin/users/${d.userId}`}
-              size={28}
-            />
+            <div
+              className="flex min-w-0 flex-col leading-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PersonAttribution
+                layout="stack"
+                size={36}
+                person={{
+                  id: d.userId,
+                  fullName: d.fullName,
+                  email: d.email,
+                  universityCard: d.universityCard,
+                }}
+                href={`/admin/users/${d.userId}`}
+                meta={
+                  <TicketDateMeta
+                    createdAt={d.createdAt}
+                    createdLabel="Registered"
+                    hideUpdated
+                  />
+                }
+              />
+            </div>
           );
         },
       },
       {
-        id: "decision",
-        accessorKey: "status",
-        header: "Decision",
+        accessorKey: "universityId",
+        size: 130,
+        minSize: 110,
+        header: ({ column }) => (
+          <SortableHeader column={column}>University ID</SortableHeader>
+        ),
         cell: ({ row }) => (
-          <DecisionStatusBadge status={row.original.status} />
+          <div onClick={(e) => e.stopPropagation()}>
+            <CopyableText
+              value={String(row.original.universityId)}
+              label="university ID"
+            />
+          </div>
         ),
       },
       {
         id: "actor",
-        header: "Actor",
+        size: 220,
+        minSize: 180,
+        header: "Decision & Actor",
         cell: ({ row }) => {
           const d = row.original;
+          // Badge → signup detail (parity with Admin Requests DecisionStatus link).
           return (
-            <AdminRequestReviewerAttribution
-              reviewer={d.decisionActor}
-              prefix={
-                d.status === "APPROVED" ? "Approved by" : "Rejected by"
-              }
-              size={28}
-              href={
+            <DecisionActorStack
+              status={d.status}
+              actor={d.decisionActor}
+              actorHref={
                 d.decisionActor?.id
                   ? `/admin/users/${d.decisionActor.id}`
                   : null
               }
+              decidedAt={d.decidedAt}
+              badgeHref={`/admin/account-requests/${d.userId}`}
             />
           );
         },
-      },
-      {
-        accessorKey: "createdAt",
-        header: ({ column }) => (
-          <SortableHeader column={column}>Registered</SortableHeader>
-        ),
-        cell: ({ row }) => formatMediumDate(row.original.createdAt),
-        sortingFn: (a, b) =>
-          (a.original.createdAt
-            ? new Date(a.original.createdAt).getTime()
-            : 0) -
-          (b.original.createdAt
-            ? new Date(b.original.createdAt).getTime()
-            : 0),
-      },
-      {
-        accessorKey: "decidedAt",
-        header: ({ column }) => (
-          <SortableHeader column={column}>Decided</SortableHeader>
-        ),
-        cell: ({ row }) => formatMediumDateTime(row.original.decidedAt),
-        sortingFn: (a, b) =>
-          (a.original.decidedAt
-            ? new Date(a.original.decidedAt).getTime()
-            : 0) -
-          (b.original.decidedAt
-            ? new Date(b.original.decidedAt).getTime()
-            : 0),
       },
     ],
     [],
@@ -462,7 +471,7 @@ const AccountRequestsClient = ({
       <AdminPageShell
         header={
           <AdminPageHeader
-            title="Registration Queue"
+            title="User Registration Queue"
             description="Approve or reject new library sign-ups"
             icon={UserPlus}
           />
@@ -482,7 +491,7 @@ const AccountRequestsClient = ({
       <AdminPageShell
         header={
           <AdminPageHeader
-            title="Registration Queue"
+            title="User Registration Queue"
             description="Approve or reject new library sign-ups"
             icon={UserPlus}
           />
@@ -506,7 +515,7 @@ const AccountRequestsClient = ({
     <AdminPageShell
       header={
         <AdminPageHeader
-          title="Registration Queue"
+          title="User Registration Queue"
           description="Approve or reject new library sign-ups"
           icon={UserPlus}
         />
@@ -514,24 +523,20 @@ const AccountRequestsClient = ({
       kpis={
         <StatCardGrid>
           <StatCard
-            title="Pending"
+            title="Registration Pending"
             value={pendingUniverse.length}
             icon={UserPlus}
             hue="amber"
           />
           <StatCard
-            title="Recent Approved"
-            value={
-              recentUniverse.filter((d) => d.status === "APPROVED").length
-            }
+            title="Decisions Approved"
+            value={recentUniverse.filter((d) => d.status === "APPROVED").length}
             icon={CheckCircle}
             hue="emerald"
           />
           <StatCard
-            title="Recent Rejected"
-            value={
-              recentUniverse.filter((d) => d.status === "REJECTED").length
-            }
+            title="Decisions Rejected"
+            value={recentUniverse.filter((d) => d.status === "REJECTED").length}
             icon={XCircle}
             hue="rose"
           />
@@ -541,12 +546,29 @@ const AccountRequestsClient = ({
             icon={Shield}
             hue="slate"
           />
+          <PrefetchLink
+            href="/admin/admin-requests"
+            className="block rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-label={`Admin Pending: ${pendingAdminRequests}. Open Admin Requests.`}
+          >
+            <StatCard
+              title="Admin Pending"
+              value={pendingAdminRequests}
+              icon={Shield}
+              hue="violet"
+              badges={
+                pendingAdminRequests > 0
+                  ? [{ label: "Open Queue", hue: "amber" }]
+                  : undefined
+              }
+            />
+          </PrefetchLink>
         </StatCardGrid>
       }
     >
-      <section className="admin-panel">
+      <section className="admin-panel space-y-6">
         <AdminListToolbar
-          title="Registration Queue"
+          title="User Registration Queue"
           count={filteredPending.length + filteredDecisions.length}
         >
           <SearchInput
@@ -559,7 +581,7 @@ const AccountRequestsClient = ({
         </AdminListToolbar>
 
         {successMessage ? (
-          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 sm:mb-6 sm:p-4">
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
             <div className="flex items-center gap-2">
               <CheckCircle className="size-4 text-green-500 sm:size-5" />
               <h3 className="text-xs font-medium text-green-800 sm:text-sm">
@@ -573,7 +595,7 @@ const AccountRequestsClient = ({
         ) : null}
 
         {errorMessage ? (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 sm:mb-6 sm:p-4">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
             <div className="flex items-center gap-2">
               <XCircle className="size-4 text-red-500 sm:size-5" />
               <h3 className="text-xs font-medium text-red-800 sm:text-sm">
@@ -583,9 +605,9 @@ const AccountRequestsClient = ({
           </div>
         ) : null}
 
-        <AdminSurfacePanel className="mb-4 sm:mb-6">
+        <div>
           <h3 className="mb-3 text-base font-medium text-dark-400 sm:mb-4 sm:text-lg">
-            Pending requests ({filteredPending.length})
+            Student/User Sign-up Pending Requests ({filteredPending.length})
           </h3>
           <DataTable
             columns={pendingColumns}
@@ -601,27 +623,43 @@ const AccountRequestsClient = ({
             }
             initialPageSize={10}
           />
-        </AdminSurfacePanel>
+        </div>
 
-        <AdminSurfacePanel>
-          <h3 className="mb-3 text-base font-medium text-dark-400 sm:mb-4 sm:text-lg">
-            Recent decisions ({filteredDecisions.length})
-          </h3>
+        <div>
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-base font-medium text-dark-400 sm:text-lg">
+              Recent Student/User Sign-up Decisions (
+              {periodFilteredDecisionCount})
+            </h3>
+            <FilterSelect
+              label="Period"
+              variant="light"
+              labelLayout="embedded"
+              value={decisionPeriod}
+              onValueChange={(v) => setDecisionPeriod(v as ListPeriod)}
+              options={PERIOD_OPTIONS}
+              placeholder="Period"
+              className="w-full sm:w-44 sm:min-w-[170px]"
+            />
+          </div>
           <DataTable
             columns={decisionColumns}
             data={filteredDecisions}
             emptyMessage={
               <AdminFilterEmptyState
-                entityLabel="recent decisions"
-                filtered={hasActiveFilters}
-                onClear={clearFilters}
-                blankMessage="No recent sign-up decisions."
+                entityLabel="recent student/user sign-up decisions"
+                filtered={hasActiveFilters || decisionPeriod !== "all"}
+                onClear={() => {
+                  clearFilters();
+                  setDecisionPeriod("all");
+                }}
+                blankMessage="No recent student/user sign-up decisions yet."
                 className="py-4 sm:py-6"
               />
             }
             initialPageSize={10}
           />
-        </AdminSurfacePanel>
+        </div>
       </section>
     </AdminPageShell>
   );

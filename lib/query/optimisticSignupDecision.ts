@@ -18,8 +18,7 @@ import { queryKeys } from "@/lib/query/keys";
 import type { User } from "@/lib/services/users";
 import { markDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 import { syncPendingSignUpsNav } from "@/lib/utils/patchUserCaches";
-
-const SIGNUP_DECISIONS_CAP = 25;
+import { RECENT_SIGNUP_DECISIONS_LIMIT } from "@/lib/admin/signupDecisionConstants";
 
 export type SignupDecisionOptimisticContext = {
   previousPending: Array<[QueryKey, User[] | undefined]>;
@@ -107,7 +106,7 @@ export async function applyOptimisticSignupDecision(
     { queryKey: queryKeys.users.signupDecisionsRoot },
     (old) => {
       const next = [optimistic, ...(old ?? [])];
-      return next.slice(0, SIGNUP_DECISIONS_CAP);
+      return next.slice(0, RECENT_SIGNUP_DECISIONS_LIMIT);
     },
   );
 
