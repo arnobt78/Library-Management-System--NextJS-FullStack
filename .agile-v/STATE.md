@@ -7,10 +7,10 @@
 - Status: ACTIVE - People IA + densify freshness + cross-domain densify closing via commit/push; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: (pending this commit)
-- Latest HEAD: `2151b8c` (== `origin/main` pre-push)
+- Latest implementation tip: `b9c5e4d` (people IA + densify freshness + cross-domain densify)
+- Latest HEAD: `b9c5e4d`
 - Started: 2026-08-01
-- Last updated: 2026-08-10 (audit OK; commit+push)
+- Last updated: 2026-08-10 (tip-bound + push)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
