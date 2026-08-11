@@ -8,7 +8,7 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `33e4853` (User 360 tables + densify actor card)
-- Latest HEAD: `33e4853`
+- Latest HEAD: `5d67a3e` (== `origin/main`)
 - Started: 2026-08-01
 - Last updated: 2026-08-11 (User 360 polish + densify actor Robohash fix)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
