@@ -29,6 +29,13 @@ export type ReservationRow = {
   queuePosition?: number | null;
   bookTitle?: string;
   readyExpiresAt?: string | null;
+  /** Optional User 360 / profile identity — densify must not wipe if omitted */
+  bookAuthor?: string | null;
+  coverUrl?: string | null;
+  coverColor?: string | null;
+  genre?: string | null;
+  bookRating?: number | null;
+  createdAt?: string | Date | null;
 };
 
 export type ReservationListBaselines = {
@@ -69,13 +76,30 @@ export function snapshotReservationBaselines(
   return { users, queues };
 }
 
+/** Merge patch into row — skip undefined so skinny densify keeps cover/meta. */
+function mergeReservationRow(
+  prev: ReservationRow,
+  patch: ReservationRow,
+): ReservationRow {
+  const next: ReservationRow = { ...prev };
+  for (const [key, value] of Object.entries(patch) as [
+    keyof ReservationRow,
+    ReservationRow[keyof ReservationRow],
+  ][]) {
+    if (value !== undefined) {
+      (next as Record<string, unknown>)[key as string] = value;
+    }
+  }
+  return next;
+}
+
 function upsertReservationRow(
   rows: ReservationRow[],
   row: ReservationRow,
 ): ReservationRow[] {
   const idx = rows.findIndex((r) => r.id === row.id);
   if (idx === -1) return [row, ...rows];
-  return rows.map((r, i) => (i === idx ? { ...r, ...row } : r));
+  return rows.map((r, i) => (i === idx ? mergeReservationRow(r, row) : r));
 }
 
 /**

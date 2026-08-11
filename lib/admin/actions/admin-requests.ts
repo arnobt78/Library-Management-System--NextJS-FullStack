@@ -721,7 +721,7 @@ export async function removeAdminPrivileges(
               id: actor.id,
               fullName: actor.name,
               email: actor.email,
-              universityCard: null as string | null,
+              universityCard: actor.universityCard ?? null,
             },
           }
         : null,

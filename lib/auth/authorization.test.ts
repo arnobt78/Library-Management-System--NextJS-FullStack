@@ -19,6 +19,7 @@ const approvedAdmin = {
   name: "Admin",
   role: "ADMIN" as const,
   status: "APPROVED" as const,
+  universityCard: "/cards/admin.jpg",
 };
 
 describe("server actor policy", () => {
@@ -61,6 +62,23 @@ describe("server actor policy", () => {
         "ADMIN"
       )
     ).toEqual(approvedAdmin);
+  });
+
+  it("carries universityCard for densify attribution", () => {
+    const actor = authorization.validateActor(
+      approvedAdmin.id,
+      approvedAdmin,
+      "ADMIN",
+    );
+    expect(actor.universityCard).toBe("/cards/admin.jpg");
+  });
+
+  it("normalizes missing universityCard to null", () => {
+    const actor = authorization.validateActor(approvedAdmin.id, {
+      ...approvedAdmin,
+      universityCard: null,
+    });
+    expect(actor.universityCard).toBeNull();
   });
 
   it("prevents an ordinary user from modifying another user's record", () => {

@@ -11,6 +11,13 @@ export type UserReservationItem = {
   bookId: string;
   queuePosition: number | null;
   readyExpiresAt: string | null;
+  /** Optional — User 360 SSR / densify may omit */
+  bookAuthor?: string | null;
+  coverUrl?: string | null;
+  coverColor?: string | null;
+  genre?: string | null;
+  bookRating?: number | null;
+  createdAt?: string | Date | null;
 };
 
 /** Fetch signed-in user's active reservations (matches densify user list key). */

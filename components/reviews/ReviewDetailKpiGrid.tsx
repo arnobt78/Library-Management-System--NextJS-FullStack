@@ -1,5 +1,6 @@
 /**
  * Admin book-review detail KPI row — Status · Rating · Genre · Approver.
+ * Status slot carries Decision & Actor DNA (badge + Submitted / DecisionActorStack).
  * Uses DetailKpiShell for ticket-detail chrome parity.
  * Parent: CR-0003 / review detail redesign
  */
@@ -9,20 +10,24 @@ import type { ReactNode } from "react";
 import { CircleDot, Library, ShieldCheck, Star } from "lucide-react";
 import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
 import StarRow from "@/components/ui/StarRow";
-import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import { cn } from "@/lib/utils";
+
+type ReviewStatusValue = "PENDING" | "APPROVED" | "REJECTED";
 
 export function ReviewDetailKpiGrid({
   status,
   rating,
   genre,
+  statusSlot,
   approverSlot,
   variant = "light",
 }: {
   status: ReviewStatusValue;
   rating: number;
   genre?: string | null;
-  /** PersonAttribution or “Pending moderation” placeholder */
+  /** Decision stack: PENDING badge+Submitted or DecisionActorStack when decided */
+  statusSlot: ReactNode;
+  /** Densify Approver person (or pending copy) — kept for KPI parity */
   approverSlot: ReactNode;
   variant?: "light" | "dark";
 }) {
@@ -35,7 +40,7 @@ export function ReviewDetailKpiGrid({
         label="Status"
         hint="Moderation decision"
       >
-        <ReviewStatusBadge status={status} variant={variant} />
+        <div className="min-w-0">{statusSlot}</div>
       </DetailKpiShell>
 
       <DetailKpiShell

@@ -27,6 +27,7 @@ import {
 import {
   ADMIN_REQUEST_REVOKED_REASON,
   ADMIN_REQUEST_WITHDRAWN_REASON,
+  DEFAULT_ADMIN_REQUEST_REASON,
 } from "@/lib/admin/adminRequestConstants";
 import type {
   AdminRequestReviewer,
@@ -196,7 +197,9 @@ export default function MakeAdminRequestForm({
   signupApproval = null,
 }: MakeAdminRequestFormProps) {
   const [reason, setReason] = useState(
-    initialStatus === "PENDING" ? (initialRequestReason ?? "") : "",
+    initialStatus === "PENDING"
+      ? (initialRequestReason ?? "")
+      : (initialRequestReason ?? DEFAULT_ADMIN_REQUEST_REASON),
   );
   const [status, setStatus] = useState<MyAdminRequestStatus | null>(
     initialStatus,
@@ -259,7 +262,8 @@ export default function MakeAdminRequestForm({
 
   const handleClear = () => {
     if (isBusy || isPendingStatus) return;
-    setReason("");
+    // Reseed professional default (same pattern as Decline dialog prefill)
+    setReason(DEFAULT_ADMIN_REQUEST_REASON);
   };
 
   const handleCancelRequest = (e: React.MouseEvent) => {
@@ -273,7 +277,7 @@ export default function MakeAdminRequestForm({
           setCancelOpen(false);
           setStatus("REJECTED");
           setRejectionReason(ADMIN_REQUEST_WITHDRAWN_REASON);
-          setReason("");
+          setReason(DEFAULT_ADMIN_REQUEST_REASON);
           setRequestId(null);
           setReviewedAt(result.data?.reviewedAt ?? new Date());
           if (result.data?.createdAt) setCreatedAt(result.data.createdAt);

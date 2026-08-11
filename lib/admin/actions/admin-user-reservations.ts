@@ -2,7 +2,7 @@
 
 /**
  * Slim admin User 360 reservations loader — same shape as UserReservationItem
- * so circulation.userReservations densify paints the panel.
+ * so circulation.userReservations densify paints the panel (cover/meta included).
  */
 
 import { desc, eq, sql } from "drizzle-orm";
@@ -22,9 +22,15 @@ export async function getAdminUserReservations(
     .select({
       id: reservations.id,
       status: sql<string>`CASE WHEN ${reservations.status} = 'READY' AND ${reservations.readyExpiresAt} <= CURRENT_TIMESTAMP THEN 'EXPIRED' ELSE ${reservations.status} END`,
+      createdAt: reservations.createdAt,
       readyExpiresAt: reservations.readyExpiresAt,
       bookId: books.id,
       bookTitle: books.title,
+      bookAuthor: books.author,
+      coverUrl: books.coverUrl,
+      coverColor: books.coverColor,
+      genre: books.genre,
+      bookRating: books.rating,
     })
     .from(reservations)
     .innerJoin(books, eq(reservations.bookId, books.id))
@@ -41,5 +47,11 @@ export async function getAdminUserReservations(
     readyExpiresAt: row.readyExpiresAt
       ? String(row.readyExpiresAt)
       : null,
+    bookAuthor: row.bookAuthor ?? null,
+    coverUrl: row.coverUrl ?? null,
+    coverColor: row.coverColor ?? null,
+    genre: row.genre ?? null,
+    bookRating: row.bookRating ?? null,
+    createdAt: row.createdAt ?? null,
   }));
 }

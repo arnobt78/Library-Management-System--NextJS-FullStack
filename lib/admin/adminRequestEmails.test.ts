@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ADMIN_REJECTION_REASON } from "@/lib/admin/adminRequestConstants";
+import {
+  DEFAULT_ADMIN_REJECTION_REASON,
+  DEFAULT_ADMIN_REQUEST_REASON,
+} from "@/lib/admin/adminRequestConstants";
 import { buildAdminRequestDecisionEmail } from "@/lib/admin/adminRequestEmails";
+import { adminRequestReasonSchema } from "@/lib/actionInputs";
 
 describe("admin request decision emails", () => {
   it("exports a friendly default decline reason within schema bounds", () => {
@@ -8,6 +12,12 @@ describe("admin request decision emails", () => {
       10,
     );
     expect(DEFAULT_ADMIN_REJECTION_REASON.length).toBeLessThanOrEqual(1000);
+  });
+
+  it("exports a friendly default request reason within schema bounds", () => {
+    expect(adminRequestReasonSchema.parse(DEFAULT_ADMIN_REQUEST_REASON)).toBe(
+      DEFAULT_ADMIN_REQUEST_REASON,
+    );
   });
 
   it("builds approved email with unique subject and actor text", () => {

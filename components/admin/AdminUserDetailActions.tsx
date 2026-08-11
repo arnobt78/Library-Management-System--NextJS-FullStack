@@ -168,6 +168,7 @@ export default function AdminUserDetailActions({
           userName: user.fullName,
           userEmail: user.email,
           userUniversityCard: user.universityCard ?? null,
+          decisionActor,
         },
         { onSuccess: () => setRoleTarget(null) },
       );
@@ -179,6 +180,7 @@ export default function AdminUserDetailActions({
         userName: user.fullName,
         userEmail: user.email,
         userUniversityCard: user.universityCard ?? null,
+        decisionActor,
       },
       { onSuccess: () => setRoleTarget(null) },
     );

@@ -416,6 +416,13 @@ export const useUpdateUserRole = () => {
       userName?: string; // Optional, for toast message
       userEmail?: string;
       userUniversityCard?: string | null;
+      /** SSR currentAdmin — merge card when ledger reviewer lacks universityCard. */
+      decisionActor?: {
+        id?: string | null;
+        fullName: string;
+        email: string;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await updateUserRole(userId, role);
       if (!result.success) {
@@ -455,6 +462,15 @@ export const useUpdateUserRole = () => {
             typeof data.ledger.userUniversityCard === "string"
               ? data.ledger.userUniversityCard
               : null;
+          const reviewer = data.ledger.reviewer
+            ? {
+                ...data.ledger.reviewer,
+                universityCard:
+                  data.ledger.reviewer.universityCard ??
+                  variables.decisionActor?.universityCard ??
+                  null,
+              }
+            : null;
           // Promote returns direct-grant ledger; demote via updateUserRole(USER)
           // delegates to removeAdminPrivileges and returns revoke ledger.
           if (data.role === "ADMIN") {
@@ -472,7 +488,7 @@ export const useUpdateUserRole = () => {
               rejectionReason: null,
               createdAt: new Date(data.ledger.decidedAt),
               updatedAt: new Date(data.ledger.decidedAt),
-              reviewer: data.ledger.reviewer,
+              reviewer,
             });
             return;
           }
@@ -489,7 +505,7 @@ export const useUpdateUserRole = () => {
             rejectionReason: ADMIN_REQUEST_REVOKED_REASON,
             createdAt: new Date(data.ledger.decidedAt),
             updatedAt: new Date(data.ledger.decidedAt),
-            reviewer: data.ledger.reviewer,
+            reviewer,
           });
         },
       });
@@ -2643,6 +2659,13 @@ export const useRemoveAdminPrivileges = () => {
       userName?: string; // Optional, for toast message
       userEmail?: string;
       userUniversityCard?: string | null;
+      /** SSR currentAdmin — merge card when ledger reviewer lacks universityCard. */
+      decisionActor?: {
+        id?: string | null;
+        fullName: string;
+        email: string;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await removeAdminPrivileges(userId);
       if (!result.success) {
@@ -2670,6 +2693,15 @@ export const useRemoveAdminPrivileges = () => {
             },
           });
           if (!data.ledger) return;
+          const reviewer = data.ledger.reviewer
+            ? {
+                ...data.ledger.reviewer,
+                universityCard:
+                  data.ledger.reviewer.universityCard ??
+                  variables.decisionActor?.universityCard ??
+                  null,
+              }
+            : null;
           densifyAdminPrivilegeRevoke(queryClient, {
             id: data.ledger.requestId,
             userId: data.ledger.userId,
@@ -2686,7 +2718,7 @@ export const useRemoveAdminPrivileges = () => {
             rejectionReason: ADMIN_REQUEST_REVOKED_REASON,
             createdAt: new Date(data.ledger.decidedAt),
             updatedAt: new Date(data.ledger.decidedAt),
-            reviewer: data.ledger.reviewer,
+            reviewer,
           });
         },
       });

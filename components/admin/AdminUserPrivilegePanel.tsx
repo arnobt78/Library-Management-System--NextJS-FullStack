@@ -1,17 +1,28 @@
 "use client";
 
 /**
- * User 360 Admin privilege requests — pending banner + history table.
+ * User 360 Admin Privilege Requests — pending banner + 2-col history.
+ * Decision & Actor matches Admin Requests Recent / Users Status (DecisionActorStack).
+ * Pending: AccountStatusBadge + TicketDateMeta Requested (queue parity).
  * Bound to adminPrivilegeHistory RQ so approve/decline densify paints without flash.
  */
 
 import { useState } from "react";
-import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
+import { Shield } from "lucide-react";
+import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
+import {
+  AdminDetailEmptyState,
+  USER_360_TABLE_SCROLL,
+  USER_360_TH,
+} from "@/components/admin/AdminDetailEmptyState";
 import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
+import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import { useAdminPrivilegeHistory } from "@/hooks/useQueries";
+import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
 import type { AdminPrivilegeHistoryEntry } from "@/lib/admin/adminPrivilegeHistory";
+import { AccountStatusBadge } from "@/lib/ui/semanticBadges";
 import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
-import { cn } from "@/lib/utils";
 
 const REASON_SNIPPET_MAX = 80;
 
@@ -19,16 +30,6 @@ function truncateText(text: string, max: number): string {
   const trimmed = text.trim();
   if (trimmed.length <= max) return trimmed;
   return `${trimmed.slice(0, max - 1)}…`;
-}
-
-function adminRequestStatusClass(status: string): string {
-  if (status === "APPROVED") {
-    return "border-emerald-200 bg-emerald-50/90 text-emerald-700";
-  }
-  if (status === "REJECTED") {
-    return "border-rose-200 bg-rose-50/90 text-rose-700";
-  }
-  return "border-amber-200 bg-amber-50/90 text-amber-700";
 }
 
 interface AdminUserPrivilegePanelProps {
@@ -48,18 +49,20 @@ export default function AdminUserPrivilegePanel({
   );
 
   const pending = history.find((r) => r.status === "PENDING");
+  const approvedCount = history.filter((r) => r.status === "APPROVED").length;
+  const rejectedCount = history.filter((r) => r.status === "REJECTED").length;
 
   return (
     <AdminSurfacePanel>
-      <div id="user-360-privilege" className="scroll-mt-24 space-y-3">
-        <div>
-          <h2 className="font-medium">Admin privilege requests</h2>
-          <p className="mt-1 text-xs text-gray-500">
-            Header actions handle pending Approve Admin / Decline.
-          </p>
-        </div>
+      <div id="user-360-privilege" className="scroll-mt-24">
+        <TicketSectionHeader
+          variant="light"
+          icon={<Shield className="size-5" aria-hidden />}
+          title="Admin Privilege Requests"
+          subtitle={`Approved · ${approvedCount} · Rejected · ${rejectedCount} · Admin ledger · Header actions for pending`}
+        />
         {pending ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm">
+          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm">
             <p className="font-medium text-amber-900">
               Pending make-admin request
             </p>
@@ -73,68 +76,71 @@ export default function AdminUserPrivilegePanel({
             ) : null}
           </div>
         ) : null}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2">Status</th>
-                <th>Reason</th>
-                <th>Reviewer</th>
-                <th>Dates</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((req) => (
-                <tr key={req.id} className="border-b last:border-0">
-                  <td className="py-3">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-md border px-2 py-0.5 text-xs font-medium",
-                        adminRequestStatusClass(req.status),
-                      )}
-                    >
-                      {req.status}
-                    </span>
-                  </td>
-                  <td className="max-w-40 text-xs text-gray-600">
-                    {truncateText(
-                      req.rejectionReason || req.requestReason || "—",
-                      REASON_SNIPPET_MAX,
-                    )}
-                  </td>
-                  <td>
-                    {(req.status === "APPROVED" ||
-                      req.status === "REJECTED") && (
-                      <AdminRequestReviewerAttribution
-                        reviewer={req.reviewer}
-                        prefix=""
-                        size={24}
-                        className="text-xs text-gray-600"
-                        textClassName="text-gray-900"
-                      />
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap text-xs text-gray-500">
-                    <div>{formatMediumDateTime(req.createdAt)}</div>
-                    {req.reviewedAt ? (
-                      <div>{formatMediumDateTime(req.reviewedAt)}</div>
-                    ) : null}
-                  </td>
+        {history.length === 0 ? (
+          <AdminDetailEmptyState message="No admin privilege requests for this user yet." />
+        ) : (
+          <div className={USER_360_TABLE_SCROLL}>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className={USER_360_TH}>Decision & Actor</th>
+                  <th className={USER_360_TH}>Reason</th>
                 </tr>
-              ))}
-              {history.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="py-6 text-center text-gray-500"
-                  >
-                    No admin privilege requests
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {history.map((req) => {
+                  const reason = (req.requestReason ?? "").trim();
+                  const decided =
+                    req.status === "APPROVED" || req.status === "REJECTED";
+                  return (
+                    <tr key={req.id} className="border-b last:border-0">
+                      <td className="py-3 align-top">
+                        {decided ? (
+                          <DecisionActorStack
+                            status={req.status}
+                            actor={req.reviewer}
+                            actorHref={
+                              req.reviewer?.id
+                                ? `/admin/users/${req.reviewer.id}`
+                                : null
+                            }
+                            decidedAt={req.reviewedAt}
+                            withdrawn={
+                              req.rejectionReason ===
+                              ADMIN_REQUEST_WITHDRAWN_REASON
+                            }
+                          />
+                        ) : (
+                          <div className="flex min-w-0 flex-col gap-1 leading-none">
+                            {/* self-start: avoid flex-col stretch making badge full-width */}
+                            <span className="inline-flex self-start">
+                              <AccountStatusBadge status="PENDING" />
+                            </span>
+                            <TicketDateMeta
+                              createdAt={req.createdAt}
+                              createdLabel="Requested"
+                              hideUpdated
+                            />
+                          </div>
+                        )}
+                      </td>
+                      <td className="max-w-48 py-3 align-top">
+                        <span
+                          className="text-xs text-gray-600 sm:text-sm"
+                          title={reason || undefined}
+                        >
+                          {reason
+                            ? truncateText(reason, REASON_SNIPPET_MAX)
+                            : "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </AdminSurfacePanel>
   );

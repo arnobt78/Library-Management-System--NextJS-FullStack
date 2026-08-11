@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Unified User 360 header — entry-aware Back + person + badges + inline actions.
- * entry=registration → Registration Queue; privilege → Admin Requests; else All users.
+ * Unified User 360 header — entry-aware Back + person + glass badges + actions.
+ * entry=registration → Registration Queue; privilege → Admin Requests; else All Users.
  */
 
 import { useEffect, useState } from "react";
@@ -10,13 +10,14 @@ import { ArrowLeft } from "lucide-react";
 import PersonAttribution from "@/components/PersonAttribution";
 import AdminUserDetailActions from "@/components/admin/AdminUserDetailActions";
 import type { AdminUser360Entry } from "@/components/admin/AdminUserRegistrationPanel";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import { useAdminUserDetail } from "@/hooks/useQueries";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type { User } from "@/lib/services/users";
-import { AccountStatusBadge } from "@/lib/ui/semanticBadges";
+import {
+  AccountStatusBadge,
+  UserRoleBadge,
+} from "@/lib/ui/semanticBadges";
 
 interface AdminUserDetailHeaderClientProps {
   initialUser: User;
@@ -27,12 +28,18 @@ interface AdminUserDetailHeaderClientProps {
 
 function backNav(entry: AdminUser360Entry): { href: string; label: string } {
   if (entry === "registration") {
-    return { href: "/admin/account-requests", label: "Back to queue" };
+    return {
+      href: "/admin/account-requests",
+      label: "Back to Registration Queue",
+    };
   }
   if (entry === "privilege") {
-    return { href: "/admin/admin-requests", label: "Back to queue" };
+    return {
+      href: "/admin/admin-requests",
+      label: "Back to Admin Requests",
+    };
   }
-  return { href: "/admin/users", label: "All users" };
+  return { href: "/admin/users", label: "Back to All Users" };
 }
 
 export default function AdminUserDetailHeaderClient({
@@ -62,15 +69,15 @@ export default function AdminUserDetailHeaderClient({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button
+        {/* Ticket/review detail back link pattern */}
+        <button
           type="button"
-          variant="ghost"
-          className="gap-1.5 px-2 text-gray-600 hover:text-gray-900"
           onClick={handleBack}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-admin"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-4" aria-hidden />
           {backLabel}
-        </Button>
+        </button>
         <AdminUserDetailActions
           user={{
             id: user.id,
@@ -87,7 +94,7 @@ export default function AdminUserDetailHeaderClient({
         />
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
+        <div className="min-w-0 flex-1">
           <PersonAttribution
             layout="stack"
             size={40}
@@ -99,12 +106,9 @@ export default function AdminUserDetailHeaderClient({
               universityCard: user.universityCard ?? null,
             }}
           />
-          <p className="text-sm text-gray-500">
-            University ID {user.universityId}
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>{user.role ?? "USER"}</Badge>
+          <UserRoleBadge role={user.role ?? "USER"} />
           <AccountStatusBadge status={user.status || "PENDING"} />
         </div>
       </div>

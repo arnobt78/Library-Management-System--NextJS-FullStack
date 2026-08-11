@@ -90,8 +90,9 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Borrow soft-cancel: migration `0013` adds `CANCELLED`; reject pending → keep row (history), not DELETE.
 - Admin privilege ledger: All Users/bulk Make Admin → `adminPrivilegeLedger` (approve PENDING or insert `ADMIN_REQUEST_DIRECT_GRANT_REASON`); demote/`updateUserRole(USER)` → `removeAdminPrivileges` revoke. Invalidate `admin-request.write`.
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
+- Densify actor card: `AuthorizedActor.universityCard` from DB; Make Admin/demote densify returns real card (no Robohash flash); client merges SSR `decisionActor` card as belt.
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `a905b6f` / HEAD `6b1b11c`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `a905b6f` / HEAD `a90ccb3`; Wave 5/EvalGate FAIL still blocks C2 Gate 2 (nonlocal evidence).
 - CR-0003 (REQ-0034–0037): tickets + review mod + activity FIFO-50 + bell + KPIs/tables; mig `0014`; `ticket.write` + `patchTicketCaches*`; Zod ticket/review; bell SSR unread; My Reviews SSR; reply thread single-source; Prove 110 tests.
 - Ticket UI polish: person stack; KPI/section/date/activity; `CARD_PAD` p-2/sm:p-4 (also `.admin-container` + api-docs/status/performance); `LIGHT_GLASS_CTA` primary-admin/red-800; Tailwind `./lib/**`; sky links; edit dialog; densify + back-nav. Instrumentation removed.
 - Densify Waves A–C + review CRUD: `patchBorrowCaches*`; `optimisticAdminRequestDecision`; await `book.write`; `patchReviewCaches*` (create/update/delete/moderate). Approve **upserts** public `book-reviews` (admin soft-nav). Gold: snapshot → await invalidate → re-patch. Prove 120 tests.
@@ -99,8 +100,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Attribution + book SSR: `attributionStyles`; `/books/[id]` SSR moderator join; make-admin/notice `variant="dark"`.
 - Review Approver densify: `resolveReviewModeratorForDensify` + moderate API moderator fields + SSR `currentAdmin` (never cache `"an admin"`).
 - Moderate toast: `showToast.pending` until success/error; edit soft-nav seeds admin queue via `publicReviewToAdminItem`.
-- Table UI: `tableCellStyles` (header medium / cell titles normal); emails `text-xs` under names; Book Reviews title→`/books/[id]` PrefetchLink (`book-detail` warm), comment→review detail.
-- Admin review detail: ticket shells (`DetailKpiShell`/`ReviewDetailKpiGrid`/About|Description); `ReviewBorrowMeta`; `ModerateReviewAlertDialog` (list+detail); per-status spinner; Approve `text-white`.
+- Table UI: `tableCellStyles`; Book Reviews Decision & Actor via `DecisionActorStack` + `DecisionDateMeta` nowrap (no separate Approver col); title→`/books/[id]` PrefetchLink.
+- Admin review detail: Status KPI/About = PENDING badge+Submitted or `DecisionActorStack`; ticket shells; `ModerateReviewAlertDialog`.
 - Seed wipe: `seed:reset` also clears tickets/replies/notifications/activity_logs.
 - Debug: agent ingest relay removed; CSP still blocks browser→`127.0.0.1` ingest.
 - Mutation gateway: `commitMutationCache` + densify registry; PrefetchLink `"use client"`; Redis still rate-limit only.
@@ -114,5 +115,11 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Activity History: `await logActivity` before revalidate (borrow create/approve/return, reservation/renewal, registration re-apply, admin CRUD); Entity borrow→queue, admin-request→user 360, reservation→book edit via `bookId`; REJECTED user/review linkable; `densifyActivityLog` cold-seeds `7days`; PrefetchLink users/tickets `staleTime:0`; recs densify marks featured empty (no SSR reseed). Automation exports: `logAdminExportActivity` + client blob download densify (`operations.write`); null-id ops/export/recs Entity → `/admin/automation`. Bulk Automation UI still Coming Soon.
 - Admin people IA: Registration Queue + Admin Requests + User Directory; **unified User 360** (`AdminUser360Shell`) on users / account-requests / admin-requests (`entry` directory|registration|privilege); Approve Admin/Decline vs Make Admin via `pendingAdminRequestId`; deleted detail-only clients.
 - User 360 densify: privilege history + reservations (`userReservations`) + activity (`activityLog.user` / `activityHistoryForUserWhere`); `prefetchAdminUser360Caches`; Insights SSR-only (no invent formula densify); `seedFromSsrIfEmpty` on privilege/activity/reservations.
+- User 360 UI polish: `UserRoleBadge` header; ticket-style Back; `TicketSectionHeader`+Lucide Title Case cards; Applicant parties micro-labels; `USER_360_TH` + centered `AdminDetailEmptyState`.
+- User 360 layout: dual `DetailKpiShell` 4-up (status + borrow health); ledger counts in Timeline/Privilege subtitles; Applicant fields‖card; body rows A–E `lg:grid-cols-2`, tickets full width.
+- User 360 status KPIs: `AdminUser360StatusKpiRow` densifies Reg/Privilege via `signupRequestDetail`/`users.detail` (header/panel keys); Fine/Overdue SSR.
+- Field labels: `lib/ui/fieldLabelStyles` (`FIELD_LABEL_ROW`/`TEXT`, `leading-none`) — Applicant icon+text optical middle; ticket/review micro-labels.
+- User 360 privilege table: 2-col Decision & Actor | Reason (`DecisionActorStack` / pending `TicketDateMeta`); `DEFAULT_ADMIN_REQUEST_REASON` prefills `/make-admin`.
+- User 360 tables: `USER_360_TABLE` table-fixed + Book truncate; Borrowing 44/34/10/12; Reviews 44/12/44 title→book + sky “View review detail”; Status = PENDING Submitted or `DecisionActorStack` (SSR moderator join); Reservations badge→medium Requested; phone-only scroll; section titles `Name (n)`; Activity FIFO-25 (User 360 only; global stays 50).
 - Cross-domain densify: `review.write` RSC `/admin`; AdminBooksList densify-empty over SSR; ticket detail `auditEvents` densify; PrefetchLink my-profile/`book-detail` staleTime 0.
 - Admin people tables: ticket sizing; `PersonAttribution`+`TicketDateMeta`; `UserRoleBadge`+`CopyableText`; shared `DecisionActorStack` (Users Status + Recent Decision & Actor; badge PrefetchLink to detail); FIFO-50 + client period filter; Status densify via `statusReviewed*` join.

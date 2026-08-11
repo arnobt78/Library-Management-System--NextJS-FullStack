@@ -243,6 +243,88 @@ export function BorrowStatusBadge({
   );
 }
 
+/** Reservation queue status — light glass for User 360 / admin tables. */
+type ReservationStatusValue =
+  | "WAITING"
+  | "READY"
+  | "FULFILLED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+const RESERVATION_STATUS_LABELS: Record<ReservationStatusValue, string> = {
+  WAITING: "Waiting",
+  READY: "Ready",
+  FULFILLED: "Fulfilled",
+  CANCELLED: "Cancelled",
+  EXPIRED: "Expired",
+};
+
+const RESERVATION_STATUS_VALUES: ReservationStatusValue[] = [
+  "WAITING",
+  "READY",
+  "FULFILLED",
+  "CANCELLED",
+  "EXPIRED",
+];
+
+export function ReservationStatusBadge({
+  status,
+  className,
+  variant = "light",
+}: {
+  status: ReservationStatusValue | string;
+  className?: string;
+  variant?: BadgeSurface;
+}) {
+  const normalized = (
+    RESERVATION_STATUS_VALUES.includes(status as ReservationStatusValue)
+      ? status
+      : "WAITING"
+  ) as ReservationStatusValue;
+  const config: Record<
+    ReservationStatusValue,
+    { icon: typeof Clock; light: string; dark: string }
+  > = {
+    WAITING: {
+      icon: Clock,
+      light:
+        "border-amber-200 bg-amber-50/90 text-amber-700 shadow-sm backdrop-blur-sm",
+      dark: "border-amber-400/30 bg-amber-500/15 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.15)]",
+    },
+    READY: {
+      icon: CircleDot,
+      light:
+        "border-blue-200 bg-blue-50/90 text-blue-700 shadow-sm backdrop-blur-sm",
+      dark: "border-blue-400/30 bg-blue-500/15 text-blue-100 shadow-[0_0_12px_rgba(59,130,246,0.15)]",
+    },
+    FULFILLED: {
+      icon: CheckCircle2,
+      light:
+        "border-emerald-200 bg-emerald-50/90 text-emerald-700 shadow-sm backdrop-blur-sm",
+      dark: "border-emerald-400/30 bg-emerald-500/15 text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
+    },
+    CANCELLED: {
+      icon: XCircle,
+      light:
+        "border-slate-200/80 bg-slate-50/90 text-slate-600 shadow-sm backdrop-blur-sm",
+      dark: "border-white/15 bg-white/5 text-light-200",
+    },
+    EXPIRED: {
+      icon: XCircle,
+      light:
+        "border-slate-200/80 bg-slate-50/90 text-slate-600 shadow-sm backdrop-blur-sm",
+      dark: "border-white/15 bg-white/5 text-light-200",
+    },
+  };
+  const { icon: Icon, light, dark } = config[normalized];
+  return (
+    <Badge className={cn(badgeBase, variant === "dark" ? dark : light, className)}>
+      <Icon className="size-3" aria-hidden />
+      {RESERVATION_STATUS_LABELS[normalized]}
+    </Badge>
+  );
+}
+
 type UserRoleValue = "ADMIN" | "USER";
 
 const USER_ROLE_LABELS: Record<UserRoleValue, string> = {

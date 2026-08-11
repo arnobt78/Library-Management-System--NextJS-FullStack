@@ -2,19 +2,19 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) User 360 densify committed; nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) User 360 polish + densify actor card committed; nonlocal Verify still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - User 360 privilege→360 + side-panel densify + gap fix shipping; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - tip bind after commit; densify tip `a905b6f` prior; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `a905b6f` (User 360 densify)
-- Latest HEAD: `6b1b11c` (== `origin/main`)
+- Latest implementation tip: (this commit) User 360 tables + densify actor card
+- Latest HEAD: (this commit)
 - Started: 2026-08-01
-- Last updated: 2026-08-11 (User 360 densify commit)
+- Last updated: 2026-08-11 (User 360 polish + densify actor Robohash fix)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
-- Pending checkpoint: none PENDING; C2 Gate 2 not opened (EvalGate FAIL — `ER-C2-FINAL-CORRECTIVE-5`, unrelated to CR-0003)
+- Pending checkpoint: none PENDING for this interrupt; C2 Gate 2 not opened (EvalGate FAIL — `ER-C2-FINAL-CORRECTIVE-5`)
 - Gate 0: APPROVED (`GATE-0001`)
 - Gate 1: APPROVED (`GATE-0002`)
 - Gate 1 delta: APPROVED (`GATE-0003`, `REQ-0025`)
@@ -23,7 +23,187 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core
+- Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-11, Fix densify actor Robohash flash)
+
+Verified facts:
+- `AuthorizedActor.universityCard` from DB; promote/demote densify returns real card (not null).
+- Make Admin merges SSR `decisionActor` card; typecheck + lint + auth tests PASS.
+- User 360 table polish (Reviews links/widths, DecisionActor, Borrowing/Reservations) included in same WT commit.
+
+### Next Action
+
+**Human-Decision:** soft-nav Make Admin on User 360 (no Robohash); Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-11, User 360 Reviews links + Borrowing-width parity)
+
+Verified facts:
+- Reviews title → `/books/[id]`; sky “View review detail” → `/admin/book-reviews/[id]`.
+- Col budgets Book 44% / Rating 12% / Status 44%; Status `overflow-hidden`. Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav User 360 Reviews links+widths; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 Reviews Decision & Actor Status)
+
+Verified facts:
+- `getAdminUserProfile` reviewHistory joins moderator (`reviewedBy`/`reviewedAt` + reviewer person).
+- User 360 Reviews Status: PENDING badge+Submitted datetime; decided `DecisionActorStack` + `ReviewStatusBadge`.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav User 360 Reviews Status; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, Review Decision & Actor + Renewals clip)
+
+Verified facts:
+- Book reviews list: Decision & Actor via `DecisionActorStack` + `ReviewStatusBadge`; `DecisionDateMeta` nowrap.
+- Review detail Status KPI/About: PENDING badge+Submitted; decided DecisionActorStack.
+- User 360 Borrowing Renewals `w-[12%]` (Book 44% / Fine 10%). Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav book-reviews Decision & Actor + User 360 Renewals; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 table-fixed truncate + middle align)
+
+Verified facts:
+- `USER_360_TABLE` = `table-fixed`; Borrowing 46/34/12/8; Book `overflow-hidden` truncate; `align-middle`.
+- Reservations: badge → medium-date Requested; Book 58% / Status 42%; no card bleed.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke truncate + middle align on 14"; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 one-line status dates)
+
+Verified facts:
+- DateLine / Reviews Created / Reservations Requested: `whitespace-nowrap` + Status `w-0` content width.
+- Book truncates first; `USER_360_TABLE_SCROLL` phone-only unchanged. Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke one-line dates on 14"; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 no laptop table x-scroll)
+
+Verified facts:
+- `USER_360_TABLE_SCROLL` = `max-sm:overflow-x-auto` on User 360 tables; laptop no x-scroll.
+- Borrowing fluid 55/30/10/5 (no table-fixed); DateLine wrap; Reservations Requested above badge + content Status.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke 14" Borrowing/Reservations; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 column layout + section counters)
+
+Verified facts:
+- Borrowing col budget: Book 38% / Status 34% / Fine w-20 / Renewals w-16; Reviews Rating w-16.
+- Reservations: Book|Status only; `ReservationStatusBadge` + Requested under badge; no Dates column.
+- Section titles `Name (n)` — Borrowing `pagination.total`; Reservations/Activity RQ length; Reviews/Tickets SSR length. Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke column spacing + counters; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 table layout + reservations data)
+
+Verified facts:
+- Borrowing: nowrap lifecycle dates; book col budget; Renewals `text-right`; `AdminBookIdentityCell` truncate/`min-w-0`.
+- Reservations: `getAdminUserReservations` + `/api/reservations/me` return cover/author/genre/rating/`createdAt`; densify `mergeReservationRow` skips undefined.
+- Reviews: Status + Created stack (no Created column). Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke Borrowing/Reservations/Reviews after mount refetch; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 tables polish)
+
+Verified facts:
+- Shared `AdminBookIdentityCell` + `BorrowLifecycleDates`; Borrowing drops Due; Reviews star rating tone; Reservations 3-col table.
+- Activity FIFO-25 on User 360 (`USER_ACTIVITY_CACHE_RETENTION` + SSR/API limits); global Activity History remains FIFO-50.
+- Prove: typecheck + lint + patchActivityCaches tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke User 360 borrow/review/reservation/activity; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, privilege DecisionActor + request prefill)
+
+Verified facts:
+- User 360 privilege history: 2-col Decision & Actor | Reason via `DecisionActorStack` + pending `TicketDateMeta` Requested.
+- `DEFAULT_ADMIN_REQUEST_REASON` seeds `/make-admin` textarea; schema unit test PASS.
+- Prove: typecheck + lint + adminRequestEmails tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke privilege 2-col + make-admin prefill; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, field-label icon align)
+
+Verified facts:
+- `lib/ui/fieldLabelStyles`: FIELD_LABEL_TEXT + FIELD_LABEL_ROW (`leading-none` / `inline-flex items-center`); no `pt-`.
+- Applicant Details + review/ticket micro-labels wired; icon `shrink-0`.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** visual smoke Applicant icon+text midline; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 status KPI densify)
+
+Verified facts:
+- `AdminUser360StatusKpiRow`: Reg + Privilege badges via `useSignupRequestDetail` / `useAdminUserDetail` (same keys as header/panels); Fine/Overdue SSR props.
+- No new densify registry; TanStack key dedupe; borrow-health row stays SSR.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke Approve/Reject + Make Admin on KPI badges; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 layout redesign)
+
+Verified facts:
+- Two `DetailKpiShell` 4-up rows (Reg/Privilege/Fine/Overdue + Current/Pending/Returned/On-time); avg loan in Borrowing subtitle.
+- Signup/privilege Approved·Rejected counts in card subtitles; Applicant fields ‖ university card; body rows A–E `lg:grid-cols-2`, tickets full width.
+- Split `AdminUserApplicantPanel` / `AdminUserSignupTimelinePanel`; no densify/Insights invent changes.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav smoke KPI rows + Timeline‖Privilege; commit when asked.
+
+## Reconciliation snapshot (2026-08-11, User 360 detail UI polish)
+
+Verified facts:
+- Header: `UserRoleBadge` + ticket-style Back labels; University ID removed from header.
+- Cards: `TicketSectionHeader` Title Case + Lucide; Applicant parties micro-labels + `CopyableText`/`UserRoleBadge`.
+- Tables: `USER_360_TH`; privilege `AdminPrivilegeBadge`; centered `AdminDetailEmptyState`.
+- Prove: typecheck + lint PASS. No densify/Insights invent changes.
+
+### Next Action
+
+**Human-Decision:** visual smoke User 360; owner may request further UI tweaks. Commit when asked.
+
+## Reconciliation snapshot (2026-08-11, resume)
+
+Verified facts:
+- HEAD `a90ccb3` == `origin/main`; tip `a905b6f` User 360 densify; WT clean except untracked `agile_v_skills/`.
+- Prior Next Action: soft-nav smoke + User 360 detail UI polish.
+- This message named no new product ask beyond Agile V resume — halt for Human-Decision.
+- EvalGate FAIL still blocks C2 Gate 2; do not open Gate 2.
+
+### Next Action
+
+**Human-Decision:** confirm next scope before any plan approval / coding:
+1. User 360 detail UI polish only (densify already shipped; Insights SSR-only), or
+2. Soft-nav densify smoke first then polish plan, or
+3. Other (owner names exact ask).
 
 ## Reconciliation snapshot (2026-08-11, User 360 densify ship)
 

@@ -116,6 +116,7 @@ describe("borrow transaction rollback", () => {
           name: "Reader",
           role: "USER",
           status: "APPROVED",
+          universityCard: null,
         },
         1
       )

@@ -20,6 +20,7 @@ const actor = {
   name: "Admin",
   role: "ADMIN" as const,
   status: "APPROVED" as const,
+  universityCard: null as string | null,
 };
 const readerActor = {
   id: "10000000-0000-4000-8000-000000000002",
@@ -27,6 +28,7 @@ const readerActor = {
   name: "Reader",
   role: "USER" as const,
   status: "APPROVED" as const,
+  universityCard: null as string | null,
 };
 
 vi.mock("@/lib/auth/authorization", () => ({

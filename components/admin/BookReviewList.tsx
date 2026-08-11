@@ -3,7 +3,7 @@
 /**
  * Admin Book Reviews — moderation queue. KPI row + search/status filters +
  * sortable TanStack table matching Support Tickets densify patterns:
- * sky links (title/comment), PersonAttribution stacks, Approver column,
+ * sky links (title/comment), PersonAttribution stacks, Decision & Actor column,
  * no whole-row click (Actions → View Details).
  * Parent: CR-0003 / REQ-0035 polish
  */
@@ -43,7 +43,7 @@ import {
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
-import { DecisionDateMeta } from "@/components/support-tickets/DecisionDateMeta";
+import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
@@ -454,8 +454,8 @@ export default function BookReviewList({
       },
       {
         accessorKey: "comment",
-        size: 200,
-        minSize: 140,
+        size: 220,
+        minSize: 160,
         header: "Comment",
         cell: ({ row }) => (
           <Link
@@ -468,53 +468,38 @@ export default function BookReviewList({
         ),
       },
       {
+        id: "decisionActor",
         accessorKey: "status",
-        size: 118,
-        minSize: 110,
-        header: "Status",
-        cell: ({ row }) => (
-          <div className="inline-flex">
-            <ReviewStatusBadge status={row.original.status} />
-          </div>
-        ),
-      },
-      {
-        id: "approver",
-        size: 180,
-        minSize: 150,
-        header: "Approver",
-        enableSorting: false,
+        size: 220,
+        minSize: 180,
+        header: "Decision & Actor",
         cell: ({ row }) => {
           const r = row.original;
-          const hasApprover =
-            r.status !== "PENDING" &&
-            Boolean(r.reviewedByName || r.reviewedByEmail);
-          if (!hasApprover) {
-            return <span className="text-sm text-muted-foreground">—</span>;
+          const decided = r.status === "APPROVED" || r.status === "REJECTED";
+          // PENDING: badge only (Privilege Recent parity); decided: DecisionActorStack
+          if (!decided) {
+            return (
+              <span className="inline-flex self-start">
+                <ReviewStatusBadge status={r.status} />
+              </span>
+            );
           }
           return (
-            <div
-              className="flex min-w-0 flex-col leading-none"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <PersonAttribution
-                layout="stack"
-                size={32}
-                href={r.reviewedBy ? `/admin/users/${r.reviewedBy}` : null}
-                person={{
-                  id: r.reviewedBy ?? "",
-                  fullName: r.reviewedByName || "an admin",
-                  email: r.reviewedByEmail || "",
-                  universityCard: r.reviewedByUniversityCard,
-                }}
-                meta={
-                  <DecisionDateMeta
-                    status={r.status}
-                    at={r.reviewedAt}
-                  />
-                }
-              />
-            </div>
+            <DecisionActorStack
+              status={r.status}
+              badge={<ReviewStatusBadge status={r.status} />}
+              actor={{
+                id: r.reviewedBy ?? "",
+                fullName: r.reviewedByName || "an admin",
+                email: r.reviewedByEmail || "",
+                universityCard: r.reviewedByUniversityCard,
+              }}
+              actorHref={
+                r.reviewedBy ? `/admin/users/${r.reviewedBy}` : null
+              }
+              decidedAt={r.reviewedAt}
+              showActor={Boolean(r.reviewedByName || r.reviewedByEmail)}
+            />
           );
         },
       },

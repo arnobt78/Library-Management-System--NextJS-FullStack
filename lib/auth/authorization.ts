@@ -15,6 +15,8 @@ export interface AuthorizedActor {
   name: string;
   role: ActorRole;
   status: "APPROVED";
+  /** DB university card URL — densify attribution must not invent Robohash. */
+  universityCard: string | null;
 }
 
 /**
@@ -47,6 +49,7 @@ interface DatabaseActor {
   name: string;
   role: ActorRole | null;
   status: ActorStatus | null;
+  universityCard: string | null;
 }
 
 async function loadDatabaseActor(
@@ -59,6 +62,7 @@ async function loadDatabaseActor(
       name: users.fullName,
       role: users.role,
       status: users.status,
+      universityCard: users.universityCard,
     })
     .from(users)
     .where(eq(users.id, sessionUserId))
@@ -97,6 +101,7 @@ export function validateActor(
     name: databaseActor.name,
     role: databaseActor.role,
     status: "APPROVED",
+    universityCard: databaseActor.universityCard ?? null,
   };
 }
 

@@ -1,26 +1,27 @@
 "use client";
 
 /**
- * Registration panel for unified User 360 — signup KPIs + applicant + signup ledger.
- * Admin privilege KPI densifies via users.detail (separate from signupRequestDetail).
+ * User 360 registration surfaces — Applicant Details + Signup Decision Timeline.
+ * Ledger Approved/Rejected counts live in the timeline header (not page KPIs).
+ * Section chrome matches ticket/review detail.
  */
 
 import { useEffect, useState } from "react";
 import {
   Calendar,
-  CheckCircle,
-  Clock,
   Eye,
   GraduationCap,
+  IdCard,
+  ListOrdered,
   Mail,
   Shield,
   User as UserIcon,
-  XCircle,
 } from "lucide-react";
 import { Image as ImageKitImage } from "@imagekit/next";
 import AdminRequestReviewerAttribution from "@/components/AdminRequestReviewerAttribution";
-import { CopyButton } from "@/components/CopyButton";
+import { AdminDetailEmptyState } from "@/components/admin/AdminDetailEmptyState";
 import { SafeImage } from "@/components/ui/safe-image";
+import CopyableText from "@/components/ui/CopyableText";
 import {
   Dialog,
   DialogContent,
@@ -29,162 +30,143 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
-import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
-import { useAdminUserDetail, useSignupRequestDetail } from "@/hooks/useQueries";
-import { deriveAdminPrivilegeStatus } from "@/lib/admin/adminPrivilegeStatus";
+import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
+import { useSignupRequestDetail } from "@/hooks/useQueries";
 import type { SignupRequestDetail } from "@/lib/admin/signupStatusDecisions";
-import type { User } from "@/lib/services/users";
 import {
   AccountStatusBadge,
-  AdminPrivilegeBadge,
+  UserRoleBadge,
 } from "@/lib/ui/semanticBadges";
 import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
+import { FIELD_LABEL_ROW } from "@/lib/ui/fieldLabelStyles";
 import { resolveUniversityCard } from "@/lib/media/universityCard";
 import config from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 export type AdminUser360Entry = "directory" | "registration" | "privilege";
 
-interface AdminUserRegistrationPanelProps {
-  initialDetail: SignupRequestDetail;
-  /** users.detail seed — Admin privilege KPI densify. */
-  initialUser: User;
-  /** When entry=registration, scroll registration into view once. */
-  entry?: AdminUser360Entry;
-}
-
-export default function AdminUserRegistrationPanel({
-  initialDetail,
-  initialUser,
-  entry = "directory",
-}: AdminUserRegistrationPanelProps) {
-  const [cardOpen, setCardOpen] = useState(false);
+function useSignupDetail(
+  initialDetail: SignupRequestDetail,
+): SignupRequestDetail {
   const [ssrUpdatedAt] = useState(() => Date.now());
   const { data: detail = initialDetail } = useSignupRequestDetail(
     initialDetail.id,
     initialDetail,
     ssrUpdatedAt,
   );
-  const { data: user = initialUser } = useAdminUserDetail(
-    initialUser.id,
-    initialUser,
-    ssrUpdatedAt,
-  );
+  return detail;
+}
 
+/** Scroll target when entry=registration. */
+export function AdminUserRegistrationScrollAnchor({
+  entry = "directory",
+}: {
+  entry?: AdminUser360Entry;
+}) {
   useEffect(() => {
     if (entry !== "registration") return;
     const el = document.getElementById("user-360-registration");
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [entry]);
+  return (
+    <div id="user-360-registration" className="sr-only scroll-mt-24" aria-hidden />
+  );
+}
 
+/**
+ * Applicant Details — fields left, university card preview right.
+ */
+export function AdminUserApplicantPanel({
+  initialDetail,
+}: {
+  initialDetail: SignupRequestDetail;
+}) {
+  const [cardOpen, setCardOpen] = useState(false);
+  const detail = useSignupDetail(initialDetail);
   const cardMedia = resolveUniversityCard(detail.universityCard);
-  const approvedCount = detail.decisions.filter(
-    (d) => d.status === "APPROVED",
-  ).length;
-  const rejectedCount = detail.decisions.filter(
-    (d) => d.status === "REJECTED",
-  ).length;
-  const privilegeStatus = deriveAdminPrivilegeStatus({
-    role: user.role,
-    pendingAdminRequestId: user.pendingAdminRequestId,
-    latestAdminRequestStatus: user.latestAdminRequestStatus,
-  });
 
   return (
-    <div id="user-360-registration" className="scroll-mt-24 space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <DetailKpiShell
-          variant="light"
-          icon={<Clock className="size-4" />}
-          label="Registration status"
-          hint="Student account approval"
-        >
-          <AccountStatusBadge status={detail.status ?? "PENDING"} />
-        </DetailKpiShell>
-        <DetailKpiShell
-          variant="light"
-          icon={<Shield className="size-4" />}
-          label="Admin privilege"
-          hint="Make-admin request status"
-        >
-          <AdminPrivilegeBadge status={privilegeStatus} />
-        </DetailKpiShell>
-        <DetailKpiShell
-          variant="light"
-          icon={<CheckCircle className="size-4 text-emerald-600" />}
-          label="Signup approvals"
-          hint="Registration ledger"
-        >
-          <span className="text-2xl font-semibold text-gray-900">
-            {approvedCount}
-          </span>
-        </DetailKpiShell>
-        <DetailKpiShell
-          variant="light"
-          icon={<XCircle className="size-4 text-rose-600" />}
-          label="Signup rejections"
-          hint="Registration ledger"
-        >
-          <span className="text-2xl font-semibold text-gray-900">
-            {rejectedCount}
-          </span>
-        </DetailKpiShell>
-      </div>
+    <AdminSurfacePanel>
+      <TicketSectionHeader
+        variant="light"
+        icon={<IdCard className="size-5" aria-hidden />}
+        title="Applicant Details"
+        subtitle="Identity, role, and registration"
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_minmax(10rem,12rem)]">
+        <dl className="space-y-4 text-sm">
+          <div className="space-y-1">
+            <dt className={FIELD_LABEL_ROW}>
+              <UserIcon className="size-3.5 shrink-0" aria-hidden />
+              Name
+            </dt>
+            <dd>
+              <CopyableText
+                value={detail.fullName}
+                label="name"
+                className="text-sm text-gray-900"
+              />
+            </dd>
+          </div>
+          <div className="space-y-1">
+            <dt className={FIELD_LABEL_ROW}>
+              <Mail className="size-3.5 shrink-0" aria-hidden />
+              Email
+            </dt>
+            <dd>
+              <CopyableText
+                value={detail.email}
+                label="email"
+                className="text-sm text-gray-900"
+              />
+            </dd>
+          </div>
+          <div className="space-y-1">
+            <dt className={FIELD_LABEL_ROW}>
+              <GraduationCap className="size-3.5 shrink-0" aria-hidden />
+              University ID
+            </dt>
+            <dd>
+              <CopyableText
+                value={String(detail.universityId)}
+                label="university ID"
+                className="text-sm"
+              />
+            </dd>
+          </div>
+          <div className="space-y-1">
+            <dt className={FIELD_LABEL_ROW}>
+              <Calendar className="size-3.5 shrink-0" aria-hidden />
+              Registered
+            </dt>
+            <dd className="text-sm text-gray-700">
+              {formatMediumDateTime(detail.createdAt)}
+            </dd>
+          </div>
+        </dl>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <AdminSurfacePanel>
-          <h2 className="mb-3 text-base font-medium text-dark-400 sm:text-lg">
-            Applicant details
-          </h2>
-          <dl className="space-y-3 text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <dt className="flex items-center gap-1.5 text-gray-500">
-                <Mail className="size-3.5" aria-hidden />
-                Email
-              </dt>
-              <dd className="flex flex-1 flex-wrap items-center gap-2 font-medium text-gray-900">
-                <span className="break-all">{detail.email}</span>
-                <CopyButton text={detail.email} className="h-7 px-2" />
-              </dd>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <p className={FIELD_LABEL_ROW}>
+              <UserIcon className="size-3.5 shrink-0" aria-hidden />
+              Role
+            </p>
+            {/* Block wrapper: badge on its own line (not beside label) */}
+            <div>
+              <UserRoleBadge role={detail.role ?? "USER"} />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <dt className="flex items-center gap-1.5 text-gray-500">
-                <GraduationCap className="size-3.5" aria-hidden />
-                University ID
-              </dt>
-              <dd className="font-medium text-gray-900">{detail.universityId}</dd>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <dt className="flex items-center gap-1.5 text-gray-500">
-                <UserIcon className="size-3.5" aria-hidden />
-                Role
-              </dt>
-              <dd className="font-medium text-gray-900">
-                {detail.role ?? "USER"}
-              </dd>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <dt className="flex items-center gap-1.5 text-gray-500">
-                <Calendar className="size-3.5" aria-hidden />
-                Registered
-              </dt>
-              <dd className="font-medium text-gray-900">
-                {formatMediumDateTime(detail.createdAt)}
-              </dd>
-            </div>
-          </dl>
-
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
-              <Shield className="size-4 text-purple-500" aria-hidden />
+          </div>
+          <div className="space-y-2">
+            <p className={FIELD_LABEL_ROW}>
+              <Shield className="size-3.5 shrink-0" aria-hidden />
               University card
-            </div>
+            </p>
             {cardMedia.kind !== "empty" ? (
               <Dialog open={cardOpen} onOpenChange={setCardOpen}>
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="group relative h-24 w-full max-w-xs cursor-pointer overflow-hidden rounded-lg border border-gray-200 transition-colors hover:border-blue-300"
+                    className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-lg border border-gray-200 transition-colors hover:border-blue-300"
                   >
                     {cardMedia.kind === "imagekit" ? (
                       <ImageKitImage
@@ -238,56 +220,79 @@ export default function AdminUserRegistrationPanel({
                 </DialogContent>
               </Dialog>
             ) : (
-              <div className="flex h-24 w-full max-w-xs items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
-                <p className="text-xs text-gray-500">No card uploaded</p>
-              </div>
+              <AdminDetailEmptyState
+                message="No university card uploaded yet."
+                className="min-h-24 rounded-lg border border-gray-200 bg-gray-50"
+              />
             )}
           </div>
-        </AdminSurfacePanel>
-
-        <AdminSurfacePanel>
-          <h2 className="mb-3 text-base font-medium text-dark-400 sm:text-lg">
-            Signup decision timeline ({detail.decisions.length})
-          </h2>
-          {detail.decisions.length === 0 ? (
-            <p className="text-sm text-gray-500">No signup decisions yet.</p>
-          ) : (
-            <ul className="space-y-3">
-              {detail.decisions.map((entry) => {
-                const approved = entry.status === "APPROVED";
-                return (
-                  <li
-                    key={entry.id}
-                    className={cn(
-                      "rounded-lg border p-3 sm:p-4",
-                      approved
-                        ? "border-emerald-200 bg-emerald-50/50"
-                        : "border-rose-200 bg-rose-50/50",
-                    )}
-                  >
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <AccountStatusBadge status={entry.status} />
-                      <span className="text-xs text-gray-600">
-                        {formatMediumDateTime(entry.decidedAt)}
-                      </span>
-                    </div>
-                    <AdminRequestReviewerAttribution
-                      reviewer={entry.decisionActor}
-                      prefix={approved ? "Approved by" : "Rejected by"}
-                      size={28}
-                      href={
-                        entry.decisionActor?.id
-                          ? `/admin/users/${entry.decisionActor.id}`
-                          : null
-                      }
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </AdminSurfacePanel>
+        </div>
       </div>
-    </div>
+    </AdminSurfacePanel>
+  );
+}
+
+/**
+ * Signup Decision Timeline — Approved/Rejected ledger counts in subtitle.
+ */
+export function AdminUserSignupTimelinePanel({
+  initialDetail,
+}: {
+  initialDetail: SignupRequestDetail;
+}) {
+  const detail = useSignupDetail(initialDetail);
+  const approvedCount = detail.decisions.filter(
+    (d) => d.status === "APPROVED",
+  ).length;
+  const rejectedCount = detail.decisions.filter(
+    (d) => d.status === "REJECTED",
+  ).length;
+
+  return (
+    <AdminSurfacePanel>
+      <TicketSectionHeader
+        variant="light"
+        icon={<ListOrdered className="size-5" aria-hidden />}
+        title="Signup Decision Timeline"
+        subtitle={`Approved · ${approvedCount} · Rejected · ${rejectedCount} · Registration ledger`}
+      />
+      {detail.decisions.length === 0 ? (
+        <AdminDetailEmptyState message="No signup decisions for this user yet." />
+      ) : (
+        <ul className="space-y-3">
+          {detail.decisions.map((entry) => {
+            const approved = entry.status === "APPROVED";
+            return (
+              <li
+                key={entry.id}
+                className={cn(
+                  "rounded-lg border p-3 sm:p-4",
+                  approved
+                    ? "border-emerald-200 bg-emerald-50/50"
+                    : "border-rose-200 bg-rose-50/50",
+                )}
+              >
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <AccountStatusBadge status={entry.status} />
+                  <span className="text-xs text-gray-600">
+                    {formatMediumDateTime(entry.decidedAt)}
+                  </span>
+                </div>
+                <AdminRequestReviewerAttribution
+                  reviewer={entry.decisionActor}
+                  prefix={approved ? "Approved by" : "Rejected by"}
+                  size={28}
+                  href={
+                    entry.decisionActor?.id
+                      ? `/admin/users/${entry.decisionActor.id}`
+                      : null
+                  }
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </AdminSurfacePanel>
   );
 }

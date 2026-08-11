@@ -30,3 +30,10 @@ export const RECENT_ADMIN_REQUEST_DECISIONS_LIMIT = 50;
  */
 export const DEFAULT_ADMIN_REJECTION_REASON =
   "Not approved for admin access right now — often for capacity, role fit, or demo/testing. Nothing personal; you can request again later.";
+
+/**
+ * Prefill for /make-admin request textarea (editable).
+ * Must satisfy adminRequestReasonSchema (min 10 / max 1000).
+ */
+export const DEFAULT_ADMIN_REQUEST_REASON =
+  "I would like librarian admin access to help with catalog and circulation work. I will follow library policy and only use privileges for assigned duties.";

@@ -34,6 +34,7 @@ import {
 import { useSupportTicket } from "@/hooks/useQueries";
 import { useDeleteSupportTicket } from "@/hooks/useMutations";
 import { LIGHT_ALERT, LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
+import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { cn } from "@/lib/utils";
 import { buildTicketActivityTimeline } from "@/lib/ui/ticketActivity";
 import PersonAttribution from "@/components/PersonAttribution";
@@ -241,7 +242,7 @@ export default function AdminSupportTicketDetailContent({
             className="mb-0"
           />
           <div className="space-y-1">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+            <p className={FIELD_LABEL_TEXT}>
               Requester
             </p>
             <PersonAttribution
@@ -257,7 +258,7 @@ export default function AdminSupportTicketDetailContent({
             />
           </div>
           <div className="space-y-1">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+            <p className={FIELD_LABEL_TEXT}>
               Assigned To
             </p>
             {ticket.assignedToId && ticket.assignedToName ? (

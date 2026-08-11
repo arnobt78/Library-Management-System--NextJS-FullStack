@@ -36,15 +36,19 @@ import {
 import { useAdminReviewDetail } from "@/hooks/useQueries";
 import { useDeleteReview, useModerateReview } from "@/hooks/useMutations";
 import { LIGHT_ALERT, LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
+import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { cn } from "@/lib/utils";
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
+import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
 import ReviewDateMeta from "@/components/reviews/ReviewDateMeta";
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 import { ReviewBorrowMeta } from "@/components/reviews/ReviewBorrowMeta";
 import { ReviewDetailKpiGrid } from "@/components/reviews/ReviewDetailKpiGrid";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
+import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   ModerateReviewAlertDialog,
   type ModerateReviewTargetStatus,
@@ -137,6 +141,33 @@ export default function AdminBookReviewDetailContent({
       : null;
 
   const bookHref = `/books/${review.bookId}`;
+  const decided =
+    review.status === "APPROVED" || review.status === "REJECTED";
+
+  // Status KPI / About — Privilege Recent DNA: badge+Submitted or DecisionActorStack
+  const statusDecisionSlot = decided ? (
+    <DecisionActorStack
+      status={review.status}
+      badge={<ReviewStatusBadge status={review.status} />}
+      actor={moderator}
+      actorHref={
+        review.reviewedBy ? `/admin/users/${review.reviewedBy}` : null
+      }
+      decidedAt={review.reviewedAt}
+      showActor={Boolean(moderator)}
+    />
+  ) : (
+    <div className="flex min-w-0 flex-col gap-1 leading-none">
+      <span className="inline-flex self-start">
+        <ReviewStatusBadge status="PENDING" />
+      </span>
+      <TicketDateMeta
+        createdAt={review.createdAt}
+        createdLabel="Submitted"
+        hideUpdated
+      />
+    </div>
+  );
 
   return (
     <section className="w-full space-y-4 sm:space-y-6">
@@ -240,8 +271,9 @@ export default function AdminBookReviewDetailContent({
         status={review.status}
         rating={review.rating}
         genre={review.bookGenre}
+        statusSlot={statusDecisionSlot}
         approverSlot={
-          moderator && review.status !== "PENDING" ? (
+          moderator && decided ? (
             <PersonAttribution
               person={moderator}
               layout="stack"
@@ -286,7 +318,7 @@ export default function AdminBookReviewDetailContent({
             variant="light"
           />
           <div className="space-y-1">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+            <p className={FIELD_LABEL_TEXT}>
               Reviewer
             </p>
             <PersonAttribution
@@ -297,28 +329,9 @@ export default function AdminBookReviewDetailContent({
               size={36}
             />
           </div>
-          <div className="space-y-1.5">
-            <ReviewDateMeta
-              createdAt={review.createdAt}
-              updatedAt={review.updatedAt}
-              reviewedAt={review.reviewedAt}
-              status={review.status}
-              variant="light"
-            />
-            {moderator && review.status !== "PENDING" ? (
-              <PersonAttribution
-                person={moderator}
-                prefix={
-                  review.status === "APPROVED" ? "Approved by" : "Rejected by"
-                }
-                layout="inline"
-                variant="light"
-                href={
-                  review.reviewedBy ? `/admin/users/${review.reviewedBy}` : null
-                }
-                size={32}
-              />
-            ) : null}
+          <div className="space-y-1">
+            <p className={FIELD_LABEL_TEXT}>Status</p>
+            {statusDecisionSlot}
           </div>
         </div>
 

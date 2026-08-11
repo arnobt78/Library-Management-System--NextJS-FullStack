@@ -24,6 +24,7 @@ import {
 
 const signupDecisionUsers = alias(users, "profile_signup_decision_actor");
 const adminRequestReviewerUsers = alias(users, "profile_admin_request_reviewer");
+const bookReviewModeratorUsers = alias(users, "profile_book_review_moderator");
 
 export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
   await requireAdminActor();
@@ -80,9 +81,15 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         returnDate: borrowRecords.returnDate,
         fineAmount: borrowRecords.fineAmount,
         renewalCount: borrowRecords.renewalCount,
+        createdAt: borrowRecords.createdAt,
+        updatedAt: borrowRecords.updatedAt,
         bookId: books.id,
         bookTitle: books.title,
         bookAuthor: books.author,
+        bookCoverUrl: books.coverUrl,
+        bookCoverColor: books.coverColor,
+        bookGenre: books.genre,
+        bookRating: books.rating,
       })
       .from(borrowRecords)
       .innerJoin(books, eq(borrowRecords.bookId, books.id))
@@ -97,11 +104,25 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         comment: bookReviews.comment,
         status: bookReviews.status,
         createdAt: bookReviews.createdAt,
+        reviewedAt: bookReviews.reviewedAt,
+        reviewedBy: bookReviews.reviewedBy,
+        moderatorFullName: bookReviewModeratorUsers.fullName,
+        moderatorEmail: bookReviewModeratorUsers.email,
+        moderatorUniversityCard: bookReviewModeratorUsers.universityCard,
         bookId: books.id,
         bookTitle: books.title,
+        bookAuthor: books.author,
+        bookCoverUrl: books.coverUrl,
+        bookCoverColor: books.coverColor,
+        bookGenre: books.genre,
+        bookRating: books.rating,
       })
       .from(bookReviews)
       .innerJoin(books, eq(bookReviews.bookId, books.id))
+      .leftJoin(
+        bookReviewModeratorUsers,
+        eq(bookReviews.reviewedBy, bookReviewModeratorUsers.id),
+      )
       .where(eq(bookReviews.userId, userId))
       .orderBy(desc(bookReviews.createdAt))
       .limit(25),
@@ -134,6 +155,11 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         readyExpiresAt: reservations.readyExpiresAt,
         bookId: books.id,
         bookTitle: books.title,
+        bookAuthor: books.author,
+        bookCoverUrl: books.coverUrl,
+        bookCoverColor: books.coverColor,
+        bookGenre: books.genre,
+        bookRating: books.rating,
       })
       .from(reservations)
       .innerJoin(books, eq(reservations.bookId, books.id))
@@ -236,10 +262,36 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     }),
   );
 
+  // Moderator join for User 360 Reviews Decision & Actor Status cell
+  const reviewHistoryMapped = reviewHistory.map((row) => ({
+    id: row.id,
+    rating: row.rating,
+    comment: row.comment,
+    status: row.status,
+    createdAt: row.createdAt,
+    reviewedAt: row.reviewedAt,
+    bookId: row.bookId,
+    bookTitle: row.bookTitle,
+    bookAuthor: row.bookAuthor,
+    bookCoverUrl: row.bookCoverUrl,
+    bookCoverColor: row.bookCoverColor,
+    bookGenre: row.bookGenre,
+    bookRating: row.bookRating,
+    reviewer:
+      row.moderatorEmail && row.moderatorFullName
+        ? ({
+            id: row.reviewedBy ?? null,
+            fullName: row.moderatorFullName,
+            email: row.moderatorEmail,
+            universityCard: row.moderatorUniversityCard ?? null,
+          } satisfies AdminRequestReviewer)
+        : null,
+  }));
+
   return {
     user,
     history,
-    reviewHistory,
+    reviewHistory: reviewHistoryMapped,
     requestHistory,
     reservationHistory,
     ticketHistory,

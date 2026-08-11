@@ -1,19 +1,45 @@
 /**
- * Shared Admin User 360 body — borrows/reviews/tickets + registration panel + privilege.
+ * Shared Admin User 360 body — KPI grids + parallel card rows.
  * Used by /admin/users/[id], /admin/account-requests/[userId], and
  * /admin/admin-requests/[id] (entry=directory | registration | privilege).
  */
 
 import Link from "next/link";
+import {
+  BookMarked,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  LifeBuoy,
+  Lightbulb,
+  Percent,
+  Star,
+} from "lucide-react";
 import AdminUserDetailHeaderClient from "@/components/admin/AdminUserDetailHeaderClient";
-import AdminUserRegistrationPanel, {
+import {
+  AdminUserApplicantPanel,
+  AdminUserRegistrationScrollAnchor,
+  AdminUserSignupTimelinePanel,
   type AdminUser360Entry,
 } from "@/components/admin/AdminUserRegistrationPanel";
 import AdminUserPrivilegePanel from "@/components/admin/AdminUserPrivilegePanel";
 import AdminUserReservationsPanel from "@/components/admin/AdminUserReservationsPanel";
 import AdminUserActivityPanel from "@/components/admin/AdminUserActivityPanel";
+import AdminUser360StatusKpiRow from "@/components/admin/AdminUser360StatusKpiRow";
+import { AdminBookIdentityCell } from "@/components/admin/AdminBookIdentityCell";
+import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
+import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
+import {
+  AdminDetailEmptyState,
+  USER_360_TABLE,
+  USER_360_TABLE_SCROLL,
+  USER_360_TH,
+} from "@/components/admin/AdminDetailEmptyState";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminSurfacePanel } from "@/components/admin/AdminSurfacePanel";
+import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
+import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import {
   BorrowStatusBadge,
   ReviewStatusBadge,
@@ -21,9 +47,13 @@ import {
   TicketStatusBadge,
 } from "@/lib/ui/semanticBadges";
 import { formatMediumDate } from "@/lib/ui/formatMediumDate";
+import { reviewRatingTone } from "@/lib/ui/reviewOptions";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
-import type { TicketPriority, TicketStatus } from "@/lib/validations/supportTicket";
+import type {
+  TicketPriority,
+  TicketStatus,
+} from "@/lib/validations/supportTicket";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type { SignupRequestDetail } from "@/lib/admin/signupStatusDecisions";
 import type { getAdminUserProfile } from "@/lib/admin/userProfile";
@@ -45,9 +75,13 @@ function toReservationItems(
     bookTitle: item.bookTitle,
     bookId: item.bookId,
     queuePosition: null,
-    readyExpiresAt: item.readyExpiresAt
-      ? String(item.readyExpiresAt)
-      : null,
+    readyExpiresAt: item.readyExpiresAt ? String(item.readyExpiresAt) : null,
+    bookAuthor: item.bookAuthor ?? null,
+    coverUrl: item.bookCoverUrl ?? null,
+    coverColor: item.bookCoverColor ?? null,
+    genre: item.bookGenre ?? null,
+    bookRating: item.bookRating ?? null,
+    createdAt: item.createdAt ?? null,
   }));
 }
 
@@ -86,19 +120,8 @@ export default function AdminUser360Shell({
   paginationBasePath,
 }: AdminUser360ShellProps) {
   const outstandingFine = Number(data.metrics.outstanding_fine ?? 0);
-  const stats = [
-    [
-      "Outstanding fine",
-      `$${outstandingFine.toFixed(2)}`,
-      outstandingFine > 0 ? "text-rose-700" : undefined,
-    ],
-    ["Current", data.metrics.current],
-    ["Pending", data.metrics.pending],
-    ["Returned", data.metrics.returned],
-    ["Overdue", data.metrics.overdue],
-    ["On-time returns", `${data.metrics.on_time_rate}%`],
-    ["Average loan", `${data.metrics.average_loan_days} days`],
-  ] as const;
+  const overdue = Number(data.metrics.overdue ?? 0);
+  const avgLoanDays = data.metrics.average_loan_days;
 
   return (
     <AdminPageShell
@@ -111,249 +134,375 @@ export default function AdminUser360Shell({
         />
       }
       kpis={
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
-          {stats.map(([label, value, valueClass]) => (
-            <div
-              key={String(label)}
-              className={cn(
-                "stat",
-                label === "Outstanding fine" && "md:col-span-2 xl:col-span-1",
-              )}
+        <div className="space-y-3">
+          {/* Status / action — Reg + Privilege densify; Fine/Overdue SSR */}
+          <AdminUser360StatusKpiRow
+            initialUser={initialUser}
+            initialSignupDetail={initialSignupDetail}
+            outstandingFine={outstandingFine}
+            overdue={overdue}
+          />
+          {/* Borrow health — Current · Pending · Returned · On-time */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <DetailKpiShell
+              variant="light"
+              icon={<BookMarked className="size-4" />}
+              label="Current"
+              hint="Checked out"
             >
-              <p className="text-xs text-gray-500">{label}</p>
-              <p
-                className={cn(
-                  "mt-1 font-medium",
-                  label === "Outstanding fine" ? "text-2xl" : "text-xl",
-                  valueClass,
-                )}
-              >
-                {value}
-              </p>
-            </div>
-          ))}
+              <span className="text-2xl font-semibold tabular-nums text-gray-900">
+                {data.metrics.current}
+              </span>
+            </DetailKpiShell>
+            <DetailKpiShell
+              variant="light"
+              icon={<Clock className="size-4" />}
+              label="Pending"
+              hint="Awaiting borrow approval"
+            >
+              <span className="text-2xl font-semibold tabular-nums text-gray-900">
+                {data.metrics.pending}
+              </span>
+            </DetailKpiShell>
+            <DetailKpiShell
+              variant="light"
+              icon={<CheckCircle2 className="size-4" />}
+              label="Returned"
+              hint="Completed loans"
+            >
+              <span className="text-2xl font-semibold tabular-nums text-gray-900">
+                {data.metrics.returned}
+              </span>
+            </DetailKpiShell>
+            <DetailKpiShell
+              variant="light"
+              icon={<Percent className="size-4" />}
+              label="On-time returns"
+              hint="Return punctuality"
+            >
+              <span className="text-2xl font-semibold tabular-nums text-gray-900">
+                {data.metrics.on_time_rate}%
+              </span>
+            </DetailKpiShell>
+          </div>
         </div>
       }
     >
-      <div className="space-y-6">
-        <AdminUserRegistrationPanel
-          initialDetail={initialSignupDetail}
-          initialUser={initialUser}
-          entry={entry}
-        />
+      <AdminUserRegistrationScrollAnchor entry={entry} />
 
-        <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-          <div className="space-y-6">
-            <AdminSurfacePanel>
-              <h2 className="text-lg font-medium">Borrowing history</h2>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-left text-sm">
+      <div className="space-y-6">
+        {/* A: Applicant ‖ Insights */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AdminUserApplicantPanel initialDetail={initialSignupDetail} />
+          <AdminSurfacePanel className="text-sm text-gray-600">
+            <TicketSectionHeader
+              variant="light"
+              icon={<Lightbulb className="size-5" aria-hidden />}
+              title="Explainable Insights"
+              subtitle="Deterministic library aggregates (SSR)"
+            />
+            <p>
+              Top genres:{" "}
+              {data.topGenres
+                .map((item) => `${item.genre} (${item.count})`)
+                .join(", ") || "No completed loans"}
+            </p>
+            <p className="mt-2">
+              Library demand/copy {data.libraryInsights.demandToCopyRatio} ·
+              hold pressure {data.libraryInsights.holdPressure} · renewal rate{" "}
+              {data.libraryInsights.renewalRate}%
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              Formula {data.libraryInsights.formulaVersion},{" "}
+              {data.libraryInsights.periodStart} to{" "}
+              {data.libraryInsights.periodEnd}. Deterministic aggregates only.
+            </p>
+          </AdminSurfacePanel>
+        </div>
+
+        {/* B: Signup Timeline ‖ Privilege */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AdminUserSignupTimelinePanel initialDetail={initialSignupDetail} />
+          <AdminUserPrivilegePanel
+            userId={initialUser.id}
+            initialHistory={data.requestHistory}
+          />
+        </div>
+
+        {/* C: Borrowing ‖ Reservations */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AdminSurfacePanel>
+            <TicketSectionHeader
+              variant="light"
+              icon={<BookOpen className="size-5" aria-hidden />}
+              title={`Borrowing History (${data.pagination.total})`}
+              subtitle={`Avg loan ${avgLoanDays} days · loans, fines, and renewals`}
+            />
+            {data.history.length === 0 ? (
+              <AdminDetailEmptyState message="No borrowing history for this user yet." />
+            ) : (
+              <div className={USER_360_TABLE_SCROLL}>
+                {/* table-fixed: Book truncates; Status budgeted; cells middle-aligned */}
+                <table className={USER_360_TABLE}>
                   <thead>
                     <tr className="border-b">
-                      <th className="py-2">Book</th>
-                      <th>Status</th>
-                      <th>Due</th>
-                      <th>Fine</th>
-                      <th>Renewals</th>
+                      <th className={cn(USER_360_TH, "w-[44%] min-w-0")}>
+                        Book
+                      </th>
+                      <th className={cn(USER_360_TH, "w-[34%] min-w-0")}>
+                        Status
+                      </th>
+                      <th
+                        className={cn(
+                          USER_360_TH,
+                          "w-[10%] whitespace-nowrap tabular-nums",
+                        )}
+                      >
+                        Fine
+                      </th>
+                      <th
+                        className={cn(
+                          USER_360_TH,
+                          "w-[12%] whitespace-nowrap text-right tabular-nums",
+                        )}
+                      >
+                        Renewals
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.history.map((record) => (
                       <tr key={record.id} className="border-b last:border-0">
-                        <td className="py-3">
-                          <Link
-                            prefetch={false}
-                            href={`/books/${record.bookId}`}
-                            className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
-                          >
-                            {record.bookTitle}
-                          </Link>
-                          <p className="text-xs text-gray-500">
-                            {record.bookAuthor}
-                          </p>
+                        <td className="min-w-0 overflow-hidden py-3 align-middle">
+                          <AdminBookIdentityCell
+                            bookId={record.bookId}
+                            title={record.bookTitle}
+                            author={record.bookAuthor}
+                            coverUrl={record.bookCoverUrl}
+                            coverColor={record.bookCoverColor}
+                            genre={record.bookGenre}
+                            rating={record.bookRating}
+                          />
                         </td>
-                        <td>
-                          <BorrowStatusBadge status={record.status} />
+                        <td className="min-w-0 py-3 align-middle">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex self-start">
+                              <BorrowStatusBadge status={record.status} />
+                            </span>
+                            <BorrowLifecycleDates
+                              status={record.status}
+                              createdAt={record.createdAt}
+                              borrowDate={record.borrowDate}
+                              updatedAt={record.updatedAt}
+                              dueDate={record.dueDate}
+                              returnDate={record.returnDate}
+                            />
+                          </div>
                         </td>
-                        <td>{record.dueDate ?? "—"}</td>
-                        <td>${Number(record.fineAmount ?? 0).toFixed(2)}</td>
-                        <td>{record.renewalCount}</td>
+                        <td className="whitespace-nowrap py-3 align-middle tabular-nums">
+                          ${Number(record.fineAmount ?? 0).toFixed(2)}
+                        </td>
+                        <td className="whitespace-nowrap py-3 text-right align-middle tabular-nums">
+                          {record.renewalCount}
+                        </td>
                       </tr>
                     ))}
-                    {data.history.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="py-8 text-center text-gray-500"
-                        >
-                          No borrowing history
-                        </td>
-                      </tr>
-                    ) : null}
                   </tbody>
                 </table>
               </div>
-            </AdminSurfacePanel>
+            )}
+          </AdminSurfacePanel>
 
-            <AdminSurfacePanel>
-              <h2 className="text-lg font-medium">Reviews</h2>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-left text-sm">
+          <AdminUserReservationsPanel
+            userId={initialUser.id}
+            initialReservations={toReservationItems(data.reservationHistory)}
+          />
+        </div>
+
+        {/* D: Reviews ‖ Activity */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AdminSurfacePanel>
+            <TicketSectionHeader
+              variant="light"
+              icon={<Star className="size-5" aria-hidden />}
+              title={`Reviews (${data.reviewHistory.length})`}
+              subtitle="Book reviews submitted by this user"
+            />
+            {data.reviewHistory.length === 0 ? (
+              <AdminDetailEmptyState message="No reviews from this user yet." />
+            ) : (
+              <div className={USER_360_TABLE_SCROLL}>
+                {/* Borrowing-style budgets: Book 44% / Rating 12% / Status 44% */}
+                <table className={USER_360_TABLE}>
                   <thead>
                     <tr className="border-b">
-                      <th className="py-2">Book</th>
-                      <th>Rating</th>
-                      <th>Status</th>
-                      <th>Created</th>
+                      <th className={cn(USER_360_TH, "w-[44%] min-w-0")}>
+                        Book
+                      </th>
+                      <th
+                        className={cn(
+                          USER_360_TH,
+                          "w-[12%] whitespace-nowrap",
+                        )}
+                      >
+                        Rating
+                      </th>
+                      <th className={cn(USER_360_TH, "w-[44%] min-w-0")}>
+                        Status
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.reviewHistory.map((review) => (
-                      <tr key={review.id} className="border-b last:border-0">
-                        <td className="py-3">
-                          <Link
-                            prefetch={false}
-                            href={`/admin/book-reviews/${review.id}`}
-                            className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
-                          >
-                            {review.bookTitle}
-                          </Link>
-                          <Link
-                            prefetch={false}
-                            href={`/books/${review.bookId}`}
-                            className="mt-0.5 block text-xs text-gray-500 hover:text-sky-700"
-                          >
-                            Public book page
-                          </Link>
-                        </td>
-                        <td>{review.rating}/5</td>
-                        <td>
-                          <ReviewStatusBadge
-                            status={
-                              review.status as
+                    {data.reviewHistory.map((review) => {
+                      const ratingTone = reviewRatingTone(review.rating);
+                      return (
+                        <tr key={review.id} className="border-b last:border-0">
+                          <td className="min-w-0 overflow-hidden py-3 align-middle">
+                            {/* Title → public book; secondary → admin review detail */}
+                            <AdminBookIdentityCell
+                              bookId={review.bookId}
+                              title={review.bookTitle}
+                              author={review.bookAuthor}
+                              coverUrl={review.bookCoverUrl}
+                              coverColor={review.bookCoverColor}
+                              genre={review.bookGenre}
+                              rating={review.bookRating}
+                            />
+                            <Link
+                              prefetch={false}
+                              href={`/admin/book-reviews/${review.id}`}
+                              className={cn(
+                                "mt-1 block truncate text-xs",
+                                SKY_LINK_LIGHT,
+                              )}
+                            >
+                              View review detail
+                            </Link>
+                          </td>
+                          <td className="whitespace-nowrap py-3 align-middle">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-0.5 text-sm font-normal tabular-nums",
+                                ratingTone,
+                              )}
+                            >
+                              <Star
+                                className={cn(
+                                  "size-3.5 fill-current",
+                                  ratingTone,
+                                )}
+                                aria-hidden
+                              />
+                              {review.rating}/5
+                            </span>
+                          </td>
+                          <td className="min-w-0 overflow-hidden py-3 align-middle">
+                            {(() => {
+                              const status = review.status as
                                 | "PENDING"
                                 | "APPROVED"
-                                | "REJECTED"
-                            }
-                          />
-                        </td>
-                        <td className="whitespace-nowrap text-gray-600">
-                          {formatMediumDate(review.createdAt)}
-                        </td>
-                      </tr>
-                    ))}
-                    {data.reviewHistory.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="py-8 text-center text-gray-500"
-                        >
-                          No reviews
-                        </td>
-                      </tr>
-                    ) : null}
+                                | "REJECTED";
+                              const decided =
+                                status === "APPROVED" || status === "REJECTED";
+                              // Privilege / Book Reviews DNA: badge+Submitted or DecisionActorStack
+                              if (!decided) {
+                                return (
+                                  <div className="flex min-w-0 flex-col gap-1 leading-none">
+                                    <span className="inline-flex self-start">
+                                      <ReviewStatusBadge status={status} />
+                                    </span>
+                                    <TicketDateMeta
+                                      createdAt={review.createdAt}
+                                      createdLabel="Submitted"
+                                      hideUpdated
+                                    />
+                                  </div>
+                                );
+                              }
+                              return (
+                                <DecisionActorStack
+                                  status={status}
+                                  badge={<ReviewStatusBadge status={status} />}
+                                  actor={review.reviewer}
+                                  actorHref={
+                                    review.reviewer?.id
+                                      ? `/admin/users/${review.reviewer.id}`
+                                      : null
+                                  }
+                                  decidedAt={review.reviewedAt}
+                                  showActor={Boolean(review.reviewer)}
+                                />
+                              );
+                            })()}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-            </AdminSurfacePanel>
+            )}
+          </AdminSurfacePanel>
 
-            <AdminSurfacePanel>
-              <h2 className="text-lg font-medium">Support tickets</h2>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="py-2">Subject</th>
-                      <th>Status</th>
-                      <th>Priority</th>
-                      <th>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.ticketHistory.map((ticket) => (
-                      <tr key={ticket.id} className="border-b last:border-0">
-                        <td className="py-3">
-                          <Link
-                            prefetch={false}
-                            href={`/admin/support-tickets/${ticket.id}`}
-                            className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
-                          >
-                            {ticket.subject}
-                          </Link>
-                        </td>
-                        <td>
-                          <TicketStatusBadge
-                            status={ticket.status as TicketStatus}
-                          />
-                        </td>
-                        <td>
-                          <TicketPriorityBadge
-                            priority={ticket.priority as TicketPriority}
-                          />
-                        </td>
-                        <td className="whitespace-nowrap text-gray-600">
-                          {formatMediumDate(ticket.createdAt)}
-                        </td>
-                      </tr>
-                    ))}
-                    {data.ticketHistory.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="py-8 text-center text-gray-500"
-                        >
-                          No support tickets
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </AdminSurfacePanel>
-          </div>
-
-          <div className="space-y-6">
-            <AdminUserPrivilegePanel
-              userId={initialUser.id}
-              initialHistory={data.requestHistory}
-            />
-
-            <AdminUserReservationsPanel
-              userId={initialUser.id}
-              initialReservations={toReservationItems(data.reservationHistory)}
-            />
-
-            <AdminUserActivityPanel
-              userId={initialUser.id}
-              initialActivity={toActivityItems(data.activityHistory)}
-            />
-
-            {/*
-              Explainable insights: library-wide formula + SSR top genres.
-              Not invent-densified (aggregates need refetch); remount / analytics
-              invalidate on borrow domains refreshes this block.
-            */}
-            <AdminSurfacePanel className="text-sm text-gray-600">
-              <h2 className="font-medium text-gray-900">Explainable insights</h2>
-              <p className="mt-2">
-                Top genres:{" "}
-                {data.topGenres
-                  .map((item) => `${item.genre} (${item.count})`)
-                  .join(", ") || "No completed loans"}
-              </p>
-              <p className="mt-2">
-                Library demand/copy {data.libraryInsights.demandToCopyRatio} ·
-                hold pressure {data.libraryInsights.holdPressure} · renewal rate{" "}
-                {data.libraryInsights.renewalRate}%
-              </p>
-              <p className="mt-2 text-xs text-gray-500">
-                Formula {data.libraryInsights.formulaVersion},{" "}
-                {data.libraryInsights.periodStart} to{" "}
-                {data.libraryInsights.periodEnd}. Deterministic aggregates only.
-              </p>
-            </AdminSurfacePanel>
-          </div>
+          <AdminUserActivityPanel
+            userId={initialUser.id}
+            initialActivity={toActivityItems(data.activityHistory)}
+          />
         </div>
+
+        {/* E: Support Tickets full width */}
+        <AdminSurfacePanel>
+          <TicketSectionHeader
+            variant="light"
+            icon={<LifeBuoy className="size-5" aria-hidden />}
+            title={`Support Tickets (${data.ticketHistory.length})`}
+            subtitle="Tickets opened by this user"
+          />
+          {data.ticketHistory.length === 0 ? (
+            <AdminDetailEmptyState message="No support tickets from this user yet." />
+          ) : (
+            <div className={USER_360_TABLE_SCROLL}>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className={USER_360_TH}>Subject</th>
+                    <th className={USER_360_TH}>Status</th>
+                    <th className={USER_360_TH}>Priority</th>
+                    <th className={USER_360_TH}>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.ticketHistory.map((ticket) => (
+                    <tr key={ticket.id} className="border-b last:border-0">
+                      <td className="py-3">
+                        <Link
+                          prefetch={false}
+                          href={`/admin/support-tickets/${ticket.id}`}
+                          className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
+                        >
+                          {ticket.subject}
+                        </Link>
+                      </td>
+                      <td>
+                        <TicketStatusBadge
+                          status={ticket.status as TicketStatus}
+                        />
+                      </td>
+                      <td>
+                        <TicketPriorityBadge
+                          priority={ticket.priority as TicketPriority}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap text-gray-600">
+                        {formatMediumDate(ticket.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </AdminSurfacePanel>
 
         {data.pagination.total > data.pagination.size ? (
           <nav
