@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-11 | Status: C2 Stage 4; User 360 polish + densify actor card; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-11 | Status: C2 Stage 4; tip `33e4853` User 360 polish + densify actor card; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
