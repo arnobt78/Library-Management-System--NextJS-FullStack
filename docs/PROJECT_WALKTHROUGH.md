@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-12 | Status: C2 Stage 4; resolveDecisionActor list+reviews densify; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-12 | Status: C2 Stage 4; tip `90363ef` resolveDecisionActor densify; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 

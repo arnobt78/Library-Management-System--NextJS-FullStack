@@ -2,13 +2,13 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) densify actor resolver consistency uncommitted; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) densify actor resolver at `90363ef`; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - list+reviews resolveDecisionActor in WT; tip `33e4853` / HEAD `88689dd`; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - tip `90363ef`; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `33e4853`; list+reviews actor resolver = uncommitted WT
-- Latest HEAD: `88689dd` (== `origin/main` at resume; WT ahead locally)
+- Latest implementation tip: `90363ef` (resolveDecisionActor list+reviews)
+- Latest HEAD: `90363ef`
 - Started: 2026-08-01
 - Last updated: 2026-08-12 (Densify actor resolver consistency)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
