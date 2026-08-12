@@ -1,12 +1,16 @@
 /**
  * Admin Users directory page.
  * Make-admin queue lives at /admin/admin-requests (separate IA).
+ * SSR currentAdmin (DB card) so list densify skips Robohash flash.
  */
 
 import React from "react";
+import { eq } from "drizzle-orm";
 import { getAllUsers } from "@/lib/admin/actions/user";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { db } from "@/database/drizzle";
+import { users } from "@/database/schema";
 import AdminUsersList from "@/components/AdminUsersList";
 
 export const runtime = "nodejs";
@@ -23,7 +27,20 @@ const Page = async ({
     redirect("/sign-in");
   }
 
-  const usersResult = await getAllUsers();
+  const [usersResult, adminRow] = await Promise.all([
+    getAllUsers(),
+    db
+      .select({
+        id: users.id,
+        fullName: users.fullName,
+        email: users.email,
+        universityCard: users.universityCard,
+      })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
 
   if (!usersResult.success) {
     return (
@@ -42,14 +59,23 @@ const Page = async ({
     );
   }
 
-  const users = usersResult.data || [];
+  const usersList = usersResult.data || [];
+  const currentAdmin = adminRow
+    ? {
+        id: adminRow.id,
+        fullName: adminRow.fullName,
+        email: adminRow.email,
+        universityCard: adminRow.universityCard ?? null,
+      }
+    : null;
 
   return (
     <AdminUsersList
-      initialUsers={users}
+      initialUsers={usersList}
       successMessage={params.success}
       errorMessage={params.error}
       currentUserId={session.user.id}
+      currentAdmin={currentAdmin}
     />
   );
 };

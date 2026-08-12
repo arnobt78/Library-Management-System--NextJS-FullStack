@@ -8,6 +8,7 @@
  */
 
 import React, { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   CheckCircle,
@@ -62,7 +63,9 @@ import {
   useRejectAdminRequest,
 } from "@/hooks/useMutations";
 import type { AdminRequest } from "@/lib/services/users";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { ADMIN_REQUEST_WITHDRAWN_REASON } from "@/lib/admin/adminRequestConstants";
+import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import { isProtectedDemoAccount } from "@/constants";
 import {
@@ -174,6 +177,8 @@ interface AdminRequestsClientProps {
   initialPendingRequests?: AdminRequest[];
   /** Recent APPROVED/REJECTED decisions from SSR (reviewer attribution) */
   initialRecentDecisions?: AdminRequest[];
+  /** SSR acting admin (DB card) — densify attribution without Robohash flash. */
+  currentAdmin?: AdminRequestReviewer | null;
   successMessage?: string;
   errorMessage?: string;
 }
@@ -181,9 +186,11 @@ interface AdminRequestsClientProps {
 export default function AdminRequestsClient({
   initialPendingRequests = [],
   initialRecentDecisions = [],
+  currentAdmin = null,
   successMessage,
   errorMessage,
 }: AdminRequestsClientProps) {
+  const { data: session } = useSession();
   const [localSearch, setLocalSearch] = useState("");
   const [decisionPeriod, setDecisionPeriod] =
     useState<ListPeriod>("7days");
@@ -192,6 +199,14 @@ export default function AdminRequestsClient({
   );
   const [approveOpen, setApproveOpen] = useState(false);
   const [declineOpen, setDeclineOpen] = useState(false);
+
+  // Prefer SSR card; session fallback is name/email only (JWT has no card).
+  const decisionActor = resolveDecisionActor(
+    currentAdmin,
+    session?.user as
+      | { id?: string; name?: string | null; email?: string | null }
+      | undefined,
+  );
 
   const searchQuery = localSearch.trim();
   const hasActiveFilters = Boolean(searchQuery);
@@ -272,6 +287,7 @@ export default function AdminRequestsClient({
       {
         requestId: decisionTarget.id,
         userName: decisionTarget.userFullName,
+        decisionActor,
       },
       {
         onSuccess: () => {
@@ -289,6 +305,7 @@ export default function AdminRequestsClient({
         requestId: decisionTarget.id,
         rejectionReason,
         userName: decisionTarget.userFullName,
+        decisionActor,
       },
       {
         onSuccess: () => {

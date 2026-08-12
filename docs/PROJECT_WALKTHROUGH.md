@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-11 | Status: C2 Stage 4; tip `33e4853` User 360 polish + densify actor card; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-12 | Status: C2 Stage 4; resolveDecisionActor list+reviews densify; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -38,7 +38,7 @@ Browser
 - Activity History: admin-visible lifecycle audit (borrow create, reservation/renewal, registration re-apply, Automation exports) + Entity routes (ops/export/recs → `/admin/automation`); PrefetchLink staleTime 0; recs densify blocks SSR featured reseed.
 - Admin people: Registration Queue · Admin Requests · User Directory; **unified User 360** (`AdminUser360Shell`, entries directory|registration|privilege); privilege/reservations/activity RQ densify; Insights SSR-only; `prefetchAdminUser360Caches`; PrefetchLink UUID warm (`staleTime: 0`).
 - User 360 tables: `USER_360_TABLE` fixed; Borrowing 44/34/10/12; Reviews 44/12/44 title→book + sky “View review detail”; Status PENDING Submitted / decided `DecisionActorStack`; Reservations badge→Requested; `AdminBookIdentityCell`.
-- Densify actor card: `AuthorizedActor.universityCard` from DB; Make Admin/demote densify returns real card (no Robohash flash); User 360 merges SSR `decisionActor`.
+- Densify actor card: `AuthorizedActor.universityCard` from DB; shared `resolveDecisionActor` + SSR `currentAdmin` on All Users / Admin Requests / Sign-up / User 360 / Book Reviews (no JWT card; session fallback null-card intentional).
 - People tables (2026-08-10): DataTable ticket sizing; `DecisionActorStack` (badge·by·actor·`DecisionDateMeta`); `CopyableText`/`UserRoleBadge`; `statusReviewed*` join densify; queues FIFO-50 + period filter; Applicant Requested/Registered under stack.
 - Cross-domain densify (2026-08-10): `review.write` RSC `/admin`; AdminBooksList prefer densify-empty over SSR; ticket detail `auditEvents` + `densifyTicketDetailAudit`; PrefetchLink my-profile/`book-detail` `staleTime: 0`.
 

@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) User 360 polish + densify actor card at `33e4853`; nonlocal Verify still outstanding
+- Stage: 4 - Prove (local) densify actor resolver consistency uncommitted; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - tip `33e4853`; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - list+reviews resolveDecisionActor in WT; tip `33e4853` / HEAD `88689dd`; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `33e4853` (User 360 tables + densify actor card)
-- Latest HEAD: `5d67a3e` (== `origin/main`)
+- Latest implementation tip: `33e4853`; list+reviews actor resolver = uncommitted WT
+- Latest HEAD: `88689dd` (== `origin/main` at resume; WT ahead locally)
 - Started: 2026-08-01
-- Last updated: 2026-08-11 (User 360 polish + densify actor Robohash fix)
+- Last updated: 2026-08-12 (Densify actor resolver consistency)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,41 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-12, Densify actor resolver consistency)
+
+Verified facts:
+- Book Reviews list/detail use `resolveDecisionActor` (same helper as Users/Admin Requests/Sign-up/User 360).
+- All Users + Admin Requests SSR `currentAdmin`; no JWT universityCard.
+- Prove: typecheck + lint + resolver tests PASS; committing to main.
+
+### Next Action
+
+**Human-Decision:** soft-nav Approve/Make Admin + moderate review Approver card; Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-12, All Users / list densify actor card)
+
+Verified facts:
+- `resolveDecisionActor` prefers SSR `currentAdmin` card; session fallback null card.
+- All Users + Admin Requests SSR `currentAdmin`; list mutates pass `decisionActor`.
+- Prove: typecheck + lint + resolver tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav All Users Approve/Make Admin (no Robohash); commit when asked.
+
+## Reconciliation snapshot (2026-08-12, Agile V resume)
+
+Verified facts:
+- WT clean except untracked `agile_v_skills/` (excluded from product).
+- Implementation tip `33e4853` on `main`; HEAD `88689dd` (docs tip-bind/sync after `33e4853`).
+- No PENDING checkpoint; C2 Gate 2 blocked (`eval_gate_status: FAIL`).
+- Prior deferred: All Users list session `universityCard: null` (Robohash possible from list signup).
+- Halt: owner message had no product request after resume block (Principle 6 / Halt Conditions).
+
+### Next Action
+
+**Human-Decision:** supply the next product/bug/scope request (or choose soft-nav smoke / All Users card gap / EvalGate evidence path).
 
 ## Reconciliation snapshot (2026-08-11, Fix densify actor Robohash flash)
 

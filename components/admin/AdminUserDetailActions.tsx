@@ -31,6 +31,7 @@ import {
   useRejectAdminRequest,
 } from "@/hooks/useMutations";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 import { isProtectedDemoAccount } from "@/constants";
 import { LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import {
@@ -100,25 +101,13 @@ export default function AdminUserDetailActions({
     );
   }
 
-  const decisionActor: AdminRequestReviewer | null = currentAdmin?.email
-    ? {
-        id: currentAdmin.id,
-        fullName: currentAdmin.fullName,
-        email: currentAdmin.email,
-        universityCard: currentAdmin.universityCard,
-      }
-    : (() => {
-        const su = session?.user as
-          | { id?: string; name?: string | null; email?: string | null }
-          | undefined;
-        if (!su?.email || !(su.name || su.email)) return null;
-        return {
-          id: su.id ?? null,
-          fullName: su.name?.trim() || "Admin",
-          email: su.email,
-          universityCard: null,
-        };
-      })();
+  // Prefer SSR card; session fallback is name/email only (JWT has no card).
+  const decisionActor = resolveDecisionActor(
+    currentAdmin,
+    session?.user as
+      | { id?: string; name?: string | null; email?: string | null }
+      | undefined,
+  );
 
   const handleApprove = () => {
     approveUserMutation.mutate({

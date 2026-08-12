@@ -1,17 +1,21 @@
 /**
  * Admin Requests Page — dedicated make-admin privilege queue.
  *
- * SSR: pending queue + recent decisions (reviewer attribution).
+ * SSR: pending queue + recent decisions (reviewer attribution) + currentAdmin card
+ * so approve/decline densify skips Robohash flash.
  * Client hydrates via React Query; admin-request.write invalidates both lists.
  */
 
 import React from "react";
+import { eq } from "drizzle-orm";
 import {
   getPendingAdminRequests,
   getRecentAdminRequestDecisions,
 } from "@/lib/admin/actions/admin-requests";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { db } from "@/database/drizzle";
+import { users } from "@/database/schema";
 import AdminRequestsClient from "@/components/admin/AdminRequestsClient";
 
 export const runtime = "nodejs";
@@ -28,9 +32,20 @@ const Page = async ({
     redirect("/sign-in");
   }
 
-  const [pendingResult, decisionsResult] = await Promise.all([
+  const [pendingResult, decisionsResult, adminRow] = await Promise.all([
     getPendingAdminRequests(),
     getRecentAdminRequestDecisions(),
+    db
+      .select({
+        id: users.id,
+        fullName: users.fullName,
+        email: users.email,
+        universityCard: users.universityCard,
+      })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
   ]);
 
   if (!pendingResult.success) {
@@ -54,11 +69,20 @@ const Page = async ({
   const recentDecisions = decisionsResult.success
     ? decisionsResult.data || []
     : [];
+  const currentAdmin = adminRow
+    ? {
+        id: adminRow.id,
+        fullName: adminRow.fullName,
+        email: adminRow.email,
+        universityCard: adminRow.universityCard ?? null,
+      }
+    : null;
 
   return (
     <AdminRequestsClient
       initialPendingRequests={pendingRequests}
       initialRecentDecisions={recentDecisions}
+      currentAdmin={currentAdmin}
       successMessage={params.success}
       errorMessage={params.error}
     />

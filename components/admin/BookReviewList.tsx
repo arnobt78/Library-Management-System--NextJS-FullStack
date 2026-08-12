@@ -72,6 +72,7 @@ import { LIGHT_ALERT, LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { cn } from "@/lib/utils";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 
 function ReviewRowActions({
   review,
@@ -88,25 +89,9 @@ function ReviewRowActions({
   const moderateMutation = useModerateReview();
   const deleteMutation = useDeleteReview();
   const { data: session } = useSession();
-  // Prefer SSR currentAdmin (full card); session fallback never invents "an admin"
-  // into densify — mutation resolver prefers post-invalidate join instead.
-  const decisionActor: AdminRequestReviewer | undefined = currentAdmin
-    ? {
-        id: currentAdmin.id,
-        fullName: currentAdmin.fullName,
-        email: currentAdmin.email,
-        universityCard: currentAdmin.universityCard,
-      }
-    : session?.user
-      ? {
-          id: session.user.id,
-          fullName: session.user.name || "",
-          email: session.user.email || "",
-          universityCard:
-            (session.user as { universityCard?: string | null })
-              .universityCard ?? null,
-        }
-      : undefined;
+  // Shared helper: SSR card preferred; session fallback name/email only (no JWT card).
+  const decisionActor =
+    resolveDecisionActor(currentAdmin, session?.user) ?? undefined;
 
   const detailHref = `/admin/book-reviews/${review.id}`;
 

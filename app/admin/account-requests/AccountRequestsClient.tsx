@@ -51,6 +51,7 @@ import { useApproveUser, useRejectUser } from "@/hooks/useMutations";
 import type { User as UserType } from "@/lib/services/users";
 import type { SignupStatusDecision } from "@/lib/admin/signupStatusDecisions";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 import { AccountStatusBadge } from "@/lib/ui/semanticBadges";
 import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import {
@@ -253,25 +254,10 @@ const AccountRequestsClient = ({
     approveUserMutation.isPending || rejectUserMutation.isPending;
 
   // Prefer SSR currentAdmin (card + name) so Recent decisions never flash Robohash.
-  const decisionActor = useCallback((): AdminRequestReviewer | null => {
-    if (currentAdmin?.email) {
-      return {
-        id: currentAdmin.id,
-        fullName: currentAdmin.fullName,
-        email: currentAdmin.email,
-        universityCard: currentAdmin.universityCard,
-      };
-    }
-    const su = session?.user as
-      { id?: string; name?: string | null; email?: string | null } | undefined;
-    if (!su?.email || !(su.name || su.email)) return null;
-    return {
-      id: su.id ?? null,
-      fullName: su.name?.trim() || "Admin",
-      email: su.email,
-      universityCard: null,
-    };
-  }, [currentAdmin, session?.user]);
+  const decisionActor = useCallback(
+    () => resolveDecisionActor(currentAdmin, session?.user),
+    [currentAdmin, session?.user],
+  );
 
   const handleApproveUser = useCallback(
     (user: UserType) => {

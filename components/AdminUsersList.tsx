@@ -82,12 +82,16 @@ import { SortableHeader } from "@/components/ui/SortableHeader";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { UserRoleBadge } from "@/lib/ui/semanticBadges";
 import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 
 interface AdminUsersListProps {
   initialUsers?: User[];
   successMessage?: string;
   errorMessage?: string;
   currentUserId?: string;
+  /** SSR acting admin (DB card) — densify attribution without Robohash flash. */
+  currentAdmin?: AdminRequestReviewer | null;
 }
 
 function UserRowActions({
@@ -240,10 +244,19 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   successMessage,
   errorMessage,
   currentUserId,
+  currentAdmin = null,
 }) => {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParamsHook = useSearchParams();
+
+  // Prefer SSR card; session fallback is name/email only (JWT has no card).
+  const decisionActor = resolveDecisionActor(
+    currentAdmin,
+    session?.user as
+      | { id?: string; name?: string | null; email?: string | null }
+      | undefined,
+  );
 
   const currentSearch = searchParamsHook.get("search") || "";
   const currentStatus = searchParamsHook.get("status") || "all";
@@ -437,6 +450,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
           userName: roleTarget.fullName,
           userEmail: roleTarget.email,
           userUniversityCard: roleTarget.universityCard ?? null,
+          decisionActor,
         },
         { onSuccess: () => setRoleTarget(null) },
       );
@@ -448,6 +462,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         userName: roleTarget.fullName,
         userEmail: roleTarget.email,
         userUniversityCard: roleTarget.universityCard ?? null,
+        decisionActor,
       },
       { onSuccess: () => setRoleTarget(null) },
     );
@@ -458,17 +473,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     status: "APPROVED" | "REJECTED",
   ) => {
     const user = users.find((u) => u.id === userId);
-    const su = session?.user as
-      { id?: string; name?: string | null; email?: string | null } | undefined;
-    const decisionActor =
-      su?.email && (su.name || su.email)
-        ? {
-            id: su.id ?? null,
-            fullName: su.name?.trim() || "Admin",
-            email: su.email,
-            universityCard: null as string | null,
-          }
-        : null;
     const payload = {
       userId,
       userName: user?.fullName,
@@ -486,6 +490,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     approveAdminRequestMutation.mutate({
       requestId: user.pendingAdminRequestId,
       userName: user.fullName,
+      decisionActor,
     });
   };
 
@@ -496,6 +501,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         requestId: declineAdminTarget.pendingAdminRequestId,
         rejectionReason,
         userName: declineAdminTarget.fullName,
+        decisionActor,
       },
       {
         onSuccess: () => setDeclineAdminTarget(null),

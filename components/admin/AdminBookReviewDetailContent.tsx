@@ -54,6 +54,7 @@ import {
   type ModerateReviewTargetStatus,
 } from "@/components/admin/ModerateReviewAlertDialog";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 
 export default function AdminBookReviewDetailContent({
   initialReview,
@@ -75,23 +76,8 @@ export default function AdminBookReviewDetailContent({
   const [moderateTarget, setModerateTarget] =
     useState<ModerateReviewTargetStatus | null>(null);
 
-  const decisionActor: AdminRequestReviewer | undefined = currentAdmin
-    ? {
-        id: currentAdmin.id,
-        fullName: currentAdmin.fullName,
-        email: currentAdmin.email,
-        universityCard: currentAdmin.universityCard,
-      }
-    : session?.user
-      ? {
-          id: session.user.id,
-          fullName: session.user.name || "",
-          email: session.user.email || "",
-          universityCard:
-            (session.user as { universityCard?: string | null })
-              .universityCard ?? null,
-        }
-      : undefined;
+  const decisionActor =
+    resolveDecisionActor(currentAdmin, session?.user) ?? undefined;
 
   // Only the clicked action shows a spinner; sibling stays disabled without Loader2.
   const moderatingStatus = moderateMutation.isPending
