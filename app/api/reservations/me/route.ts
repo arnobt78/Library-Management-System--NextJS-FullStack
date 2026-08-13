@@ -22,6 +22,7 @@ export async function GET() {
         b.cover_color AS cover_color,
         b.genre AS genre,
         b.rating AS book_rating,
+        b.isbn AS isbn,
         CASE WHEN r.status = 'WAITING' THEN (
           SELECT COUNT(*)::int FROM reservations ahead
           WHERE ahead.book_id = r.book_id AND ahead.status = 'WAITING'
@@ -47,6 +48,7 @@ export async function GET() {
       genre: row.genre == null ? null : String(row.genre),
       bookRating: row.book_rating == null ? null : Number(row.book_rating),
       createdAt: row.created_at == null ? null : String(row.created_at),
+      isbn: row.isbn == null ? null : String(row.isbn),
     }));
 
     return NextResponse.json(rows);

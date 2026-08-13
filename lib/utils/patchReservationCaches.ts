@@ -36,6 +36,8 @@ export type ReservationRow = {
   genre?: string | null;
   bookRating?: number | null;
   createdAt?: string | Date | null;
+  /** ISBN for Holds meta densify (last-4 display). */
+  isbn?: string | null;
 };
 
 export type ReservationListBaselines = {

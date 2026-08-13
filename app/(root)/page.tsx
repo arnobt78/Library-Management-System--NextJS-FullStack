@@ -7,7 +7,9 @@ import { books, users, borrowRecords } from "@/database/schema";
 import { auth } from "@/auth";
 import { count, desc, eq, sql, and, inArray, notInArray } from "drizzle-orm";
 import type { BorrowRecord } from "@/lib/services/borrows";
+import type { UserReservationItem } from "@/lib/services/reservations";
 import { getHomepageHeroBook } from "@/lib/admin/actions/book";
+import { loadUserReservationsSsr } from "@/lib/circulation/loadUserReservationsSsr";
 
 const Home = async () => {
   const session = await auth();
@@ -18,6 +20,7 @@ const Home = async () => {
   // Fetch user borrows for SSR (if user is logged in)
   // This ensures BookBorrowButton shows correct state immediately on first load
   let initialUserBorrows: BorrowRecord[] | undefined = undefined;
+  let initialReservations: UserReservationItem[] | undefined = undefined;
   let userStatus: string | null = null;
 
   if (session?.user?.id) {
@@ -97,6 +100,9 @@ const Home = async () => {
         createdAt: record.createdAt, // timestamp() returns Date object
       };
     });
+
+    // Waitlisted CTA densify seed — same key as book detail / Holds
+    initialReservations = await loadUserReservationsSsr(session.user.id);
   }
 
   // SSR borrow stats for the hero book (zero duplicate fetch on first paint)
@@ -235,6 +241,7 @@ const Home = async () => {
         userId={session?.user?.id}
         userStatus={userStatus}
         initialUserBorrows={initialUserBorrows}
+        initialReservations={initialReservations}
         initialStats={heroInitialStats}
       />
 

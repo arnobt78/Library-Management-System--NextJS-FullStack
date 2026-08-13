@@ -5,8 +5,8 @@
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { Activity } from "lucide-react";
+import PrefetchLink from "@/components/PrefetchLink";
 import {
   AdminDetailEmptyState,
   USER_360_TABLE_SCROLL,
@@ -94,13 +94,13 @@ export default function AdminUserActivityPanel({
                     </td>
                     <td className="text-xs text-gray-700">
                       {linkable && href ? (
-                        <Link
+                        <PrefetchLink
                           prefetch={false}
                           href={href}
                           className={SKY_LINK_LIGHT}
                         >
                           {entityLabel}
-                        </Link>
+                        </PrefetchLink>
                       ) : (
                         entityLabel
                       )}

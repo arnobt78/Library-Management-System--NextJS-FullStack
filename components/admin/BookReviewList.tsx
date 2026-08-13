@@ -9,8 +9,6 @@
  */
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   CheckCircle2,
@@ -82,7 +80,6 @@ function ReviewRowActions({
   /** SSR DB actor — preferred over useSession (card + name when session null). */
   currentAdmin?: AdminRequestReviewer | null;
 }) {
-  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [moderateTarget, setModerateTarget] =
     useState<"APPROVED" | "REJECTED" | null>(null);
@@ -113,12 +110,11 @@ function ReviewRowActions({
           className={LIGHT_MENU.content}
           onClick={(e) => e.stopPropagation()}
         >
-          <DropdownMenuItem
-            className={LIGHT_MENU.item}
-            onSelect={() => router.push(detailHref)}
-          >
-            <Eye className="size-3.5" />
-            View Details
+          <DropdownMenuItem asChild className={LIGHT_MENU.item}>
+            <PrefetchLink href={detailHref} prefetch={false}>
+              <Eye className="size-3.5" />
+              View Details
+            </PrefetchLink>
           </DropdownMenuItem>
           <DropdownMenuSeparator className={LIGHT_MENU.separator} />
           {review.status !== "APPROVED" && (
@@ -443,13 +439,13 @@ export default function BookReviewList({
         minSize: 160,
         header: "Comment",
         cell: ({ row }) => (
-          <Link
+          <PrefetchLink
             href={`/admin/book-reviews/${row.original.id}`}
             prefetch={false}
             className={cn(TABLE_CELL_TITLE, "line-clamp-2", SKY_LINK_LIGHT)}
           >
             {row.original.comment}
-          </Link>
+          </PrefetchLink>
         ),
       },
       {

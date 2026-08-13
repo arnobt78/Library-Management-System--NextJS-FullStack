@@ -21,6 +21,7 @@ import { useUserBorrows } from "@/hooks/useQueries";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import type { ReviewEligibility } from "@/lib/services/reviews";
 import ReserveBookButton from "@/components/ReserveBookButton";
+import type { UserReservationItem } from "@/lib/services/reservations";
 
 interface BookBorrowButtonProps {
   /**
@@ -61,6 +62,10 @@ interface BookBorrowButtonProps {
    */
   initialUserBorrows?: BorrowRecord[];
   /**
+   * SSR reservations — Waitlisted CTA without Join Waitlist flash.
+   */
+  initialReservations?: UserReservationItem[];
+  /**
    * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
    */
   initialReviewEligibility?: ReviewEligibility;
@@ -80,6 +85,7 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
   userStatus,
   isDetailPage = false,
   initialUserBorrows,
+  initialReservations,
   initialReviewEligibility,
 }) => {
   // Gate on SSR userStatus so PENDING never hits APPROVED-only borrow APIs (no 403 noise)
@@ -140,7 +146,11 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
           }
         />
       ) : availableCopies <= 0 && userStatus === "APPROVED" && isActive ? (
-        <ReserveBookButton bookId={bookId} />
+        <ReserveBookButton
+          bookId={bookId}
+          userId={userId}
+          initialReservations={initialReservations}
+        />
       ) : (
         <BorrowBook
           bookId={bookId}

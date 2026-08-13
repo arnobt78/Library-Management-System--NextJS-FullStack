@@ -2,10 +2,11 @@
  * Activity History display helpers — entity linkability, tooltip copy, details text.
  * Parent: CR-0003 / REQ-0034 activity table polish
  *
- * Entity routes map admin surfaces (not public pages). Types without a dedicated
- * detail page (borrow → book-requests queue; admin-request → user 360 via
- * details.userId; reservation → book edit via details.bookId) still get
- * navigable Entity cells when a sensible admin URL exists.
+ * Entity routes map admin surfaces (not public pages). Borrow →
+ * `/admin/book-requests/{id}` when entityId present (else queue). Types without a
+ * dedicated detail page (admin-request → user 360 via details.userId; reservation →
+ * book edit via details.bookId) still get navigable Entity cells when a sensible
+ * admin URL exists.
  */
 
 /** Admin detail/edit/list surfaces for activity entity types. */
@@ -17,8 +18,9 @@ export const ACTIVITY_ENTITY_DETAIL_ROUTE: Record<
   user: (id) => `/admin/users/${id}`,
   ticket: (id) => `/admin/support-tickets/${id}`,
   review: (id) => `/admin/book-reviews/${id}`,
-  // No per-record borrow detail — open the admin borrow queue.
-  borrow: () => `/admin/book-requests`,
+  // Per-record borrow detail when entityId present; else queue list.
+  borrow: (id) =>
+    id ? `/admin/book-requests/${id}` : `/admin/book-requests`,
 };
 
 /**
@@ -93,7 +95,7 @@ function detailBookId(
 /**
  * Resolve admin href for an activity entity.
  * admin-request → `/admin/users/{details.userId}` (request id alone has no page).
- * borrow → `/admin/book-requests` (queue; entityId optional).
+ * borrow → `/admin/book-requests/{id}` when entityId present; else queue.
  * reservation → `/admin/books/{details.bookId}/edit` (no reservation detail page).
  */
 export function activityEntityHref(
@@ -110,7 +112,6 @@ export function activityEntityHref(
     return userId ? `/admin/users/${userId}` : undefined;
   }
   if (entityType === "borrow") {
-    // Queue link works even for summary rows (null entityId).
     return ACTIVITY_ENTITY_DETAIL_ROUTE.borrow(entityId ?? "");
   }
   if (entityType === "reservation") {

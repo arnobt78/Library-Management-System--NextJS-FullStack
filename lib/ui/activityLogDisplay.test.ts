@@ -11,8 +11,10 @@ import {
 } from "@/lib/ui/activityLogDisplay";
 
 describe("activityEntityHref", () => {
-  it("maps borrow to the admin book-requests queue", () => {
-    expect(activityEntityHref("borrow", "br1")).toBe("/admin/book-requests");
+  it("maps borrow to detail when id present, else queue", () => {
+    expect(activityEntityHref("borrow", "br1")).toBe(
+      "/admin/book-requests/br1",
+    );
     expect(activityEntityHref("borrow", null)).toBe("/admin/book-requests");
   });
 
@@ -53,9 +55,9 @@ describe("activityEntityHref", () => {
     ).toBe("/admin/automation");
   });
 
-  it("keeps borrow queue for non-ops borrow rows", () => {
+  it("keeps borrow detail for non-ops borrow rows with id", () => {
     expect(activityEntityHref("borrow", "br1", { status: "BORROWED" })).toBe(
-      "/admin/book-requests",
+      "/admin/book-requests/br1",
     );
   });
 });

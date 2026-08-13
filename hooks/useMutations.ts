@@ -39,7 +39,7 @@ import {
 } from "@/lib/admin/actions/admin-requests";
 import { updateUserRole, updateUserStatus } from "@/lib/admin/actions/user";
 import { requestRegistrationReview } from "@/lib/actions/registration";
-import { borrowBook } from "@/lib/actions/book";
+import { borrowBook, cancelPendingBorrowRequest } from "@/lib/actions/book";
 import {
   createReview,
   updateReview,
@@ -154,6 +154,44 @@ function activityActorFromSession(
     actorName: su.name?.trim() || null,
     actorEmail: su.email ?? null,
     actorUniversityCard: null as string | null,
+  };
+}
+
+/** Session/SSR actor for borrow approve/return densify (email fields + PersonAttribution). */
+type BorrowLifecycleActor = {
+  id: string;
+  fullName: string;
+  email: string;
+  universityCard: string | null;
+};
+
+function resolveBorrowLifecycleActor(
+  decisionActor:
+    | {
+        id?: string | null;
+        fullName?: string | null;
+        email?: string | null;
+        universityCard?: string | null;
+      }
+    | null
+    | undefined,
+  session: { user?: SessionUser } | null | undefined,
+): BorrowLifecycleActor | null {
+  if (decisionActor?.email && decisionActor.id) {
+    return {
+      id: decisionActor.id,
+      fullName: decisionActor.fullName?.trim() || "Admin",
+      email: decisionActor.email,
+      universityCard: decisionActor.universityCard ?? null,
+    };
+  }
+  const su = session?.user;
+  if (!su?.id || !su.email) return null;
+  return {
+    id: su.id,
+    fullName: su.name?.trim() || "Admin",
+    email: su.email,
+    universityCard: null,
   };
 }
 
@@ -1225,6 +1263,13 @@ export const useApproveBorrow = () => {
       recordId: string;
       bookTitle?: string; // Optional, for toast message
       userName?: string; // Optional, for toast message
+      /** SSR/currentAdmin preferred; session fallback name/email only. */
+      decisionActor?: {
+        id?: string | null;
+        fullName?: string | null;
+        email?: string | null;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await approveBorrowRequest(recordId);
       if (!result.success) {
@@ -1232,30 +1277,47 @@ export const useApproveBorrow = () => {
       }
       return { recordId };
     },
-    onMutate: async ({ recordId }) => {
+    onMutate: async ({ recordId, decisionActor }) => {
       // Instant PENDING → BORROWED so admin + profile lists do not flash empty.
       await queryClient.cancelQueries({
         queryKey: queryKeys.borrows.requestsRoot,
       });
       await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestDetail(recordId),
+      });
       const previousRequests = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.requestsRoot,
       });
       const previousUserBorrows = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.userRoot,
       });
+      const previousDetail = queryClient.getQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+      );
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const dueDate = (() => {
         const d = new Date();
         d.setDate(d.getDate() + 7);
         return d.toISOString().slice(0, 10);
       })();
+      const actor = resolveBorrowLifecycleActor(decisionActor, session);
+      const detailPatch = {
+        status: "BORROWED" as const,
+        dueDate,
+        ...(actor
+          ? {
+              borrowedBy: actor.email,
+              approvedByActor: actor,
+              updatedBy: actor.email,
+              updatedAt: new Date(),
+            }
+          : {}),
+      };
       const patchStatus = (old: unknown) => {
         if (!Array.isArray(old)) return old;
         return old.map((row: { id?: string; status?: string }) =>
-          row?.id === recordId
-            ? { ...row, status: "BORROWED", dueDate }
-            : row,
+          row?.id === recordId ? { ...row, ...detailPatch } : row,
         );
       };
       queryClient.setQueriesData(
@@ -1265,6 +1327,12 @@ export const useApproveBorrow = () => {
       queryClient.setQueriesData(
         { queryKey: queryKeys.borrows.userRoot },
         patchStatus,
+      );
+      // Instant detail densify on `/admin/book-requests/[id]` while pending.
+      queryClient.setQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+        (old: unknown) =>
+          old && typeof old === "object" ? { ...old, ...detailPatch } : old,
       );
       if (meta?.bookId) {
         patchBookInventory(queryClient, meta.bookId, {
@@ -1276,9 +1344,11 @@ export const useApproveBorrow = () => {
       return {
         previousRequests,
         previousUserBorrows,
+        previousDetail,
         meta,
         fromStatus: meta?.status ?? null,
         dueDate,
+        actor,
       };
     },
     onError: (error: Error, variables, context) => {
@@ -1291,6 +1361,12 @@ export const useApproveBorrow = () => {
         for (const [key, data] of context.previousUserBorrows) {
           queryClient.setQueryData(key, data);
         }
+      }
+      if (context && "previousDetail" in context) {
+        queryClient.setQueryData(
+          queryKeys.borrows.requestDetail(variables.recordId),
+          context.previousDetail,
+        );
       }
       if (context?.meta?.bookId) {
         patchBookInventory(queryClient, context.meta.bookId, {
@@ -1317,6 +1393,9 @@ export const useApproveBorrow = () => {
           d.setDate(d.getDate() + 7);
           return d.toISOString().slice(0, 10);
         })();
+      const actor =
+        context?.actor ??
+        resolveBorrowLifecycleActor(variables.decisionActor, session);
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: (qc) =>
           snapshotBorrowCacheBaselines(
@@ -1328,7 +1407,18 @@ export const useApproveBorrow = () => {
             queryClient,
             {
               recordId: variables.recordId,
-              patch: { status: "BORROWED", dueDate },
+              patch: {
+                status: "BORROWED",
+                dueDate,
+                ...(actor
+                  ? {
+                      borrowedBy: actor.email,
+                      approvedByActor: actor,
+                      updatedBy: actor.email,
+                      updatedAt: new Date(),
+                    }
+                  : {}),
+              },
               userId: meta?.userId,
               bookId: meta?.bookId,
               fromStatus,
@@ -1404,12 +1494,18 @@ export const useRejectBorrow = () => {
         queryKey: queryKeys.borrows.requestsRoot,
       });
       await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestDetail(recordId),
+      });
       const previousRequests = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.requestsRoot,
       });
       const previousUserBorrows = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.userRoot,
       });
+      const previousDetail = queryClient.getQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+      );
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
       const patchStatus = (old: unknown) => {
@@ -1426,7 +1522,20 @@ export const useRejectBorrow = () => {
         { queryKey: queryKeys.borrows.userRoot },
         patchStatus,
       );
-      return { previousRequests, previousUserBorrows, meta, fromStatus };
+      queryClient.setQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+        (old: unknown) =>
+          old && typeof old === "object"
+            ? { ...old, status: "CANCELLED" }
+            : old,
+      );
+      return {
+        previousRequests,
+        previousUserBorrows,
+        previousDetail,
+        meta,
+        fromStatus,
+      };
     },
     onError: (error: Error, variables, context) => {
       if (context?.previousRequests) {
@@ -1438,6 +1547,12 @@ export const useRejectBorrow = () => {
         for (const [key, data] of context.previousUserBorrows) {
           queryClient.setQueryData(key, data);
         }
+      }
+      if (context && "previousDetail" in context) {
+        queryClient.setQueryData(
+          queryKeys.borrows.requestDetail(variables.recordId),
+          context.previousDetail,
+        );
       }
       const bookTitle = variables.bookTitle || "book";
       showToast.error(
@@ -1493,6 +1608,144 @@ export const useRejectBorrow = () => {
 };
 
 /**
+ * Owner soft-cancels a PENDING borrow request from My Profile.
+ * Densify parity with useRejectBorrow (CANCELLED stays in history / KPIs).
+ */
+export const useCancelPendingBorrow = () => {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({
+      recordId,
+    }: {
+      recordId: string;
+      bookTitle?: string;
+    }) => {
+      const result = await cancelPendingBorrowRequest(recordId);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to cancel borrow request");
+      }
+      return { recordId };
+    },
+    onMutate: async ({ recordId }) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestDetail(recordId),
+      });
+      const previousRequests = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      const previousUserBorrows = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.userRoot,
+      });
+      const previousDetail = queryClient.getQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+      );
+      const meta = findCachedBorrowMeta(queryClient, recordId);
+      const fromStatus = meta?.status ?? null;
+      const patchStatus = (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((row: { id?: string; status?: string }) =>
+          row?.id === recordId ? { ...row, status: "CANCELLED" } : row,
+        );
+      };
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.requestsRoot },
+        patchStatus,
+      );
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.userRoot },
+        patchStatus,
+      );
+      queryClient.setQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+        (old: unknown) =>
+          old && typeof old === "object"
+            ? { ...old, status: "CANCELLED" }
+            : old,
+      );
+      return {
+        previousRequests,
+        previousUserBorrows,
+        previousDetail,
+        meta,
+        fromStatus,
+      };
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previousRequests) {
+        for (const [key, data] of context.previousRequests) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context?.previousUserBorrows) {
+        for (const [key, data] of context.previousUserBorrows) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context && "previousDetail" in context) {
+        queryClient.setQueryData(
+          queryKeys.borrows.requestDetail(variables.recordId),
+          context.previousDetail,
+        );
+      }
+      const bookTitle = variables.bookTitle || "book";
+      showToast.error(
+        "Cancel Failed",
+        error.message ||
+          `Unable to cancel your request for "${bookTitle}". Please try again.`,
+      );
+    },
+    onSuccess: async (_data, variables, context) => {
+      const meta =
+        context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      const fromStatus = context?.fromStatus ?? null;
+      await commitMutationCache(queryClient, "borrow.lifecycle", {
+        snapshot: (qc) =>
+          snapshotBorrowCacheBaselines(
+            qc,
+            meta?.bookId ? [meta.bookId] : [],
+          ),
+        densify: (baselines) => {
+          patchBorrowCachesOnStatusChange(
+            queryClient,
+            {
+              recordId: variables.recordId,
+              patch: { status: "CANCELLED" },
+              userId: meta?.userId,
+              bookId: meta?.bookId,
+              fromStatus,
+            },
+            baselines,
+          );
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: variables.recordId,
+            details: {
+              status: "CANCELLED",
+              ...(meta?.userId ? { userId: meta.userId } : {}),
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+          });
+        },
+      });
+
+      const bookTitle = variables.bookTitle || "this book";
+      showToast.success(
+        "Request Cancelled",
+        `Your borrow request for "${bookTitle}" was cancelled.`,
+      );
+    },
+  });
+};
+
+/**
  * Hook to return a book (marks borrow record as RETURNED).
  * Automatically invalidates related queries and shows success/error toasts.
  * Calculates and applies overdue fines if the book is returned late.
@@ -1520,6 +1773,13 @@ export const useReturnBook = () => {
     }: {
       recordId: string;
       bookTitle?: string; // Optional, for toast message
+      /** SSR/currentAdmin preferred; session fallback name/email only. */
+      decisionActor?: {
+        id?: string | null;
+        fullName?: string | null;
+        email?: string | null;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await returnBook(recordId);
       if (!result.success) {
@@ -1527,10 +1787,13 @@ export const useReturnBook = () => {
       }
       return result.data;
     },
-    onMutate: async ({ recordId }) => {
+    onMutate: async ({ recordId, decisionActor }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
       await queryClient.cancelQueries({
         queryKey: queryKeys.borrows.requestsRoot,
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestDetail(recordId),
       });
       const previousRequests = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.requestsRoot,
@@ -1538,15 +1801,29 @@ export const useReturnBook = () => {
       const previousUserBorrows = queryClient.getQueriesData({
         queryKey: queryKeys.borrows.userRoot,
       });
+      const previousDetail = queryClient.getQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+      );
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
       const returnDate = new Date().toISOString().slice(0, 10);
+      const actor = resolveBorrowLifecycleActor(decisionActor, session);
+      const detailPatch = {
+        status: "RETURNED" as const,
+        returnDate,
+        ...(actor
+          ? {
+              returnedBy: actor.email,
+              returnedByActor: actor,
+              updatedBy: actor.email,
+              updatedAt: new Date(),
+            }
+          : {}),
+      };
       const patchStatus = (old: unknown) => {
         if (!Array.isArray(old)) return old;
         return old.map((row: { id?: string; status?: string }) =>
-          row?.id === recordId
-            ? { ...row, status: "RETURNED", returnDate }
-            : row,
+          row?.id === recordId ? { ...row, ...detailPatch } : row,
         );
       };
       queryClient.setQueriesData(
@@ -1556,6 +1833,11 @@ export const useReturnBook = () => {
       queryClient.setQueriesData(
         { queryKey: queryKeys.borrows.userRoot },
         patchStatus,
+      );
+      queryClient.setQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+        (old: unknown) =>
+          old && typeof old === "object" ? { ...old, ...detailPatch } : old,
       );
       if (meta?.bookId) {
         patchBookInventory(queryClient, meta.bookId, {
@@ -1567,9 +1849,11 @@ export const useReturnBook = () => {
       return {
         previousRequests,
         previousUserBorrows,
+        previousDetail,
         meta,
         fromStatus,
         returnDate,
+        actor,
       };
     },
     onSuccess: async (data, variables, context) => {
@@ -1582,6 +1866,9 @@ export const useReturnBook = () => {
         data?.fineAmount !== undefined
           ? Number(data.fineAmount).toFixed(2)
           : undefined;
+      const actor =
+        context?.actor ??
+        resolveBorrowLifecycleActor(variables.decisionActor, session);
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: (qc) =>
           snapshotBorrowCacheBaselines(
@@ -1597,6 +1884,14 @@ export const useReturnBook = () => {
                 status: "RETURNED",
                 returnDate,
                 ...(fineAmount !== undefined ? { fineAmount } : {}),
+                ...(actor
+                  ? {
+                      returnedBy: actor.email,
+                      returnedByActor: actor,
+                      updatedBy: actor.email,
+                      updatedAt: new Date(),
+                    }
+                  : {}),
               },
               userId: meta?.userId,
               bookId: meta?.bookId,
@@ -1644,6 +1939,12 @@ export const useReturnBook = () => {
         for (const [key, data] of context.previousUserBorrows) {
           queryClient.setQueryData(key, data);
         }
+      }
+      if (context && "previousDetail" in context) {
+        queryClient.setQueryData(
+          queryKeys.borrows.requestDetail(variables.recordId),
+          context.previousDetail,
+        );
       }
       // Roll back optimistic inventory bump
       if (context?.meta?.bookId) {

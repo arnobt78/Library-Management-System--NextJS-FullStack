@@ -1,24 +1,21 @@
 /**
  * Post-invalidate densify for recommendation.write.
- * When payload lacks book rows, mark featured densified-empty (not bare remove)
- * so soft-nav cannot reseed stale SSR via seedFromSsrIfEmpty.
+ * When payload has book rows, replace featured. When empty/missing, leave
+ * prior featured painted until active refetch (Automation Refresh must not
+ * blank the homepage strip).
  */
 
 import type { QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
-import {
-  clearDensifiedEmpty,
-  markDensifiedEmpty,
-  writeDensifiedEmpty,
-} from "@/lib/utils/queryCacheLists";
+import { clearDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 
 type BookLike = { id: string; [key: string]: unknown };
 
 /**
- * Replace featured strip when mutation returns book rows; otherwise write
- * densified-empty featured caches and evict recommendation lists so remount
- * refetches fresh data without painting pre-mutation SSR.
+ * Replace featured strip when mutation returns book rows; otherwise keep
+ * existing featured cache and only drop recommendation lists + analytics so
+ * remount refetch fills without a blank hero flash.
  */
 export function densifyRecommendationWrite(
   queryClient: QueryClient,
@@ -33,21 +30,9 @@ export function densifyRecommendationWrite(
       () => featured,
     );
     clearDensifiedEmpty(queryKeys.books.featuredRoot);
-  } else {
-    // Prefer densified-empty over removeQueries — undefined cache lets
-    // seedFromSsrIfEmpty reseed stale homepage SSR on soft-nav.
-    const featuredQueries = queryClient.getQueriesData<BookLike[]>({
-      queryKey: queryKeys.books.featuredRoot,
-    });
-    if (featuredQueries.length === 0) {
-      writeDensifiedEmpty(queryClient, queryKeys.books.featured(1));
-    } else {
-      for (const [key] of featuredQueries) {
-        queryClient.setQueryData(key, []);
-        markDensifiedEmpty(key);
-      }
-    }
   }
+  // Empty refresh: do not write featured [] / markDensifiedEmpty — leave prior
+  // strip until active invalidation refetch supplies fresh rows.
 
   queryClient.removeQueries({
     queryKey: queryKeys.books.recommendationsRoot,

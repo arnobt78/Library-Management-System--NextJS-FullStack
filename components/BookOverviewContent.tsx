@@ -29,6 +29,7 @@ import { useBook } from "@/hooks/useQueries";
 import BookSkeleton from "@/components/skeletons/BookSkeleton";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import type { ReviewEligibility } from "@/lib/services/reviews";
+import type { UserReservationItem } from "@/lib/services/reservations";
 
 interface BookOverviewContentProps {
   /**
@@ -64,6 +65,10 @@ interface BookOverviewContentProps {
    */
   initialUserBorrows?: BorrowRecord[];
   /**
+   * SSR reservations — Waitlisted CTA without Join Waitlist flash.
+   */
+  initialReservations?: UserReservationItem[];
+  /**
    * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
    */
   initialReviewEligibility?: ReviewEligibility;
@@ -77,6 +82,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
   initialBook,
   initialStats,
   initialUserBorrows,
+  initialReservations,
   initialReviewEligibility,
 }) => {
   // Use React Query hook with SSR initial data
@@ -312,6 +318,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                   userStatus={userStatus}
                   isDetailPage={true}
                   initialUserBorrows={initialUserBorrows}
+                  initialReservations={initialReservations}
                   initialReviewEligibility={initialReviewEligibility}
                 />
               ) : (
@@ -330,6 +337,7 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
                     userStatus={userStatus}
                     isDetailPage={false}
                     initialUserBorrows={initialUserBorrows}
+                    initialReservations={initialReservations}
                     initialReviewEligibility={initialReviewEligibility}
                   />
                   <span className="cta-shine-wrap mt-0 w-full sm:mt-4 sm:w-fit">

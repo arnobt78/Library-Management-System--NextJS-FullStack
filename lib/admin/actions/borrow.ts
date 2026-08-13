@@ -19,6 +19,7 @@
 import { db } from "@/database/drizzle";
 import { borrowRecords, books, users } from "@/database/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   getActionErrorMessage,
   requireAdminActor,
@@ -73,7 +74,6 @@ export const getAllBorrowRequests = async () => {
         returnDate: borrowRecords.returnDate,
         status: borrowRecords.status,
         createdAt: borrowRecords.createdAt,
-        // Enhanced tracking fields
         borrowedBy: borrowRecords.borrowedBy,
         returnedBy: borrowRecords.returnedBy,
         fineAmount: borrowRecords.fineAmount,
@@ -82,12 +82,10 @@ export const getAllBorrowRequests = async () => {
         lastReminderSent: borrowRecords.lastReminderSent,
         updatedAt: borrowRecords.updatedAt,
         updatedBy: borrowRecords.updatedBy,
-        // User details
         userName: users.fullName,
         userEmail: users.email,
         userUniversityId: users.universityId,
         userUniversityCard: users.universityCard,
-        // Book details
         bookTitle: books.title,
         bookAuthor: books.author,
         bookGenre: books.genre,
@@ -100,10 +98,203 @@ export const getAllBorrowRequests = async () => {
       .innerJoin(books, eq(borrowRecords.bookId, books.id))
       .orderBy(desc(borrowRecords.createdAt));
 
-    return { success: true, data: requests };
+    return {
+      success: true as const,
+      data: requests.map((row) => mapBorrowRequestRow(row)),
+    };
   } catch (error) {
     console.error("Error fetching borrow requests:", error);
-    return { success: false, error: "Failed to fetch borrow requests" };
+    return { success: false as const, error: "Failed to fetch borrow requests" };
+  }
+};
+
+/** Map DB join row → admin BorrowRecordWithDetails (list + detail). */
+function mapBorrowRequestRow(record: {
+  id: string;
+  userId: string;
+  bookId: string;
+  borrowDate: Date | null;
+  dueDate: string | Date | null;
+  returnDate: string | Date | null;
+  status: string;
+  borrowedBy: string | null;
+  returnedBy: string | null;
+  fineAmount: string | null;
+  notes: string | null;
+  renewalCount: number;
+  lastReminderSent: Date | null;
+  updatedAt: Date | null;
+  updatedBy: string | null;
+  createdAt: Date | null;
+  userName: string;
+  userEmail: string;
+  userUniversityId: number;
+  userUniversityCard: string | null;
+  bookTitle: string;
+  bookAuthor: string;
+  bookGenre: string;
+  bookRating: number | null;
+  bookCoverUrl: string | null;
+  bookCoverColor: string | null;
+  approvedById?: string | null;
+  approvedByName?: string | null;
+  approvedByEmail?: string | null;
+  approvedByCard?: string | null;
+  returnedById?: string | null;
+  returnedByName?: string | null;
+  returnedByEmail?: string | null;
+  returnedByCard?: string | null;
+}) {
+  const dueDateValue = record.dueDate;
+  let dueDateStr: string | null = null;
+  if (dueDateValue) {
+    dueDateStr =
+      typeof dueDateValue === "string"
+        ? dueDateValue
+        : dueDateValue.toISOString().split("T")[0];
+  }
+  const returnDateValue = record.returnDate;
+  let returnDateStr: string | null = null;
+  if (returnDateValue) {
+    returnDateStr =
+      typeof returnDateValue === "string"
+        ? returnDateValue
+        : returnDateValue.toISOString().split("T")[0];
+  }
+  return {
+    id: record.id,
+    userId: record.userId,
+    bookId: record.bookId,
+    borrowDate: record.borrowDate,
+    dueDate: dueDateStr,
+    returnDate: returnDateStr,
+    status: record.status as "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED",
+    borrowedBy: record.borrowedBy,
+    returnedBy: record.returnedBy,
+    fineAmount: record.fineAmount || "0.00",
+    notes: record.notes,
+    renewalCount: record.renewalCount,
+    lastReminderSent: record.lastReminderSent,
+    updatedAt: record.updatedAt,
+    updatedBy: record.updatedBy,
+    createdAt: record.createdAt,
+    userName: record.userName,
+    userEmail: record.userEmail,
+    userUniversityId: record.userUniversityId,
+    userUniversityCard: record.userUniversityCard ?? null,
+    bookTitle: record.bookTitle,
+    bookAuthor: record.bookAuthor,
+    bookGenre: record.bookGenre,
+    bookRating: record.bookRating ?? null,
+    bookCoverUrl: record.bookCoverUrl,
+    bookCoverColor: record.bookCoverColor,
+    approvedByActor:
+      record.approvedById && record.approvedByEmail && record.approvedByName
+        ? {
+            id: record.approvedById,
+            fullName: record.approvedByName,
+            email: record.approvedByEmail,
+            universityCard: record.approvedByCard ?? null,
+          }
+        : null,
+    returnedByActor:
+      record.returnedById && record.returnedByEmail && record.returnedByName
+        ? {
+            id: record.returnedById,
+            fullName: record.returnedByName,
+            email: record.returnedByEmail,
+            universityCard: record.returnedByCard ?? null,
+          }
+        : null,
+  };
+}
+
+/**
+ * Single Borrow Queue row for `/admin/book-requests/[id]`.
+ * Joins borrower book + optional approver/returner users via email fields.
+ * Auth is the caller's responsibility (page / API / server action wrapper).
+ */
+export async function loadBorrowRequestById(recordId: string) {
+  try {
+    const safeId = parseEntityId(recordId);
+    const approverUsers = alias(users, "borrow_approver_users");
+    const returnerUsers = alias(users, "borrow_returner_users");
+
+    const [row] = await db
+      .select({
+        id: borrowRecords.id,
+        userId: borrowRecords.userId,
+        bookId: borrowRecords.bookId,
+        borrowDate: borrowRecords.borrowDate,
+        dueDate: borrowRecords.dueDate,
+        returnDate: borrowRecords.returnDate,
+        status: borrowRecords.status,
+        createdAt: borrowRecords.createdAt,
+        borrowedBy: borrowRecords.borrowedBy,
+        returnedBy: borrowRecords.returnedBy,
+        fineAmount: borrowRecords.fineAmount,
+        notes: borrowRecords.notes,
+        renewalCount: borrowRecords.renewalCount,
+        lastReminderSent: borrowRecords.lastReminderSent,
+        updatedAt: borrowRecords.updatedAt,
+        updatedBy: borrowRecords.updatedBy,
+        userName: users.fullName,
+        userEmail: users.email,
+        userUniversityId: users.universityId,
+        userUniversityCard: users.universityCard,
+        bookTitle: books.title,
+        bookAuthor: books.author,
+        bookGenre: books.genre,
+        bookRating: books.rating,
+        bookCoverUrl: books.coverUrl,
+        bookCoverColor: books.coverColor,
+        approvedById: approverUsers.id,
+        approvedByName: approverUsers.fullName,
+        approvedByEmail: approverUsers.email,
+        approvedByCard: approverUsers.universityCard,
+        returnedById: returnerUsers.id,
+        returnedByName: returnerUsers.fullName,
+        returnedByEmail: returnerUsers.email,
+        returnedByCard: returnerUsers.universityCard,
+      })
+      .from(borrowRecords)
+      .innerJoin(users, eq(borrowRecords.userId, users.id))
+      .innerJoin(books, eq(borrowRecords.bookId, books.id))
+      .leftJoin(approverUsers, eq(borrowRecords.borrowedBy, approverUsers.email))
+      .leftJoin(returnerUsers, eq(borrowRecords.returnedBy, returnerUsers.email))
+      .where(eq(borrowRecords.id, safeId))
+      .limit(1);
+
+    if (!row) {
+      return { success: false as const, error: "Borrow request not found" };
+    }
+    return {
+      success: true as const,
+      data: mapBorrowRequestRow(row),
+    };
+  } catch (error) {
+    console.error("Error loading borrow request detail:", error);
+    return {
+      success: false as const,
+      error: getActionErrorMessage(error, "Failed to fetch borrow request"),
+    };
+  }
+}
+
+/**
+ * Server-action entry — authenticates then loads detail.
+ * Prefer `loadBorrowRequestById` from already-authorized RSC/API paths.
+ */
+export const getBorrowRequestById = async (recordId: string) => {
+  try {
+    await requireAdminActor();
+    return await loadBorrowRequestById(recordId);
+  } catch (error) {
+    console.error("Error fetching borrow request detail:", error);
+    return {
+      success: false as const,
+      error: getActionErrorMessage(error, "Failed to fetch borrow request"),
+    };
   }
 };
 

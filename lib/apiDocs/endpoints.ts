@@ -195,6 +195,17 @@ export const API_ENDPOINT_CATEGORIES: ApiEndpointCategory[] = [
           requests: "BorrowRequest[]",
         },
       },
+      {
+        method: "GET",
+        path: "/api/admin/borrow-requests/{id}",
+        description: "Admin borrow request detail (borrower, book, lifecycle actors)",
+        auth: true,
+        adminOnly: true,
+        response: {
+          success: true,
+          request: "BorrowRequest",
+        },
+      },
     ],
   },
   {

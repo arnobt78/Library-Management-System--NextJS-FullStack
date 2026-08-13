@@ -2,13 +2,11 @@ import React from "react";
 import { auth } from "@/auth";
 import { db } from "@/database/drizzle";
 import { borrowRecords, books, users } from "@/database/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import MyProfileTabs from "@/components/MyProfileTabs";
-import ReservationsPanel, {
-  type ReservationSummary,
-} from "@/components/ReservationsPanel";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { loadUserReservationsSsr } from "@/lib/circulation/loadUserReservationsSsr";
 import { getUserBookReviews } from "@/lib/server/reviewData";
 
 const signupDecisionUsers = alias(users, "signup_decision_actor");
@@ -185,37 +183,10 @@ const Page = async () => {
     };
   });
 
-  const reservationResult = await db.execute(sql`
-    SELECT r.id, r.book_id,
-      CASE WHEN r.status = 'READY' AND r.ready_expires_at <= CURRENT_TIMESTAMP
-        THEN 'EXPIRED' ELSE r.status END AS status,
-      r.ready_expires_at, b.title AS book_title,
-      CASE WHEN r.status = 'WAITING' THEN (
-        SELECT COUNT(*)::int FROM reservations ahead
-        WHERE ahead.book_id = r.book_id AND ahead.status = 'WAITING'
-          AND (ahead.created_at, ahead.id) <= (r.created_at, r.id)
-      ) ELSE NULL END AS queue_position
-    FROM reservations r JOIN books b ON b.id = r.book_id
-    WHERE r.user_id = ${session.user.id}
-    ORDER BY r.created_at DESC LIMIT 25
-  `);
-  const initialReservations = reservationResult.rows.map((row) => ({
-    id: String(row.id),
-    bookId: String(row.book_id),
-    status: String(row.status) as ReservationSummary["status"],
-    bookTitle: String(row.book_title),
-    queuePosition:
-      row.queue_position == null ? null : Number(row.queue_position),
-    readyExpiresAt:
-      row.ready_expires_at == null ? null : String(row.ready_expires_at),
-  }));
+  const initialReservations = await loadUserReservationsSsr(session.user.id);
 
   return (
     <>
-      <ReservationsPanel
-        initialReservations={initialReservations}
-        userId={session.user.id}
-      />
       <MyProfileTabs
         userId={session.user.id}
         accountStatus={accountStatus}
@@ -227,6 +198,7 @@ const Page = async () => {
         initialPendingRequests={pendingRequests}
         initialBorrowHistory={borrowHistory}
         initialReviews={userReviews}
+        initialReservations={initialReservations}
       />
     </>
   );

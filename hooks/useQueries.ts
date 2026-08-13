@@ -44,6 +44,7 @@ import type {
 import { RECENT_SIGNUP_DECISIONS_LIMIT } from "@/lib/admin/signupDecisionConstants";
 import {
   getBorrowRequests,
+  getBorrowRequestDetail,
   getUserBorrows,
   type BorrowStatus,
   type BorrowRecordFull,
@@ -802,7 +803,10 @@ export const useAdminStats = (
  * Aggregated sidebar counters (books/users/queues). SSR seed + densify invalidate.
  * Parent: admin shell Stockly chrome
  */
-export const useAdminNavCounts = (initialData?: AdminNavCounts) => {
+export const useAdminNavCounts = (
+  initialData?: AdminNavCounts,
+  initialDataUpdatedAt?: number,
+) => {
   return useQuery({
     queryKey: queryKeys.admin.navCounts,
     queryFn: async (): Promise<AdminNavCounts> => {
@@ -815,6 +819,7 @@ export const useAdminNavCounts = (initialData?: AdminNavCounts) => {
     staleTime: 30 * 1000,
     refetchOnMount: true,
     initialData,
+    initialDataUpdatedAt,
   });
 };
 
@@ -842,7 +847,8 @@ export const useAdminNavCounts = (initialData?: AdminNavCounts) => {
  */
 export const useBorrowRequests = (
   filters?: { status?: BorrowStatus; search?: string },
-  initialData?: BorrowRecordWithDetails[]
+  initialData?: BorrowRecordWithDetails[],
+  initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();
@@ -879,8 +885,35 @@ export const useBorrowRequests = (
     staleTime: 30 * 1000, // Badge + PrefetchLink warm; invalidate still forces refetch
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData: seed,
+    initialDataUpdatedAt,
     // Instant filter UX: show previous results until the new key resolves (no empty flash)
     placeholderData: keepPreviousData,
+  });
+};
+
+/**
+ * Admin Borrow Queue detail — `/admin/book-requests/[id]`.
+ * Object SSR seed via initialData — list-only seedFromSsrIfEmpty does not apply.
+ * Caller stamps initialDataUpdatedAt once so densify wins over sticky SSR.
+ */
+export const useBorrowRequestDetail = (
+  recordId: string,
+  initialData?: BorrowRecordWithDetails,
+  initialDataUpdatedAt?: number,
+) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery<BorrowRecordWithDetails>({
+    queryKey: queryKeys.borrows.requestDetail(recordId),
+    queryFn: () =>
+      trackQuery("borrow-request-detail", async () =>
+        getBorrowRequestDetail(recordId),
+      ),
+    enabled: !!recordId,
+    staleTime: 10 * 1000,
+    refetchOnMount: true,
+    initialData,
+    initialDataUpdatedAt,
   });
 };
 
@@ -1481,6 +1514,7 @@ export const useUserSupportTickets = (
 export const useSupportTicket = (
   ticketId: string,
   initialData?: SupportTicketDetail,
+  initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
 
@@ -1494,6 +1528,7 @@ export const useSupportTicket = (
     staleTime: 15 * 1000,
     refetchOnMount: true,
     initialData,
+    initialDataUpdatedAt,
   });
 };
 
@@ -1568,6 +1603,7 @@ export const useUserBookReviews = (
 export const useAdminReviewDetail = (
   reviewId: string,
   initialData?: AdminBookReviewItem,
+  initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
 
@@ -1579,6 +1615,7 @@ export const useAdminReviewDetail = (
     staleTime: 10 * 1000,
     refetchOnMount: true,
     initialData,
+    initialDataUpdatedAt,
   });
 };
 

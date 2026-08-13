@@ -86,10 +86,12 @@ export async function GET(request: NextRequest) {
         userName: users.fullName,
         userEmail: users.email,
         userUniversityId: users.universityId,
+        userUniversityCard: users.universityCard,
         // Book details
         bookTitle: books.title,
         bookAuthor: books.author,
         bookGenre: books.genre,
+        bookRating: books.rating,
         bookCoverUrl: books.coverUrl,
         bookCoverColor: books.coverColor,
       })
@@ -119,14 +121,14 @@ export async function GET(request: NextRequest) {
       updatedAt: record.updatedAt,
       updatedBy: record.updatedBy,
       createdAt: record.createdAt,
-      // User details
       userName: record.userName,
       userEmail: record.userEmail,
       userUniversityId: record.userUniversityId,
-      // Book details
+      userUniversityCard: record.userUniversityCard ?? null,
       bookTitle: record.bookTitle,
       bookAuthor: record.bookAuthor,
       bookGenre: record.bookGenre,
+      bookRating: record.bookRating ?? null,
       bookCoverUrl: record.bookCoverUrl,
       bookCoverColor: record.bookCoverColor,
     }));

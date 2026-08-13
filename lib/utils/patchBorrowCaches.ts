@@ -108,9 +108,65 @@ type BorrowRowPatch = {
   dueDate?: string | null;
   returnDate?: string | null;
   fineAmount?: string | null;
+  borrowedBy?: string | null;
   returnedBy?: string | null;
   borrowDate?: Date | string | null;
+  updatedAt?: Date | string | null;
+  updatedBy?: string | null;
+  renewalCount?: number;
+  approvedByActor?: BorrowRecordWithDetails["approvedByActor"];
+  returnedByActor?: BorrowRecordWithDetails["returnedByActor"];
 };
+
+/** Upsert densified Borrow Queue detail after lifecycle / create. */
+function upsertBorrowRequestDetail(
+  queryClient: QueryClient,
+  recordId: string,
+  patch: BorrowRowPatch,
+  seed?: BorrowRecordWithDetails | null,
+): void {
+  const key = queryKeys.borrows.requestDetail(recordId);
+  const existing =
+    queryClient.getQueryData<BorrowRecordWithDetails>(key) ??
+    seed ??
+    findCachedRequestRow(queryClient, recordId);
+  if (!existing) return;
+  const next: BorrowRecordWithDetails = {
+    ...existing,
+    ...patch,
+    borrowDate:
+      patch.borrowDate === undefined
+        ? existing.borrowDate
+        : patch.borrowDate instanceof Date
+          ? patch.borrowDate
+          : patch.borrowDate
+            ? new Date(patch.borrowDate)
+            : null,
+    updatedAt:
+      patch.updatedAt === undefined
+        ? existing.updatedAt
+        : patch.updatedAt instanceof Date
+          ? patch.updatedAt
+          : patch.updatedAt
+            ? new Date(patch.updatedAt)
+            : null,
+  };
+  queryClient.setQueryData<BorrowRecordWithDetails>(key, next);
+}
+
+function findCachedRequestRow(
+  queryClient: QueryClient,
+  recordId: string,
+): BorrowRecordWithDetails | undefined {
+  for (const [, rows] of queryClient.getQueriesData<BorrowRecordWithDetails[]>(
+    { queryKey: queryKeys.borrows.requestsRoot },
+  )) {
+    if (!Array.isArray(rows)) continue;
+    const hit = rows.find((r) => r.id === recordId);
+    if (hit) return hit;
+  }
+  return undefined;
+}
 
 function userIdFromUserBorrowsKey(key: QueryKey): string | undefined {
   // ["user-borrows", userId, status?]
@@ -510,6 +566,8 @@ export function patchBorrowCachesOnStatusChange(
     baselines,
   );
 
+  upsertBorrowRequestDetail(queryClient, args.recordId, args.patch);
+
   if (args.restoreInventory) {
     restoreBookInventoryFromBaselines(
       queryClient,
@@ -549,9 +607,11 @@ export type BorrowCreateRequestMeta = {
   userName?: string;
   userEmail?: string;
   userUniversityId?: number;
+  userUniversityCard?: string | null;
   bookTitle?: string;
   bookAuthor?: string;
   bookGenre?: string;
+  bookRating?: number | null;
   bookCoverUrl?: string | null;
   bookCoverColor?: string | null;
 };
@@ -610,11 +670,16 @@ function buildRequestRowFromCreate(
     userName: meta?.userName ?? "User",
     userEmail: meta?.userEmail ?? "",
     userUniversityId: meta?.userUniversityId ?? 0,
+    userUniversityCard: meta?.userUniversityCard ?? null,
     bookTitle:
       meta?.bookTitle ?? book?.title ?? bookFromDetail?.title ?? "Unknown Book",
     bookAuthor:
       meta?.bookAuthor ?? book?.author ?? bookFromDetail?.author ?? "Unknown Author",
     bookGenre: meta?.bookGenre ?? book?.genre ?? bookFromDetail?.genre ?? "",
+    bookRating:
+      meta?.bookRating ??
+      (typeof book?.rating === "number" ? book.rating : null) ??
+      null,
     bookCoverUrl:
       meta?.bookCoverUrl ?? book?.coverUrl ?? bookFromDetail?.coverUrl ?? null,
     bookCoverColor:
@@ -717,6 +782,10 @@ export function patchBorrowCachesOnCreate(
     (rows) => upsertRequestRow(rows, requestRow, args.tempId),
     baselines,
   );
+  queryClient.setQueryData(
+    queryKeys.borrows.requestDetail(requestRow.id),
+    requestRow,
+  );
 
   if (args.inventory) {
     patchBookInventory(
@@ -793,4 +862,8 @@ export function patchBorrowCachesOnRenewal(
       ),
     baselines,
   );
+  upsertBorrowRequestDetail(queryClient, args.recordId, {
+    dueDate: nextDue,
+    renewalCount: args.renewalCount,
+  });
 }

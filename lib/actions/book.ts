@@ -10,6 +10,7 @@ import {
 import { parseEntityId } from "@/lib/actionInputs";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { logActivity } from "@/lib/admin/activityLog";
+import { cancelOwnBorrowRecord } from "@/lib/admin/borrowLifecycle";
 
 /**
  * Parameters for borrowing a book
@@ -146,6 +147,56 @@ export const borrowBook = async (
       error: getActionErrorMessage(
         error,
         "An error occurred while borrowing the book"
+      ),
+    };
+  }
+};
+
+/**
+ * Owner soft-cancels a PENDING borrow request (keeps CANCELLED history row).
+ * Admin reject stays on rejectBorrowRequest — different actor + notes.
+ */
+export const cancelPendingBorrowRequest = async (
+  recordId: string,
+): Promise<{ success: true } | { success: false; error: string }> => {
+  try {
+    const actor = await requireAuthenticatedActor();
+    const safeRecordId = parseEntityId(recordId);
+    const result = await cancelOwnBorrowRecord(safeRecordId, actor);
+    if (!result.success) {
+      return result;
+    }
+
+    const [meta] = await db
+      .select({
+        userId: borrowRecords.userId,
+        title: books.title,
+      })
+      .from(borrowRecords)
+      .innerJoin(books, eq(borrowRecords.bookId, books.id))
+      .where(eq(borrowRecords.id, safeRecordId))
+      .limit(1);
+
+    await logActivity({
+      actorId: actor.id,
+      action: "UPDATE",
+      entityType: "borrow",
+      entityId: safeRecordId,
+      details: {
+        status: "CANCELLED",
+        userId: actor.id,
+        ...(meta?.title ? { title: meta.title } : {}),
+      },
+    });
+    revalidateMutationPaths("borrow.lifecycle");
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Failed to cancel pending borrow request", error);
+    return {
+      success: false,
+      error: getActionErrorMessage(
+        error,
+        "An error occurred while cancelling the request",
       ),
     };
   }

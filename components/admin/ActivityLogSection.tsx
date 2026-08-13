@@ -9,7 +9,6 @@
  */
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { FilePen, FilePlus, History, Trash2 } from "lucide-react";
 import { useActivityLogs } from "@/hooks/useQueries";
@@ -25,6 +24,7 @@ import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import { AuditActionBadge } from "@/lib/ui/semanticBadges";
 import PersonAttribution from "@/components/PersonAttribution";
+import PrefetchLink from "@/components/PrefetchLink";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
@@ -204,13 +204,13 @@ export default function ActivityLogSection({
 
           if (linkable && href) {
             return (
-              <Link
+              <PrefetchLink
                 href={href}
                 prefetch={false}
                 className={cn(TABLE_CELL_TITLE, SKY_LINK_LIGHT)}
               >
                 {label}
-              </Link>
+              </PrefetchLink>
             );
           }
 

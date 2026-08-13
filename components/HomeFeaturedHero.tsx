@@ -14,6 +14,7 @@ import BookOverviewContent from "@/components/BookOverviewContent";
 import BookSkeleton from "@/components/skeletons/BookSkeleton";
 import { useFeaturedBooks } from "@/hooks/useQueries";
 import type { BorrowRecord } from "@/lib/services/borrows";
+import type { UserReservationItem } from "@/lib/services/reservations";
 
 interface HomeFeaturedHeroProps {
   /** Featured (or fallback newest) book from SSR — null when catalog is empty */
@@ -21,6 +22,8 @@ interface HomeFeaturedHeroProps {
   userId?: string;
   userStatus?: string | null;
   initialUserBorrows?: BorrowRecord[];
+  /** SSR reservations — Waitlisted CTA without Join Waitlist flash on hero. */
+  initialReservations?: UserReservationItem[];
   /** Borrow stats for the SSR hero book (avoids duplicate fetch on first paint) */
   initialStats?: {
     totalBorrows: number;
@@ -34,6 +37,7 @@ const HomeFeaturedHero: React.FC<HomeFeaturedHeroProps> = ({
   userId = "",
   userStatus = null,
   initialUserBorrows,
+  initialReservations,
   initialStats,
 }) => {
   const {
@@ -92,6 +96,7 @@ const HomeFeaturedHero: React.FC<HomeFeaturedHeroProps> = ({
       initialBook={hero}
       initialStats={statsForHero}
       initialUserBorrows={initialUserBorrows}
+      initialReservations={initialReservations}
     />
   );
 };

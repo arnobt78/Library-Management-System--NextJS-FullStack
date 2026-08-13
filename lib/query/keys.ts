@@ -49,6 +49,11 @@ export const queryKeys = {
     requests: <TFilters>(filters: TFilters) =>
       ["borrow-requests", filters] as const,
     detailRoot: ["borrow"] as const,
+    /** Prefix for invalidateMutation — covers all requestDetail(id) keys. */
+    requestDetailRoot: ["borrow-request-detail"] as const,
+    /** Admin Borrow Queue detail densify (`/admin/book-requests/[id]`). */
+    requestDetail: (recordId: string) =>
+      ["borrow-request-detail", recordId] as const,
     userRoot: ["user-borrows"] as const,
     user: (userId: string, status?: string) =>
       ["user-borrows", userId, status] as const,

@@ -2,7 +2,7 @@
 
 /**
  * MyProfileTabs — borrow history with URL-synced tabs (?tab=), glass KPIs, RQ + SSR.
- * Tabs: active-borrows | pending-requests | borrow-history (aliases active|pending|history).
+ * Tabs: active-borrows | pending-requests | holds | borrow-history | my-reviews.
  */
 
 import React from "react";
@@ -14,6 +14,10 @@ import BorrowSkeleton from "@/components/skeletons/BorrowSkeleton";
 import AccountRegistrationNotice from "@/components/AccountRegistrationNotice";
 import GlassSectionHeader from "@/components/GlassSectionHeader";
 import MyReviewsTab from "@/components/MyReviewsTab";
+import ReservationsPanel, {
+  type ReservationSummary,
+} from "@/components/ReservationsPanel";
+import { countActiveHolds } from "@/lib/profile/activeHolds";
 import { FilterSelect } from "@/components/ui/filter-select";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import {
@@ -47,6 +51,7 @@ import { withRippleClick } from "@/lib/ui/ripple";
 import {
   Ban,
   BookOpen,
+  Bookmark,
   Clock,
   Calendar,
   AlertTriangle,
@@ -71,11 +76,23 @@ import {
   AlarmClockCheck,
   RotateCwFadingClock,
   FilterX,
+  X,
 } from "lucide-react";
 import PrefetchLink from "@/components/PrefetchLink";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useUserBorrows, useUserBookReviews } from "@/hooks/useQueries";
-import { useReturnBook } from "@/hooks/useMutations";
+import { useUserBorrows, useUserBookReviews, useUserReservations } from "@/hooks/useQueries";
+import { useCancelPendingBorrow, useReturnBook } from "@/hooks/useMutations";
+import { GLASS_ALERT } from "@/lib/ui/glassActionChrome";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { BorrowRecordFull } from "@/lib/services/borrows";
 import { useQueryClient } from "@tanstack/react-query";
 import { renewBorrowedBook } from "@/lib/actions/circulation";
@@ -355,6 +372,10 @@ interface MyProfileTabsProps {
    */
   initialReviews?: AdminBookReviewItem[];
   /**
+   * SSR reservations for Holds tab + Active holds KPI.
+   */
+  initialReservations?: ReservationSummary[];
+  /**
    * Legacy props for backward compatibility (deprecated, use initial* props instead)
    */
   activeBorrows?: BorrowRecordWithBook[];
@@ -375,6 +396,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   initialPendingRequests: _initialPendingRequests,
   initialBorrowHistory,
   initialReviews,
+  initialReservations = [],
   // Legacy props kept for external callers — allBorrows memo is the authoritative source.
   activeBorrows: _legacyActiveBorrows,
   pendingRequests: _legacyPendingRequests,
@@ -385,6 +407,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
   // Use React Query mutation for returning book
   const returnBookMutation = useReturnBook();
+  const cancelPendingMutation = useCancelPendingBorrow();
   const queryClient = useQueryClient();
   const [isRenewPending, startRenewTransition] = React.useTransition();
   const [renewingRecordId, setRenewingRecordId] = React.useState<string | null>(
@@ -393,6 +416,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   const [returningRecordId, setReturningRecordId] = React.useState<
     string | null
   >(null);
+  const [cancellingRecordId, setCancellingRecordId] = React.useState<
+    string | null
+  >(null);
+  /** Snapshot for Cancel Request dialog — lives outside the list card so optimistic CANCELLED unmount cannot close it. */
+  const [cancelPendingTarget, setCancelPendingTarget] =
+    React.useState<BorrowRecordWithBook | null>(null);
 
   // Build typed SSR initialData once per mount so React Query treats it as fresh.
   // BorrowRecordFull extends BorrowRecord with an optional nested `book`, matching
@@ -460,6 +489,40 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     initialReviews,
   );
   const liveTotalReviews = liveReviews.length;
+
+  const [ssrReservationsAt] = React.useState(() => Date.now());
+  const { data: liveReservations = initialReservations } = useUserReservations(
+    userId,
+    initialReservations,
+    initialReservations.length > 0 ? ssrReservationsAt : undefined,
+  );
+  // Shared holds clock — KPI + embedded ReservationsPanel stay in lockstep.
+  const [holdsClock, setHoldsClock] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const advance = () => {
+      const now = Date.now();
+      setHoldsClock(now);
+      const nextBoundary = liveReservations
+        .filter((item) => item.status === "READY" && item.readyExpiresAt)
+        .map((item) => new Date(item.readyExpiresAt!).getTime())
+        .filter((timestamp) => timestamp > now)
+        .sort((left, right) => left - right)[0];
+      if (nextBoundary)
+        timer = setTimeout(
+          advance,
+          Math.min(nextBoundary - now + 1, 2_147_483_647),
+        );
+    };
+    advance();
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [liveReservations]);
+  const activeHoldsCount = React.useMemo(
+    () => countActiveHolds(liveReservations, holdsClock),
+    [liveReservations, holdsClock],
+  );
 
   const registrationLocked =
     accountStatus === "PENDING" || accountStatus === "REJECTED";
@@ -664,6 +727,14 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         tone: "from-blue-500/25 via-blue-500/10 to-blue-500/5 border-blue-400/30 text-blue-100 shadow-[0_10px_30px_rgba(59,130,246,0.2)]",
       },
       {
+        key: "holds",
+        title: "Active Holds",
+        hint: "Waiting or ready reservations",
+        value: 0,
+        icon: <Bookmark className="size-4 shrink-0" />,
+        tone: "from-fuchsia-500/25 via-fuchsia-500/10 to-fuchsia-500/5 border-fuchsia-400/30 text-fuchsia-100 shadow-[0_10px_30px_rgba(217,70,239,0.2)]",
+      },
+      {
         key: "returned",
         title: "Returned",
         hint: "Successfully checked in",
@@ -751,6 +822,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               <span>Pending Requests (0)</span>
             </TabsTrigger>
             <TabsTrigger
+              value="holds"
+              className="profile-tab-trigger profile-tab-holds"
+            >
+              <Bookmark className="size-4 shrink-0" />
+              <span>Active Holds (0)</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="borrow-history"
               className="profile-tab-trigger profile-tab-history"
             >
@@ -772,6 +850,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 title: "Pending requests",
                 subtitle: "Awaiting librarian approval before checkout",
                 icon: <Hourglass className="size-5 text-amber-300" />,
+              },
+              {
+                value: "holds" as const,
+                title: "Active holds",
+                subtitle: "Active reservations waiting in queue or ready to claim",
+                icon: <Bookmark className="size-5 text-fuchsia-300" />,
               },
               {
                 value: "borrow-history" as const,
@@ -943,15 +1027,22 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     showCountdown?: boolean;
     isReturning?: boolean;
     isRenewing?: boolean;
+    isCancelling?: boolean;
   }> = React.memo(
     ({
       record,
       showCountdown = false,
       isReturning = false,
       isRenewing = false,
+      isCancelling = false,
     }) => {
       const handleViewDetails = () => {
         router.push(`/books/${record.book.id}`);
+      };
+
+      const handleOpenCancelPending = () => {
+        if (cancellingRecordId || cancelPendingMutation.isPending) return;
+        setCancelPendingTarget(record);
       };
 
       const handleReturnBook = () => {
@@ -1361,6 +1452,24 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     </button>
                   )}
 
+                  {record.status === "PENDING" ? (
+                    <button
+                      type="button"
+                      disabled={isCancelling}
+                      onClick={withRippleClick(handleOpenCancelPending)}
+                      className="profile-action-btn profile-action-btn--cancel-request"
+                    >
+                      {isCancelling ? (
+                        <Loader2 className="size-3 animate-spin sm:size-4" />
+                      ) : (
+                        <X className="size-3 sm:size-4" />
+                      )}
+                      <span>
+                        {isCancelling ? "Cancelling…" : "Cancel Request"}
+                      </span>
+                    </button>
+                  ) : null}
+
                   {record.status === "RETURNED" && (
                     <button
                       type="button"
@@ -1389,7 +1498,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         prevProps.record === nextProps.record &&
         prevProps.showCountdown === nextProps.showCountdown &&
         prevProps.isReturning === nextProps.isReturning &&
-        prevProps.isRenewing === nextProps.isRenewing
+        prevProps.isRenewing === nextProps.isRenewing &&
+        prevProps.isCancelling === nextProps.isCancelling
       ) {
         return true; // Same reference, skip re-render
       }
@@ -1420,13 +1530,39 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         recordEqual &&
         prevProps.showCountdown === nextProps.showCountdown &&
         prevProps.isReturning === nextProps.isReturning &&
-        prevProps.isRenewing === nextProps.isRenewing
+        prevProps.isRenewing === nextProps.isRenewing &&
+        prevProps.isCancelling === nextProps.isCancelling
       );
     },
   );
 
   // Set display name for React DevTools
   BorrowCard.displayName = "BorrowCard";
+
+  const handleConfirmCancelPending = (e: React.MouseEvent) => {
+    // Prevent Radix AlertDialogAction from auto-closing before mutate settles
+    e.preventDefault();
+    if (!cancelPendingTarget || cancelPendingMutation.isPending) return;
+    const target = cancelPendingTarget;
+    setCancellingRecordId(target.id);
+    cancelPendingMutation.mutate(
+      {
+        recordId: target.id,
+        bookTitle: target.book.title,
+      },
+      {
+        onSettled: () => {
+          setCancellingRecordId(null);
+          setCancelPendingTarget(null);
+        },
+      },
+    );
+  };
+
+  const isCancelDialogBusy =
+    Boolean(cancelPendingTarget) &&
+    (cancelPendingMutation.isPending ||
+      cancellingRecordId === cancelPendingTarget?.id);
 
   const kpiItems: Array<{
     key: string;
@@ -1459,6 +1595,14 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       value: borrowStats.active,
       icon: <BookMarked className="size-4 shrink-0" />,
       tone: "from-blue-500/25 via-blue-500/10 to-blue-500/5 border-blue-400/30 text-blue-100 shadow-[0_10px_30px_rgba(59,130,246,0.2)]",
+    },
+    {
+      key: "holds",
+      title: "Active Holds",
+      hint: "Waiting or ready reservations",
+      value: activeHoldsCount,
+      icon: <Bookmark className="size-4 shrink-0" />,
+      tone: "from-fuchsia-500/25 via-fuchsia-500/10 to-fuchsia-500/5 border-fuchsia-400/30 text-fuchsia-100 shadow-[0_10px_30px_rgba(217,70,239,0.2)]",
     },
     {
       key: "returned",
@@ -1588,6 +1732,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       subtitle: "Awaiting librarian approval before checkout",
       icon: <Hourglass className="size-5 text-amber-300" />,
     },
+    holds: {
+      title: "Active holds",
+      subtitle: "Active reservations waiting in queue or ready to claim",
+      icon: <Bookmark className="size-5 text-fuchsia-300" />,
+    },
     "borrow-history": {
       title: "Borrow history",
       subtitle: "Completed returns and past loans",
@@ -1663,6 +1812,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           >
             <Hourglass className="size-4 shrink-0" />
             <span>Pending Requests ({pendingRequests.length})</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="holds"
+            className="profile-tab-trigger profile-tab-holds"
+          >
+            <Bookmark className="size-4 shrink-0" />
+            <span>Active Holds ({activeHoldsCount})</span>
           </TabsTrigger>
           <TabsTrigger
             value="borrow-history"
@@ -1771,9 +1927,29 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
               />
             ) : (
               filteredPendingRequests.map((record) => (
-                <BorrowCard key={record.id} record={record} />
+                <BorrowCard
+                  key={record.id}
+                  record={record}
+                  isCancelling={cancellingRecordId === record.id}
+                />
               ))
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="holds" className="mt-0">
+          <div className="space-y-2 sm:space-y-4">
+            <GlassSectionHeader
+              icon={sectionMeta.holds.icon}
+              title={sectionMeta.holds.title}
+              subtitle={sectionMeta.holds.subtitle}
+            />
+            <ReservationsPanel
+              embedded
+              userId={userId}
+              initialReservations={initialReservations}
+              clockMs={holdsClock}
+            />
           </div>
         </TabsContent>
 
@@ -1865,6 +2041,94 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           </div>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog
+        open={cancelPendingTarget != null}
+        onOpenChange={(open) => {
+          if (isCancelDialogBusy) return;
+          if (!open) setCancelPendingTarget(null);
+        }}
+      >
+        <AlertDialogContent className={GLASS_ALERT.content}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={GLASS_ALERT.title}>
+              Cancel borrow request?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className={`space-y-2 ${GLASS_ALERT.description}`}>
+                <p>
+                  Withdraw your pending request for this book. You can request
+                  it again later if copies are available.
+                </p>
+                {cancelPendingTarget ? (
+                  <div
+                    className={`flex gap-3 ${GLASS_ALERT.preview}`}
+                  >
+                    <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded sm:h-28 sm:w-20">
+                      <BookCover
+                        variant="small"
+                        coverColor={cancelPendingTarget.book.coverColor}
+                        coverImage={cancelPendingTarget.book.coverUrl}
+                        className="size-full"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-medium text-light-100">
+                        {cancelPendingTarget.book.title}
+                      </p>
+                      <p className="mt-1 text-xs text-light-200">
+                        by {cancelPendingTarget.book.author}
+                      </p>
+                      {(cancelPendingTarget.book.genre ||
+                        cancelPendingTarget.book.rating != null) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {cancelPendingTarget.book.genre ? (
+                            <Badge
+                              variant="glassGenre"
+                              className="px-1.5 py-0.5 sm:px-2"
+                            >
+                              <Library className="size-3" />
+                              {cancelPendingTarget.book.genre}
+                            </Badge>
+                          ) : null}
+                          {cancelPendingTarget.book.rating != null ? (
+                            <div className="flex items-center gap-1">
+                              <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
+                              <span className="text-xs text-yellow-400 sm:text-sm">
+                                {cancelPendingTarget.book.rating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={GLASS_ALERT.footer}>
+            <AlertDialogCancel
+              disabled={isCancelDialogBusy}
+              className={GLASS_ALERT.cancel}
+            >
+              Keep request
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancelPending}
+              disabled={isCancelDialogBusy}
+              className={GLASS_ALERT.destructive}
+            >
+              {isCancelDialogBusy ? (
+                <Loader2 className="size-3.5 animate-spin sm:size-4" />
+              ) : (
+                <X className="size-3.5 sm:size-4" />
+              )}
+              {isCancelDialogBusy ? "Cancelling…" : "Cancel Request"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

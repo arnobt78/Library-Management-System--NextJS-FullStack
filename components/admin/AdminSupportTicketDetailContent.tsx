@@ -74,9 +74,11 @@ export default function AdminSupportTicketDetailContent({
     }),
     [initialTicket, initialAuditEvents],
   );
+  const [ssrTimestamp] = useState(() => Date.now());
   const { data: ticket = seededTicket } = useSupportTicket(
     initialTicket.id,
     seededTicket,
+    ssrTimestamp,
   );
   const deleteMutation = useDeleteSupportTicket();
   const [editOpen, setEditOpen] = useState(false);

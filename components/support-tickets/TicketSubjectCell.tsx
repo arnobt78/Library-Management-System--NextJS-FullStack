@@ -1,11 +1,12 @@
 /**
  * Subject link + truncated description (+ optional Created/Updated) for ticket lists.
  * Dates live under the subject so narrow (14") screens can drop a Date column.
+ * PrefetchLink warms ticket detail before soft-nav.
  * Parent: CR-0003 / REQ-0034 — list densify UI
  */
 "use client";
 
-import Link from "next/link";
+import PrefetchLink from "@/components/PrefetchLink";
 import { TicketCreatedUpdatedCell } from "@/components/support-tickets/TicketCreatedUpdatedCell";
 import { SKY_LINK_DARK, SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
@@ -32,7 +33,7 @@ export function TicketSubjectCell({
 }) {
   return (
     <div className="flex min-w-0 max-w-[320px] flex-col gap-1">
-      <Link
+      <PrefetchLink
         href={href}
         prefetch={false}
         onClick={(e) => e.stopPropagation()}
@@ -43,7 +44,7 @@ export function TicketSubjectCell({
         )}
       >
         {subject}
-      </Link>
+      </PrefetchLink>
       {description?.trim() ? (
         <p
           className={cn(

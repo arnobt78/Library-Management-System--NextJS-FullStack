@@ -92,12 +92,28 @@ export interface BorrowRecordWithDetails extends BorrowRecord {
   userName: string;
   userEmail: string;
   userUniversityId: number;
+  userUniversityCard?: string | null;
   // Book details
   bookTitle: string;
   bookAuthor: string;
   bookGenre: string;
+  bookRating?: number | null;
   bookCoverUrl: string | null;
   bookCoverColor: string | null;
+  /** Approver person when borrowedBy email resolves to a user (detail densify). */
+  approvedByActor?: {
+    id: string;
+    fullName: string;
+    email: string;
+    universityCard: string | null;
+  } | null;
+  /** Returner person when returnedBy email resolves to a user. */
+  returnedByActor?: {
+    id: string;
+    fullName: string;
+    email: string;
+    universityCard: string | null;
+  } | null;
 }
 
 /**
@@ -335,6 +351,36 @@ export async function getBorrowRequests(
   }
 
   throw new ApiError("Invalid response format from borrow-requests API", 500);
+}
+
+/**
+ * Admin Borrow Queue detail — GET /api/admin/borrow-requests/[id]
+ */
+export async function getBorrowRequestDetail(
+  recordId: string,
+): Promise<BorrowRecordWithDetails> {
+  if (!recordId) {
+    throw new ApiError("Borrow record ID is required", 400);
+  }
+  const response = await fetch(`/api/admin/borrow-requests/${recordId}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      errorMessage =
+        errorData.message || errorData.error || response.statusText;
+    } catch {
+      errorMessage = response.statusText;
+    }
+    throw new ApiError(errorMessage, response.status);
+  }
+  const data = await response.json();
+  if (data.request) return data.request as BorrowRecordWithDetails;
+  if (data.data) return data.data as BorrowRecordWithDetails;
+  throw new ApiError("Invalid response format from borrow-request detail API", 500);
 }
 
 /**

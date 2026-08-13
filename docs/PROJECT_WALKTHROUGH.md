@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-12 | Status: C2 Stage 4; tip `90363ef` resolveDecisionActor densify; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-13 | Status: C2 Stage 4; Holds/waitlist densify + Borrow Queue polish WIP tip; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -41,6 +41,7 @@ Browser
 - Densify actor card: `AuthorizedActor.universityCard` from DB; shared `resolveDecisionActor` + SSR `currentAdmin` on All Users / Admin Requests / Sign-up / User 360 / Book Reviews (no JWT card; session fallback null-card intentional).
 - People tables (2026-08-10): DataTable ticket sizing; `DecisionActorStack` (badge·by·actor·`DecisionDateMeta`); `CopyableText`/`UserRoleBadge`; `statusReviewed*` join densify; queues FIFO-50 + period filter; Applicant Requested/Registered under stack.
 - Cross-domain densify (2026-08-10): `review.write` RSC `/admin`; AdminBooksList prefer densify-empty over SSR; ticket detail `auditEvents` + `densifyTicketDetailAudit`; PrefetchLink my-profile/`book-detail` `staleTime: 0`.
+- Holds/waitlist densify (2026-08-13): `loadUserReservationsSsr` (home/book/profile); Waitlisted CTA; create returns `queuePosition`+`createdAt`; full meta densify; Join Waitlist → `?tab=holds`; Cancel Request/Hold dialogs close on settle.
 
 ## Admin Stockly chrome (2026-08-07)
 

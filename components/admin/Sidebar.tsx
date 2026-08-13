@@ -17,6 +17,7 @@ import { usePathname } from "next/navigation";
 import { useAdminNavCounts } from "@/hooks/useQueries";
 import type { AdminNavCounts } from "@/lib/admin/adminNavCountTypes";
 import { EMPTY_ADMIN_NAV_COUNTS } from "@/lib/admin/adminNavCountTypes";
+import { useState } from "react";
 import {
   BarChart3,
   BookOpen,
@@ -57,10 +58,10 @@ const Sidebar = ({
   initialNavCounts?: AdminNavCounts;
 }) => {
   const pathname = usePathname();
-  const { data: navCounts } = useAdminNavCounts(
-    initialNavCounts ?? EMPTY_ADMIN_NAV_COUNTS,
-  );
-  const counts = navCounts ?? initialNavCounts ?? EMPTY_ADMIN_NAV_COUNTS;
+  const [ssrTimestamp] = useState(() => Date.now());
+  const seed = initialNavCounts ?? EMPTY_ADMIN_NAV_COUNTS;
+  const { data: navCounts } = useAdminNavCounts(seed, ssrTimestamp);
+  const counts = navCounts ?? seed;
 
   return (
     <aside className="admin-sidebar">

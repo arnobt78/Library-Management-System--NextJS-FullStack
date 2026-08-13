@@ -9,8 +9,10 @@ import BookOverview from "@/components/BookOverview";
 import BookDetailContent from "@/components/BookDetailContent";
 import RelatedBookRecommendations from "@/components/RelatedBookRecommendations";
 import { getRelatedBooks } from "@/lib/books/getRelatedBooks";
+import { loadUserReservationsSsr } from "@/lib/circulation/loadUserReservationsSsr";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import type { ReviewEligibility } from "@/lib/services/reviews";
+import type { UserReservationItem } from "@/lib/services/reservations";
 
 const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const id = (await params).id;
@@ -28,6 +30,7 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
   // Fetch user borrows for SSR (if user is logged in)
   // This ensures BookBorrowButton shows correct state immediately on first load
   let initialUserBorrows: BorrowRecord[] | undefined = undefined;
+  let initialReservations: UserReservationItem[] | undefined = undefined;
 
   if (session?.user?.id) {
     // Fetch user's borrow records (matching API response format)
@@ -99,6 +102,9 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
         createdAt: record.createdAt, // timestamp() returns Date object
       };
     });
+
+    // Same densify shape as my-profile Holds — Waitlisted paints without Join Waitlist flash
+    initialReservations = await loadUserReservationsSsr(session.user.id);
   }
 
   // Fetch reviews for this book — only APPROVED, except the viewer's own
@@ -213,6 +219,7 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
         userId={(session?.user?.id || "") as string}
         isDetailPage={true}
         initialUserBorrows={initialUserBorrows}
+        initialReservations={initialReservations}
         initialReviewEligibility={initialReviewEligibility}
       />
 

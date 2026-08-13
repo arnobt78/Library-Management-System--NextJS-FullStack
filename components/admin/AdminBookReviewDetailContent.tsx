@@ -67,9 +67,11 @@ export default function AdminBookReviewDetailContent({
   const router = useRouter();
   const { data: session } = useSession();
   const handleBack = useBackWithRefresh("review.write", "/admin/book-reviews");
+  const [ssrTimestamp] = useState(() => Date.now());
   const { data: review = initialReview } = useAdminReviewDetail(
     initialReview.id,
     initialReview,
+    ssrTimestamp,
   );
   const moderateMutation = useModerateReview();
   const deleteMutation = useDeleteReview();

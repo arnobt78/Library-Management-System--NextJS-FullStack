@@ -18,6 +18,7 @@ export type UserReservationItem = {
   genre?: string | null;
   bookRating?: number | null;
   createdAt?: string | Date | null;
+  isbn?: string | null;
 };
 
 /** Fetch signed-in user's active reservations (matches densify user list key). */

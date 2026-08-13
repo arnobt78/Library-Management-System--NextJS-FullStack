@@ -1,13 +1,13 @@
 /**
  * My Profile tab URL helpers.
- * Canonical query values: active-borrows | pending-requests | borrow-history | my-reviews.
- * Short aliases (active|pending|history|reviews) remain accepted for backward compatibility.
- * Parent: CR-0003 / REQ-0034 — "my-reviews" added for Book Review moderation.
+ * Canonical: active-borrows | pending-requests | holds | borrow-history | my-reviews.
+ * Short aliases remain accepted for backward compatibility.
  */
 
 export const PROFILE_TABS = [
   "active-borrows",
   "pending-requests",
+  "holds",
   "borrow-history",
   "my-reviews",
 ] as const;
@@ -19,6 +19,9 @@ export function parseProfileTab(raw: string | null | undefined): ProfileTab {
     case "pending-requests":
     case "pending":
       return "pending-requests";
+    case "holds":
+    case "reservations":
+      return "holds";
     case "borrow-history":
     case "history":
       return "borrow-history";

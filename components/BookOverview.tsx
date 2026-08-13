@@ -16,6 +16,7 @@ import { eq, count, sql } from "drizzle-orm";
 import BookOverviewContent from "@/components/BookOverviewContent";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import type { ReviewEligibility } from "@/lib/services/reviews";
+import type { UserReservationItem } from "@/lib/services/reservations";
 
 interface Props extends Book {
   userId: string;
@@ -24,6 +25,10 @@ interface Props extends Book {
    * Initial user borrows from SSR (prevents duplicate fetch, ensures correct button state on first load)
    */
   initialUserBorrows?: BorrowRecord[];
+  /**
+   * SSR reservations — Waitlisted CTA without Join Waitlist flash.
+   */
+  initialReservations?: UserReservationItem[];
   /**
    * Initial review eligibility from SSR (prevents duplicate fetch, ensures correct button state on first load)
    */
@@ -35,6 +40,7 @@ const BookOverview = async ({
   userId,
   isDetailPage = false,
   initialUserBorrows,
+  initialReservations,
   initialReviewEligibility,
   ...bookProps
 }: Props) => {
@@ -81,6 +87,7 @@ const BookOverview = async ({
       } as Book}
       initialStats={initialStats}
       initialUserBorrows={initialUserBorrows}
+      initialReservations={initialReservations}
       initialReviewEligibility={initialReviewEligibility}
     />
   );

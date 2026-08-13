@@ -57,9 +57,11 @@ export default function SupportTicketDetailContent({
 }) {
   const router = useRouter();
   const handleBack = useBackWithRefresh("ticket.write", "/support-tickets");
+  const [ssrTimestamp] = useState(() => Date.now());
   const { data: ticket = initialTicket } = useSupportTicket(
     initialTicket.id,
     initialTicket,
+    ssrTimestamp,
   );
   const deleteMutation = useDeleteSupportTicket();
   const [editOpen, setEditOpen] = useState(false);

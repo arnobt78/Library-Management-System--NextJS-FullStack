@@ -2,10 +2,14 @@
 
 /**
  * Join Waitlist CTA — same primary chrome as BorrowBook (cta-shine + Bebas).
- * Parent: REQ-0027, REQ-0030 — reservation densify with create upsert + baselines
+ * Waitlisted state from useUserReservations densify (survives remount/soft-nav).
+ * After success: densify full Holds row (queue/reserved/ISBN) then navigate to Holds
+ * (parity with BorrowBook → pending-requests).
+ * Parent: REQ-0027, REQ-0030
  */
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { BookmarkPlus, Loader2 } from "lucide-react";
@@ -18,20 +22,57 @@ import {
   snapshotReservationBaselines,
 } from "@/lib/utils/patchReservationCaches";
 import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
+import { useUserReservations } from "@/hooks/useQueries";
+import { profileTabHref } from "@/lib/profile/profileTabs";
+import type { UserReservationItem } from "@/lib/services/reservations";
 import { showToast } from "@/lib/toast";
 
-export default function ReserveBookButton({ bookId }: { bookId: string }) {
+type BookDetailCache = {
+  title?: string;
+  author?: string;
+  coverUrl?: string;
+  coverColor?: string;
+  genre?: string;
+  rating?: number;
+  isbn?: string | null;
+};
+
+export default function ReserveBookButton({
+  bookId,
+  userId,
+  initialReservations = [],
+}: {
+  bookId: string;
+  userId?: string;
+  /** SSR seed — Waiting/Ready for this user so Waitlisted paints on first load. */
+  initialReservations?: UserReservationItem[];
+}) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
-  const [isReserved, setIsReserved] = useState(false);
-  const userId = (session?.user as SessionUser | undefined)?.id;
+  const [ssrTimestamp] = useState(() => Date.now());
+  const effectiveUserId =
+    userId ?? (session?.user as SessionUser | undefined)?.id;
+
+  const { data: reservations = [] } = useUserReservations(
+    effectiveUserId,
+    initialReservations,
+    initialReservations.length > 0 ? ssrTimestamp : undefined,
+  );
+
+  // WAITING or READY for this book → already on the waitlist (claimable hold).
+  const alreadyWaitlisted = reservations.some(
+    (row) =>
+      row.bookId === bookId &&
+      (row.status === "WAITING" || row.status === "READY"),
+  );
 
   return (
     <span className="cta-shine-wrap mt-3 w-full sm:mt-4 sm:w-fit">
       <Button
         className="cta-shine-button hover:bg-primary/90 min-h-12 w-full bg-primary text-dark-100 sm:min-h-14"
-        disabled={isPending || isReserved}
+        disabled={isPending || alreadyWaitlisted}
         onClick={() => {
           startTransition(async () => {
             const result = await reserveUnavailableBook(bookId);
@@ -39,30 +80,38 @@ export default function ReserveBookButton({ bookId }: { bookId: string }) {
               showToast.error("Reservation Failed", result.error);
               return;
             }
-            setIsReserved(true);
-            const bookTitle =
-              queryClient.getQueryData<{ title?: string }>(
+            const bookCached =
+              queryClient.getQueryData<BookDetailCache>(
                 queryKeys.books.detail(bookId),
-              )?.title ?? "Reserved book";
+              ) ?? undefined;
+            const bookTitle = bookCached?.title ?? "Reserved book";
             const baselines = snapshotReservationBaselines(queryClient);
             await commitMutationCache(queryClient, "reservation.lifecycle", {
               snapshot: () => baselines,
               densify: (snap) => {
+                // Full Holds row — never re-patch queuePosition:null after invalidate
                 densifyReservationCreate(
                   queryClient,
                   {
                     id: result.data.id,
                     status: "WAITING",
                     bookId: result.data.bookId ?? bookId,
-                    userId,
+                    userId: effectiveUserId,
                     bookTitle,
-                    queuePosition: null,
+                    queuePosition: result.data.queuePosition,
                     readyExpiresAt: null,
+                    createdAt: result.data.createdAt,
+                    bookAuthor: bookCached?.author ?? null,
+                    coverUrl: bookCached?.coverUrl ?? null,
+                    coverColor: bookCached?.coverColor ?? null,
+                    genre: bookCached?.genre ?? null,
+                    bookRating: bookCached?.rating ?? null,
+                    isbn: bookCached?.isbn ?? null,
                   },
                   snap ?? undefined,
                 );
                 densifyActivityLog(queryClient, {
-                  actorId: userId ?? null,
+                  actorId: effectiveUserId ?? null,
                   actorName:
                     (session?.user as SessionUser | undefined)?.name ?? null,
                   actorEmail:
@@ -73,8 +122,9 @@ export default function ReserveBookButton({ bookId }: { bookId: string }) {
                   details: {
                     status: "WAITING",
                     bookId: result.data.bookId ?? bookId,
-                    userId: userId ?? null,
+                    userId: effectiveUserId ?? null,
                     title: bookTitle,
+                    queuePosition: result.data.queuePosition,
                   },
                 });
               },
@@ -83,6 +133,8 @@ export default function ReserveBookButton({ bookId }: { bookId: string }) {
               "Reserved",
               "You joined the waitlist for this book.",
             );
+            // Borrow parity: land on Active Holds with densified queue/meta
+            router.push(profileTabHref("holds"));
           });
         }}
       >
@@ -92,7 +144,11 @@ export default function ReserveBookButton({ bookId }: { bookId: string }) {
           <BookmarkPlus className="size-4 text-dark-100 sm:size-5" />
         )}
         <span className="font-bebas-neue text-base text-dark-100 sm:text-xl">
-          {isPending ? "Reserving…" : isReserved ? "Waitlisted" : "Join Waitlist"}
+          {isPending
+            ? "Reserving…"
+            : alreadyWaitlisted
+              ? "Waitlisted"
+              : "Join Waitlist"}
         </span>
       </Button>
     </span>

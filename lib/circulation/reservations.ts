@@ -184,7 +184,15 @@ export async function expireReadyReservations(
 export function createReservation(
   bookId: string,
   actor: AuthorizedActor,
-): Promise<CirculationResult<{ id: string; bookId: string }>> {
+): Promise<
+  CirculationResult<{
+    id: string;
+    bookId: string;
+    /** FIFO position among WAITING (1 = first) — densify Holds without dash flash. */
+    queuePosition: number;
+    createdAt: string;
+  }>
+> {
   return db.transaction(async (tx) => {
     const [book] = await tx
       .select({
@@ -224,10 +232,44 @@ export function createReservation(
       .insert(reservations)
       .values({ userId: actor.id, bookId, updatedBy: actor.email })
       .onConflictDoNothing()
-      .returning({ id: reservations.id });
-    return created
-      ? { success: true, data: { ...created, bookId } }
-      : { success: false, error: "You already have an active reservation" };
+      .returning({
+        id: reservations.id,
+        createdAt: reservations.createdAt,
+      });
+    if (!created) {
+      return { success: false, error: "You already have an active reservation" };
+    }
+
+    // Same FIFO COUNT as /api/reservations/me + loadUserReservationsSsr
+    const [queueRow] = await tx
+      .select({
+        queuePosition: sql<number>`count(*)::int`,
+      })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.bookId, bookId),
+          eq(reservations.status, "WAITING"),
+          sql`(${reservations.createdAt}, ${reservations.id}) <= (${created.createdAt}, ${created.id})`,
+        ),
+      );
+
+    const queuePosition = Number(queueRow?.queuePosition ?? 1);
+    return {
+      success: true,
+      data: {
+        id: created.id,
+        bookId,
+        queuePosition:
+          Number.isFinite(queuePosition) && queuePosition > 0
+            ? queuePosition
+            : 1,
+        createdAt:
+          created.createdAt instanceof Date
+            ? created.createdAt.toISOString()
+            : String(created.createdAt),
+      },
+    };
   });
 }
 

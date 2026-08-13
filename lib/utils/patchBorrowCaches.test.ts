@@ -15,6 +15,7 @@ import {
   findCachedBorrowMeta,
   patchBookInventory,
   patchBorrowCachesOnCreate,
+  patchBorrowCachesOnRenewal,
   patchBorrowCachesOnStatusChange,
   snapshotBorrowCacheBaselines,
 } from "@/lib/utils/patchBorrowCaches";
@@ -476,5 +477,81 @@ describe("patchBorrowCaches", () => {
     expect(stats?.pendingBorrows).toBe(0);
     expect(stats?.returnedBooks).toBe(4);
     expect(stats?.cancelledBorrows).toBe(4);
+  });
+
+  it("status change upserts borrows.requestDetail with actor fields", () => {
+    const client = new QueryClient();
+    const detail = makeRequest({ id: "b-1", status: "PENDING" });
+    client.setQueryData(queryKeys.borrows.requestDetail("b-1"), detail);
+    client.setQueryData(queryKeys.borrows.requests({}), [detail]);
+
+    const actor = {
+      id: "admin-1",
+      fullName: "Admin One",
+      email: "admin@lib.test",
+      universityCard: "card-1",
+    };
+    patchBorrowCachesOnStatusChange(client, {
+      recordId: "b-1",
+      patch: {
+        status: "BORROWED",
+        dueDate: "2026-08-20",
+        borrowedBy: actor.email,
+        approvedByActor: actor,
+      },
+      userId: "user-1",
+      bookId: "book-1",
+      fromStatus: "PENDING",
+    });
+
+    const next = client.getQueryData<BorrowRecordWithDetails>(
+      queryKeys.borrows.requestDetail("b-1"),
+    );
+    expect(next?.status).toBe("BORROWED");
+    expect(next?.dueDate).toBe("2026-08-20");
+    expect(next?.borrowedBy).toBe("admin@lib.test");
+    expect(next?.approvedByActor).toEqual(actor);
+  });
+
+  it("renewal densify updates requestDetail dueDate and renewalCount", () => {
+    const client = new QueryClient();
+    client.setQueryData(
+      queryKeys.borrows.requestDetail("b-1"),
+      makeRequest({
+        id: "b-1",
+        status: "BORROWED",
+        dueDate: "2026-08-10",
+        renewalCount: 0,
+      }),
+    );
+    client.setQueryData(queryKeys.borrows.user("user-1"), [
+      makeUserBorrow({
+        id: "b-1",
+        status: "BORROWED",
+        dueDate: "2026-08-10",
+        renewalCount: 0,
+      }),
+    ]);
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      makeRequest({
+        id: "b-1",
+        status: "BORROWED",
+        dueDate: "2026-08-10",
+        renewalCount: 0,
+      }),
+    ]);
+
+    patchBorrowCachesOnRenewal(client, {
+      recordId: "b-1",
+      userId: "user-1",
+      dueDate: "2026-08-17",
+      renewalCount: 1,
+    });
+
+    const detail = client.getQueryData<BorrowRecordWithDetails>(
+      queryKeys.borrows.requestDetail("b-1"),
+    );
+    expect(detail?.dueDate).toBe("2026-08-17");
+    expect(detail?.renewalCount).toBe(1);
   });
 });

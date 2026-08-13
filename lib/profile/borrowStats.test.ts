@@ -14,6 +14,8 @@ describe("parseProfileTab", () => {
     expect(parseProfileTab("pending")).toBe("pending-requests");
     expect(parseProfileTab("borrow-history")).toBe("borrow-history");
     expect(parseProfileTab("history")).toBe("borrow-history");
+    expect(parseProfileTab("holds")).toBe("holds");
+    expect(parseProfileTab("reservations")).toBe("holds");
     expect(parseProfileTab(null)).toBe("active-borrows");
     expect(parseProfileTab("unknown")).toBe("active-borrows");
   });

@@ -12,8 +12,8 @@ import type { ComponentProps, FocusEvent, MouseEvent } from "react";
 import { queryKeys } from "@/lib/query/keys";
 import { prefetchAdminUser360Caches } from "@/lib/query/prefetchAdminUser360Caches";
 import { getBook, getBooksList } from "@/lib/services/books";
-import { getAdminBookReviews, getBookReviews } from "@/lib/services/reviews";
-import { getBorrowRequests, getUserBorrows } from "@/lib/services/borrows";
+import { getAdminBookReviews, getBookReviews, getAdminReviewDetail } from "@/lib/services/reviews";
+import { getBorrowRequests, getBorrowRequestDetail, getUserBorrows } from "@/lib/services/borrows";
 import {
   getPendingAdminRequests,
   getPendingUsers,
@@ -25,6 +25,7 @@ import { getSignupRequestDetail } from "@/lib/admin/signupStatusDecisions";
 import { getAdminStats } from "@/lib/services/admin";
 import {
   getAdminSupportTickets,
+  getSupportTicketDetail,
   getUserSupportTickets,
 } from "@/lib/services/supportTickets";
 
@@ -43,7 +44,10 @@ export type PrefetchKind =
   | "book-detail"
   | "signup-request-detail"
   | "admin-request-detail"
-  | "admin-user-detail";
+  | "admin-user-detail"
+  | "borrow-request-detail"
+  | "admin-review-detail"
+  | "support-ticket-detail";
 
 const UUID =
   "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -62,6 +66,21 @@ const ADMIN_REQUEST_DETAIL_HREF = new RegExp(
 );
 /** User 360 profile. */
 const ADMIN_USER_DETAIL_HREF = new RegExp(`^/admin/users/(${UUID})$`, "i");
+/** Borrow Queue detail. */
+const BORROW_REQUEST_DETAIL_HREF = new RegExp(
+  `^/admin/book-requests/(${UUID})$`,
+  "i",
+);
+/** Book Reviews moderation detail. */
+const ADMIN_REVIEW_DETAIL_HREF = new RegExp(
+  `^/admin/book-reviews/(${UUID})$`,
+  "i",
+);
+/** Support ticket detail (admin or user). */
+const SUPPORT_TICKET_DETAIL_HREF = new RegExp(
+  `^/(?:admin/)?support-tickets/(${UUID})$`,
+  "i",
+);
 
 const PREFETCH_BY_HREF: Record<string, PrefetchKind> = {
   "/all-books": "all-books",
@@ -99,6 +118,9 @@ export default function PrefetchLink({
     const signupDetailMatch = SIGNUP_REQUEST_DETAIL_HREF.exec(path);
     const adminRequestDetailMatch = ADMIN_REQUEST_DETAIL_HREF.exec(path);
     const adminUserDetailMatch = ADMIN_USER_DETAIL_HREF.exec(path);
+    const borrowRequestDetailMatch = BORROW_REQUEST_DETAIL_HREF.exec(path);
+    const adminReviewDetailMatch = ADMIN_REVIEW_DETAIL_HREF.exec(path);
+    const supportTicketDetailMatch = SUPPORT_TICKET_DETAIL_HREF.exec(path);
     const kind =
       prefetchKind ??
       (bookMatch
@@ -109,7 +131,13 @@ export default function PrefetchLink({
             ? ("admin-request-detail" as const)
             : adminUserDetailMatch
               ? ("admin-user-detail" as const)
-              : PREFETCH_BY_HREF[path]);
+              : borrowRequestDetailMatch
+                ? ("borrow-request-detail" as const)
+                : adminReviewDetailMatch
+                  ? ("admin-review-detail" as const)
+                  : supportTicketDetailMatch
+                    ? ("support-ticket-detail" as const)
+                    : PREFETCH_BY_HREF[path]);
     if (!kind) return;
 
     switch (kind) {
@@ -195,6 +223,82 @@ export default function PrefetchLink({
           }
         }
         prefetchAdminUser360Caches(queryClient, subjectUserId);
+        break;
+      }
+      case "borrow-request-detail": {
+        const recordId = borrowRequestDetailMatch?.[1];
+        if (!recordId) break;
+        // Prefer list-cache seed then network — densify must win (staleTime 0).
+        for (const [, rows] of queryClient.getQueriesData<
+          Array<{ id: string }>
+        >({ queryKey: queryKeys.borrows.requestsRoot })) {
+          const hit = rows?.find((r) => r.id === recordId);
+          if (hit) {
+            queryClient.setQueryData(
+              queryKeys.borrows.requestDetail(recordId),
+              hit,
+            );
+            break;
+          }
+        }
+        void queryClient.prefetchQuery({
+          queryKey: queryKeys.borrows.requestDetail(recordId),
+          queryFn: () => getBorrowRequestDetail(recordId),
+          staleTime: 0,
+        });
+        break;
+      }
+      case "admin-review-detail": {
+        const reviewId =
+          adminReviewDetailMatch?.[1] ??
+          ADMIN_REVIEW_DETAIL_HREF.exec(path)?.[1];
+        if (!reviewId) break;
+        for (const [, rows] of queryClient.getQueriesData<
+          Array<{ id: string }>
+        >({ queryKey: queryKeys.reviews.adminRoot })) {
+          const hit = rows?.find((r) => r.id === reviewId);
+          if (hit) {
+            queryClient.setQueryData(
+              queryKeys.reviews.adminDetail(reviewId),
+              hit,
+            );
+            break;
+          }
+        }
+        void queryClient.prefetchQuery({
+          queryKey: queryKeys.reviews.adminDetail(reviewId),
+          queryFn: () => getAdminReviewDetail(reviewId),
+          staleTime: 0,
+        });
+        break;
+      }
+      case "support-ticket-detail": {
+        const ticketId =
+          supportTicketDetailMatch?.[1] ??
+          SUPPORT_TICKET_DETAIL_HREF.exec(path)?.[1];
+        if (!ticketId) break;
+        for (const root of [
+          queryKeys.tickets.adminRoot,
+          queryKeys.tickets.userRoot,
+        ] as const) {
+          for (const [, rows] of queryClient.getQueriesData<
+            Array<{ id: string }>
+          >({ queryKey: root })) {
+            const hit = rows?.find((r) => r.id === ticketId);
+            if (hit) {
+              queryClient.setQueryData(
+                queryKeys.tickets.detail(ticketId),
+                hit,
+              );
+              break;
+            }
+          }
+        }
+        void queryClient.prefetchQuery({
+          queryKey: queryKeys.tickets.detail(ticketId),
+          queryFn: () => getSupportTicketDetail(ticketId),
+          staleTime: 0,
+        });
         break;
       }
       case "all-books":

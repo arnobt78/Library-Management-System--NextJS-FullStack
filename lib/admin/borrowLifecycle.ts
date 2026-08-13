@@ -271,6 +271,63 @@ export async function rejectBorrowRecord(
   });
 }
 
+/**
+ * Owner withdraws a still-PENDING borrow request (soft-cancel).
+ * Same CANCELLED history row as librarian reject; notes attribute the borrower.
+ */
+export async function cancelOwnBorrowRecord(
+  recordId: string,
+  actor: AuthorizedActor,
+): Promise<BorrowActionResult> {
+  return db.transaction(async (tx) => {
+    const [record] = await tx
+      .select({
+        status: borrowRecords.status,
+        userId: borrowRecords.userId,
+      })
+      .from(borrowRecords)
+      .where(eq(borrowRecords.id, recordId))
+      .limit(1)
+      .for("update");
+
+    if (!record) {
+      return { success: false, error: "Borrow record not found" };
+    }
+
+    if (record.userId !== actor.id) {
+      return { success: false, error: "You can only cancel your own requests" };
+    }
+
+    const decision = canCancelBorrow(record.status);
+    if (!decision.allowed) {
+      return { success: false, error: decision.error };
+    }
+
+    const updated = await tx
+      .update(borrowRecords)
+      .set({
+        status: "CANCELLED",
+        updatedAt: new Date(),
+        updatedBy: actor.email,
+        notes: "Cancelled by borrower",
+      })
+      .where(
+        and(
+          eq(borrowRecords.id, recordId),
+          eq(borrowRecords.userId, actor.id),
+          eq(borrowRecords.status, "PENDING"),
+        ),
+      )
+      .returning({ id: borrowRecords.id });
+
+    if (updated.length !== 1) {
+      return { success: false, error: "This request has already been processed" };
+    }
+
+    return { success: true };
+  });
+}
+
 export function approveBorrowRecords(
   recordIds: string[],
   actor: AuthorizedActor

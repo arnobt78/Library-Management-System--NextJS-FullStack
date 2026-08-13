@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) densify actor resolver at `90363ef`; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Holds densify queue + post-waitlist nav; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - tip `90363ef`; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Holds densify queue meta + densify WIP uncommitted; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `90363ef` (resolveDecisionActor list+reviews)
-- Latest HEAD: `c95ebac` (== `origin/main`)
+- Latest HEAD: `4f7953e` (== `origin/main`)
 - Started: 2026-08-01
-- Last updated: 2026-08-12 (Densify actor resolver consistency)
+- Last updated: 2026-08-13 (Holds densify queue + post-waitlist nav)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,122 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-13, Holds densify queue + post-waitlist nav)
+
+Verified facts:
+- `createReservation` returns `queuePosition` + `createdAt`; densify full Holds meta (no dash flash).
+- Join Waitlist navigates to `?tab=holds` (BorrowBook pending-requests parity).
+- Prove: typecheck + lint PASS; docs synced; commit authorized.
+
+### Next Action
+
+**Human-Decision:** soft-nav Join Waitlist → Holds; Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-13, home Waitlisted SSR seed)
+
+Verified facts:
+- Shared `loadUserReservationsSsr` used by home, book detail, my-profile.
+- HomeFeaturedHero seeds `initialReservations` → ReserveBookButton Waitlisted first paint.
+- Prove: typecheck + lint PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav `/` unavailable hero with existing hold → Waitlisted; then commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Waitlisted CTA + cancel dialog UX)
+
+Verified facts:
+- ReserveBookButton Waitlisted from `useUserReservations` + book detail SSR reservation seed.
+- Pending Cancel Request dialog lifted (snapshot + rich preview); closes only on mutate settle.
+- Holds Cancel Hold uses same GLASS_ALERT confirm + spinner until settle.
+- Prove: typecheck + lint PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav Waitlisted remount, Cancel Request stays through toast, Cancel Hold confirm; then commit when asked.
+
+## Reconciliation snapshot (2026-08-13, pending self-cancel + Holds ISBN)
+
+Verified facts:
+- Owner `cancelOwnBorrowRecord` + `cancelPendingBorrowRequest`; `useCancelPendingBorrow` densify CANCELLED.
+- Pending card glass Cancel + AlertDialog; Holds ISBN last-4 from SSR/API.
+- Prove: typecheck + lint + focused tests PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav pending cancel + Holds ISBN; then Borrow Queue polish or commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Holds tab Pending-Requests DNA polish)
+
+Verified facts:
+- Tab/section titles Active Holds / Active holds; SSR reservation meta matches /api/reservations/me.
+- ReservationsPanel cards use profile-borrow-row + glass badge/CTAs + status strip.
+- Prove: typecheck + lint PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav `?tab=holds` vs Pending DNA; then Borrow Queue list/detail polish or commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Agile V resume → UI polish)
+
+Verified facts:
+- No PENDING checkpoint; resume from densify consistency closeout Human-Decision.
+- HEAD `4f7953e` == origin/main; large uncommitted WIP (Borrow Queue DataTable+detail, Holds, densify closeout).
+- Owner intent: UI polish on Borrow Queue list, borrow detail, profile Holds — plan only; no coding until approve.
+- Densify closeout Prove previously PASS; Gate 2 still EvalGate-blocked.
+
+### Next Action
+
+**Human-Decision:** approve scoped 3-page UI polish plan (or amend with screenshots), then synthesize.
+
+## Reconciliation snapshot (2026-08-13, densify consistency closeout)
+
+Verified facts:
+- Borrow Queue single universe RQ + SSR stamp; claim densify passes requestMeta.
+- Ticket/review/nav SSR stamps; ticket.write RSC includes User 360 paths.
+- PrefetchLink review/ticket detail + Activity Entity; recs Refresh keeps prior featured.
+- Prove: typecheck + lint + 25 focused densify/invalidation tests PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav claim→queue, ticket→User 360, review/ticket PrefetchLink, Automation Refresh featured; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow Queue deferred densify closeout)
+
+Verified facts:
+- List+detail SSR `currentAdmin`; approve/return pass `decisionActor` (no actor-card flash).
+- Detail object SSR + `initialDataUpdatedAt`; `loadBorrowRequestById` single-auth page/API path.
+- Locked Active Holds KPI=0; shared `countActiveHolds` + parent `holdsClock` for KPI+panel.
+- Prove: typecheck + lint + activeHolds/patchBorrowCaches/borrowStats tests PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav approve/return actors + Holds KPI lockstep; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow Queue densify gap fix)
+
+Verified facts:
+- requestDetail snapshot/restore on approve/reject/return onError.
+- Approve/return densify borrowedBy/returnedBy + actors; renewalCount on detail.
+- PrefetchLink View Details; densify unit tests PASS.
+- Prove: typecheck + lint + patchBorrowCaches tests PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav Borrow Queue detail lifecycle + commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow Queue polish)
+
+Verified facts:
+- Borrow Queue = one DataTable; KPIs In queue / Awaiting approval / On loan / Returned / Soft-cancelled.
+- Detail `/admin/book-requests/[id]` + densify `borrows.requestDetail`; PrefetchLink warm.
+- Profile Holds tab + Active Holds KPI; reservations moved out of above-tabs panel.
+- Prove: typecheck + lint + focused tests PASS; commit pending owner.
+
+### Next Action
+
+**Human-Decision:** soft-nav Borrow Queue + detail + profile Holds; commit when asked. Gate 2 still EvalGate-blocked.
 
 ## Reconciliation snapshot (2026-08-12, Densify actor resolver consistency)
 
