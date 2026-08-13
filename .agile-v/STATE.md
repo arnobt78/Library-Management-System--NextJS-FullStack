@@ -7,8 +7,8 @@
 - Status: ACTIVE - Activity avatar densify Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `8ceec41` (Borrow Queue inventory DNA + Book Details panel)
-- Latest HEAD: `8ceec41`
+- Latest implementation tip: `a445f07` (Activity avatar densify + borrow/review detail DNA)
+- Latest HEAD: `a445f07`
 - Started: 2026-08-01
 - Last updated: 2026-08-14 (Activity avatar densify fix)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
