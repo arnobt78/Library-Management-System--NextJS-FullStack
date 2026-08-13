@@ -7,8 +7,8 @@
 - Status: ACTIVE - Borrow detail confirms/actors/Activity + minimal seed Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `e83e2d5` (waitlist Holds densify + Borrow Queue polish)
-- Latest HEAD: `d6d48f8` (== `origin/main`)
+- Latest implementation tip: `a15b3ad` (Borrow Queue densify + detail DNA + mergeDensifiedDetail)
+- Latest HEAD: `a15b3ad`
 - Started: 2026-08-01
 - Last updated: 2026-08-13 (Borrow detail gaps + record/history DNA + minimal seed)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
