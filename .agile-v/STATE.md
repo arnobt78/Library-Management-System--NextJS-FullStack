@@ -7,8 +7,8 @@
 - Status: ACTIVE - Queue Book DNA + inventory densify ready to tip; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `a15b3ad` (Borrow Queue densify + detail DNA + mergeDensifiedDetail)
-- Latest HEAD: `a15b3ad`
+- Latest implementation tip: `8ceec41` (Borrow Queue inventory DNA + Book Details panel)
+- Latest HEAD: `8ceec41`
 - Started: 2026-08-01
 - Last updated: 2026-08-13 (Queue Book DNA + inventory densify commit)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
