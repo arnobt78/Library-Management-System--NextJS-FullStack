@@ -7,10 +7,10 @@
 - Status: ACTIVE - Holds densify queue meta + densify WIP uncommitted; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `90363ef` (resolveDecisionActor list+reviews)
-- Latest HEAD: `4f7953e` (== `origin/main`)
+- Latest implementation tip: `e83e2d5` (waitlist Holds densify + Borrow Queue polish)
+- Latest HEAD: `e83e2d5` (== `origin/main`)
 - Started: 2026-08-01
-- Last updated: 2026-08-13 (Holds densify queue + post-waitlist nav)
+- Last updated: 2026-08-13 (committed+pushed Holds densify / waitlist)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
