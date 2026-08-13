@@ -13,6 +13,7 @@ import {
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
 import { patchAdminStatsOnReservationWaitingChange } from "@/lib/utils/patchAdminStatsCaches";
+import { syncBorrowRequestBookFields } from "@/lib/utils/syncBorrowRequestBookFields";
 
 export type ReservationStatus =
   | "WAITING"
@@ -137,6 +138,11 @@ export function densifyReservationCreate(
   }
 
   patchAdminStatsOnReservationWaitingChange(queryClient, 1);
+  if (row.bookId) {
+    syncBorrowRequestBookFields(queryClient, row.bookId, {
+      waitingHoldsDelta: 1,
+    });
+  }
 }
 
 /**
@@ -198,7 +204,21 @@ export function densifyReservationStatus(
   // Only adjust overview waiting bar when we know prior status was WAITING.
   if (args.fromStatus === "WAITING" && args.status !== "WAITING") {
     patchAdminStatsOnReservationWaitingChange(queryClient, -1);
-  } else if (args.fromStatus && args.fromStatus !== "WAITING" && args.status === "WAITING") {
+    if (args.bookId) {
+      syncBorrowRequestBookFields(queryClient, args.bookId, {
+        waitingHoldsDelta: -1,
+      });
+    }
+  } else if (
+    args.fromStatus &&
+    args.fromStatus !== "WAITING" &&
+    args.status === "WAITING"
+  ) {
     patchAdminStatsOnReservationWaitingChange(queryClient, 1);
+    if (args.bookId) {
+      syncBorrowRequestBookFields(queryClient, args.bookId, {
+        waitingHoldsDelta: 1,
+      });
+    }
   }
 }

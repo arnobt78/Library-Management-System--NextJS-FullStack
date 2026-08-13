@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Borrow Queue Status & Actor cell — Reviews / Sign-up Decision DNA.
+ * Borrow Queue Status & Issuer cell — Reviews / Sign-up Decision DNA.
  * PENDING: badge + Requested; CANCELLED/BORROWED/RETURNED: DecisionActorStack
- * with actor (or Self-returned / Self-cancelled) + decision date + optional Due.
+ * with issuer (or Self-returned / Self-cancelled) + decision date + optional Due.
  * Parent: AdminBookRequestsList
  */
 

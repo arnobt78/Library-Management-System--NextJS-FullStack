@@ -104,7 +104,11 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
     id: string;
     bookId: string;
     status: string;
-    dueDate?: string | null;
+    dueDate?: string | Date | null;
+    createdAt?: string | Date | null;
+    borrowDate?: string | Date | null;
+    updatedAt?: string | Date | null;
+    returnDate?: string | Date | null;
     book?: unknown; // API includes book field, but we don't need it here
   }>;
 
@@ -149,6 +153,11 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
           bookAuthor={bookAuthor}
           bookGenre={bookGenre}
           bookRating={bookRating}
+          status={existingBorrow.status}
+          createdAt={existingBorrow.createdAt}
+          borrowDate={existingBorrow.borrowDate}
+          updatedAt={existingBorrow.updatedAt}
+          returnDate={existingBorrow.returnDate}
         />
       ) : availableCopies <= 0 && userStatus === "APPROVED" && isActive ? (
         <ReserveBookButton

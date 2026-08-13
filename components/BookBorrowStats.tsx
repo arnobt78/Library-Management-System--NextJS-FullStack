@@ -16,6 +16,7 @@
 import React from "react";
 import { useBookBorrowStats, useBook } from "@/hooks/useQueries";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getBookAvailabilityStatus } from "@/lib/books/bookDetailsViewModel";
 
 interface BookBorrowStatsProps {
   /**
@@ -41,26 +42,11 @@ interface BookBorrowStatsProps {
   };
 }
 
-/** Status label + Tailwind class from available/total copy counts */
-function getAvailabilityStatus(
-  availableCopies: number,
-  totalCopies: number,
-): { label: "Available" | "Low" | "Unavailable"; className: string } {
-  if (availableCopies <= 0) {
-    return { label: "Unavailable", className: "text-red-400" };
-  }
-
-  const lowByCount = availableCopies <= 2;
-  const lowByShare =
-    totalCopies > 0 &&
-    availableCopies <= Math.max(1, Math.floor(totalCopies * 0.1));
-
-  if (lowByCount || lowByShare) {
-    return { label: "Low", className: "text-amber-300/90" };
-  }
-
-  return { label: "Available", className: "text-emerald-300" };
-}
+const AVAIL_CLASS: Record<"emerald" | "amber" | "rose", string> = {
+  emerald: "text-emerald-300",
+  amber: "text-amber-300/90",
+  rose: "text-red-400",
+};
 
 const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
   bookId,
@@ -136,7 +122,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
     return null;
   }
 
-  const availability = getAvailabilityStatus(availableCopies, totalCopies);
+  const availability = getBookAvailabilityStatus(availableCopies, totalCopies);
 
   return (
     <div className="book-info">
@@ -162,7 +148,7 @@ const BookBorrowStats: React.FC<BookBorrowStatsProps> = ({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
           <p className="text-sm sm:text-base">
             Availability Status{" "}
-            <span className={`font-medium ${availability.className}`}>
+            <span className={`font-medium ${AVAIL_CLASS[availability.tone]}`}>
               {availability.label}
             </span>
           </p>

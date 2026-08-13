@@ -34,7 +34,7 @@ import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { formatMediumDate } from "@/lib/ui/formatMediumDate";
 import { cn } from "@/lib/utils";
 import PersonAttribution from "@/components/PersonAttribution";
-import { AdminBookIdentityCell } from "@/components/admin/AdminBookIdentityCell";
+import { AdminBookDetailsPanel } from "@/components/admin/AdminBookDetailsPanel";
 import { BorrowQueueStatusActorCell } from "@/components/admin/BorrowQueueStatusActorCell";
 import {
   BorrowLifecycleAlertDialog,
@@ -46,6 +46,7 @@ import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import CopyableText from "@/components/ui/CopyableText";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
+import type { BookBorrowStats } from "@/lib/services/books";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 
@@ -72,9 +73,12 @@ function RecordField({
 
 export default function AdminBorrowRequestDetailContent({
   initialRequest,
+  initialBookStats = null,
   currentAdmin = null,
 }: {
   initialRequest: BorrowRecordWithDetails;
+  /** SSR book borrow stats — seeds AdminBookDetailsPanel / useBookBorrowStats. */
+  initialBookStats?: BookBorrowStats | null;
   /** SSR DB actor — preferred over useSession for lifecycle densify card. */
   currentAdmin?: AdminRequestReviewer | null;
 }) {
@@ -293,23 +297,10 @@ export default function AdminBorrowRequestDetailContent({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="admin-panel space-y-3">
-          <TicketSectionHeader
-            icon={<BookOpen className="size-4" />}
-            title="Book"
-            subtitle="Catalog identity"
-          />
-          <AdminBookIdentityCell
-            bookId={request.bookId}
-            title={request.bookTitle}
-            author={request.bookAuthor}
-            coverUrl={request.bookCoverUrl}
-            coverColor={request.bookCoverColor}
-            genre={request.bookGenre}
-            rating={request.bookRating}
-            className="items-start"
-          />
-        </div>
+        <AdminBookDetailsPanel
+          request={request}
+          initialStats={initialBookStats}
+        />
 
         <div className="admin-panel space-y-3">
           <TicketSectionHeader

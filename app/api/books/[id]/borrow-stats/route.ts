@@ -17,11 +17,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/database/drizzle";
-import { borrowRecords } from "@/database/schema";
-import { eq, count, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { loadBookBorrowStats } from "@/lib/services/loadBookBorrowStats";
 
 export const runtime = "nodejs";
 
@@ -66,29 +64,11 @@ export async function GET(
       );
     }
 
-    // Get borrow records statistics for this book
-    const borrowStats = await db
-      .select({
-        totalBorrows: count(),
-        activeBorrows: sql<number>`count(case when ${borrowRecords.status} = 'BORROWED' then 1 end)`,
-        returnedBorrows: sql<number>`count(case when ${borrowRecords.status} = 'RETURNED' then 1 end)`,
-      })
-      .from(borrowRecords)
-      .where(eq(borrowRecords.bookId, id));
-
-    const stats = borrowStats[0] || {
-      totalBorrows: 0,
-      activeBorrows: 0,
-      returnedBorrows: 0,
-    };
+    const stats = await loadBookBorrowStats(id);
 
     return NextResponse.json({
       success: true,
-      stats: {
-        totalBorrows: Number(stats.totalBorrows) || 0,
-        activeBorrows: Number(stats.activeBorrows) || 0,
-        returnedBorrows: Number(stats.returnedBorrows) || 0,
-      },
+      stats,
     });
   } catch (error) {
     console.error("Error fetching book borrow statistics:", error);

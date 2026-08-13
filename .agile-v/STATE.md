@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Borrow detail gaps + record/history DNA + minimal seed; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Borrow Queue Book DNA tip; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Borrow detail confirms/actors/Activity + minimal seed Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Queue Book DNA + inventory densify ready to tip; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `a15b3ad` (Borrow Queue densify + detail DNA + mergeDensifiedDetail)
 - Latest HEAD: `a15b3ad`
 - Started: 2026-08-01
-- Last updated: 2026-08-13 (Borrow detail gaps + record/history DNA + minimal seed)
+- Last updated: 2026-08-13 (Queue Book DNA + inventory densify commit)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,91 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-13, Queue Book inventory line + commit)
+
+Verified facts:
+- AdminBookIdentityCell: Available/Total inline with genre/star (availability tones); densified copies.
+- Dialog DNA: genre+star + Available/Total all kinds (Reject info-only); Book Details DNA + parallel SSR stats in same tip.
+- Prove: typecheck + lint PASS; owner commit+push authorized.
+
+### Next Action
+
+**Human-Decision:** soft-nav Borrow Queue after tip bind; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-13, Dialog DNA + kebab polish)
+
+Verified facts:
+- BorrowLifecycleAlertDialog: genre chip + catalog star under author; Available/Total on Approve/Reject/Return (Reject info-only).
+- Borrow Queue kebab: View Details → `/admin/book-requests/[id]`; Book title stays `/books/[id]`.
+- Prove: typecheck + lint PASS.
+
+## Reconciliation snapshot (2026-08-13, Parallel SSR borrow stats closeout)
+
+Verified facts:
+- Borrow detail page: await borrow row first, then `Promise.all` admin + audit + `loadBookBorrowStats` (no sequential stats tail).
+- Densify already owns live `books.borrowStats` after approve/return — unchanged.
+- Prove: typecheck + lint PASS.
+
+## Reconciliation snapshot (2026-08-13, Book panel SSR seed + dense right column)
+
+Verified facts:
+- `loadBookBorrowStats` shared DB helper; SSR seed on `/admin/book-requests/[id]` → `AdminBookDetailsPanel` `initialStats`.
+- Borrow-stats API route uses shared loader (no duplicate SQL).
+- Right column denser (`space-y-3` / `space-y-2` / `mb-1.5`).
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav borrow detail Book Statistics SSR paint; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Book panel DNA closeout + Return inventory adapter)
+
+Verified facts:
+- `AdminBookDetailsPanel` Applicant side-by-side fields|cover (`lg:grid-cols-[1fr_minmax(10rem,12rem)]`).
+- `applyReturnInventoryDensify` settle adapter; Return never optimistic Available +1; onError reverses stats only.
+- Prove: typecheck + lint + adapter unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav borrow detail Book panel + Return; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Book Details DNA + Return no-flash)
+
+Verified facts:
+- Return onMutate skips available +1 when `getCachedBookWaitingHolds` > 0; settle still uses absolute + offer READY.
+- Shared `bookDetailsViewModel` + `AdminBookDetailsPanel` (Applicant DNA) on borrow-request detail; public overview consumes same field contract.
+- Detail loader fat catalog fields; `densifyBookWrite` syncs total+available onto borrow rows via `syncBorrowRequestBookFields`.
+- Prove: typecheck + lint + unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav borrow detail Book Details + Return with waiting hold; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow inventory densify closeout)
+
+Verified facts:
+- `syncBorrowRequestBookFields` + `setBookAvailableCopiesAbsolute` keep queue/detail `bookAvailableCopies`/`bookWaitingHolds` aligned with `books.detail` / reservation densify.
+- Return payload includes absolute `availableCopies` + `offeredReservationId`; `useReturnBook` densify uses absolute (not optimistic +1) and READY densify when offered.
+- Reservation create/status bumps/decrements queue `bookWaitingHolds` with Waiting KPI.
+- Prove: typecheck + lint + densify unit tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Return with waiting hold (Available/Waiting stay correct); commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Dialog inventory + profile lifecycle dates + Status & Issuer)
+
+Verified facts:
+- Approve/Mark Returned LIGHT_ALERT show Available/Total (+ Waiting holds when > 0) via list/detail SSR fields + live `useBook`; Reject skips inventory.
+- Badge stays Cancelled for soft-cancel; button/title remain Reject.
+- `BorrowLifecycleDates` `variant` light|dark; My Profile cancel/return/renew + `ReturnBookButton` show dark badge + dates.
+- Borrow Queue column header **Status & Issuer** (cell file name unchanged).
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Approve/Return dialogs + profile confirms; commit when asked.
 
 ## Reconciliation snapshot (2026-08-13, Borrow detail gaps + record/history DNA + minimal seed)
 

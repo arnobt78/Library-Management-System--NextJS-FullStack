@@ -141,6 +141,7 @@ import {
   snapshotBorrowCacheBaselines,
   snapshotBorrowListBaselines,
 } from "@/lib/utils/patchBorrowCaches";
+import { applyReturnInventoryDensify } from "@/lib/utils/applyReturnInventoryDensify";
 import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 // BookParams is a global type from types.d.ts, no import needed
 
@@ -1950,8 +1951,8 @@ export const useReturnBook = () => {
           old && typeof old === "object" ? { ...old, ...detailPatch } : old,
       );
       if (meta?.bookId) {
+        // Never optimistic Available — settle applies absolute after return+offer.
         patchBookInventory(queryClient, meta.bookId, {
-          availableDelta: 1,
           activeDelta: -1,
           returnedDelta: 1,
         });
@@ -1987,6 +1988,9 @@ export const useReturnBook = () => {
             meta?.bookId ? [meta.bookId] : [],
           ),
         densify: (baselines) => {
+          const hasAbsoluteCopies =
+            typeof data?.availableCopies === "number" &&
+            Number.isFinite(data.availableCopies);
           patchBorrowCachesOnStatusChange(
             queryClient,
             {
@@ -2007,10 +2011,17 @@ export const useReturnBook = () => {
               userId: meta?.userId,
               bookId: meta?.bookId,
               fromStatus,
-              restoreInventory: Boolean(meta?.bookId),
+              // Absolute path preferred; restore only if server omitted copies.
+              restoreInventory:
+                !hasAbsoluteCopies && Boolean(meta?.bookId),
             },
             baselines,
           );
+          applyReturnInventoryDensify(queryClient, {
+            bookId: meta?.bookId,
+            availableCopies: data?.availableCopies,
+            offeredReservationId: data?.offeredReservationId,
+          });
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),
             action: "UPDATE",
@@ -2069,10 +2080,9 @@ export const useReturnBook = () => {
           context.previousDetail,
         );
       }
-      // Roll back optimistic inventory bump
+      // Roll back borrowStats only — Available was never optimistic-bumped.
       if (context?.meta?.bookId) {
         patchBookInventory(queryClient, context.meta.bookId, {
-          availableDelta: -1,
           activeDelta: 1,
           returnedDelta: -1,
         });

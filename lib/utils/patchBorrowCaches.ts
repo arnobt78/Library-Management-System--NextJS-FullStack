@@ -29,6 +29,12 @@ import {
   markDensifiedEmpty,
   writeMappedList,
 } from "@/lib/utils/queryCacheLists";
+import { syncBorrowRequestBookFields } from "@/lib/utils/syncBorrowRequestBookFields";
+
+export {
+  getCachedBookWaitingHolds,
+  syncBorrowRequestBookFields,
+} from "@/lib/utils/syncBorrowRequestBookFields";
 
 /**
  * Resolve title active flag for overview lendable copy deltas.
@@ -446,6 +452,42 @@ function mapRequestLists(
   }
 }
 
+/**
+ * Absolute availableCopies after return+offer (net may be 0). Also syncs
+ * queue/detail bookAvailableCopies so dialog fallbacks stay correct.
+ */
+export function setBookAvailableCopiesAbsolute(
+  queryClient: QueryClient,
+  bookId: string | null | undefined,
+  availableCopies: number,
+): void {
+  if (!bookId || !Number.isFinite(availableCopies)) return;
+  const capped = Math.max(0, availableCopies);
+  const detailKey = queryKeys.books.detail(bookId);
+  queryClient.setQueryData(detailKey, (old: unknown) => {
+    if (!old || typeof old !== "object") {
+      return { id: bookId, availableCopies: capped };
+    }
+    const row = old as { totalCopies?: number };
+    const next =
+      typeof row.totalCopies === "number"
+        ? Math.min(row.totalCopies, capped)
+        : capped;
+    return { ...(old as object), availableCopies: next };
+  });
+  const detailAfter = queryClient.getQueryData<{ availableCopies?: number }>(
+    detailKey,
+  );
+  const synced =
+    typeof detailAfter?.availableCopies === "number"
+      ? detailAfter.availableCopies
+      : capped;
+  patchAdminListAvailability(queryClient, bookId, synced);
+  syncBorrowRequestBookFields(queryClient, bookId, {
+    availableCopies: synced,
+  });
+}
+
 /** Patch availableCopies on book detail (+ optional borrowStats deltas). */
 export function patchBookInventory(
   queryClient: QueryClient,
@@ -501,6 +543,9 @@ export function patchBookInventory(
         bookId,
         detailAfter.availableCopies,
       );
+      syncBorrowRequestBookFields(queryClient, bookId, {
+        availableCopies: detailAfter.availableCopies,
+      });
     }
   }
 
@@ -550,6 +595,9 @@ export function restoreBookInventoryFromBaselines(
       return { ...(old as object), availableCopies: copies };
     });
     patchAdminListAvailability(queryClient, bookId, copies);
+    syncBorrowRequestBookFields(queryClient, bookId, {
+      availableCopies: copies,
+    });
   }
 
   const stats = baselines.stats[bookId];

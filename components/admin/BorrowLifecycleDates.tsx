@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * User 360 Borrowing History — lifecycle date lines under BorrowStatusBadge.
- * Medium date (Aug 6, 2026); tones align with ReviewBorrowMeta light variant.
+ * Lifecycle date lines under BorrowStatusBadge (User 360 / dialogs).
+ * variant light = admin panels; dark = GLASS_ALERT profile / book-detail confirms.
+ * Parent: dialog inventory + dates DNA
  */
 
 import { Calendar, CalendarX, CheckCircle2, Clock } from "lucide-react";
@@ -10,7 +11,11 @@ import { formatMediumDate } from "@/lib/ui/formatMediumDate";
 import { cn } from "@/lib/utils";
 
 type BorrowLifecycleStatus =
-  "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED" | string;
+  | "PENDING"
+  | "BORROWED"
+  | "RETURNED"
+  | "CANCELLED"
+  | string;
 
 function DateLine({
   label,
@@ -18,12 +23,14 @@ function DateLine({
   icon: Icon,
   tone,
   iconTone,
+  valueTone,
 }: {
   label: string;
   value: string | Date | null | undefined;
   icon: typeof Calendar;
   tone: string;
   iconTone: string;
+  valueTone: string;
 }) {
   const text = formatMediumDate(value);
   if (!value || text === "—") return null;
@@ -37,7 +44,7 @@ function DateLine({
     >
       <Icon className={cn("size-3 shrink-0", iconTone)} aria-hidden />
       <span className="font-medium">{label}:</span>
-      <span className="text-gray-700">{text}</span>
+      <span className={valueTone}>{text}</span>
     </span>
   );
 }
@@ -50,6 +57,7 @@ export function BorrowLifecycleDates({
   dueDate,
   returnDate,
   className,
+  variant = "light",
 }: {
   status: BorrowLifecycleStatus;
   createdAt?: string | Date | null;
@@ -58,7 +66,11 @@ export function BorrowLifecycleDates({
   dueDate?: string | Date | null;
   returnDate?: string | Date | null;
   className?: string;
+  /** light = admin white panels; dark = root GLASS_ALERT dialogs */
+  variant?: "light" | "dark";
 }) {
+  const isDark = variant === "dark";
+  const valueTone = isDark ? "text-light-200" : "text-gray-700";
   const requested = createdAt ?? borrowDate;
   const showApproved =
     (status === "BORROWED" || status === "RETURNED") && updatedAt;
@@ -72,16 +84,18 @@ export function BorrowLifecycleDates({
         label="Requested"
         value={requested}
         icon={Calendar}
-        tone="text-sky-700"
-        iconTone="text-sky-600"
+        tone={isDark ? "text-sky-300" : "text-sky-700"}
+        iconTone={isDark ? "text-sky-300" : "text-sky-600"}
+        valueTone={valueTone}
       />
       {showApproved ? (
         <DateLine
           label="Approved"
           value={updatedAt}
           icon={CheckCircle2}
-          tone="text-blue-700"
-          iconTone="text-blue-600"
+          tone={isDark ? "text-blue-300" : "text-blue-700"}
+          iconTone={isDark ? "text-blue-300" : "text-blue-600"}
+          valueTone={valueTone}
         />
       ) : null}
       {showDue ? (
@@ -89,8 +103,9 @@ export function BorrowLifecycleDates({
           label="Due"
           value={dueDate}
           icon={Clock}
-          tone="text-violet-700"
-          iconTone="text-violet-600"
+          tone={isDark ? "text-violet-300" : "text-violet-700"}
+          iconTone={isDark ? "text-violet-300" : "text-violet-600"}
+          valueTone={valueTone}
         />
       ) : null}
       {showReturned ? (
@@ -98,8 +113,9 @@ export function BorrowLifecycleDates({
           label="Returned"
           value={returnDate}
           icon={Calendar}
-          tone="text-emerald-700"
-          iconTone="text-emerald-600"
+          tone={isDark ? "text-emerald-300" : "text-emerald-700"}
+          iconTone={isDark ? "text-emerald-300" : "text-emerald-600"}
+          valueTone={valueTone}
         />
       ) : null}
       {showCancelled ? (
@@ -107,8 +123,9 @@ export function BorrowLifecycleDates({
           label="Cancelled"
           value={updatedAt}
           icon={CalendarX}
-          tone="text-slate-600"
-          iconTone="text-slate-500"
+          tone={isDark ? "text-rose-300" : "text-slate-600"}
+          iconTone={isDark ? "text-rose-300" : "text-slate-500"}
+          valueTone={valueTone}
         />
       ) : null}
     </div>

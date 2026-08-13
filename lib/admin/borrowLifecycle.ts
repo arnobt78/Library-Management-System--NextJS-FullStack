@@ -25,6 +25,10 @@ interface ReturnResult {
   fineAmount: number;
   daysOverdue: number;
   isOverdue: boolean;
+  /** Absolute copies after return + optional FIFO offer. */
+  availableCopies: number;
+  /** WAITING→READY reservation id when offer consumed the returned copy. */
+  offeredReservationId: string | null;
 }
 
 function getDueDate(): string {
@@ -75,7 +79,7 @@ async function approveWithTransaction(
     .update(borrowRecords)
     .set({
       status: "BORROWED",
-      // Issuer/admin email — Status & Actor joins borrowed_by → approvedByActor.
+      // Issuer/admin email — Status & Issuer joins borrowed_by → approvedByActor.
       borrowedBy: actor.email,
       dueDate: getDueDate(),
       updatedAt: new Date(),
@@ -197,7 +201,17 @@ async function returnWithTransaction(
     })
     .where(eq(books.id, record.bookId));
 
-  await offerNextReservation(tx, record.bookId, actor.email);
+  const offeredReservationId = await offerNextReservation(
+    tx,
+    record.bookId,
+    actor.email,
+  );
+
+  const [bookAfter] = await tx
+    .select({ availableCopies: books.availableCopies })
+    .from(books)
+    .where(eq(books.id, record.bookId))
+    .limit(1);
 
   return {
     success: true,
@@ -205,6 +219,8 @@ async function returnWithTransaction(
       fineAmount: Number(fineAmount),
       daysOverdue,
       isOverdue: daysOverdue > 0,
+      availableCopies: bookAfter?.availableCopies ?? 0,
+      offeredReservationId,
     },
   };
 }

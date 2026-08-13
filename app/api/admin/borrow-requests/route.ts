@@ -5,7 +5,7 @@
  *
  * Purpose: Get all borrow requests with user and book details for admin management.
  * Uses shared loadAllBorrowRequestsRows (approver/returner/canceler joins) so
- * Status & Actor densify survives invalidate refetch after borrow.lifecycle.
+ * Status & Issuer densify survives invalidate refetch after borrow.lifecycle.
  *
  * Query Parameters:
  * - status (optional): Filter by status (PENDING, BORROWED, RETURNED, CANCELLED)

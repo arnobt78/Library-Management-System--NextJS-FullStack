@@ -18,7 +18,9 @@ import {
   patchBorrowCachesOnRenewal,
   patchBorrowCachesOnStatusChange,
   prependBorrowAuditEvent,
+  setBookAvailableCopiesAbsolute,
   snapshotBorrowCacheBaselines,
+  syncBorrowRequestBookFields,
 } from "@/lib/utils/patchBorrowCaches";
 import {
   isDensifiedEmpty,
@@ -94,6 +96,9 @@ function makeRequest(
     bookGenre: overrides.bookGenre ?? "CS",
     bookCoverUrl: overrides.bookCoverUrl ?? "/a.jpg",
     bookCoverColor: overrides.bookCoverColor ?? "#000",
+    bookAvailableCopies: overrides.bookAvailableCopies,
+    bookTotalCopies: overrides.bookTotalCopies,
+    bookWaitingHolds: overrides.bookWaitingHolds,
   };
 }
 
@@ -608,5 +613,106 @@ describe("patchBorrowCaches", () => {
     );
     expect(detail?.dueDate).toBe("2026-08-17");
     expect(detail?.renewalCount).toBe(1);
+  });
+
+  it("patchBookInventory syncs bookAvailableCopies onto queue and detail rows", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      availableCopies: 2,
+      totalCopies: 3,
+    });
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      makeRequest({
+        id: "b-1",
+        bookId: "book-1",
+        bookAvailableCopies: 2,
+        bookWaitingHolds: 1,
+      }),
+      makeRequest({
+        id: "b-other",
+        bookId: "book-2",
+        bookAvailableCopies: 5,
+        bookWaitingHolds: 0,
+      }),
+    ]);
+    client.setQueryData(
+      queryKeys.borrows.requestDetail("b-1"),
+      makeRequest({
+        id: "b-1",
+        bookId: "book-1",
+        bookAvailableCopies: 2,
+        bookWaitingHolds: 1,
+      }),
+    );
+
+    patchBookInventory(client, "book-1", { availableDelta: -1 });
+
+    const list = client.getQueryData<BorrowRecordWithDetails[]>(
+      queryKeys.borrows.requests({}),
+    );
+    expect(list?.find((r) => r.id === "b-1")?.bookAvailableCopies).toBe(1);
+    expect(list?.find((r) => r.id === "b-other")?.bookAvailableCopies).toBe(5);
+    const detail = client.getQueryData<BorrowRecordWithDetails>(
+      queryKeys.borrows.requestDetail("b-1"),
+    );
+    expect(detail?.bookAvailableCopies).toBe(1);
+  });
+
+  it("setBookAvailableCopiesAbsolute overrides optimistic +1 after return+offer", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      availableCopies: 0,
+      totalCopies: 1,
+    });
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      makeRequest({
+        id: "b-1",
+        bookId: "book-1",
+        bookAvailableCopies: 0,
+        bookWaitingHolds: 1,
+      }),
+    ]);
+
+    // Optimistic return densify would paint +1; offer net leaves 0.
+    patchBookInventory(client, "book-1", { availableDelta: 1 });
+    expect(
+      client.getQueryData<{ availableCopies: number }>(
+        queryKeys.books.detail("book-1"),
+      )?.availableCopies,
+    ).toBe(1);
+
+    setBookAvailableCopiesAbsolute(client, "book-1", 0);
+
+    expect(
+      client.getQueryData<{ availableCopies: number }>(
+        queryKeys.books.detail("book-1"),
+      )?.availableCopies,
+    ).toBe(0);
+    expect(
+      client.getQueryData<BorrowRecordWithDetails[]>(
+        queryKeys.borrows.requests({}),
+      )?.[0]?.bookAvailableCopies,
+    ).toBe(0);
+  });
+
+  it("syncBorrowRequestBookFields applies waitingHoldsDelta", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      makeRequest({
+        id: "b-1",
+        bookId: "book-1",
+        bookWaitingHolds: 2,
+      }),
+    ]);
+
+    syncBorrowRequestBookFields(client, "book-1", { waitingHoldsDelta: -1 });
+
+    expect(
+      client.getQueryData<BorrowRecordWithDetails[]>(
+        queryKeys.borrows.requests({}),
+      )?.[0]?.bookWaitingHolds,
+    ).toBe(1);
   });
 });

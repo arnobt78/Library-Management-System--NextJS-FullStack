@@ -3,7 +3,8 @@
 /**
  * Admin Borrow Queue — KPI row + search/status filters + one TanStack DataTable
  * (Book Reviews / Support Tickets DNA). Kebab: View Details + approve/reject/return.
- * Parent: borrow queue polish
+ * Book column: catalog link + genre/star + densified Available/Total.
+ * Parent: queue book inventory line
  */
 
 import React, { useMemo, useState } from "react";
@@ -291,7 +292,9 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   );
   const universeRequests: BorrowRecordWithDetails[] = React.useMemo(
     () =>
-      (universeRequestsData ?? initialRequests ?? []) as BorrowRecordWithDetails[],
+      (universeRequestsData ??
+        initialRequests ??
+        []) as BorrowRecordWithDetails[],
     [universeRequestsData, initialRequests],
   );
 
@@ -320,9 +323,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
 
   const requests: BorrowRecordWithDetails[] = React.useMemo(() => {
     const base =
-      universeRequests.length > 0
-        ? universeRequests
-        : (initialRequests ?? []);
+      universeRequests.length > 0 ? universeRequests : (initialRequests ?? []);
     if (!hasDisplayFilters) return base;
     const q = searchQuery.toLowerCase();
     return base.filter((r) => {
@@ -384,8 +385,8 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
       {
         id: "book",
         accessorKey: "bookTitle",
-        size: 280,
-        minSize: 200,
+        size: 300,
+        minSize: 220,
         header: ({ column }) => (
           <SortableHeader column={column}>Book</SortableHeader>
         ),
@@ -400,6 +401,8 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
               coverColor={r.bookCoverColor}
               genre={r.bookGenre}
               rating={r.bookRating}
+              availableCopies={r.bookAvailableCopies}
+              totalCopies={r.bookTotalCopies}
             />
           );
         },
@@ -440,7 +443,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         accessorKey: "status",
         size: 240,
         minSize: 200,
-        header: "Status & Actor",
+        header: "Status & Issuer",
         cell: ({ row }) => (
           <BorrowQueueStatusActorCell request={row.original} />
         ),

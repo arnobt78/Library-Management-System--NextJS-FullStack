@@ -1,12 +1,12 @@
 /**
  * Shared Borrow Queue list query — SSR + GET /api/admin/borrow-requests parity.
- * Joins approver/returner/canceler so Status & Actor densify survives invalidate refetch.
+ * Joins approver/returner/canceler so Status & Issuer densify survives invalidate refetch.
  * Auth is the caller's responsibility (requireAdminActor / authorizeAdminRoute).
- * Parent: borrow actor flash fix
+ * Parent: borrow actor flash fix / dialog inventory DNA
  */
 
 import { db } from "@/database/drizzle";
-import { borrowRecords, books, users } from "@/database/schema";
+import { borrowRecords, books, reservations, users } from "@/database/schema";
 import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
@@ -44,6 +44,18 @@ export function mapBorrowRequestRow(record: {
   bookRating: number | null;
   bookCoverUrl: string | null;
   bookCoverColor: string | null;
+  bookAvailableCopies?: number | null;
+  bookTotalCopies?: number | null;
+  bookWaitingHolds?: number | string | null;
+  bookIsbn?: string | null;
+  bookPublicationYear?: number | null;
+  bookPublisher?: string | null;
+  bookLanguage?: string | null;
+  bookPageCount?: number | null;
+  bookEdition?: string | null;
+  bookIsActive?: boolean | null;
+  bookCreatedAt?: Date | string | null;
+  bookUpdatedAt?: Date | string | null;
   approvedById?: string | null;
   approvedByName?: string | null;
   approvedByEmail?: string | null;
@@ -74,6 +86,13 @@ export function mapBorrowRequestRow(record: {
         : returnDateValue.toISOString().split("T")[0];
   }
   const isCancelled = record.status === "CANCELLED";
+  const waitingRaw = record.bookWaitingHolds;
+  const waitingHolds =
+    typeof waitingRaw === "number"
+      ? waitingRaw
+      : typeof waitingRaw === "string"
+        ? Number.parseInt(waitingRaw, 10)
+        : 0;
   return {
     id: record.id,
     userId: record.userId,
@@ -101,6 +120,18 @@ export function mapBorrowRequestRow(record: {
     bookRating: record.bookRating ?? null,
     bookCoverUrl: record.bookCoverUrl,
     bookCoverColor: record.bookCoverColor,
+    bookAvailableCopies: record.bookAvailableCopies ?? null,
+    bookTotalCopies: record.bookTotalCopies ?? null,
+    bookWaitingHolds: Number.isFinite(waitingHolds) ? waitingHolds : 0,
+    bookIsbn: record.bookIsbn ?? null,
+    bookPublicationYear: record.bookPublicationYear ?? null,
+    bookPublisher: record.bookPublisher ?? null,
+    bookLanguage: record.bookLanguage ?? null,
+    bookPageCount: record.bookPageCount ?? null,
+    bookEdition: record.bookEdition ?? null,
+    bookIsActive: record.bookIsActive ?? null,
+    bookCreatedAt: record.bookCreatedAt ?? null,
+    bookUpdatedAt: record.bookUpdatedAt ?? null,
     approvedByActor:
       record.approvedById && record.approvedByEmail && record.approvedByName
         ? {
@@ -134,8 +165,16 @@ export function mapBorrowRequestRow(record: {
   };
 }
 
+/** WAITING holds count for one book — Approve / Mark Returned dialog chip. */
+const bookWaitingHoldsSql = sql<number>`(
+  SELECT COUNT(*)::int
+  FROM ${reservations}
+  WHERE ${reservations.bookId} = ${books.id}
+    AND ${reservations.status} = 'WAITING'
+)`.mapWith(Number);
+
 /**
- * Load Borrow Queue rows with approver/returner/canceler joins.
+ * Load Borrow Queue rows with approver/returner/canceler joins + inventory/holds.
  * Optional status + search filters (API list).
  */
 export async function loadAllBorrowRequestsRows(
@@ -197,6 +236,9 @@ export async function loadAllBorrowRequestsRows(
       bookRating: books.rating,
       bookCoverUrl: books.coverUrl,
       bookCoverColor: books.coverColor,
+      bookAvailableCopies: books.availableCopies,
+      bookTotalCopies: books.totalCopies,
+      bookWaitingHolds: bookWaitingHoldsSql,
       approvedById: approverUsers.id,
       approvedByName: approverUsers.fullName,
       approvedByEmail: approverUsers.email,

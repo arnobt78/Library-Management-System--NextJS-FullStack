@@ -22,6 +22,8 @@ import {
 import { Library, Loader2, RotateCcw, Star } from "lucide-react";
 import { useReturnBook } from "@/hooks/useMutations";
 import { GLASS_ALERT } from "@/lib/ui/glassActionChrome";
+import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
+import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
 
 interface Props {
   recordId: string;
@@ -32,6 +34,11 @@ interface Props {
   bookAuthor?: string | null;
   bookGenre?: string | null;
   bookRating?: number | null;
+  status?: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED" | string;
+  createdAt?: Date | string | null;
+  borrowDate?: Date | string | null;
+  updatedAt?: Date | string | null;
+  returnDate?: Date | string | null;
 }
 
 const ReturnBookButton = ({
@@ -43,6 +50,11 @@ const ReturnBookButton = ({
   bookAuthor,
   bookGenre,
   bookRating,
+  status = "BORROWED",
+  createdAt,
+  borrowDate,
+  updatedAt,
+  returnDate,
 }: Props) => {
   const returnBookMutation = useReturnBook();
   const isPending = returnBookMutation.isPending;
@@ -123,36 +135,49 @@ const ReturnBookButton = ({
                       className="size-full"
                     />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-medium text-light-100">
-                      {bookTitle}
-                    </p>
-                    {bookAuthor ? (
-                      <p className="mt-1 text-xs text-light-200">
-                        by {bookAuthor}
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div>
+                      <p className="line-clamp-2 text-sm font-medium text-light-100">
+                        {bookTitle}
                       </p>
-                    ) : null}
-                    {(bookGenre || bookRating != null) && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {bookGenre ? (
-                          <Badge
-                            variant="glassGenre"
-                            className="px-1.5 py-0.5 sm:px-2"
-                          >
-                            <Library className="size-3" />
-                            {bookGenre}
-                          </Badge>
-                        ) : null}
-                        {bookRating != null ? (
-                          <div className="flex items-center gap-1">
-                            <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
-                            <span className="text-xs text-yellow-400 sm:text-sm">
-                              {bookRating}
-                            </span>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
+                      {bookAuthor ? (
+                        <p className="mt-1 text-xs text-light-200">
+                          by {bookAuthor}
+                        </p>
+                      ) : null}
+                      {(bookGenre || bookRating != null) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {bookGenre ? (
+                            <Badge
+                              variant="glassGenre"
+                              className="px-1.5 py-0.5 sm:px-2"
+                            >
+                              <Library className="size-3" />
+                              {bookGenre}
+                            </Badge>
+                          ) : null}
+                          {bookRating != null ? (
+                            <div className="flex items-center gap-1">
+                              <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
+                              <span className="text-xs text-yellow-400 sm:text-sm">
+                                {bookRating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                    <BorrowStatusBadge status={status} variant="dark" />
+                    <BorrowLifecycleDates
+                      status={status}
+                      createdAt={createdAt}
+                      borrowDate={borrowDate}
+                      updatedAt={updatedAt}
+                      dueDate={dueDate}
+                      returnDate={returnDate}
+                      variant="dark"
+                      className="mt-0"
+                    />
                   </div>
                 </div>
               </div>

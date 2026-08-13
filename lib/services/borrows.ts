@@ -126,6 +126,21 @@ export interface BorrowRecordWithDetails extends BorrowRecord {
    * List/API payloads omit; detail soft-nav must preserve cached events.
    */
   auditEvents?: TicketActivityEvent[];
+  /** Catalog inventory — Approve / Mark Returned dialog densify. */
+  bookAvailableCopies?: number | null;
+  bookTotalCopies?: number | null;
+  /** WAITING holds for this book — dialog chip when > 0. */
+  bookWaitingHolds?: number | null;
+  /** Fat detail SSR seed for Book Details DNA (list loader may omit). */
+  bookIsbn?: string | null;
+  bookPublicationYear?: number | null;
+  bookPublisher?: string | null;
+  bookLanguage?: string | null;
+  bookPageCount?: number | null;
+  bookEdition?: string | null;
+  bookIsActive?: boolean | null;
+  bookCreatedAt?: string | Date | null;
+  bookUpdatedAt?: string | Date | null;
 }
 
 /**

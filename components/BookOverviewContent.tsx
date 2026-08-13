@@ -30,6 +30,7 @@ import BookSkeleton from "@/components/skeletons/BookSkeleton";
 import type { BorrowRecord } from "@/lib/services/borrows";
 import type { ReviewEligibility } from "@/lib/services/reviews";
 import type { UserReservationItem } from "@/lib/services/reservations";
+import { buildBookDetailsViewModel } from "@/lib/books/bookDetailsViewModel";
 
 interface BookOverviewContentProps {
   /**
@@ -130,22 +131,23 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
     author,
     genre,
     rating,
-    totalCopies,
     availableCopies,
     description,
     coverColor,
     coverUrl,
     id,
-    isbn,
-    publicationYear,
-    publisher,
-    language,
-    pageCount,
-    edition,
     isActive,
-    createdAt,
-    updatedAt,
   } = bookData;
+
+  // Shared field contract with admin Book Details DNA (dark chrome kept).
+  const detailsVm = buildBookDetailsViewModel(bookData, initialStats ?? null);
+  const catalogPairs: Array<[typeof detailsVm.catalog[0], typeof detailsVm.catalog[0] | null]> = [];
+  for (let i = 0; i < detailsVm.catalog.length; i += 2) {
+    catalogPairs.push([
+      detailsVm.catalog[i],
+      detailsVm.catalog[i + 1] ?? null,
+    ]);
+  }
 
   return (
     <section className="book-overview">
@@ -177,83 +179,64 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
 
       <div className="book-overview__body">
         <div className="book-overview__details">
-          {/* Enhanced Book Information */}
+          {/* Enhanced Book Information — values from shared view-model */}
           <div className="pt-3 text-base font-medium text-light-100 sm:pt-4 sm:text-lg">
             Book Details
           </div>
           <div className="book-info">
             <div className="space-y-2 sm:space-y-2">
-              {/* First row: ISBN and Published */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
-                <p>
-                  ISBN{" "}
-                  <span className="font-medium text-light-200">
-                    {isbn || "N/A"}
-                  </span>
-                </p>
-                <p>
-                  Published{" "}
-                  <span className="font-medium text-light-200">
-                    {publicationYear || "N/A"}
-                  </span>
-                </p>
-              </div>
-
-              {/* Second row: Publisher and Language */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
-                <p>
-                  Publisher{" "}
-                  <span className="font-medium text-light-200">
-                    {publisher || "N/A"}
-                  </span>
-                </p>
-                <p>
-                  Language{" "}
-                  <span className="font-medium text-light-200">
-                    {language || "N/A"}
-                  </span>
-                </p>
-              </div>
-
-              {/* Third row: Pages and Edition */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
-                <p>
-                  Pages{" "}
-                  <span className="font-medium text-light-200">
-                    {pageCount || "N/A"}
-                  </span>
-                </p>
-                <p>
-                  Edition{" "}
-                  <span className="font-medium text-light-200">
-                    {edition || "N/A"}
-                  </span>
-                </p>
-              </div>
-
-              {/* Fourth row: Total Copies and Available Copies */}
-              <div className="">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
-                  <p>
-                    Total Books{" "}
-                    <span className="font-medium text-light-200">
-                      {totalCopies || "N/A"}
-                    </span>
-                  </p>
-                  <p>
-                    Available Books{" "}
-                    <span className="font-medium text-light-200">
-                      {availableCopies || "N/A"}
-                    </span>
-                  </p>
+              {catalogPairs.map(([left, right]) => (
+                <div
+                  key={left.key}
+                  className={
+                    left.key === "total"
+                      ? ""
+                      : "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36"
+                  }
+                >
+                  {left.key === "total" ? (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:gap-12 xl:gap-36">
+                      <p>
+                        {left.label}{" "}
+                        <span className="font-medium text-light-200">
+                          {left.value}
+                        </span>
+                      </p>
+                      {right ? (
+                        <p>
+                          {right.label}{" "}
+                          <span className="font-medium text-light-200">
+                            {right.value}
+                          </span>
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <>
+                      <p>
+                        {left.label}{" "}
+                        <span className="font-medium text-light-200">
+                          {left.value}
+                        </span>
+                      </p>
+                      {right ? (
+                        <p>
+                          {right.label}{" "}
+                          <span className="font-medium text-light-200">
+                            {right.value}
+                          </span>
+                        </p>
+                      ) : null}
+                    </>
+                  )}
                 </div>
+              ))}
 
-                {!isActive && (
-                  <p className="mt-2 text-sm font-medium text-red-400 sm:text-base">
-                    ⚠️ This book is currently unavailable
-                  </p>
-                )}
-              </div>
+              {detailsVm.inactiveWarning && (
+                <p className="mt-2 text-sm font-medium text-red-400 sm:text-base">
+                  ⚠️ This book is currently unavailable
+                </p>
+              )}
             </div>
           </div>
 
@@ -264,30 +247,14 @@ const BookOverviewContent: React.FC<BookOverviewContentProps> = ({
             </div>
             <div className="w-full space-y-2 sm:space-y-2">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-12 lg:gap-24">
-                <p className="text-sm sm:text-base">
-                  Added to Library{" "}
-                  <span className="font-medium text-light-200">
-                    {createdAt
-                      ? new Date(createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : "N/A"}
-                  </span>
-                </p>
-                <p className="text-sm sm:text-base">
-                  Last Updated{" "}
-                  <span className="font-medium text-light-200">
-                    {updatedAt
-                      ? new Date(updatedAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : "N/A"}
-                  </span>
-                </p>
+                {detailsVm.libraryDb.map((field) => (
+                  <p key={field.key} className="text-sm sm:text-base">
+                    {field.label}{" "}
+                    <span className="font-medium text-light-200">
+                      {field.value}
+                    </span>
+                  </p>
+                ))}
               </div>
             </div>
           </div>

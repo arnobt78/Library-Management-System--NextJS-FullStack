@@ -20,6 +20,7 @@ import {
   type AdminStatsBookSnapshot,
 } from "@/lib/utils/patchAdminStatsCaches";
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
+import { syncBorrowRequestBookFields } from "@/lib/utils/syncBorrowRequestBookFields";
 
 type BookLike = { id: string; [key: string]: unknown };
 
@@ -382,6 +383,17 @@ export function densifyBookWrite(
     previous,
     next: toBookSnapshot(book),
   });
+  // Borrow Queue / detail inventory fallbacks after catalog edit.
+  const available =
+    typeof book.availableCopies === "number" ? book.availableCopies : undefined;
+  const total =
+    typeof book.totalCopies === "number" ? book.totalCopies : undefined;
+  if (available !== undefined || total !== undefined) {
+    syncBorrowRequestBookFields(queryClient, book.id, {
+      ...(available !== undefined ? { availableCopies: available } : {}),
+      ...(total !== undefined ? { totalCopies: total } : {}),
+    });
+  }
   // Insights charts — evict so soft-nav refetches (no invent series densify).
   evictAnalyticsCaches(queryClient);
 }

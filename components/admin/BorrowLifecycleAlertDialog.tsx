@@ -1,12 +1,14 @@
 /**
  * LIGHT_ALERT confirm for Borrow Queue Approve / Reject / Mark Returned.
- * DNA: ModerateReviewAlertDialog + My Profile settle-until-done (preventDefault,
- * block dismiss while pending, spinner on primary).
- * Parent: borrow actor flash fix + lifecycle AlertDialogs
+ * All kinds show Available/Total (+ Waiting holds when > 0) for admin awareness;
+ * Reject is info-only (soft-cancel — no inventory mutation).
+ * Genre chip + catalog star match AdminBookIdentityCell DNA under author.
+ * DNA: ModerateReviewAlertDialog + settle-until-done.
+ * Parent: dialog DNA + kebab polish
  */
 "use client";
 
-import { CheckCircle, Loader2, Undo2, XCircle } from "lucide-react";
+import { CheckCircle, Loader2, Star, Undo2, XCircle } from "lucide-react";
 import BookCover from "@/components/BookCover";
 import PersonAttribution from "@/components/PersonAttribution";
 import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
@@ -22,7 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { LIGHT_ALERT } from "@/lib/ui/glassActionChrome";
+import { OverviewGenreChip } from "@/lib/ui/overviewGenreChip";
 import { cn } from "@/lib/utils";
+import { useBook } from "@/hooks/useQueries";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 
 export type BorrowLifecycleConfirmKind = "approve" | "reject" | "return";
@@ -81,6 +85,16 @@ export function BorrowLifecycleAlertDialog({
 }) {
   const copy = kind ? COPY[kind] : null;
   const Icon = copy?.Icon ?? CheckCircle;
+  const catalogRating =
+    typeof request.bookRating === "number" ? request.bookRating : 0;
+
+  // Densified books.detail preferred; SSR list/detail fields as fallback.
+  // Open for all kinds (including Reject) so Available/Total is always visible.
+  const { data: book } = useBook(open ? request.bookId : "", undefined);
+  const available =
+    book?.availableCopies ?? request.bookAvailableCopies ?? null;
+  const total = book?.totalCopies ?? request.bookTotalCopies ?? null;
+  const waitingHolds = request.bookWaitingHolds ?? 0;
 
   return (
     <AlertDialog
@@ -117,10 +131,46 @@ export function BorrowLifecycleAlertDialog({
                         by {request.bookAuthor}
                       </p>
                     ) : null}
+                    {/* Table DNA: genre chip + catalog star under author */}
+                    <div className="mt-0.5 flex flex-nowrap items-center gap-x-1.5 overflow-hidden">
+                      <OverviewGenreChip
+                        genre={request.bookGenre}
+                        className="max-w-32 shrink-0 truncate px-1.5 py-0 text-[10px] sm:text-[10px]"
+                      />
+                      {catalogRating > 0 ? (
+                        <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums text-amber-600">
+                          <Star
+                            className="size-2.5 fill-amber-400 text-amber-400"
+                            aria-hidden
+                          />
+                          {catalogRating}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <BorrowStatusBadge status={request.status} />
                   </div>
+                  {available != null && total != null ? (
+                    <p className="text-xs text-gray-600">
+                      Available{" "}
+                      <span className="font-medium tabular-nums text-dark-400">
+                        {available}
+                      </span>
+                      {" / Total "}
+                      <span className="font-medium tabular-nums text-dark-400">
+                        {total}
+                      </span>
+                      {waitingHolds > 0 ? (
+                        <>
+                          {" · Waiting holds "}
+                          <span className="font-medium tabular-nums text-violet-700">
+                            {waitingHolds}
+                          </span>
+                        </>
+                      ) : null}
+                    </p>
+                  ) : null}
                   <PersonAttribution
                     person={{
                       id: request.userId,
@@ -169,7 +219,9 @@ export function BorrowLifecycleAlertDialog({
             ) : (
               <Icon className="size-3.5 sm:size-4" />
             )}
-            {isPending ? (copy?.pending ?? "Working…") : (copy?.confirm ?? "Confirm")}
+            {isPending
+              ? (copy?.pending ?? "Working…")
+              : (copy?.confirm ?? "Confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

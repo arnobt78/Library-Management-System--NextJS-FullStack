@@ -17,7 +17,7 @@
 "use server";
 
 import { db } from "@/database/drizzle";
-import { borrowRecords, books, users } from "@/database/schema";
+import { borrowRecords, books, reservations, users } from "@/database/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
@@ -123,6 +123,23 @@ export async function loadBorrowRequestById(recordId: string) {
         bookRating: books.rating,
         bookCoverUrl: books.coverUrl,
         bookCoverColor: books.coverColor,
+        bookAvailableCopies: books.availableCopies,
+        bookTotalCopies: books.totalCopies,
+        bookWaitingHolds: sql<number>`(
+          SELECT COUNT(*)::int
+          FROM ${reservations}
+          WHERE ${reservations.bookId} = ${books.id}
+            AND ${reservations.status} = 'WAITING'
+        )`.mapWith(Number),
+        bookIsbn: books.isbn,
+        bookPublicationYear: books.publicationYear,
+        bookPublisher: books.publisher,
+        bookLanguage: books.language,
+        bookPageCount: books.pageCount,
+        bookEdition: books.edition,
+        bookIsActive: books.isActive,
+        bookCreatedAt: books.createdAt,
+        bookUpdatedAt: books.updatedAt,
         approvedById: approverUsers.id,
         approvedByName: approverUsers.fullName,
         approvedByEmail: approverUsers.email,

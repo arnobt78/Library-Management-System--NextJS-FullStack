@@ -106,6 +106,8 @@ import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 import { showToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/query/keys";
 import { computeBorrowStats } from "@/lib/profile/borrowStats";
+import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
+import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   parseProfileTab,
   profileTabHref,
@@ -1590,29 +1592,42 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           className="size-full"
         />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-sm font-medium text-light-100">
-          {record.book.title}
-        </p>
-        <p className="mt-1 text-xs text-light-200">by {record.book.author}</p>
-        {(record.book.genre || record.book.rating != null) && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {record.book.genre ? (
-              <Badge variant="glassGenre" className="px-1.5 py-0.5 sm:px-2">
-                <Library className="size-3" />
-                {record.book.genre}
-              </Badge>
-            ) : null}
-            {record.book.rating != null ? (
-              <div className="flex items-center gap-1">
-                <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
-                <span className="text-xs text-yellow-400 sm:text-sm">
-                  {record.book.rating}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        )}
+      <div className="min-w-0 flex-1 space-y-2">
+        <div>
+          <p className="line-clamp-2 text-sm font-medium text-light-100">
+            {record.book.title}
+          </p>
+          <p className="mt-1 text-xs text-light-200">by {record.book.author}</p>
+          {(record.book.genre || record.book.rating != null) && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {record.book.genre ? (
+                <Badge variant="glassGenre" className="px-1.5 py-0.5 sm:px-2">
+                  <Library className="size-3" />
+                  {record.book.genre}
+                </Badge>
+              ) : null}
+              {record.book.rating != null ? (
+                <div className="flex items-center gap-1">
+                  <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
+                  <span className="text-xs text-yellow-400 sm:text-sm">
+                    {record.book.rating}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+        <BorrowStatusBadge status={record.status} variant="dark" />
+        <BorrowLifecycleDates
+          status={record.status}
+          createdAt={record.createdAt}
+          borrowDate={record.borrowDate}
+          updatedAt={record.updatedAt}
+          dueDate={record.dueDate}
+          returnDate={record.returnDate}
+          variant="dark"
+          className="mt-0"
+        />
       </div>
     </div>
   );
