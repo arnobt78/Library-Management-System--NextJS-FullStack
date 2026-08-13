@@ -3,7 +3,9 @@
 /**
  * Shared Decision & Actor table cell — status badge · by · PersonAttribution · DecisionDateMeta.
  * Optional badgeHref (PrefetchLink) keeps queue detail access after merging Decision into Actor.
- * Parent: Users Status, Sign-up Recent, Admin Requests Recent.
+ * extraMeta — secondary lines (e.g. Due:) under decision date.
+ * actorLabel — text actor when no person (e.g. Self-returned).
+ * Parent: Users Status, Sign-up Recent, Admin Requests Recent, Borrow Queue.
  */
 
 import type { ReactNode } from "react";
@@ -44,6 +46,14 @@ export function DecisionActorStack({
   showActor = true,
   /** Override default AccountStatusBadge / Withdrawn badge. */
   badge,
+  /** Override DecisionDateMeta label (e.g. Approved: under Borrowed badge). */
+  decisionLabel,
+  /** Extra lines under DecisionDateMeta (e.g. Due:). */
+  extraMeta,
+  /** Text actor when no person row (e.g. Self-returned / Self-cancelled). */
+  actorLabel,
+  /** Tone for actorLabel (emerald Self-returned / rose Self-cancelled). */
+  actorLabelClassName,
 }: {
   status: string;
   actor?: PersonAttributionPerson | null;
@@ -53,8 +63,17 @@ export function DecisionActorStack({
   withdrawn?: boolean;
   showActor?: boolean;
   badge?: ReactNode;
+  decisionLabel?: string;
+  extraMeta?: ReactNode;
+  actorLabel?: string;
+  actorLabelClassName?: string;
 }) {
-  const decided = status === "APPROVED" || status === "REJECTED";
+  const decided =
+    status === "APPROVED" ||
+    status === "REJECTED" ||
+    status === "BORROWED" ||
+    status === "RETURNED" ||
+    status === "CANCELLED";
   const byTone = decisionActorByTone(status, { withdrawn });
   const badgeNode =
     badge ??
@@ -77,6 +96,21 @@ export function DecisionActorStack({
     <span className="inline-flex">{badgeNode}</span>
   );
 
+  const dateMeta =
+    !withdrawn && decided ? (
+      <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+        <DecisionDateMeta
+          status={status}
+          at={decidedAt}
+          label={decisionLabel}
+        />
+        {extraMeta}
+      </div>
+    ) : null;
+
+  const hasPerson = Boolean(actor?.fullName || actor?.email);
+  const showBy = showActor && (hasPerson || Boolean(actorLabel));
+
   return (
     <div
       className="flex min-w-0 flex-col gap-1 leading-none"
@@ -84,24 +118,32 @@ export function DecisionActorStack({
     >
       <div className="inline-flex items-center gap-1.5">
         {linkedBadge}
-        {showActor ? (
+        {showBy ? (
           <span className={`text-xs font-medium ${byTone}`}>by</span>
         ) : null}
       </div>
-      {showActor ? (
+      {showActor && hasPerson ? (
         <PersonAttribution
           layout="stack"
           size={28}
           href={actorHref}
           person={actor}
-          meta={
-            !withdrawn && decided ? (
-              <DecisionDateMeta status={status} at={decidedAt} />
-            ) : null
-          }
+          meta={dateMeta}
         />
+      ) : showActor && actorLabel ? (
+        <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+          <p
+            className={cn(
+              "text-xs font-medium",
+              actorLabelClassName ?? "text-gray-900",
+            )}
+          >
+            {actorLabel}
+          </p>
+          {dateMeta}
+        </div>
       ) : decided && !withdrawn ? (
-        <DecisionDateMeta status={status} at={decidedAt} />
+        dateMeta
       ) : null}
     </div>
   );

@@ -144,6 +144,11 @@ const BookBorrowButton: React.FC<BookBorrowButtonProps> = ({
           dueDate={
             existingBorrow.dueDate ? new Date(existingBorrow.dueDate) : null
           }
+          bookCoverUrl={bookCoverUrl}
+          bookCoverColor={bookCoverColor}
+          bookAuthor={bookAuthor}
+          bookGenre={bookGenre}
+          bookRating={bookRating}
         />
       ) : availableCopies <= 0 && userStatus === "APPROVED" && isActive ? (
         <ReserveBookButton

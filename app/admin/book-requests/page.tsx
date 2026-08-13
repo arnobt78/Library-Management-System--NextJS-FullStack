@@ -1,5 +1,6 @@
 /**
- * Admin Book Requests Page — SSR seeds queue + currentAdmin for lifecycle densify.
+ * Admin Book Requests Page — SSR seeds queue + currentAdmin for lifecycle densify
+ * and WAITING reservation count for Reservation Waiting KPI.
  */
 
 import React from "react";
@@ -7,7 +8,7 @@ import { eq } from "drizzle-orm";
 import { requireAdminActor } from "@/lib/auth/authorization";
 import { getAllBorrowRequests } from "@/lib/admin/actions/borrow";
 import { db } from "@/database/drizzle";
-import { users } from "@/database/schema";
+import { reservations, users } from "@/database/schema";
 import AdminBookRequestsList from "@/components/AdminBookRequestsList";
 
 export const runtime = "nodejs";
@@ -20,7 +21,7 @@ const Page = async ({
   const params = await searchParams;
   const actor = await requireAdminActor();
 
-  const [result, adminRow] = await Promise.all([
+  const [result, adminRow, reservationsWaitingRows] = await Promise.all([
     getAllBorrowRequests(),
     db
       .select({
@@ -33,6 +34,11 @@ const Page = async ({
       .where(eq(users.id, actor.id))
       .limit(1)
       .then((rows) => rows[0] ?? null),
+    // Same WAITING source as Library Overview reservationsWaiting.
+    db
+      .select({ id: reservations.id })
+      .from(reservations)
+      .where(eq(reservations.status, "WAITING")),
   ]);
 
   if (!result.success) {
@@ -68,6 +74,7 @@ const Page = async ({
     <AdminBookRequestsList
       initialRequests={requests}
       currentAdmin={currentAdmin}
+      initialReservationsWaiting={reservationsWaitingRows.length}
       successMessage={params.success}
       errorMessage={params.error}
     />

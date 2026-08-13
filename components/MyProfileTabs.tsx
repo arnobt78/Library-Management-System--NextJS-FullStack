@@ -422,6 +422,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   /** Snapshot for Cancel Request dialog — lives outside the list card so optimistic CANCELLED unmount cannot close it. */
   const [cancelPendingTarget, setCancelPendingTarget] =
     React.useState<BorrowRecordWithBook | null>(null);
+  /** Return / Renew confirms — same lift pattern as Cancel Request. */
+  const [returnTarget, setReturnTarget] =
+    React.useState<BorrowRecordWithBook | null>(null);
+  const [renewTarget, setRenewTarget] =
+    React.useState<BorrowRecordWithBook | null>(null);
 
   // Build typed SSR initialData once per mount so React Query treats it as fresh.
   // BorrowRecordFull extends BorrowRecord with an optional nested `book`, matching
@@ -1045,98 +1050,14 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         setCancelPendingTarget(record);
       };
 
-      const handleReturnBook = () => {
+      const handleOpenReturn = () => {
         if (returningRecordId || returnBookMutation.isPending) return;
-
-        setReturningRecordId(record.id);
-
-        // Use mutation to return book
-        returnBookMutation.mutate(
-          {
-            recordId: record.id,
-            bookTitle: record.book.title,
-          },
-          {
-            onSettled: () => {
-              setReturningRecordId(null);
-            },
-          },
-          // CRITICAL: No onSuccess callback needed here
-          // The useReturnBook mutation already handles all cache invalidation
-          // via invalidateAfterBorrowChange() which invalidates:
-          // - borrows queries (including user-borrows)
-          // - books queries (availability changes)
-          // - reviews queries (eligibility may change)
-          // - analytics queries
-          // - admin queries
-          // Manual invalidation here would cause redundant refetches
-        );
+        setReturnTarget(record);
       };
 
-      const handleRenewBook = () => {
-        if (isRenewPending) return;
-        const mutationKey = `borrow:${record.id}`;
-        const mutationGeneration = beginMutation(mutationKey);
-        setRenewingRecordId(record.id);
-        startRenewTransition(async () => {
-          try {
-            const result = await renewBorrowedBook(
-              record.id,
-              crypto.randomUUID(),
-            );
-            if (!isLatestMutation(mutationKey, mutationGeneration)) return;
-            if (!result.success) {
-              showToast.book.renewError(result.error);
-              return;
-            }
-            // Gold: snapshot (after optional optimistic paint) → invalidate → densify.
-            queryClient.setQueryData<BorrowRecordFull[]>(
-              queryKeys.borrows.user(userId, undefined),
-              (current) =>
-                current?.map((item) =>
-                  item.id === record.id
-                    ? {
-                        ...item,
-                        dueDate: result.data.dueDate,
-                        renewalCount: result.data.renewalCount,
-                      }
-                    : item,
-                ),
-            );
-            await commitMutationCache(queryClient, "renewal.write", {
-              snapshot: snapshotBorrowListBaselines,
-              densify: (baselines) => {
-                // Profile + admin Borrow Queue share dueDate/renewalCount.
-                patchBorrowCachesOnRenewal(
-                  queryClient,
-                  {
-                    recordId: record.id,
-                    userId,
-                    dueDate: result.data.dueDate,
-                    renewalCount: result.data.renewalCount,
-                  },
-                  baselines,
-                );
-                densifyActivityLog(queryClient, {
-                  actorId: userId,
-                  action: "UPDATE",
-                  entityType: "borrow",
-                  entityId: record.id,
-                  details: {
-                    status: "RENEWED",
-                    bookId: record.bookId,
-                    userId,
-                    title: record.book.title,
-                    dueDate: result.data.dueDate,
-                  },
-                });
-              },
-            });
-            showToast.book.renewSuccess(record.book.title, result.data.dueDate);
-          } finally {
-            setRenewingRecordId(null);
-          }
-        });
+      const handleOpenRenew = () => {
+        if (isRenewPending || renewingRecordId) return;
+        setRenewTarget(record);
       };
 
       // Calculate if book is overdue (only for BORROWED status with dueDate)
@@ -1403,7 +1324,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     <>
                       <button
                         type="button"
-                        onClick={withRippleClick(handleReturnBook, isReturning)}
+                        onClick={withRippleClick(handleOpenReturn, isReturning)}
                         disabled={isReturning}
                         className={`profile-action-btn ${
                           isOverdue
@@ -1424,7 +1345,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                         <button
                           type="button"
                           onClick={withRippleClick(
-                            handleRenewBook,
+                            handleOpenRenew,
                             isRenewPending || isRenewing,
                           )}
                           disabled={isRenewPending || isRenewing}
@@ -1559,10 +1480,142 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     );
   };
 
+  const handleConfirmReturn = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!returnTarget || returnBookMutation.isPending) return;
+    const target = returnTarget;
+    setReturningRecordId(target.id);
+    returnBookMutation.mutate(
+      {
+        recordId: target.id,
+        bookTitle: target.book.title,
+      },
+      {
+        onSettled: () => {
+          setReturningRecordId(null);
+          setReturnTarget(null);
+        },
+      },
+    );
+  };
+
+  const handleConfirmRenew = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!renewTarget || isRenewPending) return;
+    const target = renewTarget;
+    const mutationKey = `borrow:${target.id}`;
+    const mutationGeneration = beginMutation(mutationKey);
+    setRenewingRecordId(target.id);
+    startRenewTransition(async () => {
+      try {
+        const result = await renewBorrowedBook(
+          target.id,
+          crypto.randomUUID(),
+        );
+        if (!isLatestMutation(mutationKey, mutationGeneration)) return;
+        if (!result.success) {
+          showToast.book.renewError(result.error);
+          return;
+        }
+        // Gold: snapshot → invalidate → densify (profile + admin queue dueDate).
+        queryClient.setQueryData<BorrowRecordFull[]>(
+          queryKeys.borrows.user(userId, undefined),
+          (current) =>
+            current?.map((item) =>
+              item.id === target.id
+                ? {
+                    ...item,
+                    dueDate: result.data.dueDate,
+                    renewalCount: result.data.renewalCount,
+                  }
+                : item,
+            ),
+        );
+        await commitMutationCache(queryClient, "renewal.write", {
+          snapshot: snapshotBorrowListBaselines,
+          densify: (baselines) => {
+            patchBorrowCachesOnRenewal(
+              queryClient,
+              {
+                recordId: target.id,
+                userId,
+                dueDate: result.data.dueDate,
+                renewalCount: result.data.renewalCount,
+              },
+              baselines,
+            );
+            densifyActivityLog(queryClient, {
+              actorId: userId,
+              action: "UPDATE",
+              entityType: "borrow",
+              entityId: target.id,
+              details: {
+                status: "RENEWED",
+                bookId: target.bookId,
+                userId,
+                title: target.book.title,
+                dueDate: result.data.dueDate,
+              },
+            });
+          },
+        });
+        showToast.book.renewSuccess(target.book.title, result.data.dueDate);
+      } finally {
+        setRenewingRecordId(null);
+        setRenewTarget(null);
+      }
+    });
+  };
+
   const isCancelDialogBusy =
     Boolean(cancelPendingTarget) &&
     (cancelPendingMutation.isPending ||
       cancellingRecordId === cancelPendingTarget?.id);
+
+  const isReturnDialogBusy =
+    Boolean(returnTarget) &&
+    (returnBookMutation.isPending || returningRecordId === returnTarget?.id);
+
+  const isRenewDialogBusy =
+    Boolean(renewTarget) &&
+    (isRenewPending || renewingRecordId === renewTarget?.id);
+
+  const renderAlertBookPreview = (record: BorrowRecordWithBook) => (
+    <div className={`flex gap-3 ${GLASS_ALERT.preview}`}>
+      <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded sm:h-28 sm:w-20">
+        <BookCover
+          variant="small"
+          coverColor={record.book.coverColor}
+          coverImage={record.book.coverUrl}
+          className="size-full"
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="line-clamp-2 text-sm font-medium text-light-100">
+          {record.book.title}
+        </p>
+        <p className="mt-1 text-xs text-light-200">by {record.book.author}</p>
+        {(record.book.genre || record.book.rating != null) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {record.book.genre ? (
+              <Badge variant="glassGenre" className="px-1.5 py-0.5 sm:px-2">
+                <Library className="size-3" />
+                {record.book.genre}
+              </Badge>
+            ) : null}
+            {record.book.rating != null ? (
+              <div className="flex items-center gap-1">
+                <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
+                <span className="text-xs text-yellow-400 sm:text-sm">
+                  {record.book.rating}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const kpiItems: Array<{
     key: string;
@@ -2060,50 +2113,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   Withdraw your pending request for this book. You can request
                   it again later if copies are available.
                 </p>
-                {cancelPendingTarget ? (
-                  <div
-                    className={`flex gap-3 ${GLASS_ALERT.preview}`}
-                  >
-                    <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded sm:h-28 sm:w-20">
-                      <BookCover
-                        variant="small"
-                        coverColor={cancelPendingTarget.book.coverColor}
-                        coverImage={cancelPendingTarget.book.coverUrl}
-                        className="size-full"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-sm font-medium text-light-100">
-                        {cancelPendingTarget.book.title}
-                      </p>
-                      <p className="mt-1 text-xs text-light-200">
-                        by {cancelPendingTarget.book.author}
-                      </p>
-                      {(cancelPendingTarget.book.genre ||
-                        cancelPendingTarget.book.rating != null) && (
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          {cancelPendingTarget.book.genre ? (
-                            <Badge
-                              variant="glassGenre"
-                              className="px-1.5 py-0.5 sm:px-2"
-                            >
-                              <Library className="size-3" />
-                              {cancelPendingTarget.book.genre}
-                            </Badge>
-                          ) : null}
-                          {cancelPendingTarget.book.rating != null ? (
-                            <div className="flex items-center gap-1">
-                              <Star className="size-3 fill-current text-yellow-400 sm:size-4" />
-                              <span className="text-xs text-yellow-400 sm:text-sm">
-                                {cancelPendingTarget.book.rating}
-                              </span>
-                            </div>
-                          ) : null}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
+                {cancelPendingTarget
+                  ? renderAlertBookPreview(cancelPendingTarget)
+                  : null}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -2125,6 +2137,96 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 <X className="size-3.5 sm:size-4" />
               )}
               {isCancelDialogBusy ? "Cancelling…" : "Cancel Request"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={returnTarget != null}
+        onOpenChange={(open) => {
+          if (isReturnDialogBusy) return;
+          if (!open) setReturnTarget(null);
+        }}
+      >
+        <AlertDialogContent className={GLASS_ALERT.content}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={GLASS_ALERT.title}>
+              Return this book?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className={`space-y-2 ${GLASS_ALERT.description}`}>
+                <p>
+                  Mark this loan as returned. The copy will go back into
+                  circulation (or the next hold in queue).
+                </p>
+                {returnTarget ? renderAlertBookPreview(returnTarget) : null}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={GLASS_ALERT.footer}>
+            <AlertDialogCancel
+              disabled={isReturnDialogBusy}
+              className={GLASS_ALERT.cancel}
+            >
+              Keep borrowed
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmReturn}
+              disabled={isReturnDialogBusy}
+              className={GLASS_ALERT.destructive}
+            >
+              {isReturnDialogBusy ? (
+                <Loader2 className="size-3.5 animate-spin sm:size-4" />
+              ) : (
+                <RotateCcw className="size-3.5 sm:size-4" />
+              )}
+              {isReturnDialogBusy ? "Returning…" : "Return Book"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={renewTarget != null}
+        onOpenChange={(open) => {
+          if (isRenewDialogBusy) return;
+          if (!open) setRenewTarget(null);
+        }}
+      >
+        <AlertDialogContent className={GLASS_ALERT.content}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={GLASS_ALERT.title}>
+              Renew this loan?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className={`space-y-2 ${GLASS_ALERT.description}`}>
+                <p>
+                  Extend the due date for this book if renewals are still
+                  available on your account.
+                </p>
+                {renewTarget ? renderAlertBookPreview(renewTarget) : null}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={GLASS_ALERT.footer}>
+            <AlertDialogCancel
+              disabled={isRenewDialogBusy}
+              className={GLASS_ALERT.cancel}
+            >
+              Keep due date
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmRenew}
+              disabled={isRenewDialogBusy}
+              className="w-full gap-1.5 bg-violet-600 text-xs text-white hover:bg-violet-700 sm:w-auto sm:text-sm"
+            >
+              {isRenewDialogBusy ? (
+                <Loader2 className="size-3.5 animate-spin sm:size-4" />
+              ) : (
+                <Sparkles className="size-3.5 sm:size-4" />
+              )}
+              {isRenewDialogBusy ? "Renewing…" : "Renew Loan"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

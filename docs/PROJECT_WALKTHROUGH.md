@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-13 | Status: C2 Stage 4; Holds/waitlist densify + Borrow Queue polish WIP tip; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-13 | Status: C2 Stage 4; Borrow Queue densify+detail DNA; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -42,6 +42,7 @@ Browser
 - People tables (2026-08-10): DataTable ticket sizing; `DecisionActorStack` (badge·by·actor·`DecisionDateMeta`); `CopyableText`/`UserRoleBadge`; `statusReviewed*` join densify; queues FIFO-50 + period filter; Applicant Requested/Registered under stack.
 - Cross-domain densify (2026-08-10): `review.write` RSC `/admin`; AdminBooksList prefer densify-empty over SSR; ticket detail `auditEvents` + `densifyTicketDetailAudit`; PrefetchLink my-profile/`book-detail` `staleTime: 0`.
 - Holds/waitlist densify (2026-08-13): `loadUserReservationsSsr` (home/book/profile); Waitlisted CTA; create returns `queuePosition`+`createdAt`; full meta densify; Join Waitlist → `?tab=holds`; Cancel Request/Hold dialogs close on settle.
+- Borrow Queue densify (2026-08-13): shared `loadAllBorrowRequestsRows` (SSR+API actor joins); list/detail LIGHT_ALERT lifecycle confirms; Status & Actor cell; detail Record+Activity (`getBorrowAuditEvents` / `prependBorrowAuditEvent`); `mergeDensifiedDetail` preserves actors/auditEvents/replies/reviewedBy* on PrefetchLink + invalidate refetch; `seed:reset` = 17 books + 2 accounts only.
 
 ## Admin Stockly chrome (2026-08-07)
 
@@ -91,7 +92,7 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 - User writes enforce ownership; admin/reviewer/audit identities come from the server and cannot be supplied by the browser.
 - Borrow approval/return/rejection, fine batches, bulk lifecycle work, admin-request approval, and hard deletion use transactions and row locks to prevent partial or replayed state changes.
 - User permission/status writes and fine updates record the authenticated admin; migration `0009_users_audit_fields.sql` adds the user audit columns.
-- Sign-in demo dropdown: `TEST_ACCOUNTS` (Test User / Test Admin). Reset DB with `npm run seed:reset` (17 books + both accounts; avatars `/images/profile-img*.png` via `UserAvatar`/`resolveUniversityCard`).
+- Sign-in demo dropdown: `TEST_ACCOUNTS` (Test User / Test Admin). Reset DB with `npm run seed:reset` (17 books + both accounts only; queues empty for one-by-one testing; avatars `/images/profile-img*.png` via `UserAvatar`/`resolveUniversityCard`).
 - Borrow History (`/my-profile`): RSC INNER JOIN seeds `initialBorrowHistory`; `useUserBorrows` takes `BorrowRecordFull` + `initialDataUpdatedAt`; UI prefers RQ only when `book.title` is valid (no Unknown Book flash).
 - Profile tabs URL-synced: `?tab=active-borrows|pending-requests|borrow-history` (`lib/profile/profileTabs.ts`); borrow success → pending-requests. KPIs above tabs from `computeBorrowStats`; glass tab/badge chrome; section titles+subtitles match All Books hero. Toasts resolve real book titles (`resolveActionBookTitle`); CTA pending uses `Loader2`.
 - Login hardening (2026-08-02): shared DB must have `users.updated_at`/`updated_by` (`0009`); password rehash failures must not abort credentials authorize. Do not write scrypt hashes into a DB while production still runs a pre-scrypt build.

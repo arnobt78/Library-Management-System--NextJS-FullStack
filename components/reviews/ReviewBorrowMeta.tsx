@@ -1,11 +1,11 @@
 /**
- * Borrowed / Due / Returned chips with Lucide icons + meaningful tones.
- * Shared by My Reviews (dark) and admin review detail (light).
- * Parent: CR-0003 / review detail redesign
+ * Borrowed / Due / Returned / Cancelled chips with Lucide icons + meaningful tones.
+ * Shared by My Reviews (dark), admin review detail, and Library Overview Recent 5.
+ * Parent: CR-0003 / review detail redesign; CANCELLED date for overview Recent 5
  */
 "use client";
 
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, CalendarX, Clock } from "lucide-react";
 import { formatBorrowDate } from "@/lib/profile/formatBorrowDates";
 import { cn } from "@/lib/utils";
 
@@ -13,19 +13,24 @@ export function ReviewBorrowMeta({
   borrowedAt,
   dueDate,
   returnedAt,
+  cancelledAt,
   variant = "dark",
   className,
 }: {
   borrowedAt?: string | Date | null;
   dueDate?: string | Date | null;
   returnedAt?: string | Date | null;
+  /** When set (CANCELLED rows), show Cancelled chip and hide Due. */
+  cancelledAt?: string | Date | null;
   variant?: "dark" | "light";
   className?: string;
 }) {
   const borrowedLabel = formatBorrowDate(borrowedAt);
-  const dueLabel = formatBorrowDate(dueDate);
+  const dueLabel = cancelledAt ? null : formatBorrowDate(dueDate);
   const returnedLabel = formatBorrowDate(returnedAt);
-  if (!borrowedLabel && !dueLabel && !returnedLabel) return null;
+  const cancelledLabel = formatBorrowDate(cancelledAt);
+  if (!borrowedLabel && !dueLabel && !returnedLabel && !cancelledLabel)
+    return null;
 
   const isDark = variant === "dark";
 
@@ -93,6 +98,26 @@ export function ReviewBorrowMeta({
           <span className="font-medium">Returned:</span>
           <span className={isDark ? "text-light-100" : "text-dark-400"}>
             {returnedLabel}
+          </span>
+        </span>
+      ) : null}
+      {cancelledLabel ? (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1",
+            isDark ? "text-light-200" : "text-slate-600",
+          )}
+        >
+          <CalendarX
+            className={cn(
+              "size-3 sm:size-4",
+              isDark ? "text-slate-400" : "text-slate-500",
+            )}
+            aria-hidden
+          />
+          <span className="font-medium">Cancelled:</span>
+          <span className={isDark ? "text-light-100" : "text-dark-400"}>
+            {cancelledLabel}
           </span>
         </span>
       ) : null}

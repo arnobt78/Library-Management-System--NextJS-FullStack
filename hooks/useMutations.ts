@@ -137,6 +137,7 @@ import {
   patchBookInventory,
   patchBorrowCachesOnCreate,
   patchBorrowCachesOnStatusChange,
+  prependBorrowAuditEvent,
   snapshotBorrowCacheBaselines,
   snapshotBorrowListBaselines,
 } from "@/lib/utils/patchBorrowCaches";
@@ -1202,6 +1203,24 @@ export const useBorrowBook = () => {
                 : {}),
             },
           });
+          if (
+            serverRecord &&
+            typeof serverRecord === "object" &&
+            "id" in serverRecord &&
+            typeof (serverRecord as { id?: unknown }).id === "string"
+          ) {
+            prependBorrowAuditEvent(queryClient, {
+              recordId: (serverRecord as { id: string }).id,
+              action: "CREATE",
+              details: {
+                status: "PENDING",
+                ...(variables.bookTitle || bookCached?.title
+                  ? { title: variables.bookTitle ?? bookCached?.title }
+                  : {}),
+              },
+              ...activityActorFromSession(session),
+            });
+          }
         },
       });
 
@@ -1277,7 +1296,11 @@ export const useApproveBorrow = () => {
       }
       return { recordId };
     },
-    onMutate: async ({ recordId, decisionActor }) => {
+    onMutate: async ({ recordId, decisionActor, bookTitle }) => {
+      const pending = showToast.pending(
+        "Approving borrow…",
+        `Approving request for "${resolveActionBookTitle(bookTitle)}". Please wait…`,
+      );
       // Instant PENDING → BORROWED so admin + profile lists do not flash empty.
       await queryClient.cancelQueries({
         queryKey: queryKeys.borrows.requestsRoot,
@@ -1342,6 +1365,7 @@ export const useApproveBorrow = () => {
       }
       // Capture pre-mutate status before optimistic list rewrite for overview KPI densify.
       return {
+        pending,
         previousRequests,
         previousUserBorrows,
         previousDetail,
@@ -1374,11 +1398,11 @@ export const useApproveBorrow = () => {
           activeDelta: -1,
         });
       }
-      const bookTitle = variables.bookTitle || "book";
-      showToast.error(
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
+      context?.pending?.error(
         "Approval Failed",
         error.message ||
-          `Unable to approve borrow request for "${bookTitle}". ${error.message.includes("no longer available") ? "The book is no longer available." : "Please try again."}`
+          `Unable to approve borrow request for "${bookTitle}". ${error.message.includes("no longer available") ? "The book is no longer available." : "Please try again."}`,
       );
     },
     onSuccess: async (_data, variables, context) => {
@@ -1437,15 +1461,23 @@ export const useApproveBorrow = () => {
               ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
             },
           });
+          prependBorrowAuditEvent(queryClient, {
+            recordId: variables.recordId,
+            action: "UPDATE",
+            details: {
+              status: "BORROWED",
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+            ...activityActorFromSession(session),
+          });
         },
       });
 
-      // Show success toast
-      const bookTitle = variables.bookTitle || "Book";
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
       const userName = variables.userName || "User";
-      showToast.success(
+      context?.pending?.success(
         "Borrow Request Approved",
-        `${userName} can now borrow "${bookTitle}".`
+        `${userName} can now borrow "${bookTitle}".`,
       );
     },
   });
@@ -1481,6 +1513,13 @@ export const useRejectBorrow = () => {
       recordId: string;
       bookTitle?: string; // Optional, for toast message
       userName?: string; // Optional, for toast message
+      /** SSR/currentAdmin preferred; session fallback name/email only. */
+      decisionActor?: {
+        id?: string | null;
+        fullName?: string | null;
+        email?: string | null;
+        universityCard?: string | null;
+      } | null;
     }) => {
       const result = await rejectBorrowRequest(recordId);
       if (!result.success) {
@@ -1488,7 +1527,11 @@ export const useRejectBorrow = () => {
       }
       return { recordId };
     },
-    onMutate: async ({ recordId }) => {
+    onMutate: async ({ recordId, decisionActor, bookTitle }) => {
+      const pending = showToast.pending(
+        "Rejecting borrow…",
+        `Rejecting request for "${resolveActionBookTitle(bookTitle)}". Please wait…`,
+      );
       // Soft-cancel in cache immediately (row stays as CANCELLED, not deleted).
       await queryClient.cancelQueries({
         queryKey: queryKeys.borrows.requestsRoot,
@@ -1508,10 +1551,21 @@ export const useRejectBorrow = () => {
       );
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
+      const actor = resolveBorrowLifecycleActor(decisionActor, session);
+      const detailPatch = {
+        status: "CANCELLED" as const,
+        ...(actor
+          ? {
+              updatedBy: actor.email,
+              updatedAt: new Date(),
+              cancelledByActor: actor,
+            }
+          : {}),
+      };
       const patchStatus = (old: unknown) => {
         if (!Array.isArray(old)) return old;
         return old.map((row: { id?: string; status?: string }) =>
-          row?.id === recordId ? { ...row, status: "CANCELLED" } : row,
+          row?.id === recordId ? { ...row, ...detailPatch } : row,
         );
       };
       queryClient.setQueriesData(
@@ -1525,16 +1579,16 @@ export const useRejectBorrow = () => {
       queryClient.setQueryData(
         queryKeys.borrows.requestDetail(recordId),
         (old: unknown) =>
-          old && typeof old === "object"
-            ? { ...old, status: "CANCELLED" }
-            : old,
+          old && typeof old === "object" ? { ...old, ...detailPatch } : old,
       );
       return {
+        pending,
         previousRequests,
         previousUserBorrows,
         previousDetail,
         meta,
         fromStatus,
+        actor,
       };
     },
     onError: (error: Error, variables, context) => {
@@ -1554,17 +1608,20 @@ export const useRejectBorrow = () => {
           context.previousDetail,
         );
       }
-      const bookTitle = variables.bookTitle || "book";
-      showToast.error(
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
+      context?.pending?.error(
         "Rejection Failed",
         error.message ||
-          `Unable to reject borrow request for "${bookTitle}". Please try again.`
+          `Unable to reject borrow request for "${bookTitle}". Please try again.`,
       );
     },
     onSuccess: async (_data, variables, context) => {
       const meta =
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
       const fromStatus = context?.fromStatus ?? null;
+      const actor =
+        context?.actor ??
+        resolveBorrowLifecycleActor(variables.decisionActor, session);
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: (qc) =>
           snapshotBorrowCacheBaselines(
@@ -1576,7 +1633,16 @@ export const useRejectBorrow = () => {
             queryClient,
             {
               recordId: variables.recordId,
-              patch: { status: "CANCELLED" },
+              patch: {
+                status: "CANCELLED",
+                ...(actor
+                  ? {
+                      updatedBy: actor.email,
+                      updatedAt: new Date(),
+                      cancelledByActor: actor,
+                    }
+                  : {}),
+              },
               userId: meta?.userId,
               bookId: meta?.bookId,
               fromStatus,
@@ -1594,14 +1660,23 @@ export const useRejectBorrow = () => {
               ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
             },
           });
+          prependBorrowAuditEvent(queryClient, {
+            recordId: variables.recordId,
+            action: "UPDATE",
+            details: {
+              status: "CANCELLED",
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+            ...activityActorFromSession(session),
+          });
         },
       });
 
-      const bookTitle = variables.bookTitle || "Book";
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
       const userName = variables.userName || "User";
-      showToast.success(
+      context?.pending?.success(
         "Borrow Request Rejected",
-        `Borrow request for "${bookTitle}" by ${userName} has been rejected.`
+        `Borrow request for "${bookTitle}" by ${userName} has been rejected.`,
       );
     },
   });
@@ -1647,10 +1722,21 @@ export const useCancelPendingBorrow = () => {
       );
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
+      const actor = resolveBorrowLifecycleActor(undefined, session);
+      const detailPatch = {
+        status: "CANCELLED" as const,
+        ...(actor
+          ? {
+              updatedBy: actor.email,
+              updatedAt: new Date(),
+              cancelledByActor: actor,
+            }
+          : {}),
+      };
       const patchStatus = (old: unknown) => {
         if (!Array.isArray(old)) return old;
         return old.map((row: { id?: string; status?: string }) =>
-          row?.id === recordId ? { ...row, status: "CANCELLED" } : row,
+          row?.id === recordId ? { ...row, ...detailPatch } : row,
         );
       };
       queryClient.setQueriesData(
@@ -1664,9 +1750,7 @@ export const useCancelPendingBorrow = () => {
       queryClient.setQueryData(
         queryKeys.borrows.requestDetail(recordId),
         (old: unknown) =>
-          old && typeof old === "object"
-            ? { ...old, status: "CANCELLED" }
-            : old,
+          old && typeof old === "object" ? { ...old, ...detailPatch } : old,
       );
       return {
         previousRequests,
@@ -1674,6 +1758,7 @@ export const useCancelPendingBorrow = () => {
         previousDetail,
         meta,
         fromStatus,
+        actor,
       };
     },
     onError: (error: Error, variables, context) => {
@@ -1704,6 +1789,8 @@ export const useCancelPendingBorrow = () => {
       const meta =
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
       const fromStatus = context?.fromStatus ?? null;
+      const actor =
+        context?.actor ?? resolveBorrowLifecycleActor(undefined, session);
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: (qc) =>
           snapshotBorrowCacheBaselines(
@@ -1715,15 +1802,25 @@ export const useCancelPendingBorrow = () => {
             queryClient,
             {
               recordId: variables.recordId,
-              patch: { status: "CANCELLED" },
+              patch: {
+                status: "CANCELLED",
+                ...(actor
+                  ? {
+                      updatedBy: actor.email,
+                      updatedAt: new Date(),
+                      cancelledByActor: actor,
+                    }
+                  : {}),
+              },
               userId: meta?.userId,
               bookId: meta?.bookId,
               fromStatus,
             },
             baselines,
           );
+          const activityActor = activityActorFromSession(session);
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...activityActor,
             action: "UPDATE",
             entityType: "borrow",
             entityId: variables.recordId,
@@ -1732,6 +1829,15 @@ export const useCancelPendingBorrow = () => {
               ...(meta?.userId ? { userId: meta.userId } : {}),
               ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
             },
+          });
+          prependBorrowAuditEvent(queryClient, {
+            recordId: variables.recordId,
+            action: "UPDATE",
+            details: {
+              status: "CANCELLED",
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+            ...activityActor,
           });
         },
       });
@@ -1787,7 +1893,11 @@ export const useReturnBook = () => {
       }
       return result.data;
     },
-    onMutate: async ({ recordId, decisionActor }) => {
+    onMutate: async ({ recordId, decisionActor, bookTitle }) => {
+      const pending = showToast.pending(
+        "Marking returned…",
+        `Marking "${resolveActionBookTitle(bookTitle)}" as returned. Please wait…`,
+      );
       await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
       await queryClient.cancelQueries({
         queryKey: queryKeys.borrows.requestsRoot,
@@ -1847,6 +1957,7 @@ export const useReturnBook = () => {
         });
       }
       return {
+        pending,
         previousRequests,
         previousUserBorrows,
         previousDetail,
@@ -1911,6 +2022,15 @@ export const useReturnBook = () => {
               ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
             },
           });
+          prependBorrowAuditEvent(queryClient, {
+            recordId: variables.recordId,
+            action: "UPDATE",
+            details: {
+              status: "RETURNED",
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+            ...activityActorFromSession(session),
+          });
         },
       });
 
@@ -1920,13 +2040,16 @@ export const useReturnBook = () => {
         data.daysOverdue !== undefined &&
         data.fineAmount !== undefined
       ) {
-        showToast.book.returnWithFine(
-          bookTitle,
-          data.daysOverdue,
-          data.fineAmount,
+        const days = data.daysOverdue;
+        context?.pending?.success(
+          `Returned with fine: ${bookTitle}`,
+          `"${bookTitle}" was ${days} day${days === 1 ? "" : "s"} overdue. Fine: $${Number(data.fineAmount).toFixed(2)}.`,
         );
       } else {
-        showToast.book.returnSuccess(bookTitle);
+        context?.pending?.success(
+          `Returned: ${bookTitle}`,
+          `"${bookTitle}" is back on the shelf. Thanks for returning it!`,
+        );
       }
     },
     onError: (error: Error, variables, context) => {
@@ -1955,7 +2078,8 @@ export const useReturnBook = () => {
         });
       }
       const bookTitle = resolveActionBookTitle(variables.bookTitle);
-      showToast.book.returnError(
+      context?.pending?.error(
+        "Cannot return",
         error.message || `Unable to return "${bookTitle}". Please try again.`,
       );
     },

@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Holds densify queue + post-waitlist nav; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Borrow detail gaps + record/history DNA + minimal seed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Holds densify queue meta + densify WIP uncommitted; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Borrow detail confirms/actors/Activity + minimal seed Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `e83e2d5` (waitlist Holds densify + Borrow Queue polish)
-- Latest HEAD: `e83e2d5` (== `origin/main`)
+- Latest HEAD: `d6d48f8` (== `origin/main`)
 - Started: 2026-08-01
-- Last updated: 2026-08-13 (committed+pushed Holds densify / waitlist)
+- Last updated: 2026-08-13 (Borrow detail gaps + record/history DNA + minimal seed)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,94 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-13, Borrow detail gaps + record/history DNA + minimal seed)
+
+Verified facts:
+- `BorrowRowPatch.cancelledByActor` typed; self-cancel densifies canceler; detail LIGHT_ALERT confirms until settle.
+- Detail Status KPI = `BorrowQueueStatusActorCell`; canceler + Record panel; Activity via `getBorrowAuditEvents` + densify `prependBorrowAuditEvent` (cold-seed + create path; PrefetchLink preserves audits).
+- Shared `mergeDensifiedDetail` — PrefetchLink + borrow/ticket/review detail refetch preserve densified actors/auditEvents/replies/reviewedBy* (no thin wipe).
+- `seed:reset` = 17 books + 2 TEST_ACCOUNTS only (queues empty). Prove: type/lint + 15 densify tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Borrow Queue/detail densify after commit; create borrow rows while testing.
+
+## Reconciliation snapshot (2026-08-13, Borrow Queue actor flash fix + lifecycle AlertDialogs)
+
+Verified facts:
+- Shared `loadAllBorrowRequestsRows` (actor joins) powers SSR + `GET /api/admin/borrow-requests` — densify survives invalidate refetch.
+- Borrow Queue Approve/Reject/Return use LIGHT_ALERT until settle (spinner; Cancel disabled while busy); pending toast + kebab spinner kept.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Approve → actor stays after settle; dialog spinner until toast; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Full demo seed + Status & Actor attribution)
+
+Verified facts:
+- Approve writes `borrowedBy=actor.email`; Self-cancelled / Self-returned label tones.
+- `seed:reset` FIFO demo: borrows (all statuses), holds, reviews, tickets, admin request, notifications, activity — attribution emails set. Prove type/lint + seed PASS.
+
+### Next Action
+
+**Human-Decision:** hard-refresh Borrow Queue Status & Actor; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow Queue Status & Actor DNA)
+
+Verified facts:
+- Columns: Book · Borrower (Requested meta) · Status & Actor · Actions — Status column removed.
+- Status & Actor: PENDING Requested; CANCELLED/BORROWED/RETURNED DecisionActorStack + Due; Self-returned detection.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Status & Actor DNA vs Reviews; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow Queue KPI labels + Reservation Waiting)
+
+Verified facts:
+- KPI titles: Total Queue · Awaiting Approval · Currently Borrowed · Books Returned · Soft-Cancelled · Reservation Waiting.
+- SSR WAITING count + `reservationsWaitingCount` densify via `patchAdminStatsOnReservationWaitingChange` (no partial admin.stats seed).
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Join Waitlist → Reservation Waiting KPI; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow Decision gaps closeout)
+
+Verified facts:
+- List+detail join `updatedBy` → canceler; `cancelledByActor` only when CANCELLED.
+- DecisionDateMeta/DecisionActorStack/byTone support BORROWED/RETURNED/CANCELLED; list passes real status.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Reject hard-refresh canceler + Borrowed/Returned/Cancelled labels; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Borrow Queue pending toasts + Decision & Actor)
+
+Verified facts:
+- Approve/Reject/Return use sticky `showToast.pending` then success/error; kebab spinner kept; reject densifies `decisionActor`/`cancelledByActor`.
+- `getAllBorrowRequests` joins approver/returner; Decision & Actor column via `DecisionActorStack` (Status column unchanged).
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Approve/Reject/Return pending toast + Decision & Actor densify; commit when asked.
+
+## Reconciliation snapshot (2026-08-13, Return/Renew confirms + Recent Cancelled date)
+
+Verified facts:
+- Profile Return/Renew + book-detail Return use lifted GLASS_ALERT (preview, spinner until settle).
+- Overview Recent 5 Cancelled shows Cancelled date via `updatedAt` + ReviewBorrowMeta chip.
+- Waitlist remains out of Recent 5. Prove: typecheck + lint + patchAdminStatsCaches PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav Return/Renew dialogs + Overview Cancelled date; commit when asked.
 
 ## Reconciliation snapshot (2026-08-13, Holds densify queue + post-waitlist nav)
 

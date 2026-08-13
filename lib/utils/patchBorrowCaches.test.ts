@@ -17,6 +17,7 @@ import {
   patchBorrowCachesOnCreate,
   patchBorrowCachesOnRenewal,
   patchBorrowCachesOnStatusChange,
+  prependBorrowAuditEvent,
   snapshotBorrowCacheBaselines,
 } from "@/lib/utils/patchBorrowCaches";
 import {
@@ -511,6 +512,60 @@ describe("patchBorrowCaches", () => {
     expect(next?.dueDate).toBe("2026-08-20");
     expect(next?.borrowedBy).toBe("admin@lib.test");
     expect(next?.approvedByActor).toEqual(actor);
+  });
+
+  it("CANCELLED densify retains cancelledByActor on requestDetail", () => {
+    const client = new QueryClient();
+    const detail = makeRequest({ id: "c-1", status: "PENDING" });
+    client.setQueryData(queryKeys.borrows.requestDetail("c-1"), detail);
+    client.setQueryData(queryKeys.borrows.requests({}), [detail]);
+
+    const actor = {
+      id: "admin-1",
+      fullName: "Admin One",
+      email: "admin@lib.test",
+      universityCard: "card-1",
+    };
+    patchBorrowCachesOnStatusChange(client, {
+      recordId: "c-1",
+      patch: {
+        status: "CANCELLED",
+        updatedBy: actor.email,
+        cancelledByActor: actor,
+      },
+      userId: "user-1",
+      bookId: "book-1",
+      fromStatus: "PENDING",
+    });
+
+    const next = client.getQueryData<BorrowRecordWithDetails>(
+      queryKeys.borrows.requestDetail("c-1"),
+    );
+    expect(next?.status).toBe("CANCELLED");
+    expect(next?.updatedBy).toBe("admin@lib.test");
+    expect(next?.cancelledByActor).toEqual(actor);
+  });
+
+  it("prependBorrowAuditEvent cold-seeds detail from list then prepends", () => {
+    const client = new QueryClient();
+    const row = makeRequest({ id: "c-2", status: "PENDING" });
+    client.setQueryData(queryKeys.borrows.requests({}), [row]);
+
+    prependBorrowAuditEvent(client, {
+      recordId: "c-2",
+      action: "CREATE",
+      details: { status: "PENDING", title: "Demo Book" },
+      actorId: "user-1",
+      actorName: "Test User",
+      actorEmail: "test@user.com",
+    });
+
+    const next = client.getQueryData<BorrowRecordWithDetails>(
+      queryKeys.borrows.requestDetail("c-2"),
+    );
+    expect(next?.id).toBe("c-2");
+    expect(next?.auditEvents?.[0]?.label).toBe("Borrow request created");
+    expect(next?.auditEvents?.[0]?.detail).toBe("Demo Book");
   });
 
   it("renewal densify updates requestDetail dueDate and renewalCount", () => {

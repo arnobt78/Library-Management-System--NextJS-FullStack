@@ -129,8 +129,7 @@ export default function ReservationsPanel({
         if (!result.success)
           return showToast.error("Reservation Update Failed", result.error);
         const nextStatus = action === "claim" ? "FULFILLED" : "CANCELLED";
-        const fromStatus =
-          items.find((item) => item.id === id)?.status ?? null;
+        const fromStatus = items.find((item) => item.id === id)?.status ?? null;
         const resolvedBookId =
           (result.data && "bookId" in result.data
             ? result.data.bookId
@@ -339,13 +338,10 @@ export default function ReservationsPanel({
 
   const body =
     active.length === 0 ? (
-      <div
-        role="status"
-        className="profile-borrow-row p-4 text-center sm:p-6"
-      >
+      <div role="status" className="profile-borrow-row p-4 text-center sm:p-6">
         <p className="text-sm text-light-200 sm:text-base">
-          No active holds right now. Reserve a book from the catalog when
-          copies are unavailable.
+          No active holds right now. Reserve a book from the catalog when copies
+          are unavailable.
         </p>
       </div>
     ) : (
@@ -513,7 +509,7 @@ export default function ReservationsPanel({
                           <span>
                             {rowBusy && pendingId === item.id
                               ? "Working…"
-                              : "Borrow now"}
+                              : "Borrow Now"}
                           </span>
                         </button>
                       ) : null}

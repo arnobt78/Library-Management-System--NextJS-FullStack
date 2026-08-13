@@ -1,9 +1,14 @@
 /**
  * reset-and-seed.ts
  *
- * Atomically wipes all transactional data and re-seeds the database with:
+ * Atomically wipes all transactional data and re-seeds:
  *   - 17 canonical books (from dummybooks.json) with full schema coverage
  *   - 2 test accounts (Test User + Test Admin) with scrypt-hashed passwords
+ *   - status_reviewed_* stamped on both accounts (no ledger / circulation rows)
+ *
+ * Intentionally empty after seed: borrows, holds, reviews, tickets,
+ * admin_requests, notifications, activity_logs, user_status_decisions.
+ * Create those while testing one-by-one.
  *
  * Delete order respects FK constraints:
  *   reservation_events → circulation_commands → operation_telemetry →
@@ -16,7 +21,7 @@
  *
  * Requires DATABASE_URL in .env
  *
- * Parent: REQ-0033
+ * Parent: REQ-0033 / borrow detail gaps minimal seed
  */
 
 import { config } from "dotenv";
@@ -181,21 +186,7 @@ async function main() {
   `);
   console.log("  ✓ status_reviewed_* stamped to test@admin.com");
 
-  // Seed signup decision ledger (Recent decisions UI reads this, not users alone)
-  await db.execute(sql`
-    INSERT INTO user_status_decisions (user_id, decision, decided_by, decided_at)
-    SELECT
-      u.id,
-      'APPROVED',
-      u.status_reviewed_by,
-      COALESCE(u.status_reviewed_at, u.created_at, NOW())
-    FROM users AS u
-    WHERE u.email IN ('test@user.com', 'test@admin.com')
-      AND u.status = 'APPROVED'
-  `);
-  console.log("  ✓ user_status_decisions seeded for demo accounts");
-
-  console.log("\nreset-and-seed complete.");
+  console.log("\nreset-and-seed complete (17 books + 2 accounts; queues empty).");
   await pool.end();
 }
 

@@ -67,8 +67,11 @@ export function RecentBorrowRow({ borrow }: { borrow: OverviewRecentBorrow }) {
       {/* Default ReviewBorrowMeta = horizontal flex-wrap (responsive date row) */}
       <ReviewBorrowMeta
         borrowedAt={borrow.borrowDate ?? borrow.createdAt}
-        dueDate={borrow.dueDate}
-        returnedAt={borrow.returnDate}
+        dueDate={borrow.status === "CANCELLED" ? null : borrow.dueDate}
+        returnedAt={borrow.status === "CANCELLED" ? null : borrow.returnDate}
+        cancelledAt={
+          borrow.status === "CANCELLED" ? borrow.updatedAt : null
+        }
         variant="light"
         className="text-[10px] sm:text-xs"
       />

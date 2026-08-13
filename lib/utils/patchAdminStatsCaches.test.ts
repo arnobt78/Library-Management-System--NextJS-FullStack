@@ -52,6 +52,7 @@ function seedStats(
         status: "PENDING",
         borrowDate: null,
         createdAt: null,
+        updatedAt: null,
         dueDate: null,
         returnDate: null,
         borrower: {
@@ -134,6 +135,7 @@ describe("patchAdminStatsCaches", () => {
           status: "RETURNED",
           borrowDate: null,
           createdAt: null,
+          updatedAt: null,
           dueDate: null,
           returnDate: null,
           borrower: {

@@ -233,12 +233,20 @@ export function patchAdminStatsOnBorrowStatusChange(
   const idx = next.recentBorrows.findIndex((r) => r.id === args.recordId);
   if (idx >= 0) {
     const existing = next.recentBorrows[idx];
-    next.recentBorrows[idx] = {
+    const merged: OverviewRecentBorrow = {
       ...existing,
       ...(args.recentRow ?? {}),
       status: args.toStatus,
       id: args.recordId,
     };
+    // Soft-cancel / reject — stamp Cancelled chip time when densify omits updatedAt
+    if (
+      args.toStatus === "CANCELLED" &&
+      (merged.updatedAt == null || merged.updatedAt === "")
+    ) {
+      merged.updatedAt = new Date().toISOString();
+    }
+    next.recentBorrows[idx] = merged;
   } else if (args.recentRow) {
     next.recentBorrows = [
       { ...args.recentRow, status: args.toStatus },
@@ -832,15 +840,28 @@ export function patchAdminStatsOnBookDelete(
   writeAdminStats(queryClient, next);
 }
 
-/** Library Health — reservations waiting bar on overview. */
+/** Library Health + Borrow Queue — reservations waiting densify. */
 export function patchAdminStatsOnReservationWaitingChange(
   queryClient: QueryClient,
   delta: number,
 ): void {
   if (delta === 0) return;
   const prev = readAdminStats(queryClient);
-  if (!prev) return;
-  const next: AdminDashboardStats = { ...prev };
-  bumpStatusCount(next, "reservationsWaiting", delta);
-  writeAdminStats(queryClient, next);
+  if (prev) {
+    const next: AdminDashboardStats = { ...prev };
+    bumpStatusCount(next, "reservationsWaiting", delta);
+    writeAdminStats(queryClient, next);
+  }
+  // Borrow Queue KPI scalar — bump when seeded (SSR) or derived from stats.
+  const countKey = queryKeys.admin.reservationsWaitingCount;
+  const prevCount = queryClient.getQueryData<number>(countKey);
+  const base =
+    typeof prevCount === "number"
+      ? prevCount
+      : typeof prev?.reservationsWaiting === "number"
+        ? prev.reservationsWaiting
+        : null;
+  if (typeof base === "number") {
+    queryClient.setQueryData(countKey, Math.max(0, base + delta));
+  }
 }

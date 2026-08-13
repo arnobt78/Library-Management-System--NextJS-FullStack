@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useSession } from "next-auth/react";
 import { queryKeys } from "@/lib/query/keys";
 import { seedFromSsrIfEmpty } from "@/lib/utils/queryCacheLists";
+import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
   getBooksList,
@@ -902,13 +903,24 @@ export const useBorrowRequestDetail = (
   initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
 
   return useQuery<BorrowRecordWithDetails>({
     queryKey: queryKeys.borrows.requestDetail(recordId),
     queryFn: () =>
-      trackQuery("borrow-request-detail", async () =>
-        getBorrowRequestDetail(recordId),
-      ),
+      trackQuery("borrow-request-detail", async () => {
+        const fresh = await getBorrowRequestDetail(recordId);
+        // API/list thin payloads — keep densified actors + Activity across invalidate.
+        const prev = queryClient.getQueryData<BorrowRecordWithDetails>(
+          queryKeys.borrows.requestDetail(recordId),
+        );
+        return mergeDensifiedDetail(prev, fresh, [
+          "auditEvents",
+          "approvedByActor",
+          "returnedByActor",
+          "cancelledByActor",
+        ]);
+      }),
     enabled: !!recordId,
     staleTime: 10 * 1000,
     refetchOnMount: true,
@@ -1517,13 +1529,27 @@ export const useSupportTicket = (
   initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
 
   return useQuery<SupportTicketDetail>({
     queryKey: queryKeys.tickets.detail(ticketId),
     queryFn: () =>
-      trackQuery(`support-ticket-${ticketId}`, async () =>
-        getSupportTicketDetail(ticketId),
-      ),
+      trackQuery(`support-ticket-${ticketId}`, async () => {
+        const fresh = await getSupportTicketDetail(ticketId);
+        const prev = queryClient.getQueryData<SupportTicketDetail>(
+          queryKeys.tickets.detail(ticketId),
+        );
+        // API omits auditEvents; list seed omits replies — keep densified detail.
+        return mergeDensifiedDetail(prev, fresh, [
+          "auditEvents",
+          "replies",
+          "notes",
+          "updatedById",
+          "updatedByName",
+          "updatedByEmail",
+          "updatedByUniversityCard",
+        ]);
+      }),
     enabled: !!ticketId,
     staleTime: 15 * 1000,
     refetchOnMount: true,
@@ -1606,11 +1632,25 @@ export const useAdminReviewDetail = (
   initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
 
   return useQuery<AdminBookReviewItem>({
     queryKey: queryKeys.reviews.adminDetail(reviewId),
     queryFn: () =>
-      trackQuery("admin-review-detail", async () => getAdminReviewDetail(reviewId)),
+      trackQuery("admin-review-detail", async () => {
+        const fresh = await getAdminReviewDetail(reviewId);
+        const prev = queryClient.getQueryData<AdminBookReviewItem>(
+          queryKeys.reviews.adminDetail(reviewId),
+        );
+        // Keep densified Approver stack across invalidate when API is thin.
+        return mergeDensifiedDetail(prev, fresh, [
+          "reviewedBy",
+          "reviewedByName",
+          "reviewedByEmail",
+          "reviewedByUniversityCard",
+          "reviewedAt",
+        ]);
+      }),
     enabled: !!reviewId,
     staleTime: 10 * 1000,
     refetchOnMount: true,

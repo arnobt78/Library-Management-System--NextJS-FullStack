@@ -116,6 +116,8 @@ type BorrowRowPatch = {
   renewalCount?: number;
   approvedByActor?: BorrowRecordWithDetails["approvedByActor"];
   returnedByActor?: BorrowRecordWithDetails["returnedByActor"];
+  /** Soft-cancel densify (admin reject / owner cancel). */
+  cancelledByActor?: BorrowRecordWithDetails["cancelledByActor"];
 };
 
 /** Upsert densified Borrow Queue detail after lifecycle / create. */
@@ -134,6 +136,8 @@ function upsertBorrowRequestDetail(
   const next: BorrowRecordWithDetails = {
     ...existing,
     ...patch,
+    // Preserve SSR/densified Activity when lifecycle patches omit auditEvents.
+    auditEvents: existing.auditEvents,
     borrowDate:
       patch.borrowDate === undefined
         ? existing.borrowDate
@@ -152,6 +156,65 @@ function upsertBorrowRequestDetail(
             : null,
   };
   queryClient.setQueryData<BorrowRecordWithDetails>(key, next);
+}
+
+/** Label for borrow detail Activity timeline (ticket audit DNA). */
+function borrowAuditLabel(
+  action: string,
+  details?: Record<string, unknown> | null,
+): string {
+  const status = typeof details?.status === "string" ? details.status : null;
+  if (action === "CREATE") return "Borrow request created";
+  if (action === "DELETE") return "Borrow record deleted";
+  if (status === "BORROWED") return "Status → Borrowed";
+  if (status === "RETURNED") return "Status → Returned";
+  if (status === "CANCELLED") return "Status → Cancelled";
+  if (status === "PENDING") return "Status → Pending";
+  if (status) return `Status → ${String(status).split("_").join(" ")}`;
+  return "Borrow updated";
+}
+
+/**
+ * Prepend a densified audit row onto Borrow Queue detail Activity.
+ * Cold-seeds from list cache when detail was never opened (create → soft-nav).
+ * Call alongside densifyActivityLog after borrow.lifecycle writes.
+ */
+export function prependBorrowAuditEvent(
+  queryClient: QueryClient,
+  args: {
+    recordId: string;
+    action: string;
+    details?: Record<string, unknown> | null;
+    actorId?: string | null;
+    actorName?: string | null;
+    actorEmail?: string | null;
+    actorUniversityCard?: string | null;
+  },
+): void {
+  const event: TicketActivityEvent = {
+    id: `densify-borrow-${args.recordId}-${Date.now()}`,
+    kind: "audit",
+    at: new Date().toISOString(),
+    label: borrowAuditLabel(args.action, args.details),
+    actorId: args.actorId ?? null,
+    actorName: args.actorName ?? null,
+    actorEmail: args.actorEmail ?? null,
+    actorUniversityCard: args.actorUniversityCard ?? null,
+    detail:
+      typeof args.details?.title === "string" ? args.details.title : null,
+  };
+
+  const key = queryKeys.borrows.requestDetail(args.recordId);
+  const prev =
+    queryClient.getQueryData<BorrowRecordWithDetails>(key) ??
+    findCachedRequestRow(queryClient, args.recordId);
+  if (!prev) return;
+
+  const existing = prev.auditEvents ?? [];
+  queryClient.setQueryData<BorrowRecordWithDetails>(key, {
+    ...prev,
+    auditEvents: [event, ...existing],
+  });
 }
 
 function findCachedRequestRow(

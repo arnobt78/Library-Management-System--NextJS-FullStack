@@ -9,12 +9,14 @@
 import React, { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bookmark,
   BookOpen,
   CheckCircle,
   Eye,
   Hourglass,
+  ListOrdered,
   Loader2,
   MoreVertical,
   RotateCcw,
@@ -29,8 +31,9 @@ import {
   useReturnBook,
 } from "@/hooks/useMutations";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
+import type { AdminDashboardStats } from "@/lib/admin/adminDashboardStatsTypes";
+import { queryKeys } from "@/lib/query/keys";
 import { ADMIN_BORROW_REQUESTS_UNFILTERED } from "@/lib/ui/adminListUniverse";
-import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
 import { borrowStatusFilterOptions } from "@/lib/ui/filterOptionStyles";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { DataTable } from "@/components/ui/data-table";
@@ -43,9 +46,10 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { AdminBookIdentityCell } from "@/components/admin/AdminBookIdentityCell";
-import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
+import { BorrowQueueStatusActorCell } from "@/components/admin/BorrowQueueStatusActorCell";
 import PersonAttribution from "@/components/PersonAttribution";
 import PrefetchLink from "@/components/PrefetchLink";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,11 +61,17 @@ import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import { useSession } from "next-auth/react";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
+import {
+  BorrowLifecycleAlertDialog,
+  type BorrowLifecycleConfirmKind,
+} from "@/components/admin/BorrowLifecycleAlertDialog";
 
 interface AdminBookRequestsListProps {
   initialRequests?: BorrowRecordWithDetails[];
   /** SSR DB actor — preferred over useSession for lifecycle densify card. */
   currentAdmin?: AdminRequestReviewer | null;
+  /** SSR WAITING reservation count — Reservation Waiting KPI seed. */
+  initialReservationsWaiting?: number;
   successMessage?: string;
   errorMessage?: string;
 }
@@ -79,9 +89,10 @@ function BorrowRowActions({
   const approveBorrowMutation = useApproveBorrow();
   const rejectBorrowMutation = useRejectBorrow();
   const returnBookMutation = useReturnBook();
-  const [actionKind, setActionKind] = useState<
-    "approve" | "reject" | "return" | null
-  >(null);
+  const [confirmKind, setConfirmKind] =
+    useState<BorrowLifecycleConfirmKind | null>(null);
+  const [actionKind, setActionKind] =
+    useState<BorrowLifecycleConfirmKind | null>(null);
 
   const busy =
     approveBorrowMutation.isPending ||
@@ -89,113 +100,144 @@ function BorrowRowActions({
     returnBookMutation.isPending;
   const detailHref = `/admin/book-requests/${request.id}`;
 
+  const closeConfirm = () => {
+    setConfirmKind(null);
+    setActionKind(null);
+  };
+
+  const runLifecycle = (kind: BorrowLifecycleConfirmKind) => {
+    if (busy) return;
+    setActionKind(kind);
+    const onSettled = () => {
+      closeConfirm();
+    };
+    if (kind === "approve") {
+      approveBorrowMutation.mutate(
+        {
+          recordId: request.id,
+          bookTitle: request.bookTitle || undefined,
+          userName: request.userName || undefined,
+          decisionActor,
+        },
+        { onSettled },
+      );
+      return;
+    }
+    if (kind === "reject") {
+      rejectBorrowMutation.mutate(
+        {
+          recordId: request.id,
+          bookTitle: request.bookTitle || undefined,
+          userName: request.userName || undefined,
+          decisionActor,
+        },
+        { onSettled },
+      );
+      return;
+    }
+    returnBookMutation.mutate(
+      {
+        recordId: request.id,
+        bookTitle: request.bookTitle || undefined,
+        decisionActor,
+      },
+      { onSettled },
+    );
+  };
+
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="Borrow request actions"
-          className={LIGHT_MENU.trigger}
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Borrow request actions"
+            className={LIGHT_MENU.trigger}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {busy && actionKind ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <MoreVertical className="size-4" />
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className={LIGHT_MENU.content}
           onClick={(e) => e.stopPropagation()}
         >
-          {busy && actionKind ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <MoreVertical className="size-4" />
-          )}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className={LIGHT_MENU.content}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DropdownMenuItem asChild className={LIGHT_MENU.item}>
-          <PrefetchLink href={detailHref} prefetch={false}>
-            <Eye className="size-3.5" />
-            View Details
-          </PrefetchLink>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className={LIGHT_MENU.separator} />
-        {request.status === "PENDING" ? (
-          <>
+          <DropdownMenuItem asChild className={LIGHT_MENU.item}>
+            <PrefetchLink href={detailHref} prefetch={false}>
+              <Eye className="size-3.5" />
+              View Details
+            </PrefetchLink>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className={LIGHT_MENU.separator} />
+          {request.status === "PENDING" ? (
+            <>
+              <DropdownMenuItem
+                className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
+                disabled={busy}
+                onSelect={() => setConfirmKind("approve")}
+              >
+                <CheckCircle className="size-3.5" />
+                Approve
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className={`${LIGHT_MENU.item} text-rose-700 focus:bg-rose-50 focus:text-rose-700 data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-700`}
+                disabled={busy}
+                onSelect={() => setConfirmKind("reject")}
+              >
+                <XCircle className="size-3.5" />
+                Reject
+              </DropdownMenuItem>
+            </>
+          ) : null}
+          {request.status === "BORROWED" ? (
             <DropdownMenuItem
               className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
               disabled={busy}
-              onSelect={() => {
-                setActionKind("approve");
-                approveBorrowMutation.mutate(
-                  {
-                    recordId: request.id,
-                    bookTitle: request.bookTitle || undefined,
-                    userName: request.userName || undefined,
-                    decisionActor,
-                  },
-                  { onSettled: () => setActionKind(null) },
-                );
-              }}
+              onSelect={() => setConfirmKind("return")}
             >
-              <CheckCircle className="size-3.5" />
-              Approve
+              <Undo2 className="size-3.5" />
+              Mark Returned
             </DropdownMenuItem>
-            <DropdownMenuItem
-              className={`${LIGHT_MENU.item} text-rose-700 focus:bg-rose-50 focus:text-rose-700 data-[highlighted]:bg-rose-50 data-[highlighted]:text-rose-700`}
-              disabled={busy}
-              onSelect={() => {
-                setActionKind("reject");
-                rejectBorrowMutation.mutate(
-                  {
-                    recordId: request.id,
-                    bookTitle: request.bookTitle || undefined,
-                    userName: request.userName || undefined,
-                  },
-                  { onSettled: () => setActionKind(null) },
-                );
-              }}
-            >
-              <XCircle className="size-3.5" />
-              Reject
-            </DropdownMenuItem>
-          </>
-        ) : null}
-        {request.status === "BORROWED" ? (
-          <DropdownMenuItem
-            className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
-            disabled={busy}
-            onSelect={() => {
-              setActionKind("return");
-              returnBookMutation.mutate(
-                {
-                  recordId: request.id,
-                  bookTitle: request.bookTitle || undefined,
-                  decisionActor,
-                },
-                { onSettled: () => setActionKind(null) },
-              );
-            }}
-          >
-            <Undo2 className="size-3.5" />
-            Mark Returned
+          ) : null}
+          <DropdownMenuSeparator className={LIGHT_MENU.separator} />
+          <DropdownMenuItem className={LIGHT_MENU.item}>
+            <X className="size-3.5" />
+            Cancel
           </DropdownMenuItem>
-        ) : null}
-        <DropdownMenuSeparator className={LIGHT_MENU.separator} />
-        <DropdownMenuItem className={LIGHT_MENU.item}>
-          <X className="size-3.5" />
-          Cancel
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <BorrowLifecycleAlertDialog
+        open={confirmKind !== null}
+        onOpenChange={(open) => {
+          if (!open && !busy) closeConfirm();
+        }}
+        kind={confirmKind}
+        request={request}
+        isPending={busy && actionKind === confirmKind}
+        onConfirm={() => {
+          if (confirmKind) runLifecycle(confirmKind);
+        }}
+      />
+    </>
   );
 }
 
 const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
   initialRequests,
   currentAdmin = null,
+  initialReservationsWaiting = 0,
   successMessage,
   errorMessage,
 }) => {
   const router = useRouter();
   const searchParamsHook = useSearchParams();
+  const queryClient = useQueryClient();
 
   const currentSearch = searchParamsHook.get("search") || "";
   const currentStatus = searchParamsHook.get("status") || "all";
@@ -252,6 +294,29 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
       (universeRequestsData ?? initialRequests ?? []) as BorrowRecordWithDetails[],
     [universeRequestsData, initialRequests],
   );
+
+  // Prefer densified overview stats when soft-nav already cached them.
+  const cachedStatsWaiting = queryClient.getQueryData<AdminDashboardStats>(
+    queryKeys.admin.stats,
+  )?.reservationsWaiting;
+  const waitingSeed =
+    typeof cachedStatsWaiting === "number"
+      ? cachedStatsWaiting
+      : initialReservationsWaiting;
+  const { data: reservationsWaitingData } = useQuery({
+    queryKey: queryKeys.admin.reservationsWaitingCount,
+    // Densify-only consumer — no dedicated fetch; SSR / patch paints the KPI.
+    queryFn: async () => waitingSeed,
+    initialData: waitingSeed,
+    initialDataUpdatedAt: ssrTimestamp,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+  const reservationsWaiting =
+    typeof reservationsWaitingData === "number"
+      ? reservationsWaitingData
+      : waitingSeed;
 
   const requests: BorrowRecordWithDetails[] = React.useMemo(() => {
     const base =
@@ -359,34 +424,26 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
               }}
               href={`/admin/users/${r.userId}`}
               variant="light"
+              meta={
+                <TicketDateMeta
+                  createdAt={r.createdAt ?? r.borrowDate}
+                  createdLabel="Requested"
+                  hideUpdated
+                />
+              }
             />
           );
         },
       },
       {
-        id: "status",
+        id: "statusActor",
         accessorKey: "status",
-        size: 220,
-        minSize: 180,
-        header: ({ column }) => (
-          <SortableHeader column={column}>Status</SortableHeader>
+        size: 240,
+        minSize: 200,
+        header: "Status & Actor",
+        cell: ({ row }) => (
+          <BorrowQueueStatusActorCell request={row.original} />
         ),
-        cell: ({ row }) => {
-          const r = row.original;
-          return (
-            <div className="flex min-w-0 flex-col items-start gap-0.5 overflow-hidden">
-              <BorrowStatusBadge status={r.status} />
-              <BorrowLifecycleDates
-                status={r.status}
-                createdAt={r.createdAt}
-                borrowDate={r.borrowDate}
-                updatedAt={r.updatedAt}
-                dueDate={r.dueDate}
-                returnDate={r.returnDate}
-              />
-            </div>
-          );
-        },
       },
       {
         id: "actions",
@@ -434,34 +491,40 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
       kpis={
         <StatCardGrid>
           <StatCard
-            title="In queue"
+            title="Total Queue"
             value={universeRequests.length}
             icon={BookOpen}
             hue="blue"
           />
           <StatCard
-            title="Awaiting approval"
+            title="Awaiting Approval"
             value={pendingCount}
             icon={Hourglass}
             hue="amber"
           />
           <StatCard
-            title="On loan"
+            title="Currently Borrowed"
             value={borrowedCount}
             icon={CheckCircle}
             hue="violet"
           />
           <StatCard
-            title="Returned"
+            title="Books Returned"
             value={returnedCount}
             icon={RotateCcw}
             hue="emerald"
           />
           <StatCard
-            title="Soft-cancelled"
+            title="Soft-Cancelled"
             value={cancelledCount}
             icon={XCircle}
             hue="rose"
+          />
+          <StatCard
+            title="Reservation Waiting"
+            value={reservationsWaiting}
+            icon={ListOrdered}
+            hue="slate"
           />
         </StatCardGrid>
       }

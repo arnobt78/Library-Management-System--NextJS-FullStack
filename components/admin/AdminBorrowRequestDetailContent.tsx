@@ -2,8 +2,10 @@
 
 /**
  * Admin Borrow Queue detail — ticket/review shell:
- * Back → title+dates → KPI row → Book | Borrower (+ lifecycle actions).
+ * Back+confirm CTAs → title+dates → KPI row → Book | Borrower →
+ * Lifecycle actors → Record → Activity timeline.
  * Densify via useApproveBorrow / useRejectBorrow / useReturnBook.
+ * Parent: borrow detail gaps + record/history DNA
  */
 
 import { useState } from "react";
@@ -13,6 +15,7 @@ import {
   CheckCircle,
   CircleDollarSign,
   CircleDot,
+  ClipboardList,
   Loader2,
   Undo2,
   UserRound,
@@ -28,17 +31,44 @@ import {
 } from "@/hooks/useMutations";
 import { LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
+import { formatMediumDate } from "@/lib/ui/formatMediumDate";
 import { cn } from "@/lib/utils";
 import PersonAttribution from "@/components/PersonAttribution";
 import { AdminBookIdentityCell } from "@/components/admin/AdminBookIdentityCell";
-import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
+import { BorrowQueueStatusActorCell } from "@/components/admin/BorrowQueueStatusActorCell";
+import {
+  BorrowLifecycleAlertDialog,
+  type BorrowLifecycleConfirmKind,
+} from "@/components/admin/BorrowLifecycleAlertDialog";
 import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
+import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
-import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
+import CopyableText from "@/components/ui/CopyableText";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
+
+function RecordField({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className={FIELD_LABEL_TEXT}>{label}</p>
+      {mono ? (
+        <CopyableText value={value} className="text-sm text-gray-700" />
+      ) : (
+        <p className="break-words text-sm text-gray-700">{value}</p>
+      )}
+    </div>
+  );
+}
 
 export default function AdminBorrowRequestDetailContent({
   initialRequest,
@@ -64,34 +94,75 @@ export default function AdminBorrowRequestDetailContent({
   const approveMutation = useApproveBorrow();
   const rejectMutation = useRejectBorrow();
   const returnMutation = useReturnBook();
-  const [actionKind, setActionKind] = useState<
-    "approve" | "reject" | "return" | null
-  >(null);
+  const [confirmKind, setConfirmKind] =
+    useState<BorrowLifecycleConfirmKind | null>(null);
+  const [actionKind, setActionKind] =
+    useState<BorrowLifecycleConfirmKind | null>(null);
 
   const busy =
     approveMutation.isPending ||
     rejectMutation.isPending ||
     returnMutation.isPending;
 
-  const statusSlot = (
-    <div className="flex min-w-0 flex-col gap-1 leading-none">
-      <span className="inline-flex self-start">
-        <BorrowStatusBadge status={request.status} />
-      </span>
-      <BorrowLifecycleDates
-        status={request.status}
-        createdAt={request.createdAt}
-        borrowDate={request.borrowDate}
-        updatedAt={request.updatedAt}
-        dueDate={request.dueDate}
-        returnDate={request.returnDate}
-      />
-    </div>
-  );
+  const closeConfirm = () => {
+    setConfirmKind(null);
+    setActionKind(null);
+  };
+
+  const runLifecycle = (kind: BorrowLifecycleConfirmKind) => {
+    if (busy) return;
+    setActionKind(kind);
+    const onSettled = () => {
+      closeConfirm();
+    };
+    if (kind === "approve") {
+      approveMutation.mutate(
+        {
+          recordId: request.id,
+          bookTitle: request.bookTitle || undefined,
+          userName: request.userName || undefined,
+          decisionActor,
+        },
+        { onSettled },
+      );
+      return;
+    }
+    if (kind === "reject") {
+      rejectMutation.mutate(
+        {
+          recordId: request.id,
+          bookTitle: request.bookTitle || undefined,
+          userName: request.userName || undefined,
+          decisionActor,
+        },
+        { onSettled },
+      );
+      return;
+    }
+    returnMutation.mutate(
+      {
+        recordId: request.id,
+        bookTitle: request.bookTitle || undefined,
+        decisionActor,
+      },
+      { onSettled },
+    );
+  };
 
   const fineDisplay = request.fineAmount
     ? `$${Number(request.fineAmount).toFixed(2)}`
     : "$0.00";
+
+  const showActors = Boolean(
+    request.approvedByActor ||
+      request.returnedByActor ||
+      request.cancelledByActor ||
+      request.borrowedBy ||
+      request.returnedBy ||
+      (request.status === "CANCELLED" && request.updatedBy),
+  );
+
+  const auditEvents = request.auditEvents ?? [];
 
   return (
     <section className="w-full space-y-4 sm:space-y-6">
@@ -113,18 +184,7 @@ export default function AdminBorrowRequestDetailContent({
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => {
-                  setActionKind("approve");
-                  approveMutation.mutate(
-                    {
-                      recordId: request.id,
-                      bookTitle: request.bookTitle || undefined,
-                      userName: request.userName || undefined,
-                      decisionActor,
-                    },
-                    { onSettled: () => setActionKind(null) },
-                  );
-                }}
+                onClick={() => setConfirmKind("approve")}
                 className={cn(
                   LIGHT_GLASS_CTA.host,
                   "bg-emerald-700 text-white hover:bg-emerald-800",
@@ -140,17 +200,7 @@ export default function AdminBorrowRequestDetailContent({
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => {
-                  setActionKind("reject");
-                  rejectMutation.mutate(
-                    {
-                      recordId: request.id,
-                      bookTitle: request.bookTitle || undefined,
-                      userName: request.userName || undefined,
-                    },
-                    { onSettled: () => setActionKind(null) },
-                  );
-                }}
+                onClick={() => setConfirmKind("reject")}
                 className={cn(
                   LIGHT_GLASS_CTA.host,
                   LIGHT_GLASS_CTA.delete,
@@ -170,17 +220,7 @@ export default function AdminBorrowRequestDetailContent({
             <button
               type="button"
               disabled={busy}
-              onClick={() => {
-                setActionKind("return");
-                returnMutation.mutate(
-                  {
-                    recordId: request.id,
-                    bookTitle: request.bookTitle || undefined,
-                    decisionActor,
-                  },
-                  { onSettled: () => setActionKind(null) },
-                );
-              }}
+              onClick={() => setConfirmKind("return")}
               className={cn(
                 LIGHT_GLASS_CTA.host,
                 "bg-emerald-700 text-white hover:bg-emerald-800",
@@ -214,9 +254,11 @@ export default function AdminBorrowRequestDetailContent({
           variant="light"
           icon={<CircleDot className="size-4" />}
           label="Status"
-          hint="Lifecycle state"
+          hint="Lifecycle state & actor"
         >
-          <div className="min-w-0">{statusSlot}</div>
+          <div className="min-w-0">
+            <BorrowQueueStatusActorCell request={request} />
+          </div>
         </DetailKpiShell>
         <DetailKpiShell
           variant="light"
@@ -290,17 +332,14 @@ export default function AdminBorrowRequestDetailContent({
         </div>
       </div>
 
-      {(request.approvedByActor ||
-        request.returnedByActor ||
-        request.borrowedBy ||
-        request.returnedBy) && (
+      {showActors ? (
         <div className="admin-panel space-y-4">
           <TicketSectionHeader
             icon={<CheckCircle className="size-4" />}
             title="Lifecycle actors"
-            subtitle="Approver and returner attribution"
+            subtitle="Approver, returner, and canceler attribution"
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <p className={FIELD_LABEL_TEXT}>Approved by</p>
               {request.approvedByActor ? (
@@ -329,22 +368,105 @@ export default function AdminBorrowRequestDetailContent({
                 </p>
               )}
             </div>
+            <div>
+              <p className={FIELD_LABEL_TEXT}>Cancelled by</p>
+              {request.cancelledByActor ? (
+                <PersonAttribution
+                  person={request.cancelledByActor}
+                  href={`/admin/users/${request.cancelledByActor.id}`}
+                  variant="light"
+                />
+              ) : (
+                <p className="text-sm text-gray-600">
+                  {request.status === "CANCELLED"
+                    ? request.updatedBy || "—"
+                    : "—"}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {request.notes ? (
-        <div className="admin-panel space-y-2">
-          <TicketSectionHeader
-            icon={<BookOpen className="size-4" />}
-            title="Notes"
-            subtitle="Internal borrow notes"
+      <div className="admin-panel space-y-4">
+        <TicketSectionHeader
+          icon={<ClipboardList className="size-4" />}
+          title="Record"
+          subtitle="Identifiers, emails, and lifecycle timestamps"
+        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <RecordField label="Request ID" value={request.id} mono />
+          <RecordField label="Book ID" value={request.bookId} mono />
+          <RecordField label="User ID" value={request.userId} mono />
+          <RecordField label="Status" value={request.status} />
+          <RecordField label="Fine" value={fineDisplay} />
+          <RecordField
+            label="Renewals"
+            value={String(request.renewalCount ?? 0)}
           />
+          <RecordField
+            label="Borrowed by (email)"
+            value={request.borrowedBy || "—"}
+          />
+          <RecordField
+            label="Returned by (email)"
+            value={request.returnedBy || "—"}
+          />
+          <RecordField
+            label="Updated by (email)"
+            value={request.updatedBy || "—"}
+          />
+          <RecordField
+            label="Requested"
+            value={formatMediumDate(request.createdAt)}
+          />
+          <RecordField
+            label="Borrow date"
+            value={formatMediumDate(request.borrowDate)}
+          />
+          <RecordField
+            label="Due date"
+            value={formatMediumDate(request.dueDate)}
+          />
+          <RecordField
+            label="Return date"
+            value={formatMediumDate(request.returnDate)}
+          />
+          <RecordField
+            label="Updated"
+            value={formatMediumDate(request.updatedAt)}
+          />
+          <RecordField
+            label="Last reminder"
+            value={formatMediumDate(request.lastReminderSent)}
+          />
+        </div>
+        <div>
+          <p className={FIELD_LABEL_TEXT}>Notes</p>
           <p className="whitespace-pre-wrap text-sm text-gray-700">
-            {request.notes}
+            {request.notes?.trim() ? request.notes : "—"}
           </p>
         </div>
-      ) : null}
+      </div>
+
+      <TicketActivityTimeline
+        events={auditEvents}
+        variant="light"
+        adminUserHref
+      />
+
+      <BorrowLifecycleAlertDialog
+        open={confirmKind !== null}
+        onOpenChange={(open) => {
+          if (!open && !busy) closeConfirm();
+        }}
+        kind={confirmKind}
+        request={request}
+        isPending={busy && actionKind === confirmKind}
+        onConfirm={() => {
+          if (confirmKind) runLifecycle(confirmKind);
+        }}
+      />
     </section>
   );
 }

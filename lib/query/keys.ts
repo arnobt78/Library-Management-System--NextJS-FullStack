@@ -140,5 +140,10 @@ export const queryKeys = {
     analyticsRoot: ["analytics"] as const,
     /** Sidebar muted counters (books/users/queues) — densify via patchAdminNavCounts */
     navCounts: ["admin-nav-counts"] as const,
+    /**
+     * Scalar WAITING reservation count — Borrow Queue KPI densify without
+     * seeding a partial admin.stats object (avoids overview zero-flash).
+     */
+    reservationsWaitingCount: ["admin-reservations-waiting"] as const,
   },
 } as const;

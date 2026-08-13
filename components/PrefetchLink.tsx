@@ -28,6 +28,8 @@ import {
   getSupportTicketDetail,
   getUserSupportTickets,
 } from "@/lib/services/supportTickets";
+import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
+import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 
 export type PrefetchKind =
   | "all-books"
@@ -198,28 +200,30 @@ export default function PrefetchLink({
       case "admin-user-detail": {
         const subjectUserId = adminUserDetailMatch?.[1];
         if (!subjectUserId) break;
-        // Prefer list-cache seed then network — densify must win (staleTime 0).
-        for (const [, page] of queryClient.getQueriesData<{
-          users?: Array<{
-            id: string;
-            fullName: string;
-            email: string;
-            universityId: number;
-            universityCard: string;
-            status: string | null;
-            role: string | null;
-            lastActivityDate: string | null;
-            lastLogin: Date | null;
-            createdAt: Date | null;
-          }>;
-        }>({ queryKey: queryKeys.users.adminRoot })) {
-          const hit = page?.users?.find((u) => u.id === subjectUserId);
-          if (hit) {
-            queryClient.setQueryData(
-              queryKeys.users.detail(subjectUserId),
-              hit,
-            );
-            break;
+        // Prefer list-cache seed only when detail cache is empty — never wipe
+        // densified User 360 header (statusReviewed*) with list-thin rows.
+        const userDetailKey = queryKeys.users.detail(subjectUserId);
+        const prevUser = queryClient.getQueryData(userDetailKey);
+        if (!prevUser) {
+          for (const [, page] of queryClient.getQueriesData<{
+            users?: Array<{
+              id: string;
+              fullName: string;
+              email: string;
+              universityId: number;
+              universityCard: string;
+              status: string | null;
+              role: string | null;
+              lastActivityDate: string | null;
+              lastLogin: Date | null;
+              createdAt: Date | null;
+            }>;
+          }>({ queryKey: queryKeys.users.adminRoot })) {
+            const hit = page?.users?.find((u) => u.id === subjectUserId);
+            if (hit) {
+              queryClient.setQueryData(userDetailKey, hit);
+              break;
+            }
           }
         }
         prefetchAdminUser360Caches(queryClient, subjectUserId);
@@ -228,22 +232,41 @@ export default function PrefetchLink({
       case "borrow-request-detail": {
         const recordId = borrowRequestDetailMatch?.[1];
         if (!recordId) break;
+        const detailKey = queryKeys.borrows.requestDetail(recordId);
         // Prefer list-cache seed then network — densify must win (staleTime 0).
+        // Preserve densified actors + Activity when list/API omit them.
+        const prevDetail =
+          queryClient.getQueryData<BorrowRecordWithDetails>(detailKey);
         for (const [, rows] of queryClient.getQueriesData<
-          Array<{ id: string }>
+          BorrowRecordWithDetails[]
         >({ queryKey: queryKeys.borrows.requestsRoot })) {
           const hit = rows?.find((r) => r.id === recordId);
           if (hit) {
             queryClient.setQueryData(
-              queryKeys.borrows.requestDetail(recordId),
-              hit,
+              detailKey,
+              mergeDensifiedDetail(prevDetail, hit, [
+                "auditEvents",
+                "approvedByActor",
+                "returnedByActor",
+                "cancelledByActor",
+              ]),
             );
             break;
           }
         }
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.borrows.requestDetail(recordId),
-          queryFn: () => getBorrowRequestDetail(recordId),
+          queryKey: detailKey,
+          queryFn: async () => {
+            const fresh = await getBorrowRequestDetail(recordId);
+            const cached =
+              queryClient.getQueryData<BorrowRecordWithDetails>(detailKey);
+            return mergeDensifiedDetail(cached, fresh, [
+              "auditEvents",
+              "approvedByActor",
+              "returnedByActor",
+              "cancelledByActor",
+            ]);
+          },
           staleTime: 0,
         });
         break;
@@ -253,21 +276,41 @@ export default function PrefetchLink({
           adminReviewDetailMatch?.[1] ??
           ADMIN_REVIEW_DETAIL_HREF.exec(path)?.[1];
         if (!reviewId) break;
+        const reviewKey = queryKeys.reviews.adminDetail(reviewId);
+        const prevReview =
+          queryClient.getQueryData<AdminBookReviewItem>(reviewKey);
         for (const [, rows] of queryClient.getQueriesData<
-          Array<{ id: string }>
+          AdminBookReviewItem[]
         >({ queryKey: queryKeys.reviews.adminRoot })) {
           const hit = rows?.find((r) => r.id === reviewId);
           if (hit) {
             queryClient.setQueryData(
-              queryKeys.reviews.adminDetail(reviewId),
-              hit,
+              reviewKey,
+              mergeDensifiedDetail(prevReview, hit, [
+                "reviewedBy",
+                "reviewedByName",
+                "reviewedByEmail",
+                "reviewedByUniversityCard",
+                "reviewedAt",
+              ]),
             );
             break;
           }
         }
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.reviews.adminDetail(reviewId),
-          queryFn: () => getAdminReviewDetail(reviewId),
+          queryKey: reviewKey,
+          queryFn: async () => {
+            const fresh = await getAdminReviewDetail(reviewId);
+            const cached =
+              queryClient.getQueryData<AdminBookReviewItem>(reviewKey);
+            return mergeDensifiedDetail(cached, fresh, [
+              "reviewedBy",
+              "reviewedByName",
+              "reviewedByEmail",
+              "reviewedByUniversityCard",
+              "reviewedAt",
+            ]);
+          },
           staleTime: 0,
         });
         break;
@@ -277,6 +320,9 @@ export default function PrefetchLink({
           supportTicketDetailMatch?.[1] ??
           SUPPORT_TICKET_DETAIL_HREF.exec(path)?.[1];
         if (!ticketId) break;
+        const ticketKey = queryKeys.tickets.detail(ticketId);
+        const prevTicket =
+          queryClient.getQueryData<SupportTicketDetail>(ticketKey);
         for (const root of [
           queryKeys.tickets.adminRoot,
           queryKeys.tickets.userRoot,
@@ -287,16 +333,41 @@ export default function PrefetchLink({
             const hit = rows?.find((r) => r.id === ticketId);
             if (hit) {
               queryClient.setQueryData(
-                queryKeys.tickets.detail(ticketId),
-                hit,
+                ticketKey,
+                mergeDensifiedDetail(
+                  prevTicket,
+                  hit as SupportTicketDetail,
+                  [
+                    "auditEvents",
+                    "replies",
+                    "notes",
+                    "updatedById",
+                    "updatedByName",
+                    "updatedByEmail",
+                    "updatedByUniversityCard",
+                  ],
+                ),
               );
               break;
             }
           }
         }
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.tickets.detail(ticketId),
-          queryFn: () => getSupportTicketDetail(ticketId),
+          queryKey: ticketKey,
+          queryFn: async () => {
+            const fresh = await getSupportTicketDetail(ticketId);
+            const cached =
+              queryClient.getQueryData<SupportTicketDetail>(ticketKey);
+            return mergeDensifiedDetail(cached, fresh, [
+              "auditEvents",
+              "replies",
+              "notes",
+              "updatedById",
+              "updatedByName",
+              "updatedByEmail",
+              "updatedByUniversityCard",
+            ]);
+          },
           staleTime: 0,
         });
         break;

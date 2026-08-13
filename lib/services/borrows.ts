@@ -114,6 +114,18 @@ export interface BorrowRecordWithDetails extends BorrowRecord {
     email: string;
     universityCard: string | null;
   } | null;
+  /** Reject densify actor (admin soft-cancel); optional until list refresh. */
+  cancelledByActor?: {
+    id: string;
+    fullName: string;
+    email: string;
+    universityCard: string | null;
+  } | null;
+  /**
+   * Admin Activity timeline (SSR seed + borrow.lifecycle densify).
+   * List/API payloads omit; detail soft-nav must preserve cached events.
+   */
+  auditEvents?: TicketActivityEvent[];
 }
 
 /**

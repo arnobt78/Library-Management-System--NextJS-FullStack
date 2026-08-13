@@ -45,5 +45,7 @@ export function decisionActorByTone(
   options?: { withdrawn?: boolean },
 ): string {
   if (options?.withdrawn) return "text-slate-500";
-  return status === "REJECTED" ? "text-rose-600" : "text-emerald-600";
+  return status === "REJECTED" || status === "CANCELLED"
+    ? "text-rose-600"
+    : "text-emerald-600";
 }

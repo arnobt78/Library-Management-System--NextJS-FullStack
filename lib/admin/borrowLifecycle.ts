@@ -75,7 +75,8 @@ async function approveWithTransaction(
     .update(borrowRecords)
     .set({
       status: "BORROWED",
-      borrowedBy: record.userEmail,
+      // Issuer/admin email — Status & Actor joins borrowed_by → approvedByActor.
+      borrowedBy: actor.email,
       dueDate: getDueDate(),
       updatedAt: new Date(),
       updatedBy: actor.email,
