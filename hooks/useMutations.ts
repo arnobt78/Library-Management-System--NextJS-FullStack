@@ -143,20 +143,36 @@ import {
 } from "@/lib/utils/patchBorrowCaches";
 import { applyReturnInventoryDensify } from "@/lib/utils/applyReturnInventoryDensify";
 import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
+import {
+  resolveActivityActor,
+  type ActivityActorFields,
+} from "@/lib/admin/resolveDecisionActor";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 // BookParams is a global type from types.d.ts, no import needed
 
-/** Session actor fields for Activity History densify (may be null in admin trees). */
+/**
+ * Activity densify actor — SSR decisionActor card preferred (JWT has no card).
+ * Parent: Activity avatar densify fix
+ */
 function activityActorFromSession(
   session: { user?: SessionUser } | null | undefined,
-) {
-  const su = session?.user;
-  if (!su) return {};
-  return {
-    actorId: su.id ?? null,
-    actorName: su.name?.trim() || null,
-    actorEmail: su.email ?? null,
-    actorUniversityCard: null as string | null,
-  };
+  decisionActor?: {
+    id?: string | null;
+    fullName?: string | null;
+    email?: string | null;
+    universityCard?: string | null;
+  } | null,
+): ActivityActorFields | Record<string, never> {
+  const normalized: AdminRequestReviewer | null =
+    decisionActor?.email && (decisionActor.fullName || decisionActor.email)
+      ? {
+          id: decisionActor.id ?? null,
+          fullName: decisionActor.fullName?.trim() || "Admin",
+          email: decisionActor.email,
+          universityCard: decisionActor.universityCard ?? null,
+        }
+      : null;
+  return resolveActivityActor(session?.user, normalized);
 }
 
 /** Session/SSR actor for borrow approve/return densify (email fields + PersonAttribution). */
@@ -1452,7 +1468,7 @@ export const useApproveBorrow = () => {
             baselines,
           );
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
             action: "UPDATE",
             entityType: "borrow",
             entityId: variables.recordId,
@@ -1469,7 +1485,7 @@ export const useApproveBorrow = () => {
               status: "BORROWED",
               ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
             },
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
           });
         },
       });
@@ -1651,7 +1667,7 @@ export const useRejectBorrow = () => {
             baselines,
           );
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
             action: "UPDATE",
             entityType: "borrow",
             entityId: variables.recordId,
@@ -1668,7 +1684,7 @@ export const useRejectBorrow = () => {
               status: "CANCELLED",
               ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
             },
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
           });
         },
       });
@@ -2023,7 +2039,7 @@ export const useReturnBook = () => {
             offeredReservationId: data?.offeredReservationId,
           });
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
             action: "UPDATE",
             entityType: "borrow",
             entityId: variables.recordId,
@@ -2040,7 +2056,7 @@ export const useReturnBook = () => {
               status: "RETURNED",
               ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
             },
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
           });
         },
       });
@@ -3728,7 +3744,7 @@ export const useCreateSupportTicket = () => {
           densifyTicketDetailAudit(queryClient, {
             ticketId: ticket.id,
             action: "CREATE",
-            ...actor,
+            ...activityActorFromSession(session),
             details: { subject: ticket.subject },
           });
         },
@@ -3759,10 +3775,13 @@ export const useUpdateSupportTicket = () => {
   return useMutation({
     mutationFn: async ({
       ticketId,
+      decisionActor: _decisionActor,
       ...input
-    }: { ticketId: string } & UpdateTicketInput) =>
-      updateSupportTicket(ticketId, input),
-    onMutate: async ({ ticketId, ...input }) => {
+    }: {
+      ticketId: string;
+      decisionActor?: AdminRequestReviewer | null;
+    } & UpdateTicketInput) => updateSupportTicket(ticketId, input),
+    onMutate: async ({ ticketId, decisionActor: _da, ...input }) => {
       const key = queryKeys.tickets.detail(ticketId);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<SupportTicketDetail>(key);
@@ -3779,7 +3798,7 @@ export const useUpdateSupportTicket = () => {
         previousPriority: previous?.priority ?? null,
       };
     },
-    onSuccess: async (data, _variables, context) => {
+    onSuccess: async (data, variables, context) => {
       const previousStatus =
         context?.previousStatus ?? findCachedTicketStatus(queryClient, data.id);
       const previousPriority = context?.previousPriority ?? null;
@@ -3793,7 +3812,10 @@ export const useUpdateSupportTicket = () => {
             baselines,
             previousPriority,
           );
-          const actor = activityActorFromSession(session);
+          const actor = activityActorFromSession(
+            session,
+            variables.decisionActor,
+          );
           const details = {
             subject: data.subject,
             ...(data.status ? { status: data.status } : {}),
@@ -3834,7 +3856,13 @@ export const useDeleteSupportTicket = () => {
   const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: async ({ ticketId }: { ticketId: string }) => {
+    mutationFn: async ({
+      ticketId,
+      decisionActor: _decisionActor,
+    }: {
+      ticketId: string;
+      decisionActor?: AdminRequestReviewer | null;
+    }) => {
       const previousStatus = findCachedTicketStatus(queryClient, ticketId);
       const detail = queryClient.getQueryData<SupportTicketDetail>(
         queryKeys.tickets.detail(ticketId),
@@ -3848,13 +3876,10 @@ export const useDeleteSupportTicket = () => {
         subject: detail?.subject ?? null,
       };
     },
-    onSuccess: async ({
-      ticketId,
-      previousStatus,
-      previousPriority,
-      userId,
-      subject,
-    }) => {
+    onSuccess: async (
+      { ticketId, previousStatus, previousPriority, userId, subject },
+      variables,
+    ) => {
       await commitMutationCache(queryClient, "ticket.write", {
         snapshot: snapshotTicketListBaselines,
         densify: (baselines) => {
@@ -3867,7 +3892,7 @@ export const useDeleteSupportTicket = () => {
             previousPriority,
           );
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
             action: "DELETE",
             entityType: "ticket",
             entityId: ticketId,
@@ -3892,8 +3917,15 @@ export const useCreateSupportTicketReply = () => {
   const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: async ({ ticketId, body }: { ticketId: string; body: string }) =>
-      createSupportTicketReply(ticketId, body),
+    mutationFn: async ({
+      ticketId,
+      body,
+      decisionActor: _decisionActor,
+    }: {
+      ticketId: string;
+      body: string;
+      decisionActor?: AdminRequestReviewer | null;
+    }) => createSupportTicketReply(ticketId, body),
     onSuccess: async (replies, variables) => {
       const detail = queryClient.getQueryData<SupportTicketDetail>(
         queryKeys.tickets.detail(variables.ticketId),
@@ -3908,7 +3940,10 @@ export const useCreateSupportTicketReply = () => {
             detail?.userId ?? null,
             baselines,
           );
-          const actor = activityActorFromSession(session);
+          const actor = activityActorFromSession(
+            session,
+            variables.decisionActor,
+          );
           const details = {
             ...(detail?.subject ? { subject: detail.subject } : {}),
             reply: true,

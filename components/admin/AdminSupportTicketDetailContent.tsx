@@ -19,6 +19,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import {
   AlertDialog,
@@ -48,19 +49,27 @@ import SupportTicketDialog, {
   type AssignableAdminOption,
 } from "@/components/support-tickets/SupportTicketDialog";
 import SupportTicketReplyThread from "@/components/support-tickets/SupportTicketReplyThread";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
 
 export default function AdminSupportTicketDetailContent({
   initialTicket,
   assignableAdmins,
   currentUserId,
   initialAuditEvents = [],
+  currentAdmin = null,
 }: {
   initialTicket: SupportTicketDetail;
   assignableAdmins: AssignableAdminOption[];
   currentUserId: string;
   initialAuditEvents?: TicketActivityEvent[];
+  /** SSR DB actor — Activity densify universityCard (no Robohash bounce). */
+  currentAdmin?: AdminRequestReviewer | null;
 }) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const decisionActor =
+    resolveDecisionActor(currentAdmin, session?.user) ?? undefined;
   const handleBack = useBackWithRefresh(
     "ticket.write",
     "/admin/support-tickets",
@@ -90,7 +99,7 @@ export default function AdminSupportTicketDetailContent({
 
   const handleDelete = () => {
     deleteMutation.mutate(
-      { ticketId: ticket.id },
+      { ticketId: ticket.id, decisionActor },
       { onSuccess: () => router.push("/admin/support-tickets") },
     );
   };
@@ -239,14 +248,12 @@ export default function AdminSupportTicketDetailContent({
           <TicketSectionHeader
             variant="light"
             icon={<Users className="size-5" />}
-            title="Ticket parties"
+            title="Ticket Parties"
             subtitle="Requester, assignee, and timeline"
             className="mb-0"
           />
           <div className="space-y-1">
-            <p className={FIELD_LABEL_TEXT}>
-              Requester
-            </p>
+            <p className={FIELD_LABEL_TEXT}>Requester</p>
             <PersonAttribution
               layout="stack"
               size={36}
@@ -260,9 +267,7 @@ export default function AdminSupportTicketDetailContent({
             />
           </div>
           <div className="space-y-1">
-            <p className={FIELD_LABEL_TEXT}>
-              Assigned To
-            </p>
+            <p className={FIELD_LABEL_TEXT}>Assigned To</p>
             {ticket.assignedToId && ticket.assignedToName ? (
               <PersonAttribution
                 layout="stack"
@@ -296,7 +301,7 @@ export default function AdminSupportTicketDetailContent({
           <TicketSectionHeader
             variant="light"
             icon={<FileText className="size-5" />}
-            title="Description"
+            title="Ticket Description"
             subtitle="Full message from the requester"
             className="mb-0"
           />
@@ -307,7 +312,11 @@ export default function AdminSupportTicketDetailContent({
         </div>
       </div>
 
-      <TicketInternalNotesCard ticketId={ticket.id} notes={ticket.notes} />
+      <TicketInternalNotesCard
+        ticketId={ticket.id}
+        notes={ticket.notes}
+        decisionActor={decisionActor}
+      />
 
       <TicketActivityTimeline
         events={activityEvents}
@@ -327,6 +336,7 @@ export default function AdminSupportTicketDetailContent({
           replies={ticket.replies}
           currentUserId={currentUserId}
           disabled={ticket.status === "CLOSED"}
+          decisionActor={decisionActor}
         />
       </div>
 
@@ -343,6 +353,7 @@ export default function AdminSupportTicketDetailContent({
         assignableAdmins={assignableAdmins}
         isOpen={editOpen}
         onClose={() => setEditOpen(false)}
+        decisionActor={decisionActor}
       />
     </section>
   );

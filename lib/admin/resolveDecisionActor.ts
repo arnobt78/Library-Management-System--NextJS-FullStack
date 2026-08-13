@@ -33,3 +33,29 @@ export function resolveDecisionActor(
     universityCard: null,
   };
 }
+
+/** Activity History / ticket-detail audit densify actor fields. */
+export type ActivityActorFields = {
+  actorId: string | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  actorUniversityCard: string | null;
+};
+
+/**
+ * Prefer SSR decisionActor card; session name/email only when no SSR admin.
+ * Never invents universityCard (Robohash until real card is known).
+ */
+export function resolveActivityActor(
+  sessionUser: SessionActorUser | null | undefined,
+  decisionActor?: AdminRequestReviewer | null,
+): ActivityActorFields | Record<string, never> {
+  const resolved = resolveDecisionActor(decisionActor, sessionUser);
+  if (!resolved) return {};
+  return {
+    actorId: resolved.id ?? null,
+    actorName: resolved.fullName,
+    actorEmail: resolved.email,
+    actorUniversityCard: resolved.universityCard ?? null,
+  };
+}

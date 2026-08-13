@@ -99,6 +99,10 @@ function makeRequest(
     bookAvailableCopies: overrides.bookAvailableCopies,
     bookTotalCopies: overrides.bookTotalCopies,
     bookWaitingHolds: overrides.bookWaitingHolds,
+    approvedByActor: overrides.approvedByActor,
+    returnedByActor: overrides.returnedByActor,
+    cancelledByActor: overrides.cancelledByActor,
+    auditEvents: overrides.auditEvents,
   };
 }
 
@@ -551,26 +555,39 @@ describe("patchBorrowCaches", () => {
     expect(next?.cancelledByActor).toEqual(actor);
   });
 
-  it("prependBorrowAuditEvent cold-seeds detail from list then prepends", () => {
+  it("prependBorrowAuditEvent enriches null card from approvedByActor", () => {
     const client = new QueryClient();
-    const row = makeRequest({ id: "c-2", status: "PENDING" });
-    client.setQueryData(queryKeys.borrows.requests({}), [row]);
+    client.setQueryData(
+      queryKeys.borrows.requestDetail("c-3"),
+      makeRequest({
+        id: "c-3",
+        status: "BORROWED",
+        approvedByActor: {
+          id: "admin-1",
+          fullName: "Test Admin",
+          email: "test@admin.com",
+          universityCard: "/cards/admin.jpg",
+        },
+        auditEvents: [],
+      }),
+    );
 
     prependBorrowAuditEvent(client, {
-      recordId: "c-2",
-      action: "CREATE",
-      details: { status: "PENDING", title: "Demo Book" },
-      actorId: "user-1",
-      actorName: "Test User",
-      actorEmail: "test@user.com",
+      recordId: "c-3",
+      action: "UPDATE",
+      details: { status: "RETURNED", title: "Demo Book" },
+      actorId: "admin-1",
+      actorName: "Test Admin",
+      actorEmail: "test@admin.com",
+      actorUniversityCard: null,
     });
 
     const next = client.getQueryData<BorrowRecordWithDetails>(
-      queryKeys.borrows.requestDetail("c-2"),
+      queryKeys.borrows.requestDetail("c-3"),
     );
-    expect(next?.id).toBe("c-2");
-    expect(next?.auditEvents?.[0]?.label).toBe("Borrow request created");
-    expect(next?.auditEvents?.[0]?.detail).toBe("Demo Book");
+    expect(next?.auditEvents?.[0]?.actorUniversityCard).toBe(
+      "/cards/admin.jpg",
+    );
   });
 
   it("renewal densify updates requestDetail dueDate and renewalCount", () => {

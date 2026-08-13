@@ -197,6 +197,18 @@ export function prependBorrowAuditEvent(
     actorUniversityCard?: string | null;
   },
 ): void {
+  const key = queryKeys.borrows.requestDetail(args.recordId);
+  const prev =
+    queryClient.getQueryData<BorrowRecordWithDetails>(key) ??
+    findCachedRequestRow(queryClient, args.recordId);
+  if (!prev) return;
+
+  const actorUniversityCard = resolveBorrowActorCard(
+    prev,
+    args.actorId,
+    args.actorUniversityCard,
+  );
+
   const event: TicketActivityEvent = {
     id: `densify-borrow-${args.recordId}-${Date.now()}`,
     kind: "audit",
@@ -205,22 +217,41 @@ export function prependBorrowAuditEvent(
     actorId: args.actorId ?? null,
     actorName: args.actorName ?? null,
     actorEmail: args.actorEmail ?? null,
-    actorUniversityCard: args.actorUniversityCard ?? null,
+    actorUniversityCard,
     detail:
       typeof args.details?.title === "string" ? args.details.title : null,
   };
-
-  const key = queryKeys.borrows.requestDetail(args.recordId);
-  const prev =
-    queryClient.getQueryData<BorrowRecordWithDetails>(key) ??
-    findCachedRequestRow(queryClient, args.recordId);
-  if (!prev) return;
 
   const existing = prev.auditEvents ?? [];
   queryClient.setQueryData<BorrowRecordWithDetails>(key, {
     ...prev,
     auditEvents: [event, ...existing],
   });
+}
+
+/** Prefer passed card; else reuse sibling audit / issuer actors for same actorId. */
+function resolveBorrowActorCard(
+  prev: BorrowRecordWithDetails,
+  actorId: string | null | undefined,
+  passed: string | null | undefined,
+): string | null {
+  if (passed) return passed;
+  if (!actorId) return null;
+  for (const e of prev.auditEvents ?? []) {
+    if (e.actorId === actorId && e.actorUniversityCard) {
+      return e.actorUniversityCard;
+    }
+  }
+  for (const actor of [
+    prev.approvedByActor,
+    prev.returnedByActor,
+    prev.cancelledByActor,
+  ]) {
+    if (actor?.id === actorId && actor.universityCard) {
+      return actor.universityCard;
+    }
+  }
+  return null;
 }
 
 function findCachedRequestRow(

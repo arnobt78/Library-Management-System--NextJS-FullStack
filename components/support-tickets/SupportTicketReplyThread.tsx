@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import UserAvatar from "@/components/UserAvatar";
 import { useCreateSupportTicketReply } from "@/hooks/useMutations";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import {
   ATTRIBUTION_NAME_STATIC_DARK,
   ATTRIBUTION_NAME_STATIC_LIGHT,
@@ -72,6 +73,8 @@ interface SupportTicketReplyThreadProps {
   disabled?: boolean;
   /** light = admin panel; dark = user glass detail */
   variant?: "light" | "dark";
+  /** SSR densify actor — Activity universityCard (admin detail). */
+  decisionActor?: AdminRequestReviewer | null;
 }
 
 export default function SupportTicketReplyThread({
@@ -80,6 +83,7 @@ export default function SupportTicketReplyThread({
   currentUserId,
   disabled,
   variant = "light",
+  decisionActor,
 }: SupportTicketReplyThreadProps) {
   const [body, setBody] = useState("");
   const replyMutation = useCreateSupportTicketReply();
@@ -91,7 +95,7 @@ export default function SupportTicketReplyThread({
     if (!trimmed || replyMutation.isPending) return;
 
     replyMutation.mutate(
-      { ticketId, body: trimmed },
+      { ticketId, body: trimmed, decisionActor },
       { onSuccess: () => setBody("") },
     );
   };

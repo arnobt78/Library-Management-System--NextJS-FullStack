@@ -69,6 +69,7 @@ function ticketAuditLabel(
 /**
  * Prepend an audit row onto ticket detail RQ (Activity timeline densify).
  * Preserves SSR-seeded audits; soft-nav must not freeze on initialAuditEvents alone.
+ * Fills actorUniversityCard from sibling audits/replies when densify caller omitted card.
  */
 export function densifyTicketDetailAudit(
   queryClient: QueryClient,
@@ -83,6 +84,14 @@ export function densifyTicketDetailAudit(
   },
 ): void {
   const at = new Date().toISOString();
+  const key = queryKeys.tickets.detail(args.ticketId);
+  const prev = queryClient.getQueryData<SupportTicketDetail>(key);
+  const actorUniversityCard = resolveTicketActorCard(
+    prev,
+    args.actorId,
+    args.actorUniversityCard,
+  );
+
   const event: TicketActivityEvent = {
     id: `densify-ticket-audit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     kind: "audit",
@@ -91,19 +100,43 @@ export function densifyTicketDetailAudit(
     actorId: args.actorId ?? null,
     actorName: args.actorName ?? null,
     actorEmail: args.actorEmail ?? null,
-    actorUniversityCard: args.actorUniversityCard ?? null,
+    actorUniversityCard,
     detail:
       typeof args.details?.subject === "string" ? args.details.subject : null,
   };
 
-  queryClient.setQueryData<SupportTicketDetail | undefined>(
-    queryKeys.tickets.detail(args.ticketId),
-    (prev) => {
-      if (!prev) return prev;
-      const existing = prev.auditEvents ?? [];
-      return { ...prev, auditEvents: [event, ...existing] };
-    },
-  );
+  queryClient.setQueryData<SupportTicketDetail | undefined>(key, (current) => {
+    if (!current) return current;
+    const existing = current.auditEvents ?? [];
+    return { ...current, auditEvents: [event, ...existing] };
+  });
+}
+
+/** Prefer passed card; else reuse sibling Activity / reply / updater card for same actorId. */
+function resolveTicketActorCard(
+  prev: SupportTicketDetail | undefined,
+  actorId: string | null | undefined,
+  passed: string | null | undefined,
+): string | null {
+  if (passed) return passed;
+  if (!actorId || !prev) return null;
+  for (const e of prev.auditEvents ?? []) {
+    if (e.actorId === actorId && e.actorUniversityCard) {
+      return e.actorUniversityCard;
+    }
+  }
+  for (const r of prev.replies ?? []) {
+    if (r.userId === actorId && r.userUniversityCard) {
+      return r.userUniversityCard;
+    }
+  }
+  if (prev.updatedById === actorId && prev.updatedByUniversityCard) {
+    return prev.updatedByUniversityCard;
+  }
+  if (prev.userId === actorId && prev.userUniversityCard) {
+    return prev.userUniversityCard;
+  }
+  return null;
 }
 
 /** Write detail while preserving densified/SSR auditEvents (API omits the field). */

@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Borrow Queue Book DNA tip; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Activity avatar densify fix; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Queue Book DNA + inventory densify ready to tip; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Activity avatar densify Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `8ceec41` (Borrow Queue inventory DNA + Book Details panel)
 - Latest HEAD: `8ceec41`
 - Started: 2026-08-01
-- Last updated: 2026-08-13 (Queue Book DNA + inventory densify commit)
+- Last updated: 2026-08-14 (Activity avatar densify fix)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,16 +25,36 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
 
+## Reconciliation snapshot (2026-08-14, Activity avatar densify + detail DNA commit)
+
+Verified facts:
+- Borrow/Review detail DNA + Activity avatar densify (`resolveActivityActor`, SSR currentAdmin, sibling-card enrich).
+- Prove: typecheck + lint + unit tests PASS; owner commit+push authorized.
+
+### Next Action
+
+**Human-Decision:** soft-nav ticket Activity + borrow detail after tip bind; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Activity avatar densify fix)
+
+Verified facts:
+- `resolveActivityActor` prefers SSR decisionActor universityCard; ticket detail passes currentAdmin into update/reply/delete densify.
+- `densifyTicketDetailAudit` / `prependBorrowAuditEvent` enrich null card from sibling reply/issuer.
+- Prove: typecheck + lint + unit tests PASS.
+
+## Reconciliation snapshot (2026-08-14, Borrow + Review detail DNA polish)
+
+Verified facts:
+- Borrow detail: ReviewBookIdentity header + BorrowLifecycleDateMeta; Inventory KPI + 4 stats KPIs; About Book + Borrower And Issuer (actors folded).
+- Review detail: same Book DNA header + ReviewDateMeta.
+- Prove: typecheck + lint PASS.
+
 ## Reconciliation snapshot (2026-08-13, Queue Book inventory line + commit)
 
 Verified facts:
 - AdminBookIdentityCell: Available/Total inline with genre/star (availability tones); densified copies.
 - Dialog DNA: genre+star + Available/Total all kinds (Reject info-only); Book Details DNA + parallel SSR stats in same tip.
 - Prove: typecheck + lint PASS; owner commit+push authorized.
-
-### Next Action
-
-**Human-Decision:** soft-nav Borrow Queue after tip bind; C2 Gate 2 still EvalGate-blocked.
 
 ## Reconciliation snapshot (2026-08-13, Dialog DNA + kebab polish)
 

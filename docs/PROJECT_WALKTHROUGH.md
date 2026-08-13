@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-13 | Status: C2 Stage 4; Borrow Queue Book DNA + inventory densify; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-14 | Status: C2 Stage 4; Borrow+Review detail DNA polish; Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -42,7 +42,7 @@ Browser
 - People tables (2026-08-10): DataTable ticket sizing; `DecisionActorStack` (badge·by·actor·`DecisionDateMeta`); `CopyableText`/`UserRoleBadge`; `statusReviewed*` join densify; queues FIFO-50 + period filter; Applicant Requested/Registered under stack.
 - Cross-domain densify (2026-08-10): `review.write` RSC `/admin`; AdminBooksList prefer densify-empty over SSR; ticket detail `auditEvents` + `densifyTicketDetailAudit`; PrefetchLink my-profile/`book-detail` `staleTime: 0`.
 - Holds/waitlist densify (2026-08-13): `loadUserReservationsSsr` (home/book/profile); Waitlisted CTA; create returns `queuePosition`+`createdAt`; full meta densify; Join Waitlist → `?tab=holds`; Cancel Request/Hold dialogs close on settle.
-- Borrow Queue densify (2026-08-13): shared `loadAllBorrowRequestsRows`; LIGHT_ALERT lifecycle confirms (Available/Total all kinds; Reject info-only; genre+star); Book column inline Available/Total tones; Status & Issuer; detail `AdminBookDetailsPanel` + overlapped SSR stats; `syncBorrowRequestBookFields` / absolute Return densify; `mergeDensifiedDetail`; profile dark lifecycle dates; `seed:reset` = 17 books + 2 accounts.
+- Borrow Queue densify (2026-08-13/14): shared `loadAllBorrowRequestsRows`; LIGHT_ALERT lifecycle; Book column Available/Total; detail DNA header + Inventory/stats KPIs + About Book | Borrower And Issuer; absolute Return densify; Activity avatar densify via `resolveActivityActor` + SSR currentAdmin; `mergeDensifiedDetail`; `seed:reset` = 17 books + 2 accounts.
 
 ## Admin Stockly chrome (2026-08-07)
 

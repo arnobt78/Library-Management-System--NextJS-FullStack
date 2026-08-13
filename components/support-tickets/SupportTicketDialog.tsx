@@ -32,6 +32,7 @@ import {
   useCreateSupportTicket,
   useUpdateSupportTicket,
 } from "@/hooks/useMutations";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type {
   TicketPriority,
   TicketStatus,
@@ -72,6 +73,8 @@ interface SupportTicketDialogProps {
   onClose: () => void;
   onCreated?: (ticket: SupportTicketDetail) => void;
   onUpdated?: (ticket: SupportTicketDetail) => void;
+  /** SSR densify actor — Activity universityCard (admin detail). */
+  decisionActor?: AdminRequestReviewer | null;
 }
 
 type FormProps = Omit<SupportTicketDialogProps, "isOpen" | "onClose"> & {
@@ -93,6 +96,7 @@ function SupportTicketDialogForm({
   onClose,
   onCreated,
   onUpdated,
+  decisionActor,
 }: FormProps) {
   const isDark = variant === "dark";
   const PRIORITY_OPTIONS = ticketPriorityMultiOptions(isDark ? "dark" : "light");
@@ -133,6 +137,7 @@ function SupportTicketDialogForm({
           subject: trimmedSubject,
           description: trimmedDescription,
           priority,
+          decisionActor,
           ...(adminFields
             ? {
                 status,

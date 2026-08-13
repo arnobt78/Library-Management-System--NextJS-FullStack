@@ -2,10 +2,11 @@
 
 /**
  * Admin Borrow Queue detail — ticket/review shell:
- * Back+confirm CTAs → title+dates → KPI row → Book | Borrower →
- * Lifecycle actors → Record → Activity timeline.
+ * Back+confirm CTAs → Book DNA header + lifecycle date chips →
+ * KPI rows (Status/Inventory/Fine/Renewals + Borrow Statistics) →
+ * About Book | Borrower & Issuer → Record → Activity.
  * Densify via useApproveBorrow / useRejectBorrow / useReturnBook.
- * Parent: borrow detail gaps + record/history DNA
+ * Parent: Borrow + Review detail DNA polish
  */
 
 import { useState } from "react";
@@ -16,14 +17,21 @@ import {
   CircleDollarSign,
   CircleDot,
   ClipboardList,
+  Layers,
   Loader2,
+  Package,
+  RefreshCw,
   Undo2,
   UserRound,
   XCircle,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
-import { useBorrowRequestDetail } from "@/hooks/useQueries";
+import {
+  useBook,
+  useBookBorrowStats,
+  useBorrowRequestDetail,
+} from "@/hooks/useQueries";
 import {
   useApproveBorrow,
   useRejectBorrow,
@@ -32,9 +40,13 @@ import {
 import { LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { formatMediumDate } from "@/lib/ui/formatMediumDate";
+import { getBookAvailabilityStatus } from "@/lib/books/bookDetailsViewModel";
 import { cn } from "@/lib/utils";
 import PersonAttribution from "@/components/PersonAttribution";
+import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 import { AdminBookDetailsPanel } from "@/components/admin/AdminBookDetailsPanel";
+import { BorrowLifecycleDateMeta } from "@/components/admin/BorrowLifecycleDateMeta";
+import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
 import { BorrowQueueStatusActorCell } from "@/components/admin/BorrowQueueStatusActorCell";
 import {
   BorrowLifecycleAlertDialog,
@@ -42,13 +54,18 @@ import {
 } from "@/components/admin/BorrowLifecycleAlertDialog";
 import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
 import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
-import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import CopyableText from "@/components/ui/CopyableText";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 import type { BookBorrowStats } from "@/lib/services/books";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
+
+const AVAIL_TONE: Record<"emerald" | "amber" | "rose", string> = {
+  emerald: "text-emerald-700",
+  amber: "text-amber-700",
+  rose: "text-rose-700",
+};
 
 function RecordField({
   label,
@@ -77,7 +94,7 @@ export default function AdminBorrowRequestDetailContent({
   currentAdmin = null,
 }: {
   initialRequest: BorrowRecordWithDetails;
-  /** SSR book borrow stats — seeds AdminBookDetailsPanel / useBookBorrowStats. */
+  /** SSR book borrow stats — seeds KPI row 2 + About Book panel. */
   initialBookStats?: BookBorrowStats | null;
   /** SSR DB actor — preferred over useSession for lifecycle densify card. */
   currentAdmin?: AdminRequestReviewer | null;
@@ -95,6 +112,12 @@ export default function AdminBorrowRequestDetailContent({
     initialRequest,
     ssrTimestamp,
   );
+  const { data: liveBook } = useBook(request.bookId, undefined);
+  const { data: stats } = useBookBorrowStats(
+    request.bookId,
+    initialBookStats ?? undefined,
+  );
+
   const approveMutation = useApproveBorrow();
   const rejectMutation = useRejectBorrow();
   const returnMutation = useReturnBook();
@@ -157,14 +180,24 @@ export default function AdminBorrowRequestDetailContent({
     ? `$${Number(request.fineAmount).toFixed(2)}`
     : "$0.00";
 
-  const showActors = Boolean(
-    request.approvedByActor ||
-      request.returnedByActor ||
-      request.cancelledByActor ||
-      request.borrowedBy ||
-      request.returnedBy ||
-      (request.status === "CANCELLED" && request.updatedBy),
-  );
+  const totalCopies = liveBook?.totalCopies ?? request.bookTotalCopies ?? null;
+  const availableCopies =
+    liveBook?.availableCopies ?? request.bookAvailableCopies ?? null;
+  const hasInventory =
+    typeof totalCopies === "number" &&
+    Number.isFinite(totalCopies) &&
+    typeof availableCopies === "number" &&
+    Number.isFinite(availableCopies);
+  const availability = hasInventory
+    ? getBookAvailabilityStatus(availableCopies, totalCopies)
+    : null;
+
+  const totalBorrows =
+    stats?.totalBorrows ?? initialBookStats?.totalBorrows ?? 0;
+  const activeBorrows =
+    stats?.activeBorrows ?? initialBookStats?.activeBorrows ?? 0;
+  const returnedBorrows =
+    stats?.returnedBorrows ?? initialBookStats?.returnedBorrows ?? 0;
 
   const auditEvents = request.auditEvents ?? [];
 
@@ -241,24 +274,38 @@ export default function AdminBorrowRequestDetailContent({
         </div>
       </div>
 
-      <div className="space-y-1">
-        <h1 className="text-xl font-medium text-dark-400 sm:text-2xl">
-          {request.bookTitle}
-        </h1>
-        <TicketDateMeta
+      {/* Book DNA header + lifecycle date chips */}
+      <div className="admin-panel w-full space-y-2">
+        <ReviewBookIdentity
+          variant="light"
+          title={request.bookTitle}
+          author={request.bookAuthor}
+          coverUrl={request.bookCoverUrl}
+          coverColor={request.bookCoverColor}
+          bookId={request.bookId}
+          genre={request.bookGenre}
+          bookRating={request.bookRating}
+          showMeta
+          catalogRatingMode="number"
+        />
+        <BorrowLifecycleDateMeta
+          status={request.status}
           createdAt={request.createdAt}
+          borrowDate={request.borrowDate}
           updatedAt={request.updatedAt}
-          createdLabel="Requested"
-          updatedLabel="Updated"
+          dueDate={request.dueDate}
+          returnDate={request.returnDate}
+          variant="light"
         />
       </div>
 
+      {/* Row 1 — Status · Inventory · Fine · Renewals */}
       <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DetailKpiShell
           variant="light"
           icon={<CircleDot className="size-4" />}
           label="Status"
-          hint="Lifecycle state & actor"
+          hint="Lifecycle state and actor"
         >
           <div className="min-w-0">
             <BorrowQueueStatusActorCell request={request} />
@@ -266,19 +313,39 @@ export default function AdminBorrowRequestDetailContent({
         </DetailKpiShell>
         <DetailKpiShell
           variant="light"
-          icon={<BookOpen className="size-4" />}
-          label="Genre"
-          hint="Catalog category"
+          icon={<Package className="size-4" />}
+          label="Inventory"
+          hint="Catalog stock levels"
         >
-          <p className="text-base font-medium text-dark-400">
-            {request.bookGenre || "—"}
-          </p>
+          {hasInventory && availability ? (
+            <div className="space-y-1 leading-none">
+              <p className="text-sm text-gray-600">
+                Total Copies{" "}
+                <span className="font-medium tabular-nums text-dark-400">
+                  {totalCopies}
+                </span>
+              </p>
+              <p className="text-sm text-gray-600">
+                Available Copies{" "}
+                <span
+                  className={cn(
+                    "font-medium tabular-nums",
+                    AVAIL_TONE[availability.tone],
+                  )}
+                >
+                  {availableCopies}
+                </span>
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">—</p>
+          )}
         </DetailKpiShell>
         <DetailKpiShell
           variant="light"
           icon={<CircleDollarSign className="size-4" />}
-          label="Fine"
-          hint="Accrued balance"
+          label="Fine Balance"
+          hint="Accrued balance on this loan"
         >
           <p className="text-lg font-medium tabular-nums text-dark-400">
             {fineDisplay}
@@ -286,12 +353,61 @@ export default function AdminBorrowRequestDetailContent({
         </DetailKpiShell>
         <DetailKpiShell
           variant="light"
-          icon={<UserRound className="size-4" />}
-          label="Renewals"
+          icon={<RefreshCw className="size-4" />}
+          label="Renewal Count"
           hint="Extensions on this loan"
         >
           <p className="text-lg font-medium tabular-nums text-dark-400">
             {request.renewalCount ?? 0}
+          </p>
+        </DetailKpiShell>
+      </div>
+
+      {/* Row 2 — Borrow Statistics */}
+      <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <DetailKpiShell
+          variant="light"
+          icon={<BookOpen className="size-4" />}
+          label="Total Times Borrowed"
+          hint="Lifetime borrow count for this book"
+        >
+          <p className="text-lg font-medium tabular-nums text-dark-400">
+            {totalBorrows}
+          </p>
+        </DetailKpiShell>
+        <DetailKpiShell
+          variant="light"
+          icon={<Layers className="size-4" />}
+          label="Currently Borrowed"
+          hint="Active loans for this title"
+        >
+          <p className="text-lg font-medium tabular-nums text-dark-400">
+            {activeBorrows}
+          </p>
+        </DetailKpiShell>
+        <DetailKpiShell
+          variant="light"
+          icon={<CircleDot className="size-4" />}
+          label="Availability Status"
+          hint="Stock health cue"
+        >
+          <p
+            className={cn(
+              "text-base font-medium",
+              availability ? AVAIL_TONE[availability.tone] : "text-gray-500",
+            )}
+          >
+            {availability?.label ?? "—"}
+          </p>
+        </DetailKpiShell>
+        <DetailKpiShell
+          variant="light"
+          icon={<Undo2 className="size-4" />}
+          label="Successfully Returned"
+          hint="Completed returns for this book"
+        >
+          <p className="text-lg font-medium tabular-nums text-dark-400">
+            {returnedBorrows}
           </p>
         </DetailKpiShell>
       </div>
@@ -302,109 +418,136 @@ export default function AdminBorrowRequestDetailContent({
           initialStats={initialBookStats}
         />
 
-        <div className="admin-panel space-y-3">
-          <TicketSectionHeader
-            icon={<UserRound className="size-4" />}
-            title="Borrower"
-            subtitle="Account that placed the request"
-          />
-          <PersonAttribution
-            person={{
-              id: request.userId,
-              fullName: request.userName,
-              email: request.userEmail,
-              universityCard: request.userUniversityCard ?? null,
-            }}
-            href={`/admin/users/${request.userId}`}
-            variant="light"
-          />
-          <p className={cn(FIELD_LABEL_TEXT, "pt-1")}>University ID</p>
-          <p className="text-sm text-gray-700">{request.userUniversityId}</p>
-        </div>
-      </div>
-
-      {showActors ? (
+        {/* Borrower & Issuer — review About Book DNA */}
         <div className="admin-panel space-y-4">
           <TicketSectionHeader
-            icon={<CheckCircle className="size-4" />}
-            title="Lifecycle actors"
-            subtitle="Approver, returner, and canceler attribution"
+            icon={<UserRound className="size-4" />}
+            title="Borrower & Issuer"
+            subtitle="Requester, lifecycle dates, and decision actors"
+            className="mb-0"
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <p className={FIELD_LABEL_TEXT}>Approved by</p>
-              {request.approvedByActor ? (
-                <PersonAttribution
-                  person={request.approvedByActor}
-                  href={`/admin/users/${request.approvedByActor.id}`}
-                  variant="light"
-                />
-              ) : (
-                <p className="text-sm text-gray-600">
-                  {request.borrowedBy || "—"}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className={FIELD_LABEL_TEXT}>Returned by</p>
-              {request.returnedByActor ? (
-                <PersonAttribution
-                  person={request.returnedByActor}
-                  href={`/admin/users/${request.returnedByActor.id}`}
-                  variant="light"
-                />
-              ) : (
-                <p className="text-sm text-gray-600">
-                  {request.returnedBy || "—"}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className={FIELD_LABEL_TEXT}>Cancelled by</p>
-              {request.cancelledByActor ? (
-                <PersonAttribution
-                  person={request.cancelledByActor}
-                  href={`/admin/users/${request.cancelledByActor.id}`}
-                  variant="light"
-                />
-              ) : (
-                <p className="text-sm text-gray-600">
-                  {request.status === "CANCELLED"
-                    ? request.updatedBy || "—"
-                    : "—"}
-                </p>
-              )}
+
+          <div className="space-y-1">
+            <p className={FIELD_LABEL_TEXT}>Borrower</p>
+            <PersonAttribution
+              person={{
+                id: request.userId,
+                fullName: request.userName,
+                email: request.userEmail,
+                universityCard: request.userUniversityCard ?? null,
+              }}
+              href={`/admin/users/${request.userId}`}
+              variant="light"
+              layout="stack"
+              size={36}
+            />
+            <p className={cn(FIELD_LABEL_TEXT, "pt-2")}>University ID</p>
+            <p className="text-sm text-gray-700">{request.userUniversityId}</p>
+          </div>
+
+          <div className="space-y-1">
+            <p className={FIELD_LABEL_TEXT}>Lifecycle Dates</p>
+            <BorrowLifecycleDates
+              status={request.status}
+              createdAt={request.createdAt}
+              borrowDate={request.borrowDate}
+              updatedAt={request.updatedAt}
+              dueDate={request.dueDate}
+              returnDate={request.returnDate}
+              variant="light"
+              className="flex flex-col items-start gap-1"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <p className={FIELD_LABEL_TEXT}>Status</p>
+            <BorrowQueueStatusActorCell request={request} />
+          </div>
+
+          <div className="space-y-3">
+            <p className={FIELD_LABEL_TEXT}>Issuer</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <p className={cn(FIELD_LABEL_TEXT, "mb-1")}>Approved By</p>
+                {request.approvedByActor ? (
+                  <PersonAttribution
+                    person={request.approvedByActor}
+                    href={`/admin/users/${request.approvedByActor.id}`}
+                    variant="light"
+                    layout="stack"
+                    size={32}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    {request.borrowedBy || "—"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className={cn(FIELD_LABEL_TEXT, "mb-1")}>Returned By</p>
+                {request.returnedByActor ? (
+                  <PersonAttribution
+                    person={request.returnedByActor}
+                    href={`/admin/users/${request.returnedByActor.id}`}
+                    variant="light"
+                    layout="stack"
+                    size={32}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    {request.returnedBy || "—"}
+                  </p>
+                )}
+              </div>
+              <div className="sm:col-span-2">
+                <p className={cn(FIELD_LABEL_TEXT, "mb-1")}>Cancelled By</p>
+                {request.cancelledByActor ? (
+                  <PersonAttribution
+                    person={request.cancelledByActor}
+                    href={`/admin/users/${request.cancelledByActor.id}`}
+                    variant="light"
+                    layout="stack"
+                    size={32}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    {request.status === "CANCELLED"
+                      ? request.updatedBy || "—"
+                      : "—"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      ) : null}
+      </div>
 
       <div className="admin-panel space-y-4">
         <TicketSectionHeader
           icon={<ClipboardList className="size-4" />}
           title="Record"
-          subtitle="Identifiers, emails, and lifecycle timestamps"
+          subtitle="Identifiers, emails, and timestamps"
         />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <RecordField label="Request ID" value={request.id} mono />
           <RecordField label="Book ID" value={request.bookId} mono />
           <RecordField label="User ID" value={request.userId} mono />
           <RecordField label="Status" value={request.status} />
-          <RecordField label="Fine" value={fineDisplay} />
+          <RecordField label="Fine Balance" value={fineDisplay} />
           <RecordField
-            label="Renewals"
+            label="Renewal Count"
             value={String(request.renewalCount ?? 0)}
           />
           <RecordField
-            label="Borrowed by (email)"
+            label="Borrowed By Email"
             value={request.borrowedBy || "—"}
           />
           <RecordField
-            label="Returned by (email)"
+            label="Returned By Email"
             value={request.returnedBy || "—"}
           />
           <RecordField
-            label="Updated by (email)"
+            label="Updated By Email"
             value={request.updatedBy || "—"}
           />
           <RecordField
@@ -412,15 +555,15 @@ export default function AdminBorrowRequestDetailContent({
             value={formatMediumDate(request.createdAt)}
           />
           <RecordField
-            label="Borrow date"
+            label="Borrow Date"
             value={formatMediumDate(request.borrowDate)}
           />
           <RecordField
-            label="Due date"
+            label="Due Date"
             value={formatMediumDate(request.dueDate)}
           />
           <RecordField
-            label="Return date"
+            label="Return Date"
             value={formatMediumDate(request.returnDate)}
           />
           <RecordField
@@ -428,7 +571,7 @@ export default function AdminBorrowRequestDetailContent({
             value={formatMediumDate(request.updatedAt)}
           />
           <RecordField
-            label="Last reminder"
+            label="Last Reminder"
             value={formatMediumDate(request.lastReminderSent)}
           />
         </div>

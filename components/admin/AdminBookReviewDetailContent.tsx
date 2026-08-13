@@ -9,7 +9,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import PrefetchLink from "@/components/PrefetchLink";
 import {
   ArrowLeft,
   BookOpen,
@@ -37,7 +36,6 @@ import { useAdminReviewDetail } from "@/hooks/useQueries";
 import { useDeleteReview, useModerateReview } from "@/hooks/useMutations";
 import { LIGHT_ALERT, LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
-import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { cn } from "@/lib/utils";
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
@@ -128,9 +126,7 @@ export default function AdminBookReviewDetailContent({
         }
       : null;
 
-  const bookHref = `/books/${review.bookId}`;
-  const decided =
-    review.status === "APPROVED" || review.status === "REJECTED";
+  const decided = review.status === "APPROVED" || review.status === "REJECTED";
 
   // Status KPI / About — Privilege Recent DNA: badge+Submitted or DecisionActorStack
   const statusDecisionSlot = decided ? (
@@ -138,9 +134,7 @@ export default function AdminBookReviewDetailContent({
       status={review.status}
       badge={<ReviewStatusBadge status={review.status} />}
       actor={moderator}
-      actorHref={
-        review.reviewedBy ? `/admin/users/${review.reviewedBy}` : null
-      }
+      actorHref={review.reviewedBy ? `/admin/users/${review.reviewedBy}` : null}
       decidedAt={review.reviewedAt}
       showActor={Boolean(moderator)}
     />
@@ -235,15 +229,20 @@ export default function AdminBookReviewDetailContent({
         </AlertDialog>
       </div>
 
-      {/* Title + tracking dates */}
+      {/* Header: Book DNA + tracking dates (ticket/review shell) */}
       <div className="admin-panel w-full space-y-2">
-        <PrefetchLink
-          href={bookHref}
-          prefetch={false}
-          className={cn("block text-lg font-medium sm:text-xl", SKY_LINK_LIGHT)}
-        >
-          {review.bookTitle}
-        </PrefetchLink>
+        <ReviewBookIdentity
+          variant="light"
+          title={review.bookTitle}
+          author={review.bookAuthor}
+          coverUrl={review.bookCoverUrl}
+          coverColor={review.bookCoverColor}
+          bookId={review.bookId}
+          genre={review.bookGenre}
+          bookRating={review.bookRating}
+          showMeta
+          catalogRatingMode="number"
+        />
         <ReviewDateMeta
           createdAt={review.createdAt}
           updatedAt={review.updatedAt}
@@ -283,7 +282,7 @@ export default function AdminBookReviewDetailContent({
           <TicketSectionHeader
             variant="light"
             icon={<BookOpen className="size-5" />}
-            title="About book"
+            title="About Book"
             subtitle="Catalog identity, borrow dates, and reviewer"
             className="mb-0"
           />
@@ -306,9 +305,7 @@ export default function AdminBookReviewDetailContent({
             variant="light"
           />
           <div className="space-y-1">
-            <p className={FIELD_LABEL_TEXT}>
-              Reviewer
-            </p>
+            <p className={FIELD_LABEL_TEXT}>Reviewer</p>
             <PersonAttribution
               person={author}
               layout="stack"
@@ -327,7 +324,7 @@ export default function AdminBookReviewDetailContent({
           <TicketSectionHeader
             variant="light"
             icon={<FileText className="size-5" />}
-            title="Description"
+            title="Review Description"
             subtitle="Full review text from the borrower"
             className="mb-0"
           />

@@ -130,6 +130,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Borrow Queue Status & Issuer (2026-08-13): Borrower + `TicketDateMeta` Requested; drop Status col; `BorrowQueueStatusActorCell` (Pending/Cancelled/Borrowed+Approved+Due/Returned+Self-returned).
 - Borrow Queue Book DNA (2026-08-13): dialogs genre+star + Available/Total (Reject info-only); queue Book column inline Available/Total tones; kebab View Details → request detail; title → `/books/[id]`.
 - Borrow inventory + Book Details DNA (2026-08-13): `syncBorrowRequestBookFields` / absolute Return copies + `applyReturnInventoryDensify`; `bookDetailsViewModel` + `AdminBookDetailsPanel`; SSR `loadBookBorrowStats` overlapped with admin/audit.
+- Borrow + Review detail DNA (2026-08-14): header `ReviewBookIdentity` + `BorrowLifecycleDateMeta` / `ReviewDateMeta`; Inventory KPI + 4 borrow-stats KPIs; About Book + Borrower And Issuer card (actors folded).
+- Activity avatar densify (2026-08-14): `resolveActivityActor` + SSR `currentAdmin` on ticket detail; `densifyTicketDetailAudit` / `prependBorrowAuditEvent` enrich sibling card (no Robohash bounce).
 - Full demo seed + actor fix (2026-08-13): approve `borrowedBy=actor.email`; Self-cancelled rose / Self-returned emerald; later trimmed to books+2 accounts only (see Demo seed).
 - Borrow Queue actor flash + lifecycle confirms (2026-08-13): shared `loadAllBorrowRequestsRows` (SSR+API actor joins); LIGHT_ALERT Approve/Reject/Return until settle; densify survives invalidate refetch.
 - Borrow detail gaps + DNA (2026-08-13): detail confirms; Status KPI = `BorrowQueueStatusActorCell`; canceler + Record panel; Activity via `getBorrowAuditEvents` + `prependBorrowAuditEvent`; `cancelledByActor` on `BorrowRowPatch` + self-cancel densify.

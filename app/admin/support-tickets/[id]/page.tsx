@@ -1,6 +1,7 @@
 /**
  * Admin Support Ticket Detail Page (`/admin/support-tickets/[id]`).
- * Parent: CR-0003 / REQ-0034
+ * Passes SSR currentAdmin (DB universityCard) for Activity densify — no Robohash bounce.
+ * Parent: CR-0003 / REQ-0034; Activity avatar densify fix
  */
 import React from "react";
 import { notFound } from "next/navigation";
@@ -26,12 +27,20 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   if (!ticket) notFound();
 
+  const currentAdmin = {
+    id: actor.id,
+    fullName: actor.name,
+    email: actor.email,
+    universityCard: actor.universityCard ?? null,
+  };
+
   return (
     <AdminSupportTicketDetailContent
       initialTicket={JSON.parse(JSON.stringify(ticket))}
       assignableAdmins={JSON.parse(JSON.stringify(assignableAdmins))}
       initialAuditEvents={JSON.parse(JSON.stringify(auditEvents))}
       currentUserId={actor.id}
+      currentAdmin={currentAdmin}
     />
   );
 };

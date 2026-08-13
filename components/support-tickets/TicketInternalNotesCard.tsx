@@ -23,13 +23,16 @@ import { useUpdateSupportTicket } from "@/hooks/useMutations";
 import { LIGHT_ALERT } from "@/lib/ui/glassActionChrome";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import { cn } from "@/lib/utils";
+import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 
 export function TicketInternalNotesCard({
   ticketId,
   notes,
+  decisionActor,
 }: {
   ticketId: string;
   notes: string | null;
+  decisionActor?: AdminRequestReviewer | null;
 }) {
   const updateMutation = useUpdateSupportTicket();
   const [editing, setEditing] = useState(false);
@@ -55,7 +58,7 @@ export function TicketInternalNotesCard({
 
   const save = () => {
     updateMutation.mutate(
-      { ticketId, notes: draft.trim() || null },
+      { ticketId, notes: draft.trim() || null, decisionActor },
       {
         onSuccess: () => {
           setEditing(false);
@@ -67,7 +70,7 @@ export function TicketInternalNotesCard({
 
   const clearNotes = () => {
     updateMutation.mutate(
-      { ticketId, notes: null },
+      { ticketId, notes: null, decisionActor },
       {
         onSuccess: () => {
           setClearOpen(false);

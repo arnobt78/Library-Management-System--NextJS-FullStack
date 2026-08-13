@@ -1,9 +1,13 @@
 /**
  * resolveDecisionActor — prefer SSR currentAdmin card over session null-card.
+ * resolveActivityActor — Activity densify fields with same preference.
  */
 
 import { describe, expect, it } from "vitest";
-import { resolveDecisionActor } from "@/lib/admin/resolveDecisionActor";
+import {
+  resolveActivityActor,
+  resolveDecisionActor,
+} from "@/lib/admin/resolveDecisionActor";
 
 describe("resolveDecisionActor", () => {
   it("prefers SSR currentAdmin universityCard", () => {
@@ -39,9 +43,40 @@ describe("resolveDecisionActor", () => {
       universityCard: null,
     });
   });
+});
 
-  it("returns null when neither admin nor session email is usable", () => {
-    expect(resolveDecisionActor(null, null)).toBeNull();
-    expect(resolveDecisionActor(null, { name: "X" })).toBeNull();
+describe("resolveActivityActor", () => {
+  it("maps SSR decisionActor card into densify fields", () => {
+    expect(
+      resolveActivityActor(
+        { id: "admin-1", name: "Session", email: "test@admin.com" },
+        {
+          id: "admin-1",
+          fullName: "Test Admin",
+          email: "test@admin.com",
+          universityCard: "/cards/admin.jpg",
+        },
+      ),
+    ).toEqual({
+      actorId: "admin-1",
+      actorName: "Test Admin",
+      actorEmail: "test@admin.com",
+      actorUniversityCard: "/cards/admin.jpg",
+    });
+  });
+
+  it("session-only densify keeps null universityCard", () => {
+    expect(
+      resolveActivityActor({
+        id: "admin-1",
+        name: "Test Admin",
+        email: "test@admin.com",
+      }),
+    ).toEqual({
+      actorId: "admin-1",
+      actorName: "Test Admin",
+      actorEmail: "test@admin.com",
+      actorUniversityCard: null,
+    });
   });
 });
