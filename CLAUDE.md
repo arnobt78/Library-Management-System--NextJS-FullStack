@@ -148,6 +148,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Book densify+createdBy (2026-08-14/15): `loadBookWithUpdater` SSR/API; mig `0015`; seed+create stamp both actors; merge preserves; JWT card-less.
 - Book detail Activity FIFO-25 (2026-08-15): `getBookAuditEvents` SSR; `prependBookAuditEvent` on create/update; merge keeps `auditEvents`; `TicketActivityTimeline`. Shared `fetchBookDetailPreservingDensify` (useBook+PrefetchLink public/admin); SSR `initialDataUpdatedAt`.
 - DeleteBookDialog settle (2026-08-15): LIGHT_ALERT; block dismiss + Loader2 until `book.write` densify; then push list (no refresh flash).
+- Featured exclusivity (2026-08-15): `clearOtherFeatured` only clears `isFeatured` (no sibling `updatedAt`); catalog Updated By shows — until real edit.
 - Densify preserve merge (2026-08-13): shared `mergeDensifiedDetail` — PrefetchLink + detail refetch keep actors/auditEvents/replies/reviewedBy* (no thin list/API wipe).
 - Densify consistency closeout (2026-08-13): Borrow Queue single universe RQ + stamps; claim `requestMeta`; ticket.write RSC User 360; ticket/review/nav stamps; PrefetchLink review/ticket detail + Activity Entity; Automation Refresh keeps prior featured (no blank hero).
 - Holds tab DNA (2026-08-13): tab/section **Active Holds**; SSR reservation meta parity with `/api/reservations/me`; `ReservationsPanel` cards = `profile-borrow-row` + glass badge/CTAs (Pending Requests layout).

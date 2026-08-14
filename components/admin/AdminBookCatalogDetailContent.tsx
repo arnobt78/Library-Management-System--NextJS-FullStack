@@ -136,6 +136,11 @@ export default function AdminBookCatalogDetailContent({
   const hasTrailer = Boolean(book.videoUrl?.trim());
   const coverHex = book.coverColor?.trim() || "";
   const auditEvents = book.auditEvents ?? [];
+  // Show Updated DNA only after a real catalog write (not create-only seed stamps).
+  const hasCatalogUpdate =
+    Boolean(book.createdAt && book.updatedAt) &&
+    new Date(book.createdAt as Date).getTime() !==
+      new Date(book.updatedAt as Date).getTime();
 
   return (
     <section className="w-full space-y-4 sm:space-y-6">
@@ -565,7 +570,7 @@ export default function AdminBookCatalogDetailContent({
           </div>
           <div className="min-w-0 space-y-1">
             <p className={FIELD_LABEL_TEXT}>Updated By</p>
-            {book.updatedByActor?.email ? (
+            {hasCatalogUpdate && book.updatedByActor?.email ? (
               <>
                 <PersonAttribution
                   person={book.updatedByActor}
@@ -583,19 +588,19 @@ export default function AdminBookCatalogDetailContent({
                   className="mt-1"
                 />
               </>
-            ) : (
+            ) : hasCatalogUpdate && book.updatedAt ? (
               <>
                 <p className="text-sm text-gray-500">—</p>
-                {book.updatedAt ? (
-                  <TicketDateMeta
-                    updatedAt={book.updatedAt}
-                    hideCreated
-                    updatedLabel="Updated"
-                    layout="stack"
-                    className="mt-1"
-                  />
-                ) : null}
+                <TicketDateMeta
+                  updatedAt={book.updatedAt}
+                  hideCreated
+                  updatedLabel="Updated"
+                  layout="stack"
+                  className="mt-1"
+                />
               </>
+            ) : (
+              <p className="text-sm text-gray-500">—</p>
             )}
           </div>
         </div>

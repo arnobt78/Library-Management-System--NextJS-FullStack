@@ -28,19 +28,20 @@ import {
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * Clears is_featured on every book except the optional keepId.
- * Must run inside an open transaction for exclusivity with insert/update.
+ * Clears is_featured on other books for homepage exclusivity.
+ * Do NOT touch updatedAt/updatedBy — exclusivity is not a catalog "edit"
+ * and must not rewrite Added/Updated DNA on sibling rows.
  */
 async function clearOtherFeatured(tx: Tx, keepId?: string) {
   if (keepId) {
     await tx
       .update(books)
-      .set({ isFeatured: false, updatedAt: new Date() })
-      .where(ne(books.id, keepId));
+      .set({ isFeatured: false })
+      .where(and(ne(books.id, keepId), eq(books.isFeatured, true)));
   } else {
     await tx
       .update(books)
-      .set({ isFeatured: false, updatedAt: new Date() })
+      .set({ isFeatured: false })
       .where(eq(books.isFeatured, true));
   }
 }

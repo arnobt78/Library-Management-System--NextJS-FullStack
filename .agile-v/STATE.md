@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Book Activity FIFO + Delete settle; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Featured exclusivity Updated DNA fix; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Book Activity/Delete settle audit PASS; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Featured clearOtherFeatured no sibling updatedAt; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `f1d0f58`
-- Latest HEAD: `f1d0f58`
+- Latest implementation tip: pending (featured exclusivity fix)
+- Latest HEAD: `219558c` (+ working tree)
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (pre-commit audit Activity+Delete)
+- Last updated: 2026-08-15 (featured exclusivity Updated DNA)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,6 +25,17 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
 
+## Reconciliation snapshot (2026-08-15, Featured exclusivity Updated DNA)
+
+Verified facts:
+- Bug: clearOtherFeatured stamped updatedAt on all siblings when saving Featured.
+- Fix: clear isFeatured only (featured rows); Updated By UI — until real edit.
+- Prove: tsc/lint/274 tests PASS; debug instrumentation removed.
+
+### Next Action
+
+**Human-Decision:** soft-nav Featured save; C2 Gate 2 still EvalGate-blocked.
+
 ## Reconciliation snapshot (2026-08-15, Activity+Delete pre-commit audit)
 
 Verified facts:
@@ -33,7 +44,7 @@ Verified facts:
 
 ### Next Action
 
-**Human-Decision:** soft-nav after push; C2 Gate 2 still EvalGate-blocked.
+Superseded by Featured exclusivity snapshot.
 
 ## Reconciliation snapshot (2026-08-15, Delete settle + densify closeout)
 
