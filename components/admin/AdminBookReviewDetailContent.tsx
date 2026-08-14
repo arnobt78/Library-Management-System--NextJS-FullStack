@@ -2,12 +2,12 @@
 
 /**
  * Admin Book Review detail — ticket-shaped layout:
- * Back+Delete → title+dates → KPI row → About book | Description (+ moderate confirms).
- * Per-action Approve/Reject spinner; densify via useModerateReview + decisionActor.
+ * Back+Delete → Book DNA → KPI → Review Context | Description → Activity FIFO-25.
+ * KPI Status = badge only; Reviewer meta (University ID + Submitted) in Context.
  * Parent: CR-0003 / review detail redesign
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   FileText,
   Loader2,
+  MessageSquareQuote,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -39,13 +40,17 @@ import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { cn } from "@/lib/utils";
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
+import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
+import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
 import ReviewDateMeta from "@/components/reviews/ReviewDateMeta";
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 import { ReviewBorrowMeta } from "@/components/reviews/ReviewBorrowMeta";
 import { ReviewDetailKpiGrid } from "@/components/reviews/ReviewDetailKpiGrid";
+import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
+import CopyableText from "@/components/ui/CopyableText";
 import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   ModerateReviewAlertDialog,
@@ -65,10 +70,19 @@ export default function AdminBookReviewDetailContent({
   const router = useRouter();
   const { data: session } = useSession();
   const handleBack = useBackWithRefresh("review.write", "/admin/book-reviews");
+  // Seed auditEvents onto detail RQ so review.write densify can prepend
+  // (SSR-only initialReview.auditEvents would freeze the Activity timeline).
+  const seededReview = useMemo<AdminBookReviewItem>(
+    () => ({
+      ...initialReview,
+      auditEvents: initialReview.auditEvents ?? [],
+    }),
+    [initialReview],
+  );
   const [ssrTimestamp] = useState(() => Date.now());
-  const { data: review = initialReview } = useAdminReviewDetail(
+  const { data: review = seededReview } = useAdminReviewDetail(
     initialReview.id,
-    initialReview,
+    seededReview,
     ssrTimestamp,
   );
   const moderateMutation = useModerateReview();
@@ -128,8 +142,15 @@ export default function AdminBookReviewDetailContent({
 
   const decided = review.status === "APPROVED" || review.status === "REJECTED";
 
-  // Status KPI / About — Privilege Recent DNA: badge+Submitted or DecisionActorStack
-  const statusDecisionSlot = decided ? (
+  // KPI Status = badge only (Approver stack lives in Review Context).
+  const statusBadgeSlot = (
+    <span className="inline-flex self-start">
+      <ReviewStatusBadge status={review.status} />
+    </span>
+  );
+
+  // Review Context Approver — full DecisionActorStack when decided.
+  const approverDecisionSlot = decided ? (
     <DecisionActorStack
       status={review.status}
       badge={<ReviewStatusBadge status={review.status} />}
@@ -139,10 +160,24 @@ export default function AdminBookReviewDetailContent({
       showActor={Boolean(moderator)}
     />
   ) : (
-    <div className="flex min-w-0 flex-col gap-1 leading-none">
-      <span className="inline-flex self-start">
-        <ReviewStatusBadge status="PENDING" />
-      </span>
+    <span className="inline-flex self-start">
+      <ReviewStatusBadge status="PENDING" />
+    </span>
+  );
+
+  // Review Context only: University ID under email, then Submitted.
+  const reviewerMeta = (
+    <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+      {review.userUniversityId > 0 ? (
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs leading-none text-gray-600">
+          <span className="opacity-70">University ID</span>
+          <CopyableText
+            value={String(review.userUniversityId)}
+            label="university ID"
+            className="text-xs text-gray-800"
+          />
+        </span>
+      ) : null}
       <TicketDateMeta
         createdAt={review.createdAt}
         createdLabel="Submitted"
@@ -151,83 +186,97 @@ export default function AdminBookReviewDetailContent({
     </div>
   );
 
+  const auditEvents = review.auditEvents ?? [];
+
   return (
     <section className="w-full space-y-4 sm:space-y-6">
-      {/* Header: Back + Delete */}
-      <div className="flex w-full flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-admin"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="max-w-44 truncate sm:max-w-none">
-            Back to Book Reviews
-          </span>
-        </button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button
-              type="button"
-              disabled={deleteMutation.isPending}
-              className={cn(
-                LIGHT_GLASS_CTA.host,
-                LIGHT_GLASS_CTA.delete,
-                "bg-red-800 text-white",
-              )}
-            >
-              <Trash2 className="size-4" />
-              <span className="hidden sm:inline">Delete</span>
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent className={LIGHT_ALERT.content}>
-            <AlertDialogHeader>
-              <AlertDialogTitle className={LIGHT_ALERT.title}>
-                Delete review for &ldquo;{review.bookTitle}&rdquo;?
-              </AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div className={`space-y-2 ${LIGHT_ALERT.description}`}>
-                  <p>
-                    This permanently removes the review. This action cannot be
-                    undone.
-                  </p>
-                  <div className={LIGHT_ALERT.preview}>
-                    <StarRow
-                      rating={review.rating}
-                      starClassName="size-4"
-                      filledClassName="fill-yellow-400 text-yellow-400"
-                      emptyClassName="fill-gray-300 text-gray-300"
-                    />
-                    <p className="mt-1.5 line-clamp-3 text-sm">
-                      {review.comment}
-                    </p>
-                  </div>
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className={LIGHT_ALERT.footer}>
-              <AlertDialogCancel
+      <AdminDetailToolbar
+        hasActions
+        back={
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-admin"
+          >
+            <ArrowLeft className="size-4" />
+            <span className="max-w-44 truncate sm:max-w-none">
+              Back to Book Reviews
+            </span>
+          </button>
+        }
+        idChip={
+          <AdminDetailIdChip
+            label="Review ID"
+            value={review.id}
+            icon={MessageSquareQuote}
+            className="justify-center"
+          />
+        }
+        actions={
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
                 disabled={deleteMutation.isPending}
-                className={LIGHT_ALERT.cancel}
-              >
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                className={LIGHT_ALERT.destructive}
-              >
-                {deleteMutation.isPending ? (
-                  <Loader2 className="size-3.5 animate-spin sm:size-4" />
-                ) : (
-                  <Trash2 className="size-3.5 sm:size-4" />
+                className={cn(
+                  LIGHT_GLASS_CTA.host,
+                  LIGHT_GLASS_CTA.delete,
+                  "bg-red-800 text-white",
                 )}
-                {deleteMutation.isPending ? "Deleting…" : "Delete review"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+              >
+                <Trash2 className="size-4" />
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className={LIGHT_ALERT.content}>
+              <AlertDialogHeader>
+                <AlertDialogTitle className={LIGHT_ALERT.title}>
+                  Delete review for &ldquo;{review.bookTitle}&rdquo;?
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className={`space-y-2 ${LIGHT_ALERT.description}`}>
+                    <p>
+                      This permanently removes the review. This action cannot be
+                      undone.
+                    </p>
+                    <div className={LIGHT_ALERT.preview}>
+                      <StarRow
+                        rating={review.rating}
+                        starClassName="size-4"
+                        filledClassName="fill-yellow-400 text-yellow-400"
+                        emptyClassName="fill-gray-300 text-gray-300"
+                      />
+                      <p className="mt-1.5 line-clamp-3 text-sm">
+                        {review.comment}
+                      </p>
+                    </div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className={LIGHT_ALERT.footer}>
+                <AlertDialogCancel
+                  disabled={deleteMutation.isPending}
+                  className={LIGHT_ALERT.cancel}
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                  className={LIGHT_ALERT.destructive}
+                >
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                  ) : (
+                    <Trash2 className="size-3.5 sm:size-4" />
+                  )}
+                  {deleteMutation.isPending ? "Deleting…" : "Delete review"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        }
+      />
 
       {/* Header: Book DNA + tracking dates (ticket/review shell) */}
       <div className="admin-panel w-full space-y-2">
@@ -252,13 +301,21 @@ export default function AdminBookReviewDetailContent({
         />
       </div>
 
-      {/* KPI row */}
+      {/* KPI row — Status badge · Rating · Reviewer person · Approver person */}
       <ReviewDetailKpiGrid
         variant="light"
         status={review.status}
         rating={review.rating}
-        genre={review.bookGenre}
-        statusSlot={statusDecisionSlot}
+        statusSlot={statusBadgeSlot}
+        reviewerSlot={
+          <PersonAttribution
+            person={author}
+            layout="stack"
+            variant="light"
+            size={36}
+            href={`/admin/users/${review.userId}`}
+          />
+        }
         approverSlot={
           moderator && decided ? (
             <PersonAttribution
@@ -276,14 +333,14 @@ export default function AdminBookReviewDetailContent({
         }
       />
 
-      {/* About book | Description */}
+      {/* Review Context | Description */}
       <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="admin-panel space-y-4">
           <TicketSectionHeader
             variant="light"
             icon={<BookOpen className="size-5" />}
-            title="About Book"
-            subtitle="Catalog identity, borrow dates, and reviewer"
+            title="Review Context"
+            subtitle="Catalog, borrow dates, reviewer & decision"
             className="mb-0"
           />
           <ReviewBookIdentity
@@ -312,11 +369,12 @@ export default function AdminBookReviewDetailContent({
               variant="light"
               href={`/admin/users/${review.userId}`}
               size={36}
+              meta={reviewerMeta}
             />
           </div>
           <div className="space-y-1">
-            <p className={FIELD_LABEL_TEXT}>Status</p>
-            {statusDecisionSlot}
+            <p className={FIELD_LABEL_TEXT}>Approver</p>
+            {approverDecisionSlot}
           </div>
         </div>
 
@@ -366,6 +424,12 @@ export default function AdminBookReviewDetailContent({
           </div>
         </div>
       </div>
+
+      <TicketActivityTimeline
+        events={auditEvents}
+        variant="light"
+        adminUserHref
+      />
 
       <ModerateReviewAlertDialog
         open={moderateTarget !== null}

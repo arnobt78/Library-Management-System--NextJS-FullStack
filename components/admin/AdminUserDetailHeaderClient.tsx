@@ -1,13 +1,16 @@
 "use client";
 
 /**
- * Unified User 360 header — entry-aware Back + person + glass badges + actions.
+ * Unified User 360 header — entry-aware Back + User ID chip + person + actions.
+ * Mobile: Back → actions → User ID (centered); sm+: Back | ID | actions.
  * entry=registration → Registration Queue; privilege → Admin Requests; else All Users.
  */
 
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserRound } from "lucide-react";
 import PersonAttribution from "@/components/PersonAttribution";
+import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
+import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import AdminUserDetailActions from "@/components/admin/AdminUserDetailActions";
 import type { AdminUser360Entry } from "@/components/admin/AdminUserRegistrationPanel";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
@@ -68,31 +71,43 @@ export default function AdminUserDetailHeaderClient({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Ticket/review detail back link pattern */}
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-admin"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          {backLabel}
-        </button>
-        <AdminUserDetailActions
-          user={{
-            id: user.id,
-            fullName: user.fullName,
-            email: user.email,
-            universityCard: user.universityCard,
-            universityId: user.universityId,
-            role: user.role ?? "USER",
-            status: user.status,
-            pendingAdminRequestId: user.pendingAdminRequestId ?? null,
-          }}
-          currentUserId={currentUserId}
-          currentAdmin={currentAdmin}
-        />
-      </div>
+      <AdminDetailToolbar
+        hasActions
+        back={
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-admin"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            {backLabel}
+          </button>
+        }
+        idChip={
+          <AdminDetailIdChip
+            label="User ID"
+            value={user.id}
+            icon={UserRound}
+            className="justify-center"
+          />
+        }
+        actions={
+          <AdminUserDetailActions
+            user={{
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+              universityCard: user.universityCard,
+              universityId: user.universityId,
+              role: user.role ?? "USER",
+              status: user.status,
+              pendingAdminRequestId: user.pendingAdminRequestId ?? null,
+            }}
+            currentUserId={currentUserId}
+            currentAdmin={currentAdmin}
+          />
+        }
+      />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <PersonAttribution

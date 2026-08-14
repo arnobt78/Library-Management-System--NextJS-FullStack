@@ -75,6 +75,7 @@ function baseReviewSelect() {
       userName: users.fullName,
       userEmail: users.email,
       userUniversityCard: users.universityCard,
+      userUniversityId: users.universityId,
       reviewedBy: bookReviews.reviewedBy,
       reviewedByName: reviewer.fullName,
       reviewedByEmail: reviewer.email,

@@ -185,6 +185,8 @@ interface AdminBookReviewItem {
   userEmail: string;
   /** Author university card path for PersonAttribution / avatars. */
   userUniversityCard: string | null;
+  /** Author student ID — Reviewer KPI densify (no Genre KPI). */
+  userUniversityId: number;
   reviewedBy: string | null;
   reviewedByName: string | null;
   reviewedByEmail: string | null;
@@ -199,4 +201,6 @@ interface AdminBookReviewItem {
   borrowedAt: string | null;
   dueDate: string | null;
   returnedAt: string | null;
+  /** Admin detail Activity FIFO-25 (entityType=review); omitted on list rows. */
+  auditEvents?: TicketActivityEvent[];
 }

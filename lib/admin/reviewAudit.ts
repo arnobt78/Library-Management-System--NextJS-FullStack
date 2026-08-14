@@ -1,22 +1,27 @@
 /**
- * Borrow Queue detail Activity — ticket audit DNA for entityType=borrow.
- * FIFO-25 (review / User 360 DNA); global Activity History still retains 50.
- * Parent: borrow detail gaps + record/history DNA; borrow detail UI tweaks
+ * Book Review detail Activity — ticket/borrow audit DNA for entityType=review.
+ * FIFO-25 (User 360 DNA); global Activity History still retains 50.
+ * Parent: review detail KPI cleanup + Activity FIFO-25
  */
+
+import "server-only";
 
 import { db } from "@/database/drizzle";
 import { activityLogs, users } from "@/database/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { reviewAuditLabel } from "@/lib/admin/reviewAuditLabel";
 
-const activityActor = alias(users, "borrow_activity_actor");
+const activityActor = alias(users, "review_activity_actor");
+
+export { reviewAuditLabel };
 
 /**
- * Activity-log rows for one borrow record (admin detail timeline).
- * Global FIFO-50 may drop older events — still useful for recent lifecycle writes.
+ * Activity-log rows for one review (admin detail timeline).
+ * Global FIFO-50 may drop older events — still useful for recent moderation writes.
  */
-export async function getBorrowAuditEvents(
-  recordId: string,
+export async function getReviewAuditEvents(
+  reviewId: string,
 ): Promise<TicketActivityEvent[]> {
   const rows = await db
     .select({
@@ -33,8 +38,8 @@ export async function getBorrowAuditEvents(
     .leftJoin(activityActor, eq(activityLogs.actorId, activityActor.id))
     .where(
       and(
-        eq(activityLogs.entityType, "borrow"),
-        eq(activityLogs.entityId, recordId),
+        eq(activityLogs.entityType, "review"),
+        eq(activityLogs.entityId, reviewId),
       ),
     )
     .orderBy(desc(activityLogs.createdAt))
@@ -42,25 +47,13 @@ export async function getBorrowAuditEvents(
 
   return rows.map((row) => {
     const details = (row.details as Record<string, unknown> | null) ?? null;
-    const status =
-      typeof details?.status === "string" ? details.status : null;
     const title = typeof details?.title === "string" ? details.title : null;
-
-    let label = "Borrow updated";
-    if (row.action === "CREATE") label = "Borrow request created";
-    else if (row.action === "DELETE") label = "Borrow record deleted";
-    else if (status === "BORROWED") label = "Status → Borrowed";
-    else if (status === "RETURNED") label = "Status → Returned";
-    else if (status === "CANCELLED") label = "Status → Cancelled";
-    else if (status === "PENDING") label = "Status → Pending";
-    else if (status)
-      label = `Status → ${String(status).split("_").join(" ")}`;
 
     return {
       id: row.id,
       kind: "audit" as const,
       at: row.createdAt.toISOString(),
-      label,
+      label: reviewAuditLabel(row.action, details),
       actorId: row.actorId,
       actorName: row.actorName,
       actorEmail: row.actorEmail,

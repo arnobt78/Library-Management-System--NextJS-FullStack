@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Activity avatar densify fix; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Borrow detail UI tweaks; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Activity avatar densify Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Borrow detail UI tweaks Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `a445f07` (Activity avatar densify + borrow/review detail DNA)
-- Latest HEAD: `a445f07`
+- Latest implementation tip: `2f6ac4e` (prior); borrow detail UI tweaks uncommitted
+- Latest HEAD: `2f6ac4e` (+ working tree polish)
 - Started: 2026-08-01
-- Last updated: 2026-08-14 (Activity avatar densify fix)
+- Last updated: 2026-08-14 (Borrow detail UI tweaks)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,65 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-14, Borrow detail UI tweaks)
+
+Verified facts:
+- Status KPI: drop `self-start` so DetailKpiShell mid-aligns badge.
+- IDs & Notes FIELD_LABEL_ROW icons; reject notes persist/display as admin; legacy librarian mapped.
+- Activity: `activityEventIcon` + `fifoLimit`; borrow audit SSR/densify FIFO-25.
+- Prove: typecheck + lint + activityEventIcon 3 tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav borrow detail Status/IDs/Activity; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Borrow detail UI polish)
+
+Verified facts:
+- `AdminDetailToolbar` `hasActions`: no CTAs → Back|ID end; with CTAs → Back|ID center|actions.
+- Status KPI badge-only; Fine overdue-days hint; Renewal `1 = +7 days`; Borrow Book Context + Library DB after Catalog Status.
+- Parties: University ID→Requested; simplified Status; Issuer rows only when present; thin IDs & Notes (no Record dump).
+- Prove: typecheck + lint + borrowDaysOverdue 2 tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav borrow detail PENDING/BORROWED/RETURNED/CANCELLED; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Review detail KPI cleanup + Activity FIFO-25)
+
+Verified facts:
+- KPI: Status badge · Rating · Reviewer person · Approver person; Context holds University ID→Submitted + Approver stack.
+- `getReviewAuditEvents` SSR + `prependReviewAuditEvent` densify (FIFO-25); merge preserves `auditEvents`.
+- Prove: typecheck + lint + reviewAuditLabel 3 tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav review detail moderate + Activity; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Detail toolbar + review parties polish)
+
+Verified facts:
+- `AdminDetailToolbar` mobile Back→actions→ID centered; sm+ Back|ID|actions on ticket/borrow/review/user detail.
+- Review Context card; Submitted + University ID under Reviewer; Status PENDING badge-only.
+- Support Tickets Replies column right-aligned.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav detail pages on phone + review approve flow; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Admin detail UI polish)
+
+Verified facts:
+- Support tickets list/Parties: Created under Requester, Updated under Assigned (`TicketDateMeta` `hideCreated`).
+- Shared `AdminDetailIdChip` on ticket / borrow / review detail Back rows.
+- Review detail KPI Genre → Reviewer + `userUniversityId` SSR/serialize/densify.
+- Prove: typecheck + lint + `patchReviewCaches` 11 tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav tickets/reviews/borrow detail after commit; C2 Gate 2 still EvalGate-blocked.
 
 ## Reconciliation snapshot (2026-08-14, Activity avatar densify + detail DNA commit)
 

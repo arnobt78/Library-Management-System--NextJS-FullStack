@@ -1,13 +1,14 @@
 /**
- * Admin book-review detail KPI row — Status · Rating · Genre · Approver.
+ * Admin book-review detail KPI row — Status · Rating · Reviewer · Approver.
  * Status slot carries Decision & Actor DNA (badge + Submitted / DecisionActorStack).
+ * Reviewer replaces Genre (genre stays on Book DNA / About Book).
  * Uses DetailKpiShell for ticket-detail chrome parity.
  * Parent: CR-0003 / review detail redesign
  */
 "use client";
 
 import type { ReactNode } from "react";
-import { CircleDot, Library, ShieldCheck, Star } from "lucide-react";
+import { CircleDot, ShieldCheck, Star, UserRound } from "lucide-react";
 import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
 import StarRow from "@/components/ui/StarRow";
 import { cn } from "@/lib/utils";
@@ -17,16 +18,17 @@ type ReviewStatusValue = "PENDING" | "APPROVED" | "REJECTED";
 export function ReviewDetailKpiGrid({
   status,
   rating,
-  genre,
   statusSlot,
+  reviewerSlot,
   approverSlot,
   variant = "light",
 }: {
   status: ReviewStatusValue;
   rating: number;
-  genre?: string | null;
   /** Decision stack: PENDING badge+Submitted or DecisionActorStack when decided */
   statusSlot: ReactNode;
+  /** Review author + university ID */
+  reviewerSlot: ReactNode;
   /** Densify Approver person (or pending copy) — kept for KPI parity */
   approverSlot: ReactNode;
   variant?: "light" | "dark";
@@ -74,18 +76,11 @@ export function ReviewDetailKpiGrid({
 
       <DetailKpiShell
         variant={variant}
-        icon={<Library className="size-4" />}
-        label="Genre"
-        hint="Catalog category"
+        icon={<UserRound className="size-4" />}
+        label="Reviewer"
+        hint="Who wrote this review"
       >
-        <p
-          className={cn(
-            "text-sm font-medium leading-snug",
-            isDark ? "text-light-100" : "text-violet-700",
-          )}
-        >
-          {genre?.trim() || "—"}
-        </p>
+        <div className="min-w-0">{reviewerSlot}</div>
       </DetailKpiShell>
 
       <DetailKpiShell

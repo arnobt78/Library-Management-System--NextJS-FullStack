@@ -1649,6 +1649,7 @@ export const useAdminReviewDetail = (
           "reviewedByEmail",
           "reviewedByUniversityCard",
           "reviewedAt",
+          "auditEvents",
         ]);
       }),
     enabled: !!reviewId,

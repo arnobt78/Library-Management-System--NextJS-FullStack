@@ -248,6 +248,7 @@ export async function POST(
         userName: actor.name,
         userEmail: actor.email,
         userUniversityCard: null,
+        userUniversityId: 0,
         reviewedBy: null,
         reviewedByName: null,
         reviewedByEmail: null,

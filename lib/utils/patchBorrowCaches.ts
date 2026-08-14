@@ -180,8 +180,11 @@ function borrowAuditLabel(
   return "Borrow updated";
 }
 
+/** Match review detail Activity FIFO (User 360 DNA). */
+const BORROW_AUDIT_FIFO = 25;
+
 /**
- * Prepend a densified audit row onto Borrow Queue detail Activity.
+ * Prepend a densified audit row onto Borrow Queue detail Activity (FIFO-25).
  * Cold-seeds from list cache when detail was never opened (create → soft-nav).
  * Call alongside densifyActivityLog after borrow.lifecycle writes.
  */
@@ -225,7 +228,7 @@ export function prependBorrowAuditEvent(
   const existing = prev.auditEvents ?? [];
   queryClient.setQueryData<BorrowRecordWithDetails>(key, {
     ...prev,
-    auditEvents: [event, ...existing],
+    auditEvents: [event, ...existing].slice(0, BORROW_AUDIT_FIFO),
   });
 }
 

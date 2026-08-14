@@ -117,6 +117,7 @@ import {
   patchReviewCachesOnDelete,
   patchReviewCachesOnModerate,
   patchReviewCachesOnUpdate,
+  prependReviewAuditEvent,
   snapshotReviewListBaselines,
 } from "@/lib/utils/patchReviewCaches";
 import { resolveReviewModeratorForDensify } from "@/lib/utils/resolveReviewModerator";
@@ -2216,6 +2217,7 @@ export const useCreateReview = () => {
           (session?.user as { universityCard?: string | null } | undefined)
             ?.universityCard ??
           null,
+        userUniversityId: data.userUniversityId ?? 0,
         reviewedBy: data.reviewedBy ?? null,
         reviewedByName: data.reviewedByName ?? null,
         reviewedByEmail: data.reviewedByEmail ?? null,
@@ -2241,6 +2243,15 @@ export const useCreateReview = () => {
               title: densifyItem.bookTitle,
               status: densifyItem.status,
             },
+          });
+          prependReviewAuditEvent(queryClient, {
+            reviewId: densifyItem.id,
+            action: "CREATE",
+            details: {
+              title: densifyItem.bookTitle,
+              status: densifyItem.status,
+            },
+            ...activityActorFromSession(session),
           });
           // Eligibility densify — ReviewButton flips without eligibility refetch flash.
           queryClient.setQueryData(
@@ -2456,6 +2467,15 @@ export const useUpdateReview = () => {
               status: nextStatus ?? "PENDING",
               ...(variables.bookId ? { bookId: variables.bookId } : {}),
             },
+          });
+          prependReviewAuditEvent(queryClient, {
+            reviewId: variables.reviewId,
+            action: "UPDATE",
+            details: {
+              status: nextStatus ?? "PENDING",
+              ...(variables.bookId ? { bookId: variables.bookId } : {}),
+            },
+            ...activityActorFromSession(session),
           });
         },
       });
@@ -2738,11 +2758,17 @@ export const useModerateReview = () => {
             postInvalidate ?? cached,
           );
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...activityActorFromSession(session, variables.decisionActor),
             action: "UPDATE",
             entityType: "review",
             entityId: variables.reviewId,
             details: { status: data.status },
+          });
+          prependReviewAuditEvent(queryClient, {
+            reviewId: variables.reviewId,
+            action: "UPDATE",
+            details: { status: data.status },
+            ...activityActorFromSession(session, variables.decisionActor),
           });
         },
       });

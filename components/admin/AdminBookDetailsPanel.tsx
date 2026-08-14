@@ -1,8 +1,8 @@
 /**
- * Admin About Book panel — catalog FieldRows + Library Database + Status.
+ * Admin Borrow Book Context panel — catalog FieldRows + Catalog Status + Library DB.
  * Book DNA + Borrow Statistics live in detail header / KPI rows (no duplicate).
  * Live via useBook; SSR seed from borrow-request detail.
- * Parent: Borrow + Review detail DNA polish
+ * Parent: borrow detail UI polish
  */
 
 "use client";
@@ -138,13 +138,16 @@ export function AdminBookDetailsPanel({
 
   // Stats null path unused for KPI duplication; pass seed only for view-model completeness.
   const vm = buildBookDetailsViewModel(source, initialStats ?? null);
+  const added = vm.libraryDb.find((f) => f.key === "added") ?? vm.libraryDb[0];
+  const updated =
+    vm.libraryDb.find((f) => f.key === "updated") ?? vm.libraryDb[1];
 
   return (
     <AdminSurfacePanel className="space-y-4">
       <TicketSectionHeader
         icon={<BookOpen className="size-4" />}
-        title="About Book"
-        subtitle="Catalog identity, inventory, and borrow health"
+        title="Borrow Book Context"
+        subtitle="Catalog identity, inventory, and library stamps"
         className="mb-0"
       />
 
@@ -160,7 +163,8 @@ export function AdminBookDetailsPanel({
         ))}
       </dl>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Catalog Status then Library Database (Added | Last Updated) */}
+      <div className="space-y-3">
         <div className="space-y-1">
           <p className={FIELD_LABEL_ROW}>
             <CircleDot className="size-3.5 shrink-0" aria-hidden />
@@ -180,15 +184,21 @@ export function AdminBookDetailsPanel({
           <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
             Library Database
           </p>
-          <dl className="space-y-2">
-            {vm.libraryDb.map((field) => (
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {added ? (
               <FieldRow
-                key={field.key}
-                label={field.label}
-                value={field.value}
+                label={added.label}
+                value={added.value}
                 icon={Calendar}
               />
-            ))}
+            ) : null}
+            {updated ? (
+              <FieldRow
+                label={updated.label}
+                value={updated.value}
+                icon={Calendar}
+              />
+            ) : null}
           </dl>
         </div>
       </div>

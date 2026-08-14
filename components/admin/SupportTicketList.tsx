@@ -2,9 +2,9 @@
 
 /**
  * Admin Support Tickets — densified moderation queue.
- * Subject embeds Created/Updated (no Date/Replies cols — 14" fit).
- * Requester/Assignee = PersonAttribution stack (avatar + name/email + copy).
- * Null assignee renders as "All admin".
+ * Requester nests Created; Assigned To nests Updated (Borrow Queue DNA).
+ * Subject = title + description only (dates live under people).
+ * Null assignee renders as "All admin" + Updated meta.
  * Parent: CR-0003 / REQ-0034 — list densify UI
  */
 
@@ -41,6 +41,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { TicketSubjectCell } from "@/components/support-tickets/TicketSubjectCell";
+import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
 import { SupportTicketRowActions } from "@/components/support-tickets/SupportTicketRowActions";
 import type { AssignableAdminOption } from "@/components/support-tickets/SupportTicketDialog";
@@ -138,9 +139,6 @@ export default function SupportTicketList({
             href={`/admin/support-tickets/${row.original.id}`}
             subject={row.original.subject}
             description={row.original.description}
-            createdAt={row.original.createdAt}
-            updatedAt={row.original.updatedAt}
-            showDates
           />
         ),
       },
@@ -163,6 +161,13 @@ export default function SupportTicketList({
                 email: row.original.userEmail,
                 universityCard: row.original.userUniversityCard,
               }}
+              meta={
+                <TicketDateMeta
+                  createdAt={row.original.createdAt}
+                  createdLabel="Created"
+                  hideUpdated
+                />
+              }
             />
           </div>
         ),
@@ -196,8 +201,23 @@ export default function SupportTicketList({
         header: "Assigned To",
         cell: ({ row }) => {
           const t = row.original;
+          const updatedMeta = (
+            <TicketDateMeta
+              updatedAt={t.updatedAt}
+              updatedLabel="Updated"
+              hideCreated
+            />
+          );
           if (!t.assignedToId || !t.assignedToName) {
-            return <AllAdminLabel />;
+            return (
+              <div
+                className="flex min-w-0 flex-col gap-1 leading-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AllAdminLabel />
+                {updatedMeta}
+              </div>
+            );
           }
           return (
             <div onClick={(e) => e.stopPropagation()}>
@@ -211,19 +231,20 @@ export default function SupportTicketList({
                   email: t.assignedToEmail ?? "",
                   universityCard: t.assignedToUniversityCard,
                 }}
+                meta={updatedMeta}
               />
             </div>
           );
         },
       },
       {
-        // Number only (no MessageSquare icon) — matches user table density
+        // Number only — right-aligned tabular (numeric column DNA)
         accessorKey: "replyCount",
         size: 72,
         minSize: 64,
-        header: "Replies",
+        header: () => <div className="w-full text-right">Replies</div>,
         cell: ({ row }) => (
-          <span className="text-sm tabular-nums text-gray-600">
+          <span className="block w-full text-right text-sm tabular-nums text-gray-600">
             {row.original.replyCount}
           </span>
         ),

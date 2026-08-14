@@ -1,6 +1,8 @@
 /**
  * Created / Updated meta with Lucide icons — list densify + detail headers.
  * Optional labels for Joined / Registered / Requested under PersonAttribution.
+ * hideCreated / hideUpdated allow single-line stacks (e.g. Created under Requester,
+ * Updated under Assigned To — Borrow Queue DNA).
  * Parent: CR-0003 / REQ-0034
  */
 import { CalendarClock, CalendarPlus } from "lucide-react";
@@ -15,24 +17,28 @@ export function TicketDateMeta({
   layout = "stack",
   /** Created-line label (e.g. Joined, Registered, Requested). */
   createdLabel = "Created",
-  /** Updated-line label; omit line when updatedAt is null/undefined and hideUpdated. */
+  /** Updated-line label; omit line when hideUpdated. */
   updatedLabel = "Updated",
+  /** When true, skip Created row (Updated-only under assignee). */
+  hideCreated = false,
   /** When true, skip Updated row even if updatedAt is set. */
   hideUpdated = false,
   className,
 }: {
-  createdAt: string | Date | null | undefined;
+  createdAt?: string | Date | null | undefined;
   updatedAt?: string | Date | null | undefined;
   variant?: "light" | "dark";
   layout?: "stack" | "inline";
   createdLabel?: string;
   updatedLabel?: string;
+  hideCreated?: boolean;
   hideUpdated?: boolean;
   className?: string;
 }) {
   const isDark = variant === "dark";
   const createdTone = isDark ? "text-emerald-300/90" : "text-emerald-700";
   const updatedTone = isDark ? "text-amber-200/80" : "text-amber-700/90";
+  const showCreated = !hideCreated;
   const showUpdated = !hideUpdated;
 
   if (layout === "inline") {
@@ -44,22 +50,24 @@ export function TicketDateMeta({
           className,
         )}
       >
-        <span className={cn("inline-flex items-center gap-1", createdTone)}>
-          <CalendarPlus className="size-3.5 shrink-0 opacity-80" aria-hidden />
-          <span className="opacity-70">{createdLabel}</span>{" "}
-          {formatMediumDateTime(createdAt)}
-        </span>
+        {showCreated ? (
+          <span className={cn("inline-flex items-center gap-1", createdTone)}>
+            <CalendarPlus className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            <span className="opacity-70">{createdLabel}</span>{" "}
+            {formatMediumDateTime(createdAt)}
+          </span>
+        ) : null}
+        {showCreated && showUpdated ? (
+          <span className="opacity-40" aria-hidden>
+            ·
+          </span>
+        ) : null}
         {showUpdated ? (
-          <>
-            <span className="opacity-40" aria-hidden>
-              ·
-            </span>
-            <span className={cn("inline-flex items-center gap-1", updatedTone)}>
-              <CalendarClock className="size-3.5 shrink-0 opacity-80" aria-hidden />
-              <span className="opacity-70">{updatedLabel}</span>{" "}
-              {formatMediumDateTime(updatedAt)}
-            </span>
-          </>
+          <span className={cn("inline-flex items-center gap-1", updatedTone)}>
+            <CalendarClock className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            <span className="opacity-70">{updatedLabel}</span>{" "}
+            {formatMediumDateTime(updatedAt)}
+          </span>
         ) : null}
       </p>
     );
@@ -73,11 +81,13 @@ export function TicketDateMeta({
         className,
       )}
     >
-      <p className={cn("inline-flex items-center gap-1 leading-none", createdTone)}>
-        <CalendarPlus className="size-3 shrink-0 opacity-80" aria-hidden />
-        <span className="opacity-70">{createdLabel}:</span>{" "}
-        {formatMediumDateTime(createdAt)}
-      </p>
+      {showCreated ? (
+        <p className={cn("inline-flex items-center gap-1 leading-none", createdTone)}>
+          <CalendarPlus className="size-3 shrink-0 opacity-80" aria-hidden />
+          <span className="opacity-70">{createdLabel}:</span>{" "}
+          {formatMediumDateTime(createdAt)}
+        </p>
+      ) : null}
       {showUpdated ? (
         <p className={cn("inline-flex items-center gap-1 leading-none", updatedTone)}>
           <CalendarClock className="size-3 shrink-0 opacity-80" aria-hidden />

@@ -270,7 +270,7 @@ export async function rejectBorrowRecord(
         status: "CANCELLED",
         updatedAt: new Date(),
         updatedBy: actorEmail ?? "admin",
-        notes: "Rejected by librarian",
+        notes: "Rejected by admin",
       })
       .where(
         and(
@@ -290,7 +290,7 @@ export async function rejectBorrowRecord(
 
 /**
  * Owner withdraws a still-PENDING borrow request (soft-cancel).
- * Same CANCELLED history row as librarian reject; notes attribute the borrower.
+ * Same CANCELLED history row as admin reject; notes attribute the borrower.
  */
 export async function cancelOwnBorrowRecord(
   recordId: string,
@@ -387,7 +387,7 @@ export function rejectBorrowRecords(
         status: "CANCELLED",
         updatedAt: new Date(),
         updatedBy: actorEmail ?? "admin",
-        notes: "Rejected by librarian",
+        notes: "Rejected by admin",
       })
       .where(inArray(borrowRecords.id, uniqueIds));
     return { success: true };

@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-14 | Status: C2 Stage 4; Borrow+Review detail DNA polish; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-14 | Status: C2 Stage 4; admin detail polish (toolbar/review audit/borrow DNA); Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -43,6 +43,7 @@ Browser
 - Cross-domain densify (2026-08-10): `review.write` RSC `/admin`; AdminBooksList prefer densify-empty over SSR; ticket detail `auditEvents` + `densifyTicketDetailAudit`; PrefetchLink my-profile/`book-detail` `staleTime: 0`.
 - Holds/waitlist densify (2026-08-13): `loadUserReservationsSsr` (home/book/profile); Waitlisted CTA; create returns `queuePosition`+`createdAt`; full meta densify; Join Waitlist → `?tab=holds`; Cancel Request/Hold dialogs close on settle.
 - Borrow Queue densify (2026-08-13/14): shared `loadAllBorrowRequestsRows`; LIGHT_ALERT lifecycle; Book column Available/Total; detail DNA header + Inventory/stats KPIs + About Book | Borrower And Issuer; absolute Return densify; Activity avatar densify via `resolveActivityActor` + SSR currentAdmin; `mergeDensifiedDetail`; `seed:reset` = 17 books + 2 accounts.
+- Admin detail polish (2026-08-14): `AdminDetailToolbar`/`AdminDetailIdChip`; review Status badge KPI + Context Approver + `getReviewAuditEvents` FIFO-25; borrow Borrow Book Context + thin IDs & Notes + parties cleanup; reject notes `Rejected by admin`; shared `activityEventIcon` + Activity `fifoLimit` on borrow.
 
 ## Admin Stockly chrome (2026-08-07)
 

@@ -9,6 +9,7 @@
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
+import { reviewAuditLabel } from "@/lib/admin/reviewAuditLabel";
 import type { Review } from "@/lib/services/reviews";
 import {
   writeDensifiedEmpty,
@@ -255,6 +256,8 @@ export function publicReviewToAdminItem(
     userName: review.userFullName || "Reader",
     userEmail: review.userEmail ?? "",
     userUniversityCard: review.universityCard ?? null,
+    // Public Review has no universityId — 0 until SSR/detail merge fills it.
+    userUniversityId: 0,
     reviewedBy: review.reviewedBy ?? null,
     reviewedByName: review.reviewedByName ?? null,
     reviewedByEmail: review.reviewedByEmail ?? null,
@@ -698,4 +701,58 @@ export function patchReviewCachesOnModerate(
       toStatus: patch.status,
     });
   }
+}
+
+const REVIEW_AUDIT_FIFO = 25;
+
+/**
+ * Prepend densified audit row onto review detail Activity (FIFO-25).
+ * Call alongside densifyActivityLog after review.write mutations.
+ */
+export function prependReviewAuditEvent(
+  queryClient: QueryClient,
+  args: {
+    reviewId: string;
+    action: string;
+    details?: Record<string, unknown> | null;
+    actorId?: string | null;
+    actorName?: string | null;
+    actorEmail?: string | null;
+    actorUniversityCard?: string | null;
+  },
+): void {
+  const key = queryKeys.reviews.adminDetail(args.reviewId);
+  const prev =
+    queryClient.getQueryData<AdminBookReviewItem>(key) ??
+    findCachedAdminReview(queryClient, args.reviewId);
+  if (!prev) return;
+
+  let actorUniversityCard = args.actorUniversityCard ?? null;
+  if (!actorUniversityCard && args.actorId) {
+    for (const e of prev.auditEvents ?? []) {
+      if (e.actorId === args.actorId && e.actorUniversityCard) {
+        actorUniversityCard = e.actorUniversityCard;
+        break;
+      }
+    }
+  }
+
+  const event: TicketActivityEvent = {
+    id: `densify-review-${args.reviewId}-${Date.now()}`,
+    kind: "audit",
+    at: new Date().toISOString(),
+    label: reviewAuditLabel(args.action, args.details),
+    actorId: args.actorId ?? null,
+    actorName: args.actorName ?? null,
+    actorEmail: args.actorEmail ?? null,
+    actorUniversityCard,
+    detail:
+      typeof args.details?.title === "string" ? args.details.title : null,
+  };
+
+  const existing = prev.auditEvents ?? [];
+  queryClient.setQueryData<AdminBookReviewItem>(key, {
+    ...prev,
+    auditEvents: [event, ...existing].slice(0, REVIEW_AUDIT_FIFO),
+  });
 }

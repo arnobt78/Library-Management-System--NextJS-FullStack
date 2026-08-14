@@ -16,6 +16,7 @@ import {
   Loader2,
   MessageSquare,
   Pencil,
+  Ticket,
   Trash2,
   Users,
 } from "lucide-react";
@@ -39,6 +40,8 @@ import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { cn } from "@/lib/utils";
 import { buildTicketActivityTimeline } from "@/lib/ui/ticketActivity";
 import PersonAttribution from "@/components/PersonAttribution";
+import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
+import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
 import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
@@ -106,95 +109,106 @@ export default function AdminSupportTicketDetailContent({
 
   return (
     <section className="w-full space-y-4 sm:space-y-6">
-      {/* Back + actions — justify-between, wraps on narrow screens */}
-      <div className="flex w-full flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-admin"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="max-w-44 truncate sm:max-w-none">
-            Back to Support Tickets
-          </span>
-        </button>
-        {/* Light CTAs — primary-admin / red-800 (must stay in Tailwind content + theme) */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+      {/* Mobile: Back → actions → ID (centered); sm+: Back | ID | actions */}
+      <AdminDetailToolbar
+        hasActions
+        back={
           <button
             type="button"
-            onClick={() => setEditOpen(true)}
-            className={cn(
-              LIGHT_GLASS_CTA.host,
-              LIGHT_GLASS_CTA.edit,
-              // Explicit safeties so JIT always sees these class strings here too
-              "bg-primary-admin text-white",
-            )}
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-admin"
           >
-            <Pencil className="size-4" />
-            <span className="hidden sm:inline">Edit Ticket</span>
-            <span className="sm:hidden">Edit</span>
+            <ArrowLeft className="size-4" />
+            <span className="max-w-44 truncate sm:max-w-none">
+              Back to Support Tickets
+            </span>
           </button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                type="button"
-                disabled={deleteMutation.isPending}
-                className={cn(
-                  LIGHT_GLASS_CTA.host,
-                  LIGHT_GLASS_CTA.delete,
-                  "bg-red-800 text-white",
-                )}
-              >
-                <Trash2 className="size-4" />
-                <span className="hidden sm:inline">Delete</span>
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className={LIGHT_ALERT.content}>
-              <AlertDialogHeader>
-                <AlertDialogTitle className={LIGHT_ALERT.title}>
-                  Delete ticket &ldquo;{ticket.subject}&rdquo;?
-                </AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div className={`space-y-2 ${LIGHT_ALERT.description}`}>
-                    <p>
-                      This permanently removes the ticket and all its replies.
-                      This action cannot be undone.
-                    </p>
-                    <div className={LIGHT_ALERT.preview}>
-                      <p className="line-clamp-2 text-sm font-medium">
-                        {ticket.subject}
-                      </p>
-                      <p className="mt-1.5 line-clamp-3 text-xs opacity-80">
-                        {ticket.description}
-                      </p>
-                    </div>
-                  </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className={LIGHT_ALERT.footer}>
-                <AlertDialogCancel
+        }
+        idChip={
+          <AdminDetailIdChip
+            label="Ticket ID"
+            value={ticket.id}
+            icon={Ticket}
+            className="justify-center"
+          />
+        }
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className={cn(
+                LIGHT_GLASS_CTA.host,
+                LIGHT_GLASS_CTA.edit,
+                "bg-primary-admin text-white",
+              )}
+            >
+              <Pencil className="size-4" />
+              <span className="hidden sm:inline">Edit Ticket</span>
+              <span className="sm:hidden">Edit</span>
+            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
                   disabled={deleteMutation.isPending}
-                  className={LIGHT_ALERT.cancel}
-                >
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  className={LIGHT_ALERT.destructive}
-                >
-                  {deleteMutation.isPending ? (
-                    <Loader2 className="size-3.5 animate-spin sm:size-4" />
-                  ) : (
-                    <Trash2 className="size-3.5 sm:size-4" />
+                  className={cn(
+                    LIGHT_GLASS_CTA.host,
+                    LIGHT_GLASS_CTA.delete,
+                    "bg-red-800 text-white",
                   )}
-                  {deleteMutation.isPending ? "Deleting…" : "Delete ticket"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+                >
+                  <Trash2 className="size-4" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className={LIGHT_ALERT.content}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className={LIGHT_ALERT.title}>
+                    Delete ticket &ldquo;{ticket.subject}&rdquo;?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className={`space-y-2 ${LIGHT_ALERT.description}`}>
+                      <p>
+                        This permanently removes the ticket and all its replies.
+                        This action cannot be undone.
+                      </p>
+                      <div className={LIGHT_ALERT.preview}>
+                        <p className="line-clamp-2 text-sm font-medium">
+                          {ticket.subject}
+                        </p>
+                        <p className="mt-1.5 line-clamp-3 text-xs opacity-80">
+                          {ticket.description}
+                        </p>
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className={LIGHT_ALERT.footer}>
+                  <AlertDialogCancel
+                    disabled={deleteMutation.isPending}
+                    className={LIGHT_ALERT.cancel}
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    className={LIGHT_ALERT.destructive}
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                    ) : (
+                      <Trash2 className="size-3.5 sm:size-4" />
+                    )}
+                    {deleteMutation.isPending ? "Deleting…" : "Delete ticket"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        }
+      />
 
       <div className="admin-panel w-full space-y-2">
         <h1 className="text-lg font-medium text-sky-700 sm:text-xl">
@@ -249,7 +263,7 @@ export default function AdminSupportTicketDetailContent({
             variant="light"
             icon={<Users className="size-5" />}
             title="Ticket Parties"
-            subtitle="Requester, assignee, and timeline"
+            subtitle="Requester and assignee"
             className="mb-0"
           />
           <div className="space-y-1">
@@ -264,6 +278,13 @@ export default function AdminSupportTicketDetailContent({
                 email: ticket.userEmail,
                 universityCard: ticket.userUniversityCard,
               }}
+              meta={
+                <TicketDateMeta
+                  createdAt={ticket.createdAt}
+                  createdLabel="Created"
+                  hideUpdated
+                />
+              }
             />
           </div>
           <div className="space-y-1">
@@ -279,17 +300,25 @@ export default function AdminSupportTicketDetailContent({
                   email: ticket.assignedToEmail ?? "",
                   universityCard: ticket.assignedToUniversityCard,
                 }}
+                meta={
+                  <TicketDateMeta
+                    updatedAt={ticket.updatedAt}
+                    updatedLabel="Updated"
+                    hideCreated
+                  />
+                }
               />
             ) : (
-              <AllAdminLabel />
+              <div className="flex min-w-0 flex-col gap-1 leading-none">
+                <AllAdminLabel />
+                <TicketDateMeta
+                  updatedAt={ticket.updatedAt}
+                  updatedLabel="Updated"
+                  hideCreated
+                />
+              </div>
             )}
           </div>
-          <TicketDateMeta
-            layout="stack"
-            variant="light"
-            createdAt={ticket.createdAt}
-            updatedAt={ticket.updatedAt}
-          />
           {ticket.relatedBookTitle ? (
             <div className="inline-flex items-center gap-1.5 text-sm text-gray-600">
               <BookOpen className="size-3.5" aria-hidden />

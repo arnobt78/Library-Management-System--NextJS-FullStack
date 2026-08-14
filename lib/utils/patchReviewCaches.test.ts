@@ -35,6 +35,7 @@ function makeItem(
     userName: overrides.userName ?? "Test User",
     userEmail: overrides.userEmail ?? "test@user.com",
     userUniversityCard: overrides.userUniversityCard ?? null,
+    userUniversityId: overrides.userUniversityId ?? 900001,
     reviewedBy: overrides.reviewedBy ?? null,
     reviewedByName: overrides.reviewedByName ?? null,
     reviewedByEmail: overrides.reviewedByEmail ?? null,

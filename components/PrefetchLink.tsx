@@ -292,6 +292,7 @@ export default function PrefetchLink({
                 "reviewedByEmail",
                 "reviewedByUniversityCard",
                 "reviewedAt",
+                "auditEvents",
               ]),
             );
             break;
@@ -309,6 +310,7 @@ export default function PrefetchLink({
               "reviewedByEmail",
               "reviewedByUniversityCard",
               "reviewedAt",
+              "auditEvents",
             ]);
           },
           staleTime: 0,
