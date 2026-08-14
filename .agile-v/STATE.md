@@ -7,8 +7,8 @@
 - Status: ACTIVE - Admin Book Catalog polish Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `30a8f34` (prior); catalog polish commit pending tip-bind
-- Latest HEAD: `30a8f34` (+ working tree catalog polish)
+- Latest implementation tip: `bd01803`
+- Latest HEAD: `bd01803`
 - Started: 2026-08-01
 - Last updated: 2026-08-14 (Admin Book Catalog polish)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -31,7 +31,7 @@ Verified facts:
 - Catalog cards: sky title/genre/star; two-col meta; full-width Publisher `break-words`; meta values `text-dark-200`.
 - Detail `/admin/books/[id]` + form shell; PrefetchLink + `book.write` densify/RSC OK (audit clean).
 - Docs: portable auth guide + unused HERO/PARALLAX/DROPDOWN deletes; no VPS runbooks in this repo.
-- Tip bind after push.
+- Tip bind: `bd01803`.
 
 ### Next Action
 
