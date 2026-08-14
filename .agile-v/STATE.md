@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Admin book detail + createdBy DNA; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Book Activity FIFO + Delete settle; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Book catalog detail/createdBy audit PASS; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Book Activity/Delete settle audit PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `cae41d4`
-- Latest HEAD: `cae41d4`
+- Latest implementation tip: pending (Activity FIFO + Delete settle)
+- Latest HEAD: `59ccd93` (+ working tree)
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (pre-commit audit)
+- Last updated: 2026-08-15 (pre-commit audit Activity+Delete)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,6 +25,48 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
 
+## Reconciliation snapshot (2026-08-15, Activity+Delete pre-commit audit)
+
+Verified facts:
+- Activity FIFO-25 SSR+densify+timeline; wipe closeout shared fetch; Delete LIGHT_ALERT settle.
+- Gateway book.write; JWT card-less; Redis rate-limit only; tsc/lint/274 tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav after push; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-15, Delete settle + densify closeout)
+
+Verified facts:
+- DeleteBookDialog LIGHT_ALERT; block dismiss + Loader2 until densify; push list (no refresh).
+- Wipe closeout present: fetchBookDetailPreservingDensify, PrefetchLink, useBook stamp, Activity FIFO-25.
+
+### Next Action
+
+Superseded by pre-commit audit.
+
+## Reconciliation snapshot (2026-08-15, Book densify wipe closeout)
+
+Verified facts:
+- Shared `fetchBookDetailPreservingDensify` + `BOOK_DETAIL_DENSIFIED_KEYS` for useBook + PrefetchLink (public book-detail + admin catalog).
+- Catalog detail SSR `initialDataUpdatedAt`; borrow detail drops duplicate `useBook` (panel owns observer).
+- Activity FIFO-25 + densify prepend intact; gateway order unchanged.
+
+### Next Action
+
+Superseded by Delete settle snapshot.
+
+## Reconciliation snapshot (2026-08-15, Book detail Activity FIFO-25)
+
+Verified facts:
+- `getBookAuditEvents` SSR + `TicketActivityTimeline` fifoLimit 25; merge preserves auditEvents.
+- create/update prepend after densifyBookWrite; delete skips (detail removed).
+- Edit page polish deferred.
+
+### Next Action
+
+Superseded by densify wipe closeout.
+
 ## Reconciliation snapshot (2026-08-15, Book detail + createdBy audit)
 
 Verified facts:
@@ -35,7 +77,7 @@ Verified facts:
 
 ### Next Action
 
-**Human-Decision:** soft-nav catalog detail after commit; C2 Gate 2 still EvalGate-blocked.
+Superseded by Activity FIFO-25 snapshot.
 
 ## Reconciliation snapshot (2026-08-14, Books createdBy DNA)
 

@@ -8,7 +8,6 @@ import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
   getBooksList,
-  getBook,
   getBookRecommendations,
   getRelatedBooks,
   getBookBorrowStats,
@@ -17,6 +16,7 @@ import {
   type BooksListResponse,
   type BookBorrowStats,
 } from "@/lib/services/books";
+import { fetchBookDetailPreservingDensify } from "@/lib/books/fetchBookDetailPreservingDensify";
 import {
   getUsersList,
   getPendingUsers,
@@ -200,19 +200,25 @@ export const useAllBooks = (
  * const { data } = useBook(bookId, serverBookData);
  * ```
  */
-export const useBook = (id: string, initialData?: Book) => {
+export const useBook = (
+  id: string,
+  initialData?: Book,
+  initialDataUpdatedAt?: number,
+) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: queryKeys.books.detail(id),
     queryFn: () =>
-      trackQuery(`book-${id}`, async () => {
-        return getBook(id);
-      }),
+      trackQuery(`book-${id}`, () =>
+        fetchBookDetailPreservingDensify(queryClient, id),
+      ),
     enabled: !!id,
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
     initialData, // Use SSR data if provided (prevents duplicate fetch)
+    initialDataUpdatedAt,
   });
 };
 

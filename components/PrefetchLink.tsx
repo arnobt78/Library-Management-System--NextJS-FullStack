@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps, FocusEvent, MouseEvent } from "react";
 import { queryKeys } from "@/lib/query/keys";
 import { prefetchAdminUser360Caches } from "@/lib/query/prefetchAdminUser360Caches";
-import { getBook, getBookBorrowStats, getBooksList } from "@/lib/services/books";
+import { getBookBorrowStats, getBooksList } from "@/lib/services/books";
 import { getAdminBookReviews, getBookReviews, getAdminReviewDetail } from "@/lib/services/reviews";
 import { getBorrowRequests, getBorrowRequestDetail, getUserBorrows } from "@/lib/services/borrows";
 import {
@@ -29,6 +29,7 @@ import {
   getUserSupportTickets,
 } from "@/lib/services/supportTickets";
 import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
+import { fetchBookDetailPreservingDensify } from "@/lib/books/fetchBookDetailPreservingDensify";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 
 export type PrefetchKind =
@@ -156,9 +157,10 @@ export default function PrefetchLink({
         const bookId = bookMatch?.[1];
         if (!bookId) break;
         // staleTime 0 — densify/invalidate must win over a warm 30s cache.
+        // Same books.detail key as admin catalog — preserve actors + Activity.
         void queryClient.prefetchQuery({
           queryKey: queryKeys.books.detail(bookId),
-          queryFn: () => getBook(bookId),
+          queryFn: () => fetchBookDetailPreservingDensify(queryClient, bookId),
           staleTime: 0,
         });
         void queryClient.prefetchQuery({
@@ -174,7 +176,7 @@ export default function PrefetchLink({
         // staleTime 0 — book.write densify must win over warm admin detail.
         void queryClient.prefetchQuery({
           queryKey: queryKeys.books.detail(bookId),
-          queryFn: () => getBook(bookId),
+          queryFn: () => fetchBookDetailPreservingDensify(queryClient, bookId),
           staleTime: 0,
         });
         void queryClient.prefetchQuery({

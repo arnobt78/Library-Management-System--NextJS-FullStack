@@ -53,6 +53,8 @@ interface Book {
     email: string;
     universityCard: string | null;
   } | null;
+  /** Admin catalog detail Activity FIFO-25; omitted on list/API rows. */
+  auditEvents?: TicketActivityEvent[];
   createdAt: Date | null;
 }
 

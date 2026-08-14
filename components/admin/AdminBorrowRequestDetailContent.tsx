@@ -33,7 +33,6 @@ import {
 import { useSession } from "next-auth/react";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import {
-  useBook,
   useBookBorrowStats,
   useBorrowRequestDetail,
 } from "@/hooks/useQueries";
@@ -251,7 +250,8 @@ export default function AdminBorrowRequestDetailContent({
     initialRequest,
     ssrTimestamp,
   );
-  const { data: liveBook } = useBook(request.bookId, undefined);
+  // Inventory densify via syncBorrowRequestBookFields on request fields;
+  // AdminBookDetailsPanel owns the shared useBook observer (no duplicate fetch).
   const { data: stats } = useBookBorrowStats(
     request.bookId,
     initialBookStats ?? undefined,
@@ -327,9 +327,8 @@ export default function AdminBorrowRequestDetailContent({
       ? `Accrued balance · ${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue`
       : "Accrued balance · No overdue days";
 
-  const totalCopies = liveBook?.totalCopies ?? request.bookTotalCopies ?? null;
-  const availableCopies =
-    liveBook?.availableCopies ?? request.bookAvailableCopies ?? null;
+  const totalCopies = request.bookTotalCopies ?? null;
+  const availableCopies = request.bookAvailableCopies ?? null;
   const hasInventory =
     typeof totalCopies === "number" &&
     Number.isFinite(totalCopies) &&

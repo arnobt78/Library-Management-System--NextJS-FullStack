@@ -1,17 +1,14 @@
-"use client";
-
 /**
- * DeleteBookDialog
- *
- * Hard-delete confirmation requiring:
- * 1) Exact book title typed
- * 2) ADMIN_DELETE_SECRET typed (verified server-side only)
- *
- * On success: React Query invalidation (via useDeleteBook) + router.refresh().
+ * Hard-delete book confirm — title + ADMIN_DELETE_SECRET (server-verified).
+ * LIGHT_ALERT settle DNA: dialog stays open with Loader2 until book.write densify
+ * finishes (success → close + push; error → stay open, toast from useDeleteBook).
+ * Parent: Delete settle UX + book densify closeout
  */
+"use client";
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2, Trash2 } from "lucide-react";
 import { useDeleteBook } from "@/hooks/useMutations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { LIGHT_ALERT } from "@/lib/ui/glassActionChrome";
+import { cn } from "@/lib/utils";
 
 interface DeleteBookDialogProps {
   bookId: string;
@@ -34,7 +32,7 @@ interface DeleteBookDialogProps {
   triggerClassName?: string;
   /** Custom trigger (e.g. kebab DropdownMenuItem); default is red Delete button. */
   trigger?: ReactNode;
-  /** After delete, navigate here (e.g. edit page → /admin/books) */
+  /** After densify settle, soft-nav here (catalog list / edit parent). */
   redirectTo?: string;
 }
 
@@ -51,37 +49,39 @@ const DeleteBookDialog = ({
   const [titleConfirm, setTitleConfirm] = useState("");
   const [deleteSecret, setDeleteSecret] = useState("");
 
+  const isPending = deleteBookMutation.isPending;
   const titleMatches = titleConfirm.trim() === bookTitle.trim();
   const canSubmit =
-    titleMatches && deleteSecret.length > 0 && !deleteBookMutation.isPending;
+    titleMatches && deleteSecret.length > 0 && !isPending;
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!canSubmit) return;
 
-    deleteBookMutation.mutate(
-      {
+    try {
+      // Await densify (commitMutationCache inside useDeleteBook onSuccess).
+      await deleteBookMutation.mutateAsync({
         bookIds: [bookId],
         bookTitle,
         deleteSecret,
-      },
-      {
-        onSuccess: () => {
-          setOpen(false);
-          setTitleConfirm("");
-          setDeleteSecret("");
-          router.refresh();
-          if (redirectTo) {
-            router.push(redirectTo);
-          }
-        },
-      },
-    );
+      });
+      setTitleConfirm("");
+      setDeleteSecret("");
+      setOpen(false);
+      // Densify already patched RQ list/KPIs — push without router.refresh flash.
+      if (redirectTo) {
+        router.push(redirectTo);
+      }
+    } catch {
+      // Toast from useDeleteBook; keep dialog open with fields intact.
+    }
   };
 
   return (
     <AlertDialog
       open={open}
       onOpenChange={(next) => {
+        // Block dismiss while mutation + densify in flight.
+        if (isPending && !next) return;
         setOpen(next);
         if (!next) {
           setTitleConfirm("");
@@ -102,13 +102,24 @@ const DeleteBookDialog = ({
           </Button>
         )}
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className={LIGHT_ALERT.content}>
         <AlertDialogHeader>
-          <AlertDialogTitle>Hard-delete this book?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This permanently removes &quot;{bookTitle}&quot; and related
-            reviews/borrow history. Active borrows block deletion. Type the
-            exact title and your ADMIN_DELETE_SECRET to confirm.
+          <AlertDialogTitle className={LIGHT_ALERT.title}>
+            Hard-delete this book?
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className={cn("space-y-2", LIGHT_ALERT.description)}>
+              <p>
+                This permanently removes &quot;{bookTitle}&quot; and related
+                reviews/borrow history. Active borrows block deletion. Type the
+                exact title and your ADMIN_DELETE_SECRET to confirm.
+              </p>
+              <div className={LIGHT_ALERT.preview}>
+                <p className="line-clamp-2 text-sm font-medium text-dark-400">
+                  {bookTitle}
+                </p>
+              </div>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -126,6 +137,7 @@ const DeleteBookDialog = ({
               onChange={(e) => setTitleConfirm(e.target.value)}
               placeholder={bookTitle}
               autoComplete="off"
+              disabled={isPending}
             />
           </div>
           <div className="space-y-1.5">
@@ -142,22 +154,34 @@ const DeleteBookDialog = ({
               onChange={(e) => setDeleteSecret(e.target.value)}
               placeholder="Enter delete secret"
               autoComplete="off"
+              disabled={isPending}
             />
           </div>
         </div>
 
-        <AlertDialogFooter>
-          <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+        <AlertDialogFooter className={LIGHT_ALERT.footer}>
+          <AlertDialogCancel
+            type="button"
+            disabled={isPending}
+            className={LIGHT_ALERT.cancel}
+          >
+            Cancel
+          </AlertDialogCancel>
           <Button
             type="button"
             variant="destructive"
             disabled={!canSubmit}
-            onClick={handleDelete}
+            className={LIGHT_ALERT.destructive}
+            onClick={() => {
+              void handleDelete();
+            }}
           >
-            <Trash2 className="size-4" />
-            {deleteBookMutation.isPending
-              ? "Deleting..."
-              : "Delete Permanently"}
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Trash2 className="size-4" aria-hidden />
+            )}
+            {isPending ? "Deleting..." : "Delete Permanently"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

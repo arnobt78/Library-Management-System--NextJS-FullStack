@@ -83,6 +83,7 @@ import { commitMutationCache } from "@/lib/query/mutationGateway";
 import {
   densifyBookDelete,
   densifyBookWrite,
+  prependBookAuditEvent,
 } from "@/lib/utils/patchBookCaches";
 import { densifyUserWrite, densifyUserRegistrationPending } from "@/lib/utils/patchUserCaches";
 import {
@@ -290,6 +291,17 @@ export const useCreateBook = () => {
                 }
               : {}),
           });
+          if (data?.id) {
+            prependBookAuditEvent(queryClient, {
+              bookId: data.id,
+              action: "CREATE",
+              details: {
+                title: variables.title,
+                ...(variables.author ? { author: variables.author } : {}),
+              },
+              ...actorFields,
+            });
+          }
           densifyActivityLog(queryClient, {
             ...actorFields,
             action: "CREATE",
@@ -393,6 +405,12 @@ export const useUpdateBook = () => {
             ...(data && typeof data === "object" ? data : {}),
             ...(variables.title ? { title: variables.title } : {}),
             ...(updatedByActor ? { updatedByActor } : {}),
+          });
+          prependBookAuditEvent(queryClient, {
+            bookId: variables.bookId,
+            action: "UPDATE",
+            details: { title: bookTitle },
+            ...actorFields,
           });
           densifyActivityLog(queryClient, {
             ...actorFields,

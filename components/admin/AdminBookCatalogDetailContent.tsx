@@ -1,11 +1,12 @@
 /**
  * Admin Book Catalog detail — borrow/review DNA:
- * Toolbar → Book DNA → KPIs → Catalog | Media → Description/Summary → IDs & stamps.
- * Densify via book.write (books.detail + createdByActor/updatedByActor preserve).
- * Parent: admin book catalog detail polish
+ * Toolbar → Book DNA → KPIs → Catalog | Media → Description/Summary → IDs → Activity FIFO-25.
+ * Densify via book.write (actors + auditEvents preserve).
+ * Parent: Admin Book Detail FIFO-25 Activity
  */
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   BookA,
@@ -35,6 +36,7 @@ import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
 import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { DetailKpiShell } from "@/components/admin/DetailKpiShell";
 import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
+import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import CopyableText from "@/components/ui/CopyableText";
@@ -107,7 +109,21 @@ export default function AdminBookCatalogDetailContent({
   initialBookStats: BookBorrowStats;
 }) {
   const goBack = useBackWithRefresh("book.write", "/admin/books");
-  const { data: book = initialBook } = useBook(initialBook.id, initialBook);
+  // Seed auditEvents onto detail RQ so book.write densify can prepend
+  // (SSR-only initialBook.auditEvents would freeze the Activity timeline).
+  const seededBook = useMemo<Book>(
+    () => ({
+      ...initialBook,
+      auditEvents: initialBook.auditEvents ?? [],
+    }),
+    [initialBook],
+  );
+  const [ssrTimestamp] = useState(() => Date.now());
+  const { data: book = seededBook } = useBook(
+    initialBook.id,
+    seededBook,
+    ssrTimestamp,
+  );
   const { data: stats = initialBookStats } = useBookBorrowStats(
     initialBook.id,
     initialBookStats,
@@ -119,6 +135,7 @@ export default function AdminBookCatalogDetailContent({
   );
   const hasTrailer = Boolean(book.videoUrl?.trim());
   const coverHex = book.coverColor?.trim() || "";
+  const auditEvents = book.auditEvents ?? [];
 
   return (
     <section className="w-full space-y-4 sm:space-y-6">
@@ -583,6 +600,13 @@ export default function AdminBookCatalogDetailContent({
           </div>
         </div>
       </div>
+
+      <TicketActivityTimeline
+        events={auditEvents}
+        variant="light"
+        fifoLimit={25}
+        adminUserHref
+      />
     </section>
   );
 }

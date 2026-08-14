@@ -22,14 +22,29 @@ import {
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 import { syncBorrowRequestBookFields } from "@/lib/utils/syncBorrowRequestBookFields";
 import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
+import { bookAuditLabel } from "@/lib/admin/bookAuditLabel";
+import { BOOK_DETAIL_DENSIFIED_KEYS } from "@/lib/books/bookDetailDensifyKeys";
 
-type BookLike = { id: string; [key: string]: unknown };
+type BookLike = {
+  id: string;
+  [key: string]: unknown;
+  auditEvents?: TicketActivityEvent[];
+  createdByActor?: {
+    id: string;
+    fullName: string;
+    email: string;
+    universityCard: string | null;
+  } | null;
+  updatedByActor?: {
+    id: string;
+    fullName: string;
+    email: string;
+    universityCard: string | null;
+  } | null;
+};
 
-/** Detail densify keys that thin list/API patches must not wipe. */
-const BOOK_DETAIL_DENSIFIED_KEYS = [
-  "updatedByActor",
-  "createdByActor",
-] as const;
+/** Match review/borrow detail Activity FIFO (User 360 DNA). */
+const BOOK_AUDIT_FIFO = 25;
 
 function titleOf(book: { title?: unknown }): string {
   return typeof book.title === "string" ? book.title : "";
@@ -410,6 +425,74 @@ export function densifyBookWrite(
   }
   // Insights charts — evict so soft-nav refetches (no invent series densify).
   evictAnalyticsCaches(queryClient);
+}
+
+/**
+ * Prepend densified audit row onto Book Catalog detail Activity (FIFO-25).
+ * Call after densifyBookWrite alongside densifyActivityLog on book.write.
+ * Cold-skip when detail was never opened (create → soft-nav still seeds via write).
+ */
+export function prependBookAuditEvent(
+  queryClient: QueryClient,
+  args: {
+    bookId: string;
+    action: string;
+    details?: Record<string, unknown> | null;
+    actorId?: string | null;
+    actorName?: string | null;
+    actorEmail?: string | null;
+    actorUniversityCard?: string | null;
+  },
+): void {
+  const key = queryKeys.books.detail(args.bookId);
+  const prev = queryClient.getQueryData<BookLike>(key);
+  if (!prev) return;
+
+  const actorUniversityCard = resolveBookActorCard(
+    prev,
+    args.actorId,
+    args.actorUniversityCard,
+  );
+
+  const event: TicketActivityEvent = {
+    id: `densify-book-${args.bookId}-${Date.now()}`,
+    kind: "audit",
+    at: new Date().toISOString(),
+    label: bookAuditLabel(args.action, args.details),
+    actorId: args.actorId ?? null,
+    actorName: args.actorName ?? null,
+    actorEmail: args.actorEmail ?? null,
+    actorUniversityCard,
+    detail:
+      typeof args.details?.title === "string" ? args.details.title : null,
+  };
+
+  const existing = prev.auditEvents ?? [];
+  queryClient.setQueryData<BookLike>(key, {
+    ...prev,
+    auditEvents: [event, ...existing].slice(0, BOOK_AUDIT_FIFO),
+  });
+}
+
+/** Prefer passed card; else reuse sibling audit / catalog stamps for same actorId. */
+function resolveBookActorCard(
+  prev: BookLike,
+  actorId: string | null | undefined,
+  passed: string | null | undefined,
+): string | null {
+  if (passed) return passed;
+  if (!actorId) return null;
+  for (const e of prev.auditEvents ?? []) {
+    if (e.actorId === actorId && e.actorUniversityCard) {
+      return e.actorUniversityCard;
+    }
+  }
+  for (const actor of [prev.updatedByActor, prev.createdByActor]) {
+    if (actor?.id === actorId && actor.universityCard) {
+      return actor.universityCard;
+    }
+  }
+  return null;
 }
 
 /** Drop deleted book ids from detail + admin list + featured/related caches. */

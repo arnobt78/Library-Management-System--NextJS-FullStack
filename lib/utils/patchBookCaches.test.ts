@@ -12,6 +12,7 @@ import {
   densifyBookDelete,
   densifyBookWrite,
   patchAdminListAvailability,
+  prependBookAuditEvent,
 } from "@/lib/utils/patchBookCaches";
 import { isDensifiedEmpty } from "@/lib/utils/queryCacheLists";
 
@@ -405,5 +406,75 @@ describe("patchBookCaches", () => {
     expect(detail?.availableCopies).toBe(7);
     expect(detail?.createdByActor).toEqual(creator);
     expect(detail?.updatedByActor?.email).toBe("other@admin.com");
+  });
+
+  it("densifyBookWrite preserves auditEvents when thin patch omits it", () => {
+    const client = new QueryClient();
+    const auditEvents: TicketActivityEvent[] = [
+      {
+        id: "evt-1",
+        kind: "audit",
+        at: "2026-08-14T00:00:00.000Z",
+        label: "Book created",
+        actorId: "admin-1",
+        actorName: "Test Admin",
+        actorEmail: "test@admin.com",
+        actorUniversityCard: "/images/profile-img.png",
+        detail: "Algorithms",
+      },
+    ];
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      title: "Algorithms",
+      auditEvents,
+    });
+
+    densifyBookWrite(client, {
+      id: "book-1",
+      title: "Algorithms",
+      availableCopies: 5,
+    });
+
+    const detail = client.getQueryData<{
+      availableCopies?: number;
+      auditEvents?: TicketActivityEvent[];
+    }>(queryKeys.books.detail("book-1"));
+    expect(detail?.availableCopies).toBe(5);
+    expect(detail?.auditEvents).toEqual(auditEvents);
+  });
+
+  it("prependBookAuditEvent FIFO-25 and enriches card from updatedByActor", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      title: "Algorithms",
+      auditEvents: [],
+      updatedByActor: {
+        id: "admin-1",
+        fullName: "Test Admin",
+        email: "test@admin.com",
+        universityCard: "/images/profile-img.png",
+      },
+    });
+
+    prependBookAuditEvent(client, {
+      bookId: "book-1",
+      action: "UPDATE",
+      details: { title: "Algorithms" },
+      actorId: "admin-1",
+      actorName: "Test Admin",
+      actorEmail: "test@admin.com",
+      actorUniversityCard: null,
+    });
+
+    const detail = client.getQueryData<{
+      auditEvents?: TicketActivityEvent[];
+    }>(queryKeys.books.detail("book-1"));
+    expect(detail?.auditEvents).toHaveLength(1);
+    expect(detail?.auditEvents?.[0]?.label).toBe("Book updated");
+    expect(detail?.auditEvents?.[0]?.detail).toBe("Algorithms");
+    expect(detail?.auditEvents?.[0]?.actorUniversityCard).toBe(
+      "/images/profile-img.png",
+    );
   });
 });
