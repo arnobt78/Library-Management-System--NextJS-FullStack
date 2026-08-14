@@ -46,7 +46,7 @@ export const MUTATION_DOMAIN_REGISTRY = {
 } as const satisfies Record<string, readonly QueryDomain[]>;
 
 export const MUTATION_RSC_PATH_REGISTRY = {
-  "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
+  "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/books/[id]", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
   "user.write": [
     "/my-profile",
     "/make-admin",

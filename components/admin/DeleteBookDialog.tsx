@@ -10,7 +10,7 @@
  * On success: React Query invalidation (via useDeleteBook) + router.refresh().
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useDeleteBook } from "@/hooks/useMutations";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,10 @@ import { Trash2 } from "lucide-react";
 interface DeleteBookDialogProps {
   bookId: string;
   bookTitle: string;
-  /** Optional trigger button className override */
+  /** Optional trigger button className override (default Delete button). */
   triggerClassName?: string;
+  /** Custom trigger (e.g. kebab DropdownMenuItem); default is red Delete button. */
+  trigger?: ReactNode;
   /** After delete, navigate here (e.g. edit page → /admin/books) */
   redirectTo?: string;
 }
@@ -40,6 +42,7 @@ const DeleteBookDialog = ({
   bookId,
   bookTitle,
   triggerClassName,
+  trigger,
   redirectTo,
 }: DeleteBookDialogProps) => {
   const router = useRouter();
@@ -87,15 +90,17 @@ const DeleteBookDialog = ({
       }}
     >
       <AlertDialogTrigger asChild>
-        <Button
-          size="sm"
-          variant="destructive"
-          className={triggerClassName}
-          type="button"
-        >
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
+        {trigger ?? (
+          <Button
+            size="sm"
+            variant="destructive"
+            className={triggerClassName}
+            type="button"
+          >
+            <Trash2 className="size-4" />
+            Delete
+          </Button>
+        )}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

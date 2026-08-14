@@ -13,7 +13,7 @@
 A production-oriented full-stack **university library** platform (**BookWise**) built with the **Next.js App Router**, **React 19**, **strict TypeScript**, **PostgreSQL + Drizzle ORM**, **Auth.js (NextAuth v5)**, **TanStack Query**, **Upstash Redis** (rate limits only), **ImageKit**, and multi-provider email. It is designed as both a deployable product and an **educational lab**: server-first pages, client hydration, typed mutations, domain invalidation, secure admin operations, and a real borrow + reservation lifecycle.
 
 - **Live demo:** [https://university-library-managment.vercel.app/](https://university-library-managment.vercel.app/)
-- **Security:** private reports → [SECURITY.md](./SECURITY.md) · [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
+- **Security:** Private reports → [SECURITY.md](./SECURITY.md) · [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
 - **Author:** [Arnob Mahmud](https://www.arnobmahmud.com) · [GitHub @arnobt78](https://github.com/arnobt78) · [LinkedIn @arnob-mahmud-05839655](https://www.linkedin.com/in/arnob-mahmud-05839655/)
 
 ![BookWise screenshot](https://github.com/user-attachments/assets/e495275c-a7b2-45aa-bd37-cd37ca1dadf8)

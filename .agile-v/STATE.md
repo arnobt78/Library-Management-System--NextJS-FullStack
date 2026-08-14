@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Borrow detail UI tweaks; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Admin Book Catalog polish commit; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Borrow detail UI tweaks Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Admin Book Catalog polish Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `9abc8ae`
-- Latest HEAD: `9abc8ae`
+- Latest implementation tip: `30a8f34` (prior); catalog polish commit pending tip-bind
+- Latest HEAD: `30a8f34` (+ working tree catalog polish)
 - Started: 2026-08-01
-- Last updated: 2026-08-14 (Admin detail polish tip `9abc8ae`)
+- Last updated: 2026-08-14 (Admin Book Catalog polish)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,61 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-14, Admin Book Catalog polish commit)
+
+Verified facts:
+- Catalog cards: sky title/genre/star; two-col meta; full-width Publisher `break-words`; meta values `text-dark-200`.
+- Detail `/admin/books/[id]` + form shell; PrefetchLink + `book.write` densify/RSC OK (audit clean).
+- Docs: portable auth guide + unused HERO/PARALLAX/DROPDOWN deletes; no VPS runbooks in this repo.
+- Tip bind after push.
+
+### Next Action
+
+**Human-Decision:** soft-nav catalog; richer book-detail polish later; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Merge VPS docs into Hetzner guide)
+
+Verified facts:
+- Merge into local Hetzner mega-guide (Parts A–D) completed; then **owner deleted** all VPS/Coolify `.md` runbooks from this project for safety (not needed here).
+- No VPS runbook remains under `docs/`; CLAUDE pointer removed; `.gitignore` rule for `HETZNER_VPS_MIGRATION_GUIDE.md` may stay harmless.
+- Docs-only change — densify / RQ / auth / Redis paths untouched.
+
+### Next Action
+
+**Human-Decision:** commit CLAUDE/STATE cleanup if desired; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Portable auth UI guide)
+
+Verified facts:
+- `docs/PORTABLE_AUTH_UI_GUIDE.md` merges Select+Robohash, profile `modal={false}`, API Docs/Status/Logout contracts + short Auth.js/Clerk appendices.
+- Deleted `AUTH_UI_IMPLEMENTATION_GUIDE.md`, `CLERK_AUTH_COMPLETE_IMPLEMENTATION_GUIDE.md`, `DROPDOWN_TEST_CREDENTIALS_DOCS.md`; no stale path refs.
+
+### Next Action
+
+**Human-Decision:** soft-nav / commit docs when ready; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Admin books card DNA)
+
+Verified facts:
+- Catalog cards: sky title + author + OverviewGenreChip + star number; BookCover kept; Rating 5/5 row removed.
+- Two-col meta: Total/Available/Status/Featured + Year/Pages/Edition/Publisher when set.
+- Prove: typecheck + lint PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav /admin/books cards; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Admin Book Catalog + Detail polish)
+
+Verified facts:
+- `/admin/books/[id]` detail DNA; list KPIs + header Create; compact cards + kebab; edit/new two-col form.
+- PrefetchLink admin catalog detail + `book.write` RSC `/admin/books/[id]`; activity Entity → catalog detail.
+- Prove: typecheck + lint + activityLogDisplay/queryInvalidation tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav catalog list/detail/edit; C2 Gate 2 still EvalGate-blocked.
 
 ## Reconciliation snapshot (2026-08-14, Borrow detail UI tweaks)
 

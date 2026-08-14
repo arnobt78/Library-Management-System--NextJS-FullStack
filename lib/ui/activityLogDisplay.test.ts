@@ -25,10 +25,10 @@ describe("activityEntityHref", () => {
     expect(activityEntityHref("admin-request", "req1", {})).toBeUndefined();
   });
 
-  it("maps reservation to book edit via details.bookId", () => {
+  it("maps reservation to book catalog detail via details.bookId", () => {
     expect(
       activityEntityHref("reservation", "r1", { bookId: "b9" }),
-    ).toBe("/admin/books/b9/edit");
+    ).toBe("/admin/books/b9");
     expect(activityEntityHref("reservation", "r1", {})).toBeUndefined();
   });
 

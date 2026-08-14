@@ -1,17 +1,10 @@
 "use client";
 
 /**
- * AdminBooksList Component
- *
- * Client component that displays all books in a grid layout for admin management.
- * Uses React Query for data fetching and caching, with SSR initial data support.
- *
- * Features:
- * - Uses useAllBooks hook with initialData from SSR
- * - Displays skeleton loaders while fetching
- * - Shows error state if fetch fails
- * - Displays books in a responsive grid layout
- * - Shows book details, status, and action buttons
+ * AdminBooksList — catalog grid with universe KPIs, header Create CTA,
+ * sky DNA cards (title/author/genre chip/star) + kebab + two-col meta + full-width Publisher.
+ * Densify via book.write; View Details → /admin/books/[id].
+ * Parent: admin books catalog polish; admin books card DNA
  */
 
 import React, { useState } from "react";
@@ -38,6 +31,10 @@ import {
   isBookActive,
   sumLendableCopies,
 } from "@/lib/admin/lendableBookCopies";
+import { getBookAvailabilityStatus } from "@/lib/books/bookDetailsViewModel";
+import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
+import { OverviewGenreChip } from "@/lib/ui/overviewGenreChip";
+import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import {
   Plus,
   Eye,
@@ -46,11 +43,26 @@ import {
   Layers,
   BookOpenCheck,
   BookX,
+  Star,
+  AlertTriangle,
+  PackageX,
+  Library,
+  MoreVertical,
+  ExternalLink,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { cn } from "@/lib/utils";
 
 interface AdminBooksListProps {
   /**
@@ -177,11 +189,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
 
   // Filtered table query — warms filtered keys for invalidation / other consumers.
   // Table rows come from universe (+ client filter); do not bind to this result.
-  const {
-    isLoading,
-    isError,
-    error,
-  } = useAllBooks(filters, initialBooksData);
+  const { isLoading, isError, error } = useAllBooks(filters, initialBooksData);
 
   // Table/grid: always prefer warm universe for display (filtered = client
   // filter on localSearch + select filters). Instant from first keystroke;
@@ -241,65 +249,92 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   // Skeleton only when nothing displayable (placeholder/SSR already covered)
   if (isLoading && allBooks.length === 0) {
     return (
-      <section className="admin-panel">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-medium sm:text-xl">Book Catalog</h2>
-          <Button className="bg-primary-admin" asChild>
-            <Link href="/admin/books/new" className="text-white">
-              <Plus className="size-4" />
-              Create a New Book
-            </Link>
-          </Button>
-        </div>
-
-        <div className="mt-4 w-full overflow-hidden sm:mt-7">
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <BookCardSkeleton key={`skeleton-${i}`} />
-            ))}
+      <AdminPageShell
+        header={
+          <AdminPageHeader
+            title="Book Catalog"
+            description="Create, edit, and manage library inventory"
+            icon={BookMarked}
+            actions={
+              <Button className="bg-primary-admin" asChild>
+                <Link href="/admin/books/new" className="text-white">
+                  <Plus className="size-4" />
+                  Create a New Book
+                </Link>
+              </Button>
+            }
+          />
+        }
+      >
+        <section className="admin-panel">
+          <div className="mt-4 w-full overflow-hidden sm:mt-7">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <BookCardSkeleton key={`skeleton-${i}`} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </AdminPageShell>
     );
   }
 
   // Show error state
   if (isError && allBooks.length === 0) {
     return (
-      <section className="admin-panel">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-medium sm:text-xl">Book Catalog</h2>
-          <Button className="bg-primary-admin" asChild>
-            <Link href="/admin/books/new" className="text-white">
-              <Plus className="size-4" />
-              Create a New Book
-            </Link>
-          </Button>
-        </div>
-
-        <div className="mt-4 w-full overflow-hidden sm:mt-7">
-          <div className="py-6 text-center sm:py-8">
-            <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
-              Failed to load books
-            </p>
-            <p className="text-xs text-gray-500 sm:text-sm">
-              {error instanceof Error
-                ? error.message
-                : "An unknown error occurred"}
-            </p>
+      <AdminPageShell
+        header={
+          <AdminPageHeader
+            title="Book Catalog"
+            description="Create, edit, and manage library inventory"
+            icon={BookMarked}
+            actions={
+              <Button className="bg-primary-admin" asChild>
+                <Link href="/admin/books/new" className="text-white">
+                  <Plus className="size-4" />
+                  Create a New Book
+                </Link>
+              </Button>
+            }
+          />
+        }
+      >
+        <section className="admin-panel">
+          <div className="mt-4 w-full overflow-hidden sm:mt-7">
+            <div className="py-6 text-center sm:py-8">
+              <p className="mb-2 text-base font-medium text-red-500 sm:text-lg">
+                Failed to load books
+              </p>
+              <p className="text-xs text-gray-500 sm:text-sm">
+                {error instanceof Error
+                  ? error.message
+                  : "An unknown error occurred"}
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </AdminPageShell>
     );
   }
 
   // KPI counts — lendable pool from full-universe catalog (active titles only)
-  const {
-    totalCopies,
-    availableCopies,
-    borrowedCopies,
-  } = sumLendableCopies(universeBooks);
+  const { totalCopies, availableCopies, borrowedCopies } =
+    sumLendableCopies(universeBooks);
   const activeBookCount = universeBooks.filter((b) => isBookActive(b)).length;
+  const featuredCount = universeBooks.filter((b) => b.isFeatured).length;
+  const outOfStockCount = universeBooks.filter(
+    (b) => b.availableCopies <= 0,
+  ).length;
+  const lowStockCount = universeBooks.filter((b) => {
+    if (!isBookActive(b) || b.availableCopies <= 0) return false;
+    return (
+      getBookAvailabilityStatus(b.availableCopies, b.totalCopies).tone ===
+      "amber"
+    );
+  }).length;
+  const genreCount = new Set(
+    universeBooks.map((b) => b.genre.trim()).filter(Boolean),
+  ).size;
 
   return (
     <AdminPageShell
@@ -308,6 +343,14 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           title="Book Catalog"
           description="Create, edit, and manage library inventory"
           icon={BookMarked}
+          actions={
+            <Button className="bg-primary-admin" asChild>
+              <Link href="/admin/books/new" className="text-white">
+                <Plus className="size-4" />
+                Create a New Book
+              </Link>
+            </Button>
+          }
         />
       }
       kpis={
@@ -347,6 +390,30 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                 hue: "rose",
               },
             ]}
+          />
+          <StatCard
+            title="Featured Titles"
+            value={featuredCount}
+            icon={Star}
+            hue="blue"
+          />
+          <StatCard
+            title="Low Stock"
+            value={lowStockCount}
+            icon={AlertTriangle}
+            hue="amber"
+          />
+          <StatCard
+            title="Out of Stock"
+            value={outOfStockCount}
+            icon={PackageX}
+            hue="rose"
+          />
+          <StatCard
+            title="Genres"
+            value={genreCount}
+            icon={Library}
+            hue="slate"
           />
         </StatCardGrid>
       }
@@ -425,15 +492,6 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           />
         </AdminListToolbar>
 
-        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-          <Button className="bg-primary-admin" asChild>
-            <Link href="/admin/books/new" className="text-white">
-              <Plus className="size-4" />
-              Create a New Book
-            </Link>
-          </Button>
-        </div>
-
         <div className="mt-4 w-full overflow-hidden sm:mt-7">
           {allBooks.length === 0 ? (
             <AdminFilterEmptyState
@@ -444,132 +502,204 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {allBooks.map((book) => (
-                <div
-                  key={book.id}
-                  className="rounded-lg border border-gray-200 p-3 transition-shadow hover:shadow-md sm:p-4"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                    <BookCover
-                      coverColor={book.coverColor}
-                      coverImage={book.coverUrl}
-                      className="h-16 w-12 sm:h-20 sm:w-16"
-                    />
+              {allBooks.map((book) => {
+                const catalogRating =
+                  typeof book.rating === "number" ? book.rating : 0;
+                return (
+                  <div
+                    key={book.id}
+                    className="rounded-lg border border-gray-200 p-3 transition-shadow hover:shadow-md sm:p-4"
+                  >
+                    {/* Header: rectangular cover | sky DNA identity + kebab */}
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <BookCover
+                        coverColor={book.coverColor}
+                        coverImage={book.coverUrl}
+                        className="h-16 w-12 shrink-0 sm:h-20 sm:w-16"
+                      />
 
-                    <div className="flex-1">
-                      <PrefetchLink
-                        href={`/books/${book.id}`}
-                        className="line-clamp-2 text-base font-medium text-blue-700 hover:text-blue-600 sm:text-lg"
-                      >
-                        {book.title}
-                      </PrefetchLink>
-                      <p className="text-sm text-gray-600">by {book.author}</p>
-                      <p className="mt-1 text-xs text-gray-500">{book.genre}</p>
-
-                      <div className="mt-3 space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>Total Copies:</span>
-                          <span className="font-medium">
-                            {book.totalCopies}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Available:</span>
-                          <span
-                            className={`font-medium ${
-                              book.availableCopies > 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {book.availableCopies}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Rating:</span>
-                          <span className="font-medium">{book.rating}/5</span>
-                        </div>
-
-                        {/* Enhanced Information */}
-                        {book.isbn && (
-                          <div className="flex justify-between text-sm">
-                            <span>ISBN:</span>
-                            <span className="text-xs font-medium">
-                              {book.isbn}
-                            </span>
-                          </div>
-                        )}
-
-                        {book.publicationYear && (
-                          <div className="flex justify-between text-sm">
-                            <span>Published:</span>
-                            <span className="font-medium">
-                              {book.publicationYear}
-                            </span>
-                          </div>
-                        )}
-
-                        {book.publisher && (
-                          <div className="flex justify-between text-sm">
-                            <span>Publisher:</span>
-                            <span
-                              className="max-w-20 truncate text-xs font-medium"
-                              title={book.publisher}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 leading-none">
+                            <PrefetchLink
+                              href={`/admin/books/${book.id}`}
+                              className={cn(
+                                "line-clamp-2 text-base font-medium sm:text-lg",
+                                SKY_LINK_LIGHT,
+                              )}
                             >
-                              {book.publisher}
-                            </span>
+                              {book.title}
+                            </PrefetchLink>
+                            <p className="truncate text-sm">
+                              <span className="text-gray-500">by </span>
+                              <span className="text-gray-700">
+                                {book.author?.trim() || "Unknown"}
+                              </span>
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                              <OverviewGenreChip
+                                genre={book.genre}
+                                className="max-w-40 shrink-0 truncate px-1.5 py-0 text-[10px] sm:text-[10px]"
+                              />
+                              {catalogRating > 0 ? (
+                                <span className="inline-flex shrink-0 items-center gap-0.5 text-xs tabular-nums text-amber-600">
+                                  <Star
+                                    className="size-3 fill-amber-400 text-amber-400"
+                                    aria-hidden
+                                  />
+                                  {catalogRating}
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
-                        )}
 
-                        <div className="flex justify-between text-sm">
-                          <span>Status:</span>
-                          <span
-                            className={`font-medium ${
-                              book.isActive ? "text-green-600" : "text-red-600"
-                            }`}
-                          >
-                            {book.isActive ? "Active" : "Inactive"}
-                          </span>
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className={LIGHT_MENU.trigger}
+                                aria-label={`Actions for ${book.title}`}
+                              >
+                                <MoreVertical className="size-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className={LIGHT_MENU.content}
+                            >
+                              <DropdownMenuItem
+                                asChild
+                                className={LIGHT_MENU.item}
+                              >
+                                <PrefetchLink href={`/admin/books/${book.id}`}>
+                                  <Eye className="size-3.5" />
+                                  View Details
+                                </PrefetchLink>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                asChild
+                                className={LIGHT_MENU.item}
+                              >
+                                <PrefetchLink
+                                  href={`/admin/books/${book.id}/edit`}
+                                >
+                                  <Pencil className="size-3.5" />
+                                  Edit
+                                </PrefetchLink>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                asChild
+                                className={LIGHT_MENU.item}
+                              >
+                                <PrefetchLink href={`/books/${book.id}`}>
+                                  <ExternalLink className="size-3.5" />
+                                  View public page
+                                </PrefetchLink>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator
+                                className={LIGHT_MENU.separator}
+                              />
+                              <DeleteBookDialog
+                                bookId={book.id}
+                                bookTitle={book.title}
+                                trigger={
+                                  <DropdownMenuItem
+                                    onSelect={(e) => e.preventDefault()}
+                                    className={LIGHT_MENU.itemDestructive}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                }
+                              />
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-
-                        {book.isFeatured ? (
-                          <div className="flex justify-between text-sm">
-                            <span>Featured:</span>
-                            <span className="font-medium text-blue-600">
-                              Homepage
-                            </span>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap">
-                        <Button size="sm" asChild>
-                          <PrefetchLink
-                            href={`/books/${book.id}`}
-                            className="inline-flex items-center gap-2 text-white"
-                          >
-                            <Eye className="size-4" />
-                            View Details
-                          </PrefetchLink>
-                        </Button>
-                        <Button size="sm" variant="outline" asChild>
-                          <Link
-                            href={`/admin/books/${book.id}/edit`}
-                            className="inline-flex items-center gap-2"
-                          >
-                            <Pencil className="size-4" />
-                            Edit Book
-                          </Link>
-                        </Button>
-                        <DeleteBookDialog
-                          bookId={book.id}
-                          bookTitle={book.title}
-                        />
                       </div>
                     </div>
+
+                    {/* Two-col meta + full-width Publisher (avoids half-col truncate) */}
+                    <div className="mt-3 space-y-1 text-sm">
+                      <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+                        <div className="flex justify-between gap-2">
+                          <dt className="text-gray-500">Total</dt>
+                          <dd className="font-medium tabular-nums text-dark-200">
+                            {book.totalCopies}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <dt className="text-gray-500">Available</dt>
+                          <dd
+                            className={cn(
+                              "font-medium tabular-nums",
+                              book.availableCopies > 0
+                                ? "text-emerald-600"
+                                : "text-rose-600",
+                            )}
+                          >
+                            {book.availableCopies}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <dt className="text-gray-500">Status</dt>
+                          <dd
+                            className={cn(
+                              "font-medium",
+                              book.isActive
+                                ? "text-emerald-600"
+                                : "text-rose-600",
+                            )}
+                          >
+                            {book.isActive ? "Active" : "Inactive"}
+                          </dd>
+                        </div>
+                        {book.isFeatured ? (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-gray-500">Featured</dt>
+                            <dd className="font-medium text-sky-700">
+                              Homepage
+                            </dd>
+                          </div>
+                        ) : null}
+                        {book.publicationYear != null ? (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-gray-500">Year</dt>
+                            <dd className="font-medium tabular-nums text-dark-200">
+                              {book.publicationYear}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {book.pageCount != null ? (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-gray-500">Pages</dt>
+                            <dd className="font-medium tabular-nums text-dark-200">
+                              {book.pageCount}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {book.edition?.trim() ? (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-gray-500">Edition</dt>
+                            <dd className="truncate font-medium text-dark-200">
+                              {book.edition}
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                      {book.publisher?.trim() ? (
+                        <div className="flex min-w-0 items-baseline gap-2">
+                          <span className="shrink-0 text-gray-500">
+                            Publisher
+                          </span>
+                          <span className="min-w-0 break-words font-medium text-dark-200">
+                            {book.publisher}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

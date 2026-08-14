@@ -5,7 +5,7 @@
  * Entity routes map admin surfaces (not public pages). Borrow →
  * `/admin/book-requests/{id}` when entityId present (else queue). Types without a
  * dedicated detail page (admin-request → user 360 via details.userId; reservation →
- * book edit via details.bookId) still get navigable Entity cells when a sensible
+ * book catalog detail via details.bookId) still get navigable Entity cells when a sensible
  * admin URL exists.
  */
 
@@ -14,7 +14,7 @@ export const ACTIVITY_ENTITY_DETAIL_ROUTE: Record<
   string,
   (id: string) => string
 > = {
-  book: (id) => `/admin/books/${id}/edit`,
+  book: (id) => `/admin/books/${id}`,
   user: (id) => `/admin/users/${id}`,
   ticket: (id) => `/admin/support-tickets/${id}`,
   review: (id) => `/admin/book-reviews/${id}`,
@@ -96,7 +96,7 @@ function detailBookId(
  * Resolve admin href for an activity entity.
  * admin-request → `/admin/users/{details.userId}` (request id alone has no page).
  * borrow → `/admin/book-requests/{id}` when entityId present; else queue.
- * reservation → `/admin/books/{details.bookId}/edit` (no reservation detail page).
+ * reservation → `/admin/books/{details.bookId}` (catalog detail).
  */
 export function activityEntityHref(
   entityType: string,
@@ -116,7 +116,7 @@ export function activityEntityHref(
   }
   if (entityType === "reservation") {
     const bookId = detailBookId(details);
-    return bookId ? `/admin/books/${bookId}/edit` : undefined;
+    return bookId ? `/admin/books/${bookId}` : undefined;
   }
   if (!entityId) return undefined;
   return ACTIVITY_ENTITY_DETAIL_ROUTE[entityType]?.(entityId);

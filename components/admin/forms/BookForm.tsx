@@ -1,3 +1,8 @@
+/**
+ * Admin book create/update form — two-column short fields; full-width media/text.
+ * Mutations densify via book.write; update soft-navs to admin catalog detail.
+ * Parent: admin books catalog polish
+ */
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,7 +36,6 @@ interface Props extends Partial<Book> {
 const BookForm = ({ type = "create", ...book }: Props) => {
   const router = useRouter();
 
-  // React Query mutations
   const createBookMutation = useCreateBook();
   const updateBookMutation = useUpdateBook();
 
@@ -61,7 +65,6 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       coverColor: book.coverColor || "",
       videoUrl: book.videoUrl || "",
       summary: book.summary || "",
-      // Enhanced fields
       isbn: book.isbn || undefined,
       publicationYear: book.publicationYear ?? undefined,
       publisher: book.publisher || undefined,
@@ -75,205 +78,212 @@ const BookForm = ({ type = "create", ...book }: Props) => {
 
   const onSubmit = async (values: BookFormValues): Promise<void> => {
     if (type === "create") {
-      // Use React Query mutation for creating book
       createBookMutation.mutate(values, {
-        onSuccess: async () => {
-          // Refresh RSC trees (homepage hero) then navigate — no full browser reload
+        onSuccess: async (data) => {
           router.refresh();
-          router.push(`/admin/books`);
+          const newId = data && typeof data === "object" && "id" in data
+            ? String((data as Book).id)
+            : null;
+          router.push(newId ? `/admin/books/${newId}` : "/admin/books");
         },
       });
     } else {
-      // Use React Query mutation for updating book
       updateBookMutation.mutate(
         { bookId: book.id!, ...values },
         {
           onSuccess: async () => {
             router.refresh();
-            router.push(`/admin/books`);
+            router.push(`/admin/books/${book.id}`);
           },
         },
       );
     }
   };
 
+  const fieldClass = "flex flex-col gap-1";
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-4 sm:space-y-8"
+        className="space-y-6"
       >
-        <FormField
-          control={form.control}
-          name={"title"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Book Title
-              </FormLabel>
-              <FormControl>
-                <Input
-                  required
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.title}
-                  {...field}
-                  className="book-form_input"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name={"author"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Author
-              </FormLabel>
-              <FormControl>
-                <Input
-                  required
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.author}
-                  {...field}
-                  className="book-form_input"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name={"genre"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Genre
-              </FormLabel>
-              <FormControl>
-                <Input
-                  required
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.genre}
-                  {...field}
-                  className="book-form_input"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Identity + inventory — two columns on lg */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+          <FormField
+            control={form.control}
+            name={"title"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Book Title
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    required
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.title}
+                    {...field}
+                    className="book-form_input"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={"author"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Author
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    required
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.author}
+                    {...field}
+                    className="book-form_input"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={"genre"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Genre
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    required
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.genre}
+                    {...field}
+                    className="book-form_input"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={"rating"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Rating
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={5}
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.rating}
+                    {...field}
+                    value={
+                      typeof field.value === "number"
+                        ? field.value
+                        : ("" as const)
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      field.onChange(value === "" ? undefined : Number(value));
+                    }}
+                    className="book-form_input"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={"totalCopies"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Total Copies
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10000}
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.totalCopies}
+                    {...field}
+                    value={
+                      typeof field.value === "number"
+                        ? field.value
+                        : ("" as const)
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      field.onChange(value === "" ? undefined : Number(value));
+                    }}
+                    className="book-form_input"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <FormField
-          control={form.control}
-          name={"rating"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Rating
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={1}
-                  max={5}
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.rating}
-                  {...field}
-                  value={
-                    typeof field.value === "number"
-                      ? field.value
-                      : ("" as const)
-                  }
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value === "" ? undefined : Number(value));
-                  }}
-                  className="book-form_input"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Media — two columns */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+          <FormField
+            control={form.control}
+            name={"coverUrl"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Book Image
+                </FormLabel>
+                <FormControl>
+                  <FileUpload
+                    type="image"
+                    accept="image/*"
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.coverUrl}
+                    folder="books/covers"
+                    variant="light"
+                    onFileChange={field.onChange}
+                    value={field.value}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={"coverColor"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Primary Color
+                </FormLabel>
+                <FormControl>
+                  <ColorPicker
+                    onPickerChange={field.onChange}
+                    value={field.value}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <FormField
-          control={form.control}
-          name={"totalCopies"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Total Copies
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={1}
-                  max={10000}
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.totalCopies}
-                  {...field}
-                  value={
-                    typeof field.value === "number"
-                      ? field.value
-                      : ("" as const)
-                  }
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value === "" ? undefined : Number(value));
-                  }}
-                  className="book-form_input"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name={"coverUrl"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Book Image
-              </FormLabel>
-              <FormControl>
-                <FileUpload
-                  type="image"
-                  accept="image/*"
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.coverUrl}
-                  folder="books/covers"
-                  variant="light"
-                  onFileChange={field.onChange}
-                  value={field.value}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name={"coverColor"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Primary Color
-              </FormLabel>
-              <FormControl>
-                <ColorPicker
-                  onPickerChange={field.onChange}
-                  value={field.value}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name={"description"}
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
+            <FormItem className={fieldClass}>
               <FormLabel className="text-base font-normal text-dark-500">
                 Book Description
               </FormLabel>
@@ -281,62 +291,61 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 <Textarea
                   placeholder={BOOK_FIELD_PLACEHOLDERS.description}
                   {...field}
-                  rows={10}
+                  rows={8}
                   className="book-form_input"
                 />
               </FormControl>
-
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name={"videoUrl"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Book Trailer
-              </FormLabel>
-              <FormControl>
-                <FileUpload
-                  type="video"
-                  accept="video/*"
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.videoUrl}
-                  folder="books/videos"
-                  variant="light"
-                  onFileChange={field.onChange}
-                  value={field.value}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name={"summary"}
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-1">
-              <FormLabel className="text-base font-normal text-dark-500">
-                Book Summary
-              </FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={BOOK_FIELD_PLACEHOLDERS.summary}
-                  {...field}
-                  rows={5}
-                  className="book-form_input"
-                />
-              </FormControl>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+          <FormField
+            control={form.control}
+            name={"videoUrl"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Book Trailer
+                </FormLabel>
+                <FormControl>
+                  <FileUpload
+                    type="video"
+                    accept="video/*"
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.videoUrl}
+                    folder="books/videos"
+                    variant="light"
+                    onFileChange={field.onChange}
+                    value={field.value}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={"summary"}
+            render={({ field }) => (
+              <FormItem className={fieldClass}>
+                <FormLabel className="text-base font-normal text-dark-500">
+                  Book Summary
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder={BOOK_FIELD_PLACEHOLDERS.summary}
+                    {...field}
+                    rows={5}
+                    className="book-form_input"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Enhanced Fields Section */}
         <div className="border-t border-gray-200 pt-4 sm:pt-6">
           <h3 className="mb-4 text-base font-medium text-dark-500 sm:text-lg">
             Additional Information (Optional)
@@ -347,7 +356,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
               control={form.control}
               name={"isbn"}
               render={({ field }) => (
-                <FormItem className="flex flex-col gap-1">
+                <FormItem className={fieldClass}>
                   <FormLabel className="text-base font-normal text-dark-500">
                     ISBN
                   </FormLabel>
@@ -362,12 +371,11 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name={"publicationYear"}
               render={({ field }) => (
-                <FormItem className="flex flex-col gap-1">
+                <FormItem className={fieldClass}>
                   <FormLabel className="text-base font-normal text-dark-500">
                     Publication Year
                   </FormLabel>
@@ -396,12 +404,11 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name={"publisher"}
               render={({ field }) => (
-                <FormItem className="flex flex-col gap-1">
+                <FormItem className={fieldClass}>
                   <FormLabel className="text-base font-normal text-dark-500">
                     Publisher
                   </FormLabel>
@@ -416,12 +423,11 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name={"language"}
               render={({ field }) => (
-                <FormItem className="flex flex-col gap-1">
+                <FormItem className={fieldClass}>
                   <FormLabel className="text-base font-normal text-dark-500">
                     Language
                   </FormLabel>
@@ -436,12 +442,11 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name={"pageCount"}
               render={({ field }) => (
-                <FormItem className="flex flex-col gap-1">
+                <FormItem className={fieldClass}>
                   <FormLabel className="text-base font-normal text-dark-500">
                     Page Count
                   </FormLabel>
@@ -469,12 +474,11 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name={"edition"}
               render={({ field }) => (
-                <FormItem className="flex flex-col gap-1">
+                <FormItem className={fieldClass}>
                   <FormLabel className="text-base font-normal text-dark-500">
                     Edition
                   </FormLabel>
@@ -491,55 +495,56 @@ const BookForm = ({ type = "create", ...book }: Props) => {
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name={"isActive"}
-            render={({ field }) => (
-              <FormItem className="mt-4 flex flex-row items-start gap-3 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={(checked) =>
-                      field.onChange(checked === true)
-                    }
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel className="text-base font-normal text-dark-500">
-                    Book is active and available for borrowing
-                  </FormLabel>
-                  <FormMessage />
-                </div>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name={"isFeatured"}
-            render={({ field }) => (
-              <FormItem className="mt-4 flex flex-row items-start gap-3 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={(checked) =>
-                      field.onChange(checked === true)
-                    }
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel className="text-base font-normal text-dark-500">
-                    Feature on homepage
-                  </FormLabel>
-                  <FormDescription className="text-sm text-gray-500">
-                    Checking this replaces any currently featured book as the
-                    homepage hero.
-                  </FormDescription>
-                  <FormMessage />
-                </div>
-              </FormItem>
-            )}
-          />
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name={"isActive"}
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked === true)
+                      }
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-base font-normal text-dark-500">
+                      Book is active and available for borrowing
+                    </FormLabel>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={"isFeatured"}
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked === true)
+                      }
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-base font-normal text-dark-500">
+                      Feature on homepage
+                    </FormLabel>
+                    <FormDescription className="text-sm text-gray-500">
+                      Checking this replaces any currently featured book as the
+                      homepage hero.
+                    </FormDescription>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <Button type="submit" className="book-form_btn text-white">

@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps, FocusEvent, MouseEvent } from "react";
 import { queryKeys } from "@/lib/query/keys";
 import { prefetchAdminUser360Caches } from "@/lib/query/prefetchAdminUser360Caches";
-import { getBook, getBooksList } from "@/lib/services/books";
+import { getBook, getBookBorrowStats, getBooksList } from "@/lib/services/books";
 import { getAdminBookReviews, getBookReviews, getAdminReviewDetail } from "@/lib/services/reviews";
 import { getBorrowRequests, getBorrowRequestDetail, getUserBorrows } from "@/lib/services/borrows";
 import {
@@ -49,6 +49,7 @@ export type PrefetchKind =
   | "admin-user-detail"
   | "borrow-request-detail"
   | "admin-review-detail"
+  | "admin-book-catalog-detail"
   | "support-ticket-detail";
 
 const UUID =
@@ -56,6 +57,11 @@ const UUID =
 
 /** `/books/<uuid>` — warm detail + reviews before soft-nav (no stale flash). */
 const BOOK_DETAIL_HREF = new RegExp(`^/books/(${UUID})$`, "i");
+/** Admin catalog detail (not `/edit`). */
+const ADMIN_BOOK_CATALOG_DETAIL_HREF = new RegExp(
+  `^/admin/books/(${UUID})$`,
+  "i",
+);
 /** Registration Queue signup applicant detail. */
 const SIGNUP_REQUEST_DETAIL_HREF = new RegExp(
   `^/admin/account-requests/(${UUID})$`,
@@ -122,24 +128,27 @@ export default function PrefetchLink({
     const adminUserDetailMatch = ADMIN_USER_DETAIL_HREF.exec(path);
     const borrowRequestDetailMatch = BORROW_REQUEST_DETAIL_HREF.exec(path);
     const adminReviewDetailMatch = ADMIN_REVIEW_DETAIL_HREF.exec(path);
+    const adminBookCatalogMatch = ADMIN_BOOK_CATALOG_DETAIL_HREF.exec(path);
     const supportTicketDetailMatch = SUPPORT_TICKET_DETAIL_HREF.exec(path);
     const kind =
       prefetchKind ??
       (bookMatch
         ? ("book-detail" as const)
-        : signupDetailMatch
-          ? ("signup-request-detail" as const)
-          : adminRequestDetailMatch
-            ? ("admin-request-detail" as const)
-            : adminUserDetailMatch
-              ? ("admin-user-detail" as const)
-              : borrowRequestDetailMatch
-                ? ("borrow-request-detail" as const)
-                : adminReviewDetailMatch
-                  ? ("admin-review-detail" as const)
-                  : supportTicketDetailMatch
-                    ? ("support-ticket-detail" as const)
-                    : PREFETCH_BY_HREF[path]);
+        : adminBookCatalogMatch
+          ? ("admin-book-catalog-detail" as const)
+          : signupDetailMatch
+            ? ("signup-request-detail" as const)
+            : adminRequestDetailMatch
+              ? ("admin-request-detail" as const)
+              : adminUserDetailMatch
+                ? ("admin-user-detail" as const)
+                : borrowRequestDetailMatch
+                  ? ("borrow-request-detail" as const)
+                  : adminReviewDetailMatch
+                    ? ("admin-review-detail" as const)
+                    : supportTicketDetailMatch
+                      ? ("support-ticket-detail" as const)
+                      : PREFETCH_BY_HREF[path]);
     if (!kind) return;
 
     switch (kind) {
@@ -155,6 +164,22 @@ export default function PrefetchLink({
         void queryClient.prefetchQuery({
           queryKey: queryKeys.reviews.book(bookId),
           queryFn: () => getBookReviews(bookId),
+          staleTime: 0,
+        });
+        break;
+      }
+      case "admin-book-catalog-detail": {
+        const bookId = adminBookCatalogMatch?.[1];
+        if (!bookId) break;
+        // staleTime 0 — book.write densify must win over warm admin detail.
+        void queryClient.prefetchQuery({
+          queryKey: queryKeys.books.detail(bookId),
+          queryFn: () => getBook(bookId),
+          staleTime: 0,
+        });
+        void queryClient.prefetchQuery({
+          queryKey: queryKeys.books.borrowStats(bookId),
+          queryFn: () => getBookBorrowStats(bookId),
           staleTime: 0,
         });
         break;

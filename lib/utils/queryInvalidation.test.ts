@@ -252,7 +252,7 @@ describe("query invalidation contract", () => {
       "notification.write": ["notifications"],
     });
     expect(MUTATION_RSC_PATH_REGISTRY).toEqual({
-      "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
+      "book.write": ["/", "/all-books", "/books/[id]", "/admin/books", "/admin/books/[id]", "/admin/users/[id]", "/admin/business-insights", "/admin/activity-history"],
       "user.write": [
         "/my-profile",
         "/make-admin",
