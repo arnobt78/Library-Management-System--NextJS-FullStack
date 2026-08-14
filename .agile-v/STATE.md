@@ -7,10 +7,10 @@
 - Status: ACTIVE - Borrow detail UI tweaks Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `2f6ac4e` (prior); borrow detail UI tweaks uncommitted
-- Latest HEAD: `2f6ac4e` (+ working tree polish)
+- Latest implementation tip: `9abc8ae`
+- Latest HEAD: `9abc8ae`
 - Started: 2026-08-01
-- Last updated: 2026-08-14 (Borrow detail UI tweaks)
+- Last updated: 2026-08-14 (Admin detail polish tip `9abc8ae`)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
