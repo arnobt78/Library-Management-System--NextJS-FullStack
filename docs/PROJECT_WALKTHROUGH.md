@@ -47,6 +47,7 @@ Browser
 - Admin Book Catalog (2026-08-14): `/admin/books/[id]` catalog detail; list Create + Featured/Low/Out/Genres KPIs; cards sky title/genre/star + two-col meta + full-width Publisher (`text-dark-200`); edit/new two-col form; PrefetchLink + `book.write` RSC; Activity Entity → catalog detail.
 - Admin book detail + createdBy (2026-08-14/15): glass badges; Cover Color; KPI+Context rating tones; Media icons; Added/Updated PersonAttribution; mig `0015` + `loadBookWithUpdater` SSR/API densify (JWT card-less).
 - Book detail Activity FIFO-25 (2026-08-15): `getBookAuditEvents` + densify prepend; `TicketActivityTimeline` light; shared densify-preserving book fetch; DeleteBookDialog LIGHT_ALERT settle then push; Featured exclusivity no sibling `updatedAt`.
+- FilterSelect flash fix (2026-08-15): explicit SelectValue icon+label (no Radix Portal clone flash on hard refresh).
 
 ## Admin Stockly chrome (2026-08-07)
 

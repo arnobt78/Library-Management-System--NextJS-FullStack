@@ -4,7 +4,10 @@
  * FilterSelect — reusable shadcn Select for simple value/label filter lists.
  * Supports optional Lucide icon + per-option icon/label colors.
  * Trigger height h-9 matches Input / Button for aligned toolbars.
- * SelectValue clones the selected item (icon + text) — do not wrap a second icon.
+ *
+ * Selected icon+label render as explicit SelectValue children (not Radix
+ * ItemText clone from Portal) so hard refresh never flashes empty / reflows.
+ * Parent: Central FilterSelect refresh flash fix
  *
  * labelLayout:
  * - "stacked" — label above (legacy / public catalog)
@@ -66,6 +69,8 @@ export function FilterSelect({
   const isDark = variant === "dark";
   const isInline = labelLayout === "inline";
   const isEmbedded = labelLayout === "embedded";
+  const selected = options.find((option) => option.value === value);
+  const SelectedIcon = selected?.icon;
 
   return (
     <div
@@ -102,8 +107,29 @@ export function FilterSelect({
             triggerClassName,
           )}
         >
-          {/* SelectValue clones SelectItem (icon+text) — do not add a second icon */}
-          <SelectValue placeholder={placeholder ?? label} />
+          <SelectValue placeholder={placeholder ?? label}>
+            {selected ? (
+              <span className="flex items-center gap-2">
+                {SelectedIcon ? (
+                  <SelectedIcon
+                    className={cn(
+                      "size-4 shrink-0 opacity-90",
+                      selected.iconClassName,
+                    )}
+                    aria-hidden
+                  />
+                ) : null}
+                <span
+                  className={cn(
+                    isDark && !selected.itemClassName && "text-light-100",
+                    selected.itemClassName,
+                  )}
+                >
+                  {selected.label}
+                </span>
+              </span>
+            ) : null}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent
           className={cn(
