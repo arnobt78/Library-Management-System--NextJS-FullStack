@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) FilterSelect flash fix; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - FilterSelect flash fix ready to commit; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - FilterSelect flash shipped; next: book add/edit UI polish; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `028dc23`
-- Latest HEAD: `028dc23`
+- Latest HEAD: `2e7b310`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (FilterSelect flash pre-commit)
+- Last updated: 2026-08-15 (FilterSelect flash shipped)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,16 +25,16 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
 
-## Reconciliation snapshot (2026-08-15, FilterSelect flash pre-commit)
+## Reconciliation snapshot (2026-08-15, FilterSelect flash shipped)
 
 Verified facts:
-- Explicit SelectValue children; all FilterSelect pages covered; MultiSelect OK.
-- AuthForm leave as-is (already paints selected account outside SelectValue).
-- Prove: tsc/lint/274 tests PASS.
+- Tip `028dc23` + docs `2e7b310` pushed.
+- Explicit SelectValue; FilterSelect covered; MultiSelect OK; AuthForm leave (already paints selected).
+- Prove: tsc/lint/274 PASS.
 
 ### Next Action
 
-**Human-Decision:** hard-refresh filters tomorrow; next polish book add/edit UI.
+**Human-Decision:** hard-refresh filters; polish book add/edit UI → insights/automation/notif dropdown → scratch test.
 
 ## Reconciliation snapshot (2026-08-15, FilterSelect flash fix)
 
