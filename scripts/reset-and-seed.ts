@@ -2,8 +2,8 @@
  * reset-and-seed.ts
  *
  * Atomically wipes all transactional data and re-seeds:
- *   - 17 canonical books (from dummybooks.json) with full schema coverage
- *   - 2 test accounts (Test User + Test Admin) with scrypt-hashed passwords
+ *   - 2 test accounts first (Test User + Test Admin) with scrypt-hashed passwords
+ *   - 17 canonical books with created_by + updated_by = test@admin.com (Added/Updated DNA)
  *   - status_reviewed_* stamped on both accounts (no ledger / circulation rows)
  *
  * Intentionally empty after seed: borrows, holds, reviews, tickets,
@@ -19,9 +19,9 @@
  * Usage:
  *   npm run seed:reset
  *
- * Requires DATABASE_URL in .env
+ * Requires DATABASE_URL in .env + migration 0015_books_created_by applied.
  *
- * Parent: REQ-0033 / borrow detail gaps minimal seed
+ * Parent: REQ-0033 / books createdBy DNA densify
  */
 
 import { config } from "dotenv";
@@ -50,39 +50,30 @@ async function main() {
 
   // ── 1. Wipe all transactional data in FK-safe order ─────────────────────────
 
-  // reservation_events → reservations (FK chain)
   await db.execute(sql`DELETE FROM reservation_events`);
   console.log("  ✓ reservation_events cleared");
 
-  // circulation_commands references users
   await db.execute(sql`DELETE FROM circulation_commands`);
   console.log("  ✓ circulation_commands cleared");
 
-  // operation_telemetry has no FK references
   await db.execute(sql`DELETE FROM operation_telemetry`);
   console.log("  ✓ operation_telemetry cleared");
 
-  // reservations references users, books, borrow_records
   await db.execute(sql`DELETE FROM reservations`);
   console.log("  ✓ reservations cleared");
 
-  // borrow_records references users and books
   await db.execute(sql`DELETE FROM borrow_records`);
   console.log("  ✓ borrow_records cleared");
 
-  // book_reviews references books and users
   await db.execute(sql`DELETE FROM book_reviews`);
   console.log("  ✓ book_reviews cleared");
 
-  // admin_requests references users
   await db.execute(sql`DELETE FROM admin_requests`);
   console.log("  ✓ admin_requests cleared");
 
-  // signup decision ledger references users
   await db.execute(sql`DELETE FROM user_status_decisions`);
   console.log("  ✓ user_status_decisions cleared");
 
-  // CR-0003 / REQ-0034–0037 surfaces (must wipe before users)
   await db.execute(sql`DELETE FROM support_ticket_replies`);
   console.log("  ✓ support_ticket_replies cleared");
   await db.execute(sql`DELETE FROM support_tickets`);
@@ -92,64 +83,17 @@ async function main() {
   await db.execute(sql`DELETE FROM activity_logs`);
   console.log("  ✓ activity_logs cleared");
 
-  // books (all FK children already deleted)
   await db.execute(sql`DELETE FROM books`);
   console.log("  ✓ books cleared");
 
-  // users (all FK children already deleted)
   await db.execute(sql`DELETE FROM users`);
   console.log("  ✓ users cleared");
 
   // system_config is preserved — fine amounts, borrow duration etc. are admin-managed settings.
 
-  console.log("\nSeeding books...");
-
-  // ── 2. Seed books ────────────────────────────────────────────────────────────
-  // availableCopies is set to totalCopies for a clean slate (no borrow records).
-  // isFeatured is true only for Algorithms (the curated homepage hero).
-
-  for (const book of dummybooks) {
-    await db.execute(sql`
-      INSERT INTO books (
-        id, title, author, genre, rating,
-        cover_url, cover_color, description,
-        total_copies, available_copies,
-        video_url, summary,
-        isbn, publication_year, publisher, language, page_count, edition,
-        is_active, is_featured,
-        created_at, updated_at
-      ) VALUES (
-        ${book.id}::uuid,
-        ${book.title},
-        ${book.author},
-        ${book.genre},
-        ${book.rating},
-        ${book.coverUrl},
-        ${book.coverColor},
-        ${book.description},
-        ${book.totalCopies},
-        ${book.totalCopies},
-        ${book.videoUrl},
-        ${book.summary},
-        ${book.isbn ?? null},
-        ${book.publicationYear ?? null},
-        ${book.publisher ?? null},
-        ${book.language ?? "English"},
-        ${book.pageCount ?? null},
-        ${book.edition ?? null},
-        ${book.isActive ?? true},
-        ${book.id === FEATURED_BOOK_ID},
-        NOW(),
-        NOW()
-      )
-    `);
-    const featured = book.id === FEATURED_BOOK_ID ? " [featured]" : "";
-    console.log(`  ✓ ${book.title}${featured}`);
-  }
-
   console.log("\nSeeding users...");
 
-  // ── 3. Seed test accounts (APPROVED + durable status_reviewed_* to demo admin)
+  // ── 2. Users first (books.created_by / updated_by FK need admin id)
   for (const account of TEST_ACCOUNTS) {
     const hashedPassword = await hashPassword(account.password);
 
@@ -173,7 +117,6 @@ async function main() {
     console.log(`  ✓ ${account.email} (${account.role})`);
   }
 
-  // Stamp signup attribution: both demo accounts reviewed by Test Admin (self for admin)
   await db.execute(sql`
     UPDATE users AS u
     SET
@@ -186,7 +129,64 @@ async function main() {
   `);
   console.log("  ✓ status_reviewed_* stamped to test@admin.com");
 
+  const adminLookup = await db.execute(sql`
+    SELECT id FROM users WHERE email = 'test@admin.com' LIMIT 1
+  `);
+  const adminRow = (
+    adminLookup as unknown as { rows?: Array<{ id: string }> }
+  ).rows?.[0];
+  const adminId = adminRow?.id;
+  if (!adminId) {
+    throw new Error("Seed failed: test@admin.com missing after user insert");
+  }
+
+  console.log("\nSeeding books...");
+
+  // ── 3. Books with Created-by / Updated-by = Test Admin
+  for (const book of dummybooks) {
+    await db.execute(sql`
+      INSERT INTO books (
+        id, title, author, genre, rating,
+        cover_url, cover_color, description,
+        total_copies, available_copies,
+        video_url, summary,
+        isbn, publication_year, publisher, language, page_count, edition,
+        is_active, is_featured,
+        created_by, updated_by,
+        created_at, updated_at
+      ) VALUES (
+        ${book.id}::uuid,
+        ${book.title},
+        ${book.author},
+        ${book.genre},
+        ${book.rating},
+        ${book.coverUrl},
+        ${book.coverColor},
+        ${book.description},
+        ${book.totalCopies},
+        ${book.totalCopies},
+        ${book.videoUrl},
+        ${book.summary},
+        ${book.isbn ?? null},
+        ${book.publicationYear ?? null},
+        ${book.publisher ?? null},
+        ${book.language ?? "English"},
+        ${book.pageCount ?? null},
+        ${book.edition ?? null},
+        ${book.isActive ?? true},
+        ${book.id === FEATURED_BOOK_ID},
+        ${adminId}::uuid,
+        ${adminId}::uuid,
+        NOW(),
+        NOW()
+      )
+    `);
+    const featured = book.id === FEATURED_BOOK_ID ? " [featured]" : "";
+    console.log(`  ✓ ${book.title}${featured}`);
+  }
+
   console.log("\nreset-and-seed complete (17 books + 2 accounts; queues empty).");
+  console.log("  Catalog Added/Updated stamps → test@admin.com");
   await pool.end();
 }
 

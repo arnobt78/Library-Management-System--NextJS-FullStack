@@ -17,10 +17,10 @@ export function TicketSectionHeader({
   /** Override icon tile colors (e.g. teal for Internal Notes). */
   iconToneClassName,
   /**
-   * start = default (ticket/review detail with optional subtitle).
-   * center = icon + title vertically middle (Library Overview cards).
+   * center = default — icon tile mid-aligns with title+subtitle (detail DNA).
+   * start = icon top-aligned with title only (rare override).
    */
-  align = "start",
+  align = "center",
   className,
 }: {
   icon: ReactNode;
@@ -46,6 +46,8 @@ export function TicketSectionHeader({
         <div
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",
+            // Lucide glyphs sit optically high in the viewBox — nudge to tile midpoint.
+            "[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:translate-y-px",
             iconToneClassName ??
               (isDark
                 ? "border-primary/30 bg-primary/10 text-primary"
@@ -55,10 +57,10 @@ export function TicketSectionHeader({
         >
           {icon}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 leading-tight">
           <h2
             className={cn(
-              "text-base font-medium sm:text-lg",
+              "text-base font-medium leading-tight sm:text-lg",
               isDark ? "text-light-100" : "text-dark-400",
             )}
           >
@@ -67,7 +69,7 @@ export function TicketSectionHeader({
           {subtitle ? (
             <p
               className={cn(
-                "text-xs sm:text-sm",
+                "text-xs leading-snug sm:text-sm",
                 isDark ? "text-light-200/70" : "text-gray-500",
               )}
             >

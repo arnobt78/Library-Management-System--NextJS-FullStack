@@ -306,4 +306,104 @@ describe("patchBookCaches", () => {
 
     expect(client.getQueryData(queryKeys.books.featured(1))).toBeUndefined();
   });
+
+  it("densifyBookWrite preserves updatedByActor when thin patch omits it", () => {
+    const client = new QueryClient();
+    const actor = {
+      id: "admin-1",
+      fullName: "Test Admin",
+      email: "test@admin.com",
+      universityCard: null,
+    };
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      title: "Algorithms",
+      isActive: true,
+      isFeatured: false,
+      totalCopies: 10,
+      availableCopies: 9,
+      updatedByActor: actor,
+    });
+
+    densifyBookWrite(client, {
+      id: "book-1",
+      title: "Algorithms",
+      availableCopies: 8,
+    });
+
+    const detail = client.getQueryData<{
+      availableCopies?: number;
+      updatedByActor?: typeof actor;
+    }>(queryKeys.books.detail("book-1"));
+    expect(detail?.availableCopies).toBe(8);
+    expect(detail?.updatedByActor).toEqual(actor);
+  });
+
+  it("densifyBookWrite prefers incoming updatedByActor over previous", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      title: "Algorithms",
+      updatedByActor: {
+        id: "old",
+        fullName: "Old Admin",
+        email: "old@admin.com",
+        universityCard: null,
+      },
+    });
+
+    const next = {
+      id: "next",
+      fullName: "Test Admin",
+      email: "test@admin.com",
+      universityCard: "/images/profile-img.png",
+    };
+    densifyBookWrite(client, {
+      id: "book-1",
+      title: "Algorithms",
+      updatedByActor: next,
+    });
+
+    const detail = client.getQueryData<{ updatedByActor?: typeof next }>(
+      queryKeys.books.detail("book-1"),
+    );
+    expect(detail?.updatedByActor).toEqual(next);
+  });
+
+  it("densifyBookWrite preserves createdByActor when thin update omits it", () => {
+    const client = new QueryClient();
+    const creator = {
+      id: "admin-1",
+      fullName: "Test Admin",
+      email: "test@admin.com",
+      universityCard: "/images/profile-img.png",
+    };
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      title: "Algorithms",
+      createdByActor: creator,
+      updatedByActor: creator,
+    });
+
+    densifyBookWrite(client, {
+      id: "book-1",
+      title: "Algorithms",
+      availableCopies: 7,
+      updatedByActor: {
+        id: "admin-2",
+        fullName: "Other Admin",
+        email: "other@admin.com",
+        universityCard: null,
+      },
+    });
+
+    const detail = client.getQueryData<{
+      createdByActor?: typeof creator;
+      updatedByActor?: { email: string };
+      availableCopies?: number;
+    }>(queryKeys.books.detail("book-1"));
+    expect(detail?.availableCopies).toBe(7);
+    expect(detail?.createdByActor).toEqual(creator);
+    expect(detail?.updatedByActor?.email).toBe("other@admin.com");
+  });
 });

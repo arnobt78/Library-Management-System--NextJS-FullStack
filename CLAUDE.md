@@ -37,7 +37,9 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 
 - REQ-0019–0025 re-Prove passes: typecheck, lint, 40 default tests, 4 real PostgreSQL integration tests, audit 0, Next 16.2.12 build.
 - REQ-0025 uses DB-backed actors, owner/admin policy, row locks, atomic lifecycle writes, and environment-only CLI secrets.
-- Migration `0010_reservations.sql` was applied and schema-verified on the configured database on 2026-08-02; apply it separately to any other environment before matching code. `0010_reservations.down.sql` is the C2 rollback.
+- Migration `0010_reservations.sql` applied/schema-verified 2026-08-02; down `0010_reservations.down.sql`.
+- Migration `0014_admin_suite_expansion.sql` on shared DB (tickets/reviews/activity). Down: `0014_admin_suite_expansion.down.sql`.
+- Migration `0015_books_created_by.sql` applied locally (2026-08-14): `books.created_by` FK. Down: `0015_books_created_by.down.sql`. Apply on other envs before matching seed/code.
 - Migration `0011_user_status_review.sql` on shared DB (2026-08-04): `status_reviewed_by`/`status_reviewed_at`. Down: `0011_user_status_review.down.sql`.
 - Migration `0012_user_status_decisions.sql` on shared DB (2026-08-04): append-only signup decision ledger. Down: `0012_user_status_decisions.down.sql`.
 - Full Verify is 27/27 PASS; Gate 2 is approved (`GATE-0004`); accepted implementation is `d9b9fd9`; C1 is archived.
@@ -46,7 +48,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Final corrective Red Team reports zero known code failures after clock-skew claims, exact expiry, server validation, rolling upload limits, profile bounds/prefetch/shells and review-error fixes. Nonlocal browser/provider/load/deployment/alert/backup-restore and dated SLO evidence remains FLAG. A local checkpoint commit is owner-authorized; do not claim SaaS readiness, Gate 2, push or deployment.
 - READY delivery uses an idempotent Resend worker with a bounded dispatch lease, 10-second provider timeout, concurrency cap, finite dead-lettering, `after()` dispatch and secured cron recovery; all mutation families share client/RSC registries. Deployed receipt/production evidence remains open.
 - C2 targets only library domains; supplier/warehouse/shipping commerce and gRPC are excluded absent a measured requirement.
-- Demo seed: `npm run seed:reset` (`scripts/reset-and-seed.ts`) wipes FK-safe transactional tables, reseeds 17 `dummybooks.json` books (`availableCopies` = total) + `TEST_ACCOUNTS` with `status_reviewed_*` stamps; queues/reviews/tickets/holds/activity intentionally empty for one-by-one testing.
+- Demo seed: `npm run seed:reset` (`scripts/reset-and-seed.ts`) wipes FK-safe transactional tables, reseeds `TEST_ACCOUNTS` then 17 `dummybooks.json` books (`availableCopies` = total; `created_by`/`updated_by` = test@admin.com) + `status_reviewed_*` stamps; queues/reviews/tickets/holds/activity intentionally empty for one-by-one testing.
 - Nav `/my-profile` label: Borrow History. Profile SSR uses `BorrowRecordFull` + `initialDataUpdatedAt` so RQ does not flash Unknown Book.
 - Docs: educational `README.md` + `SECURITY.md` (<contact@arnobmahmud.com>); portable auth UI → `docs/PORTABLE_AUTH_UI_GUIDE.md` (Select + Robohash + profile `modal={false}`); seed commands match `seed:reset`. (No VPS/Coolify runbooks in this repo — keep those local elsewhere.)
 - Auth ops: apply `0009` before `users.updated_at`/`updated_by`; rehash-on-login non-fatal. Legacy + scrypt verify; keep prod deploy in sync with hash format. GitGuardian `$scrypt$ln` on `UNKNOWN_ACCOUNT_PASSWORD` is FP (dummy equal-cost hash).
@@ -142,6 +144,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Borrow detail UI tweaks (2026-08-14): Status KPI mid-align (no `self-start`); IDs & Notes Lucide labels; reject notes `Rejected by admin` (+ legacy librarian display map); Activity `activityEventIcon` + FIFO-25.
 - Admin Book Catalog polish (2026-08-14): `/admin/books/[id]` detail DNA; header Create CTA; Featured/Low/Out/Genres KPIs; compact cards + kebab; edit/new two-col `BookForm`/`AdminBookFormShell`; PrefetchLink `admin-book-catalog-detail` + `book.write` RSC.
 - Admin books card DNA (2026-08-14): sky title + `OverviewGenreChip` + star; two-col meta (copies/status/featured + year/pages/edition); full-width Publisher `break-words` + meta values `text-dark-200`.
+- Admin book detail (2026-08-14/15): Back+Edit; glass Active/Featured; Cover Color copy; KPI+Context `reviewRatingTone`; Media BookImage/BookA; `TicketSectionHeader` center+SVG mid.
+- Book densify+createdBy (2026-08-14/15): `loadBookWithUpdater` SSR/API; mig `0015`; seed+create stamp both actors; merge preserves; JWT card-less.
 - Densify preserve merge (2026-08-13): shared `mergeDensifiedDetail` — PrefetchLink + detail refetch keep actors/auditEvents/replies/reviewedBy* (no thin list/API wipe).
 - Densify consistency closeout (2026-08-13): Borrow Queue single universe RQ + stamps; claim `requestMeta`; ticket.write RSC User 360; ticket/review/nav stamps; PrefetchLink review/ticket detail + Activity Entity; Automation Refresh keeps prior featured (no blank hero).
 - Holds tab DNA (2026-08-13): tab/section **Active Holds**; SSR reservation meta parity with `/api/reservations/me`; `ReservationsPanel` cards = `profile-borrow-row` + glass badge/CTAs (Pending Requests layout).

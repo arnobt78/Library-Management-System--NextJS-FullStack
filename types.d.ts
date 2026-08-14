@@ -37,6 +37,22 @@ interface Book {
   isFeatured: boolean;
   updatedAt: Date | null;
   updatedBy?: string | null;
+  /** SSR/densify PersonAttribution for last catalog writer (joined users). */
+  updatedByActor?: {
+    id: string;
+    fullName: string;
+    email: string;
+    universityCard: string | null;
+  } | null;
+  /** Admin who first added the book to the catalog. */
+  createdBy?: string | null;
+  /** SSR/densify PersonAttribution for catalog creator (joined users). */
+  createdByActor?: {
+    id: string;
+    fullName: string;
+    email: string;
+    universityCard: string | null;
+  } | null;
   createdAt: Date | null;
 }
 

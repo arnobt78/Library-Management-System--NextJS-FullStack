@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Admin Book Catalog polish commit; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Admin book detail + createdBy DNA; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Admin Book Catalog polish Prove PASS; C2 Gate 2 blocked by EvalGate FAIL
+- Status: ACTIVE - Book catalog detail/createdBy audit PASS; C2 Gate 2 blocked by EvalGate FAIL
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `bd01803`
-- Latest HEAD: `bd01803`
+- Latest implementation tip: pending commit (detail + createdBy DNA)
+- Latest HEAD: `78a3b53` (+ working tree)
 - Started: 2026-08-01
-- Last updated: 2026-08-14 (Admin Book Catalog polish)
+- Last updated: 2026-08-15 (pre-commit audit)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,6 +24,53 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+
+## Reconciliation snapshot (2026-08-15, Book detail + createdBy audit)
+
+Verified facts:
+- Plan phases done: mig `0015`, loader SSR/API, create/update densify, seed stamps, Added/Updated DNA, Context rating tone.
+- Gateway `book.write` + merge preserve actors; JWT card-less intentional; Redis rate-limit only.
+- Prove: tsc/lint/270 tests PASS; no dead files; no code gaps requiring fix.
+- Apply `0015` on other envs before seed/code match.
+
+### Next Action
+
+**Human-Decision:** soft-nav catalog detail after commit; C2 Gate 2 still EvalGate-blocked.
+
+## Reconciliation snapshot (2026-08-14, Books createdBy DNA)
+
+Verified facts:
+- Migration `0015_books_created_by.sql` applied locally; schema `createdBy` FK.
+- Seed users-first then 17 books with created_by/updated_by = test@admin.com.
+- createBook stamps both actors; densify preserves createdByActor on update; IDs Added By PersonAttribution.
+- JWT remains without universityCard (DB densify/SSR join).
+
+### Next Action
+
+Superseded by 2026-08-15 audit snapshot.
+
+## Reconciliation snapshot (2026-08-14, Book detail densify fix)
+
+Verified facts:
+- Root cause: invalidate refetch via thin GET `/api/books/[id]` wiped densified `updatedByActor`.
+- Fix: `loadBookWithUpdater` shared by getBookById + API; create/update return DB actor; densify prefers action actor.
+- Catalog Context Total `text-dark-200` / Available availability tone; TicketSectionHeader SVG `translate-y-px` optical mid.
+
+### Next Action
+
+**Human-Decision:** edit book → soft-nav detail (Updated By without refresh); commit when ready.
+
+## Reconciliation snapshot (2026-08-14, Admin book detail polish)
+
+Verified facts:
+- Borrow-style Back; Edit Book; glass CatalogActive/Featured badges; Book Cover Color + copyable hex.
+- Rating `reviewRatingTone`; Catalog Flags + Media flags colored; BookImage/BookA.
+- Stamps: Added date + Updated by PersonAttribution via `getBookById` users join; densify preserves `updatedByActor`.
+- `TicketSectionHeader` default `align=center`. Prove: typecheck + lint + patchBookCaches tests PASS.
+
+### Next Action
+
+**Human-Decision:** soft-nav `/admin/books/[id]`; commit when ready; C2 Gate 2 still EvalGate-blocked.
 
 ## Reconciliation snapshot (2026-08-14, Admin Book Catalog polish commit)
 

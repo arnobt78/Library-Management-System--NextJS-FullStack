@@ -20,6 +20,10 @@ import { bookSchema, bookUpdateSchema } from "@/lib/validations";
 import { assertPersistedMediaUrl } from "@/lib/media/serverValidation";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { logActivity } from "@/lib/admin/activityLog";
+import {
+  bookUpdatedByActorFromAdmin,
+  loadBookWithUpdater,
+} from "@/lib/books/loadBookWithUpdater";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -64,6 +68,7 @@ export const createBook = async (params: BookParams) => {
         .values({
           ...safeParams,
           availableCopies: safeParams.totalCopies,
+          createdBy: actor.id,
           updatedBy: actor.id,
           isActive,
           isFeatured,
@@ -82,9 +87,16 @@ export const createBook = async (params: BookParams) => {
       details: { title: newBook.title, author: newBook.author },
     });
     revalidateMutationPaths("book.write");
+    const catalogActor = bookUpdatedByActorFromAdmin(actor);
     return {
       success: true,
-      data: JSON.parse(JSON.stringify(newBook)),
+      data: JSON.parse(
+        JSON.stringify({
+          ...newBook,
+          createdByActor: catalogActor,
+          updatedByActor: catalogActor,
+        }),
+      ),
     };
   } catch (error) {
     return {
@@ -216,7 +228,12 @@ export const updateBook = async (
     revalidateMutationPaths("book.write");
     return {
       success: true,
-      data: JSON.parse(JSON.stringify(updatedBook)),
+      data: JSON.parse(
+        JSON.stringify({
+          ...updatedBook,
+          updatedByActor: bookUpdatedByActorFromAdmin(actor),
+        }),
+      ),
     };
   } catch (error) {
     return {
@@ -232,13 +249,9 @@ export const updateBook = async (
 export const getBookById = async (bookId: string) => {
   try {
     await requireAdminActor();
-    const book = await db
-      .select()
-      .from(books)
-      .where(eq(books.id, bookId))
-      .limit(1);
+    const data = await loadBookWithUpdater(bookId);
 
-    if (book.length === 0) {
+    if (!data) {
       return {
         success: false,
         message: "Book not found",
@@ -247,7 +260,7 @@ export const getBookById = async (bookId: string) => {
 
     return {
       success: true,
-      data: JSON.parse(JSON.stringify(book[0])),
+      data: JSON.parse(JSON.stringify(data)),
     };
   } catch (error) {
     return {

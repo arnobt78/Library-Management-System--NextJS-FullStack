@@ -250,9 +250,48 @@ export const useCreateBook = () => {
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
         densify: () => {
-          densifyBookWrite(queryClient, data ?? undefined);
+          const actorFields = activityActorFromSession(session);
+          const fromAction =
+            data &&
+            typeof data === "object" &&
+            "updatedByActor" in data &&
+            data.updatedByActor &&
+            typeof data.updatedByActor === "object" &&
+            "email" in data.updatedByActor &&
+            typeof (data.updatedByActor as { email?: unknown }).email ===
+              "string"
+              ? (data.updatedByActor as {
+                  id: string;
+                  fullName: string;
+                  email: string;
+                  universityCard: string | null;
+                })
+              : null;
+          // Prefer DB actor from action; session email fallback (JWT has no card).
+          const sessionActor =
+            !fromAction &&
+            "actorEmail" in actorFields &&
+            actorFields.actorEmail
+              ? {
+                  id: actorFields.actorId ?? "",
+                  fullName: actorFields.actorName?.trim() || "Admin",
+                  email: actorFields.actorEmail,
+                  universityCard: actorFields.actorUniversityCard ?? null,
+                }
+              : null;
+          const catalogActor = fromAction ?? sessionActor ?? undefined;
+          // Create stamps both Added-by and Updated-by to the same admin DNA.
+          densifyBookWrite(queryClient, {
+            ...(data && typeof data === "object" ? data : {}),
+            ...(catalogActor
+              ? {
+                  createdByActor: catalogActor,
+                  updatedByActor: catalogActor,
+                }
+              : {}),
+          });
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...actorFields,
             action: "CREATE",
             entityType: "book",
             entityId: data?.id ?? null,
@@ -319,13 +358,44 @@ export const useUpdateBook = () => {
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
         densify: () => {
+          const actorFields = activityActorFromSession(session);
+          const fromAction =
+            data &&
+            typeof data === "object" &&
+            "updatedByActor" in data &&
+            data.updatedByActor &&
+            typeof data.updatedByActor === "object" &&
+            "email" in data.updatedByActor &&
+            typeof (data.updatedByActor as { email?: unknown }).email ===
+              "string"
+              ? (data.updatedByActor as {
+                  id: string;
+                  fullName: string;
+                  email: string;
+                  universityCard: string | null;
+                })
+              : null;
+          // Prefer DB actor from action; session email fallback (JWT has no card).
+          const sessionActor =
+            !fromAction &&
+            "actorEmail" in actorFields &&
+            actorFields.actorEmail
+              ? {
+                  id: actorFields.actorId ?? "",
+                  fullName: actorFields.actorName?.trim() || "Admin",
+                  email: actorFields.actorEmail,
+                  universityCard: actorFields.actorUniversityCard ?? null,
+                }
+              : null;
+          const updatedByActor = fromAction ?? sessionActor ?? undefined;
           densifyBookWrite(queryClient, {
             id: variables.bookId,
             ...(data && typeof data === "object" ? data : {}),
             ...(variables.title ? { title: variables.title } : {}),
+            ...(updatedByActor ? { updatedByActor } : {}),
           });
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...actorFields,
             action: "UPDATE",
             entityType: "book",
             entityId: variables.bookId,

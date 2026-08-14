@@ -45,6 +45,7 @@ Browser
 - Borrow Queue densify (2026-08-13/14): shared `loadAllBorrowRequestsRows`; LIGHT_ALERT lifecycle; Book column Available/Total; detail DNA header + Inventory/stats KPIs + About Book | Borrower And Issuer; absolute Return densify; Activity avatar densify via `resolveActivityActor` + SSR currentAdmin; `mergeDensifiedDetail`; `seed:reset` = 17 books + 2 accounts.
 - Admin detail polish (2026-08-14): `AdminDetailToolbar`/`AdminDetailIdChip`; review Status badge KPI + Context Approver + `getReviewAuditEvents` FIFO-25; borrow Borrow Book Context + thin IDs & Notes + parties cleanup; reject notes `Rejected by admin`; shared `activityEventIcon` + Activity `fifoLimit` on borrow.
 - Admin Book Catalog (2026-08-14): `/admin/books/[id]` catalog detail; list Create + Featured/Low/Out/Genres KPIs; cards sky title/genre/star + two-col meta + full-width Publisher (`text-dark-200`); edit/new two-col form; PrefetchLink + `book.write` RSC; Activity Entity → catalog detail.
+- Admin book detail + createdBy (2026-08-14/15): glass badges; Cover Color; KPI+Context rating tones; Media icons; Added/Updated PersonAttribution; mig `0015` + `loadBookWithUpdater` SSR/API densify (JWT card-less).
 
 ## Admin Stockly chrome (2026-08-07)
 

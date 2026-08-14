@@ -565,13 +565,13 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             className="mb-0"
             align="center"
             icon={<Users className="size-5" />}
-            title="Recent 5 Users Signups"
+            title="Recent 5 Signup Users"
             iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
           />
           <div className="space-y-2">
             {recentUsers.length === 0 ? (
               <p className="text-sm text-gray-500">
-                No recent users signups yet.
+                No recent signup users yet.
               </p>
             ) : (
               recentUsers.map((user) => (

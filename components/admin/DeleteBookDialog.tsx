@@ -155,7 +155,9 @@ const DeleteBookDialog = ({
             onClick={handleDelete}
           >
             <Trash2 className="size-4" />
-            {deleteBookMutation.isPending ? "Deleting…" : "Delete permanently"}
+            {deleteBookMutation.isPending
+              ? "Deleting..."
+              : "Delete Permanently"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

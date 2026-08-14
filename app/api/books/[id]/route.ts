@@ -4,6 +4,7 @@
  * GET /api/books/[id]
  *
  * Purpose: Get a single book by its ID with all details.
+ * Joins updatedByActor so book.write invalidate refetch cannot wipe stamps.
  *
  * Route Parameters:
  * - id: Book ID (UUID)
@@ -12,20 +13,14 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/database/drizzle";
-import { books } from "@/database/schema";
-import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
+import { loadBookWithUpdater } from "@/lib/books/loadBookWithUpdater";
 
 export const runtime = "nodejs";
 
 /**
- * Get a single book by ID
- *
- * @param _request - Next.js request object
- * @param params - Route parameters containing book ID
- * @returns JSON response with book data
+ * Get a single book by ID (includes updatedByActor when updater exists).
  */
 export async function GET(
   _request: NextRequest,
@@ -61,12 +56,7 @@ export async function GET(
       );
     }
 
-    // Fetch book by ID
-    const [book] = await db
-      .select()
-      .from(books)
-      .where(eq(books.id, id))
-      .limit(1);
+    const book = await loadBookWithUpdater(id);
 
     if (!book) {
       return NextResponse.json(
@@ -80,7 +70,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      book,
+      book: JSON.parse(JSON.stringify(book)),
     });
   } catch (error) {
     console.error("Error fetching book:", error);

@@ -168,6 +168,7 @@ export const books = pgTable("books", {
   isFeatured: boolean("is_featured").default(false).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(), // Last modification
   updatedBy: uuid("updated_by").references(() => users.id), // Who last updated (admin)
+  createdBy: uuid("created_by").references(() => users.id), // Who added to catalog (admin)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(), // When added to catalog
 });
 

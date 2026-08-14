@@ -21,8 +21,15 @@ import {
 } from "@/lib/utils/patchAdminStatsCaches";
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 import { syncBorrowRequestBookFields } from "@/lib/utils/syncBorrowRequestBookFields";
+import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
 
 type BookLike = { id: string; [key: string]: unknown };
+
+/** Detail densify keys that thin list/API patches must not wipe. */
+const BOOK_DETAIL_DENSIFIED_KEYS = [
+  "updatedByActor",
+  "createdByActor",
+] as const;
 
 function titleOf(book: { title?: unknown }): string {
   return typeof book.title === "string" ? book.title : "";
@@ -353,11 +360,18 @@ export function densifyBookWrite(
   // Create-only insert into admin lists; updates must not invent into filtered caches.
   const allowInsert = previous == null;
 
-  queryClient.setQueryData(queryKeys.books.detail(book.id), (prev: unknown) =>
-    prev && typeof prev === "object"
-      ? { ...(prev as object), ...book }
-      : book,
-  );
+  queryClient.setQueryData(queryKeys.books.detail(book.id), (prev: unknown) => {
+    const incoming = book as BookLike;
+    if (prev && typeof prev === "object") {
+      // Thin patches omit updatedByActor — keep densified PersonAttribution DNA.
+      return mergeDensifiedDetail(
+        prev as BookLike,
+        incoming,
+        BOOK_DETAIL_DENSIFIED_KEYS as unknown as readonly (keyof BookLike)[],
+      );
+    }
+    return incoming;
+  });
 
   queryClient.setQueriesData<BooksListResponse>(
     { queryKey: queryKeys.books.adminRoot },
