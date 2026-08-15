@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) form CTA silent Zod gate; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Vercel log quiet + Node 24; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - CTA gate flash-fix local done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - Node 24 + Sentry quiet local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `b0b76bc`
 - Latest HEAD: `b7ebef4`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (CTA gate: silent Zod, no mount errors)
+- Last updated: 2026-08-15 (engines 24.x; Sentry silent/telemetry off)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,19 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: `final-ui-polish-wave` Wave A done; B–E pending
+- Active plan: quiet Vercel build warnings done; Wave B–E still pending
+
+## Reconciliation snapshot (2026-08-15, Vercel log quiet + Node 24)
+
+Verified facts:
+- `package.json` engines pinned to `24.x` (clears Vercel EOL auto-upgrade vs open `>=20`).
+- `withSentryConfig`: `silent` unless `SENTRY_VERBOSE=1`; `telemetry: false` (sourcemaps still upload).
+- Kept immutable `/_next/static` Cache-Control; comment notes expected Next warning.
+- Prove: tsc + eslint `next.config.ts` + `npm run build` PASS (exit 0).
+
+### Next Action
+
+**Done local:** commit/push this ops tip. Confirm Vercel dashboard Node 24; Wave B insights or Human-Verify signup CTA next.
 
 ## Reconciliation snapshot (2026-08-15, CTA gate silent Zod)
 

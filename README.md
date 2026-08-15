@@ -120,7 +120,7 @@ This repository is both a **working library product** and a **full-stack learnin
 - Rate limiting with Upstash Redis (Redis is **not** a business-data cache)
 - Atomic inventory/lifecycle writes with row locks where required
 - Vitest unit + disposable-PostgreSQL integration tests
-- Vercel-friendly Node runtime (recommend **Node 24.x** on Vercel; app requires `>=20.9.0`)
+- Vercel-friendly Node runtime (`package.json` engines **`24.x`**)
 
 ---
 
@@ -145,7 +145,7 @@ This repository is both a **working library product** and a **full-stack learnin
 | Icons        | **lucide-react**                                     | UI icons                                       |
 | Tests        | **Vitest**                                           | Unit / integration runner                      |
 
-**Runtime:** Node.js `>= 20.9.0` (`package.json` `engines`). On Vercel, prefer **24.x** project + production Node settings.
+**Runtime:** Node.js **`24.x`** (`package.json` `engines`). Align the Vercel project Node setting to 24.x.
 
 ---
 

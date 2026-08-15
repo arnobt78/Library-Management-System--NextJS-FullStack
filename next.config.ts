@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/(.*)", headers: securityHeaders },
       {
+        // Intentional prod CDN immutability for hashed Next assets.
+        // Next may warn about custom Cache-Control (mainly a local-dev concern).
         source: "/_next/static/(.*)",
         headers: [
           {
@@ -86,7 +88,9 @@ export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
-  silent: !process.env.CI,
+  // Quiet CI/Vercel: still upload sourcemaps; set SENTRY_VERBOSE=1 for full artifact dump.
+  silent: process.env.SENTRY_VERBOSE !== "1",
+  telemetry: false,
   widenClientFileUpload: true,
   // Same-origin tunnel so ad blockers / “Sentry blocks” extensions do not drop events.
   tunnelRoute: "/api/monitoring",

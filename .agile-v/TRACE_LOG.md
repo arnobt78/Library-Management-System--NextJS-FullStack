@@ -230,3 +230,4 @@
 | SPAN-0224 | 2026-08-15 | C2 | Tip-bind form CTA | Compliance | Bound tip to `0e3e068` | decision_log_append_only | REQ-0033 | PASS |
 | SPAN-0225 | 2026-08-15 | C2 | CTA silent Zod | Build Agent JS | Drop mount trigger; watch+safeParse gate; onTouched errors; eslint scope; PASS | require_parent_requirement | REQ-0033 | PASS local; commit pending |
 | SPAN-0226 | 2026-08-15 | C2 | Tip-bind CTA silent Zod | Compliance | Bound tip to `b0b76bc` | decision_log_append_only | REQ-0033 | PASS |
+| SPAN-0227 | 2026-08-15 | C2 | Vercel quiet + Node 24 | Build Agent JS | engines 24.x; Sentry silent unless SENTRY_VERBOSE=1 + telemetry false; keep static Cache-Control; tsc/eslint/build PASS | require_parent_requirement; decision_log_append_only | REQ-0020, REQ-0032 | PASS local; densify N/A |

@@ -99,3 +99,4 @@
 | DEC-0095 | 2026-08-15 | C2 | Build Agent JS | Cap ImageKit uploads at 1MB image / 20MB video via shared uploadLimits; show Max hint in FileUpload | Free-tier storage + clearer UX; seed media still fits | REQ-0026, REQ-0033 |
 | DEC-0096 | 2026-08-15 | C2 | Build Agent JS | Disable book Add/Update and signup Sign Up until Zod isValid; rose * on signup labels; shell gate for outer toolbar submit | Prevent incomplete submits; AuthForm sign-in unchanged | REQ-0033 |
 | DEC-0097 | 2026-08-15 | C2 | Build Agent JS | Gate submit with silent Zod safeParse subscription; never mount-trigger FormMessage; mode onTouched for field errors | Fix signup visit error wall while keeping disabled-until-valid CTAs | REQ-0033 |
+| DEC-0098 | 2026-08-15 | C2 | Build Agent JS | Pin engines to 24.x; quiet Sentry CI logs (silent + telemetry false); retain immutable _next/static Cache-Control | Vercel EOL + deploy-log noise; sourcemaps unchanged | REQ-0020, REQ-0032 |

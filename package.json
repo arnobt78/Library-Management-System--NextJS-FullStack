@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "private": true,
   "engines": {
-    "node": ">=20.9.0"
+    "node": "24.x"
   },
   "overrides": {
     "brace-expansion@1.1.12": "1.1.17",
