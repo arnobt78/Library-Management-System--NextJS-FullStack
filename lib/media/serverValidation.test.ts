@@ -35,4 +35,39 @@ describe("persisted media boundary", () => {
     })));
     await expect(assertPersistedMediaUrl(`${config.env.imagekit.urlEndpoint}/spoof.png`, "image")).rejects.toThrow("policy");
   });
+
+  it("retries once after AbortError then succeeds", async () => {
+    const abort = new DOMException("The operation was aborted.", "AbortError");
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(abort)
+      .mockResolvedValueOnce(
+        new Response(Uint8Array.from([0xff, 0xd8, 0xff, 0]), {
+          status: 206,
+          headers: {
+            "content-type": "image/jpeg",
+            "content-range": "bytes 0-3/1024",
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      assertPersistedMediaUrl(
+        `${config.env.imagekit.urlEndpoint}/retry.jpg`,
+        "image",
+      ),
+    ).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("surfaces timed out after abort on first and retry", async () => {
+    const abort = new DOMException("The operation was aborted.", "AbortError");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abort));
+    await expect(
+      assertPersistedMediaUrl(
+        `${config.env.imagekit.urlEndpoint}/slow.jpg`,
+        "image",
+      ),
+    ).rejects.toThrow("Media verification timed out");
+  });
 });

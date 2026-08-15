@@ -7,7 +7,7 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
-import type { BooksListResponse } from "@/lib/services/books";
+import type { BooksListResponse, BookFilters } from "@/lib/services/books";
 import { ADMIN_BOOKS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import {
   markDensifiedEmpty,
@@ -131,6 +131,41 @@ function syncBooksNav(queryClient: QueryClient): void {
 }
 
 /**
+ * Rebuild Genre filter options from warm unfiltered catalog (count-safe:
+ * shared genres stay while any title remains). Cold catalog → invalidate only.
+ */
+function densifyBookGenres(queryClient: QueryClient): void {
+  const unfiltered = queryClient.getQueryData<BooksListResponse>(
+    queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+  );
+  let source: BooksListResponse | undefined = unfiltered;
+  if (!source?.books) {
+    // Prefer a healthy unfiltered page (books.length === total) over partial pages.
+    for (const [, page] of queryClient.getQueriesData<BooksListResponse>({
+      queryKey: queryKeys.books.adminRoot,
+    })) {
+      if (!page?.books || typeof page.total !== "number") continue;
+      if (page.books.length === page.total) {
+        source = page;
+        break;
+      }
+    }
+  }
+  if (source?.books) {
+    const genres = [
+      ...new Set(
+        source.books
+          .map((b) => (typeof b.genre === "string" ? b.genre.trim() : ""))
+          .filter(Boolean),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+    queryClient.setQueryData(queryKeys.books.genres, genres);
+    return;
+  }
+  void queryClient.invalidateQueries({ queryKey: queryKeys.books.genresRoot });
+}
+
+/**
  * Patch one admin list page. On update (`allowInsert=false`), never invent into
  * filtered caches that lack the row — that inflated sidebar totals.
  */
@@ -183,6 +218,205 @@ function removeFromBookArray(
 ): BookLike[] | undefined {
   if (!rows) return rows;
   return rows.filter((b) => !idSet.has(b.id));
+}
+
+/** Filters that affect membership (page/sort/limit do not). */
+function isUnfilteredBookListFilters(
+  filters: BookFilters | undefined,
+): boolean {
+  if (!filters) return true;
+  const hasSearch = Boolean(filters.search?.trim());
+  const hasGenre = Boolean(filters.genre?.trim());
+  const hasRating =
+    typeof filters.rating === "number" &&
+    !Number.isNaN(filters.rating) &&
+    filters.rating > 0;
+  const hasAvail =
+    Boolean(filters.availability) && filters.availability !== "all";
+  return !hasSearch && !hasGenre && !hasRating && !hasAvail;
+}
+
+function bookListFilterIdentity(filters: BookFilters | undefined): string {
+  return JSON.stringify({
+    search: filters?.search?.trim() ?? "",
+    genre: filters?.genre?.trim() ?? "",
+    availability:
+      filters?.availability && filters.availability !== "all"
+        ? filters.availability
+        : "",
+    rating:
+      typeof filters?.rating === "number" && filters.rating > 0
+        ? filters.rating
+        : "",
+    sort: filters?.sort ?? "",
+    limit: filters?.limit ?? "",
+  });
+}
+
+/** Cheap membership for filtered-list total decrement from pre-delete snapshots. */
+function snapshotMatchesBookFilters(
+  snap: AdminStatsBookSnapshot,
+  filters: BookFilters | undefined,
+): boolean {
+  if (!filters || isUnfilteredBookListFilters(filters)) return true;
+  if (filters.genre?.trim() && snap.genre !== filters.genre) return false;
+  if (
+    typeof filters.rating === "number" &&
+    filters.rating > 0 &&
+    (typeof snap.rating !== "number" || snap.rating < filters.rating)
+  ) {
+    return false;
+  }
+  if (filters.availability === "available") {
+    if ((snap.availableCopies ?? 0) <= 0) return false;
+  } else if (filters.availability === "unavailable") {
+    if ((snap.availableCopies ?? 0) > 0) return false;
+  }
+  if (filters.search?.trim()) {
+    const q = filters.search.trim().toLowerCase();
+    const title = (snap.title ?? "").toLowerCase();
+    const author = (snap.author ?? "").toLowerCase();
+    if (!title.includes(q) && !author.includes(q)) return false;
+  }
+  return true;
+}
+
+/**
+ * Strip deleted ids from all-books list pages, fix totals (incl. limit:1 universe),
+ * backfill page holes from the next warm page, else invalidate incomplete pages.
+ */
+function densifyBookListDeletes(
+  queryClient: QueryClient,
+  bookIds: string[],
+  snapshots: AdminStatsBookSnapshot[],
+): void {
+  const idSet = new Set(bookIds);
+  type ListEntry = {
+    queryKey: readonly unknown[];
+    filters: BookFilters;
+    data: BooksListResponse;
+  };
+
+  const entries: ListEntry[] = [];
+  for (const [queryKey, data] of queryClient.getQueriesData<BooksListResponse>({
+    queryKey: queryKeys.books.adminRoot,
+  })) {
+    if (!data?.books || !Array.isArray(queryKey)) continue;
+    const filters = (queryKey[1] as BookFilters | undefined) ?? {};
+    entries.push({ queryKey, filters, data });
+  }
+
+  const groups = new Map<string, ListEntry[]>();
+  for (const entry of entries) {
+    const identity = bookListFilterIdentity(entry.filters);
+    const group = groups.get(identity) ?? [];
+    group.push(entry);
+    groups.set(identity, group);
+  }
+
+  const keysNeedingRefetch: (readonly unknown[])[] = [];
+
+  for (const [, group] of groups) {
+    group.sort(
+      (a, b) =>
+        (a.data.page || a.filters.page || 1) -
+        (b.data.page || b.filters.page || 1),
+    );
+
+    const filters = group[0]?.filters;
+    const unfiltered = isUnfilteredBookListFilters(filters);
+
+    let totalDelta: number;
+    if (unfiltered) {
+      const maxTotal = Math.max(...group.map((e) => e.data.total), 0);
+      totalDelta = Math.min(bookIds.length, maxTotal);
+    } else {
+      const matching = new Set<string>();
+      for (const entry of group) {
+        for (const book of entry.data.books) {
+          if (idSet.has(book.id)) matching.add(book.id);
+        }
+      }
+      for (const snap of snapshots) {
+        if (idSet.has(snap.id) && snapshotMatchesBookFilters(snap, filters)) {
+          matching.add(snap.id);
+        }
+      }
+      totalDelta = matching.size;
+    }
+
+    type MutablePage = {
+      queryKey: readonly unknown[];
+      filters: BookFilters;
+      data: BooksListResponse;
+      removedFromPage: number;
+    };
+
+    const pages: MutablePage[] = group.map((entry) => {
+      const books = entry.data.books.filter((b) => !idSet.has(b.id));
+      const removedFromPage = entry.data.books.length - books.length;
+      const total = Math.max(0, entry.data.total - totalDelta);
+      const limit =
+        entry.data.limit ||
+        entry.filters.limit ||
+        Math.max(books.length, 1);
+      const page = entry.data.page || entry.filters.page || 1;
+      const totalPages = Math.max(1, Math.ceil(total / limit) || 1);
+      return {
+        queryKey: entry.queryKey,
+        filters: entry.filters,
+        removedFromPage,
+        data: {
+          ...entry.data,
+          books,
+          total,
+          limit,
+          page,
+          totalPages,
+        },
+      };
+    });
+
+    // Backfill holes only when this page actually lost a row (not limit:1 universe seeds).
+    for (let i = 0; i < pages.length; i++) {
+      const cur = pages[i];
+      if (cur.removedFromPage <= 0) continue;
+
+      const { limit, page, total } = cur.data;
+      const offset = (page - 1) * limit;
+      const expectedOnPage = Math.min(limit, Math.max(0, total - offset));
+
+      while (cur.data.books.length < expectedOnPage) {
+        const donorIdx = pages.findIndex(
+          (p, j) => j > i && p.data.books.length > 0,
+        );
+        if (donorIdx === -1) break;
+        const donor = pages[donorIdx];
+        const need = expectedOnPage - cur.data.books.length;
+        const take = donor.data.books.slice(0, need);
+        donor.data = {
+          ...donor.data,
+          books: donor.data.books.slice(take.length),
+        };
+        cur.data = {
+          ...cur.data,
+          books: [...cur.data.books, ...take],
+        };
+      }
+
+      if (cur.data.books.length < expectedOnPage) {
+        keysNeedingRefetch.push(cur.queryKey);
+      }
+    }
+
+    for (const page of pages) {
+      queryClient.setQueryData(page.queryKey, page.data);
+    }
+  }
+
+  for (const key of keysNeedingRefetch) {
+    void queryClient.invalidateQueries({ queryKey: key as never });
+  }
 }
 
 /** Active when isActive is true or unset (matches lendableBookCopies). */
@@ -408,6 +642,7 @@ export function densifyBookWrite(
   );
 
   syncBooksNav(queryClient);
+  densifyBookGenres(queryClient);
   patchAdminStatsOnBookChange(queryClient, {
     previous,
     next: toBookSnapshot(book),
@@ -499,28 +734,48 @@ function resolveBookActorCard(
 export function densifyBookDelete(
   queryClient: QueryClient,
   bookIds: string[],
+  /** KPI DNA when RQ detail/list miss (DeleteBookDialog / list row). */
+  fallbackSnapshots?: AdminStatsBookSnapshot[],
 ): void {
+  const fallbackById = new Map(
+    (fallbackSnapshots ?? [])
+      .filter((s) => Boolean(s?.id))
+      .map((s) => [s.id, s] as const),
+  );
   const snapshots = bookIds
-    .map((id) => findCachedBookSnapshot(queryClient, id))
+    .map((id) => {
+      const cached = findCachedBookSnapshot(queryClient, id);
+      const fb = fallbackById.get(id);
+      if (!cached && !fb) return null;
+      if (!cached) return fb ?? null;
+      if (!fb) return cached;
+      // Cache wins defined fields; dialog DNA fills thin list-row holes.
+      return {
+        id: cached.id,
+        isActive: cached.isActive ?? fb.isActive,
+        totalCopies: cached.totalCopies ?? fb.totalCopies,
+        availableCopies: cached.availableCopies ?? fb.availableCopies,
+        isbn: cached.isbn ?? fb.isbn,
+        publisher: cached.publisher ?? fb.publisher,
+        pageCount: cached.pageCount ?? fb.pageCount,
+        title: cached.title ?? fb.title,
+        author: cached.author ?? fb.author,
+        rating: cached.rating ?? fb.rating,
+        coverUrl: cached.coverUrl ?? fb.coverUrl,
+        coverColor: cached.coverColor ?? fb.coverColor,
+        genre: cached.genre ?? fb.genre,
+        publicationYear: cached.publicationYear ?? fb.publicationYear,
+        language: cached.language ?? fb.language,
+      };
+    })
     .filter((b): b is AdminStatsBookSnapshot => Boolean(b));
 
   for (const id of bookIds) {
     queryClient.removeQueries({ queryKey: queryKeys.books.detail(id) });
   }
   const idSet = new Set(bookIds);
-  queryClient.setQueriesData<BooksListResponse>(
-    { queryKey: queryKeys.books.adminRoot },
-    (old) => {
-      if (!old?.books) return old;
-      const books = old.books.filter((b) => !idSet.has(b.id));
-      const removed = old.books.length - books.length;
-      return {
-        ...old,
-        books,
-        total: Math.max(0, old.total - removed),
-      };
-    },
-  );
+
+  densifyBookListDeletes(queryClient, bookIds, snapshots);
 
   queryClient.setQueriesData<BookLike[]>(
     { queryKey: queryKeys.books.featuredRoot },
@@ -558,6 +813,7 @@ export function densifyBookDelete(
   }
 
   syncBooksNav(queryClient);
+  densifyBookGenres(queryClient);
   for (const snap of snapshots) {
     patchAdminStatsOnBookDelete(queryClient, snap);
   }

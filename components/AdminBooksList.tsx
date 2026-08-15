@@ -21,8 +21,7 @@ import {
 import Link from "next/link";
 import PrefetchLink from "@/components/PrefetchLink";
 import BookCover from "@/components/BookCover";
-import { useAllBooks } from "@/hooks/useQueries";
-import { getBookGenres } from "@/lib/services/books";
+import { useAllBooks, useBookGenres } from "@/hooks/useQueries";
 import BookCardSkeleton from "@/components/skeletons/BookCardSkeleton";
 import DeleteBookDialog from "@/components/admin/DeleteBookDialog";
 import type { BookFilters } from "@/lib/services/books";
@@ -81,8 +80,10 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
   const currentAvailability = searchParamsHook.get("availability") || "all";
 
   const [localSearch, setLocalSearch] = useState(currentSearch);
-  const [genres, setGenres] = useState<string[]>([]);
   const lastSyncedSearchRef = React.useRef(currentSearch);
+  // RQ genres — densify rebuilds unique list on book.write (shared genres stay).
+  const { data: genresData } = useBookGenres();
+  const genres = genresData ?? [];
 
   // Sync localSearch with URL params when they change externally (e.g., browser back/forward)
   // Only sync if the change didn't come from our own debounced update
@@ -99,13 +100,6 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
       lastSyncedSearchRef.current = currentSearch;
     }
   }, [currentSearch, localSearch]);
-
-  // Fetch genres on mount
-  React.useEffect(() => {
-    getBookGenres()
-      .then((genresList) => setGenres(genresList))
-      .catch((error) => console.error("Error fetching genres:", error));
-  }, []);
 
   // Debounce search input for instant filtering
   React.useEffect(() => {
@@ -607,6 +601,14 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                                 coverColor={book.coverColor}
                                 genre={book.genre}
                                 rating={book.rating}
+                                isActive={book.isActive}
+                                totalCopies={book.totalCopies}
+                                availableCopies={book.availableCopies}
+                                language={book.language}
+                                publicationYear={book.publicationYear}
+                                isbn={book.isbn}
+                                publisher={book.publisher}
+                                pageCount={book.pageCount}
                                 trigger={
                                   <DropdownMenuItem
                                     onSelect={(e) => e.preventDefault()}

@@ -151,6 +151,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
     queryKeys.books.borrowStatsRoot,
     queryKeys.books.featuredRoot,
     queryKeys.books.relatedRoot,
+    queryKeys.books.genresRoot,
   ],
   users: [
     queryKeys.users.root,

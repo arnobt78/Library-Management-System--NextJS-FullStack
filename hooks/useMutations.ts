@@ -85,6 +85,7 @@ import {
   densifyBookWrite,
   prependBookAuditEvent,
 } from "@/lib/utils/patchBookCaches";
+import type { AdminStatsBookSnapshot } from "@/lib/utils/patchAdminStatsCaches";
 import { densifyUserWrite, densifyUserRegistrationPending } from "@/lib/utils/patchUserCaches";
 import {
   densifyAdminDirectGrant,
@@ -251,17 +252,17 @@ export const useCreateBook = () => {
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
         densify: () => {
-          const actorFields = activityActorFromSession(session);
+          const sessionFields = activityActorFromSession(session);
           const fromAction =
             data &&
             typeof data === "object" &&
-            "updatedByActor" in data &&
-            data.updatedByActor &&
-            typeof data.updatedByActor === "object" &&
-            "email" in data.updatedByActor &&
-            typeof (data.updatedByActor as { email?: unknown }).email ===
+            "createdByActor" in data &&
+            data.createdByActor &&
+            typeof data.createdByActor === "object" &&
+            "email" in data.createdByActor &&
+            typeof (data.createdByActor as { email?: unknown }).email ===
               "string"
-              ? (data.updatedByActor as {
+              ? (data.createdByActor as {
                   id: string;
                   fullName: string;
                   email: string;
@@ -271,25 +272,29 @@ export const useCreateBook = () => {
           // Prefer DB actor from action; session email fallback (JWT has no card).
           const sessionActor =
             !fromAction &&
-            "actorEmail" in actorFields &&
-            actorFields.actorEmail
+            "actorEmail" in sessionFields &&
+            sessionFields.actorEmail
               ? {
-                  id: actorFields.actorId ?? "",
-                  fullName: actorFields.actorName?.trim() || "Admin",
-                  email: actorFields.actorEmail,
-                  universityCard: actorFields.actorUniversityCard ?? null,
+                  id: sessionFields.actorId ?? "",
+                  fullName: sessionFields.actorName?.trim() || "Admin",
+                  email: sessionFields.actorEmail,
+                  universityCard: sessionFields.actorUniversityCard ?? null,
                 }
               : null;
           const catalogActor = fromAction ?? sessionActor ?? undefined;
-          // Create stamps both Added-by and Updated-by to the same admin DNA.
+          const auditActor = catalogActor
+            ? {
+                actorId: catalogActor.id,
+                actorName: catalogActor.fullName,
+                actorEmail: catalogActor.email,
+                actorUniversityCard: catalogActor.universityCard,
+              }
+            : sessionFields;
+          // Create stamps Added-by only — Updated stays null until a real edit.
           densifyBookWrite(queryClient, {
             ...(data && typeof data === "object" ? data : {}),
-            ...(catalogActor
-              ? {
-                  createdByActor: catalogActor,
-                  updatedByActor: catalogActor,
-                }
-              : {}),
+            ...(catalogActor ? { createdByActor: catalogActor } : {}),
+            updatedByActor: null,
           });
           if (data?.id) {
             prependBookAuditEvent(queryClient, {
@@ -299,11 +304,11 @@ export const useCreateBook = () => {
                 title: variables.title,
                 ...(variables.author ? { author: variables.author } : {}),
               },
-              ...actorFields,
+              ...auditActor,
             });
           }
           densifyActivityLog(queryClient, {
-            ...actorFields,
+            ...auditActor,
             action: "CREATE",
             entityType: "book",
             entityId: data?.id ?? null,
@@ -370,7 +375,7 @@ export const useUpdateBook = () => {
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
         densify: () => {
-          const actorFields = activityActorFromSession(session);
+          const sessionFields = activityActorFromSession(session);
           const fromAction =
             data &&
             typeof data === "object" &&
@@ -390,16 +395,24 @@ export const useUpdateBook = () => {
           // Prefer DB actor from action; session email fallback (JWT has no card).
           const sessionActor =
             !fromAction &&
-            "actorEmail" in actorFields &&
-            actorFields.actorEmail
+            "actorEmail" in sessionFields &&
+            sessionFields.actorEmail
               ? {
-                  id: actorFields.actorId ?? "",
-                  fullName: actorFields.actorName?.trim() || "Admin",
-                  email: actorFields.actorEmail,
-                  universityCard: actorFields.actorUniversityCard ?? null,
+                  id: sessionFields.actorId ?? "",
+                  fullName: sessionFields.actorName?.trim() || "Admin",
+                  email: sessionFields.actorEmail,
+                  universityCard: sessionFields.actorUniversityCard ?? null,
                 }
               : null;
           const updatedByActor = fromAction ?? sessionActor ?? undefined;
+          const auditActor = updatedByActor
+            ? {
+                actorId: updatedByActor.id,
+                actorName: updatedByActor.fullName,
+                actorEmail: updatedByActor.email,
+                actorUniversityCard: updatedByActor.universityCard,
+              }
+            : sessionFields;
           densifyBookWrite(queryClient, {
             id: variables.bookId,
             ...(data && typeof data === "object" ? data : {}),
@@ -410,10 +423,10 @@ export const useUpdateBook = () => {
             bookId: variables.bookId,
             action: "UPDATE",
             details: { title: bookTitle },
-            ...actorFields,
+            ...auditActor,
           });
           densifyActivityLog(queryClient, {
-            ...actorFields,
+            ...auditActor,
             action: "UPDATE",
             entityType: "book",
             entityId: variables.bookId,
@@ -476,6 +489,8 @@ export const useDeleteBook = () => {
       bookTitle?: string; // Optional, for toast message
       /** Required ADMIN_DELETE_SECRET — verified server-side only */
       deleteSecret: string;
+      /** Optional KPI DNA when RQ cache misses (Overview mid-panels). */
+      snapshots?: AdminStatsBookSnapshot[];
     }) => {
       const result = await bulkDeleteBooks(bookIds, deleteSecret);
       if (!result.success) {
@@ -488,7 +503,11 @@ export const useDeleteBook = () => {
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
         densify: () => {
-          densifyBookDelete(queryClient, data.bookIds);
+          densifyBookDelete(
+            queryClient,
+            data.bookIds,
+            variables.snapshots,
+          );
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),
             action: "DELETE",

@@ -232,3 +232,6 @@
 | SPAN-0226 | 2026-08-15 | C2 | Tip-bind CTA silent Zod | Compliance | Bound tip to `b0b76bc` | decision_log_append_only | REQ-0033 | PASS |
 | SPAN-0227 | 2026-08-15 | C2 | Vercel quiet + Node 24 | Build Agent JS | engines 24.x; Sentry silent unless SENTRY_VERBOSE=1 + telemetry false; keep static Cache-Control; tsc/eslint/build PASS | require_parent_requirement; decision_log_append_only | REQ-0020, REQ-0032 | PASS local; densify N/A |
 | SPAN-0228 | 2026-08-15 | C2 | Tip-bind Node24/Sentry | Compliance | Bound tip/HEAD to `bfb98a4` | decision_log_append_only | REQ-0020, REQ-0032 | PASS |
+| SPAN-0229 | 2026-08-15 | C2 | Book create closeout | Build Agent JS | Media 10s+retry; create Added-only stamps; Activity action actor; CopyableText break-all; 20 tests + tsc/eslint PASS | require_parent_requirement | REQ-0026, REQ-0033 | PASS local; commit pending |
+| SPAN-0230 | 2026-08-15 | C2 | all-books delete densify | Build Agent JS | densifyBookDelete total+backfill page holes; 19 tests + tsc/eslint PASS | require_parent_requirement | REQ-0023, REQ-0033 | PASS local; commit pending |
+| SPAN-0231 | 2026-08-15 | C2 | delete densify gap closeout | Build Agent JS | useBookGenres + densifyBookGenres; delete snapshot fallback; 30 tests + tsc/eslint PASS | require_parent_requirement | REQ-0023, REQ-0033 | PASS local; commit pending |

@@ -34,7 +34,7 @@ import {
   filterChipDismissXBtnClass,
   filterChipGlassPillClass,
 } from "@/lib/ui/filter-chip-styles";
-import { useAllBooks } from "@/hooks/useQueries";
+import { useAllBooks, useBookGenres } from "@/hooks/useQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
 import {
@@ -313,7 +313,11 @@ const BookCollection: React.FC<BookCollectionProps> = ({
     (booksData?.books ??
       (filtersMatchSsr ? (legacyBooks ?? initialBooks) : undefined)) ||
     [];
-  const genres = (legacyGenres ?? initialGenres) || [];
+  // RQ genres (SSR seed) — densify drops orphan genres only after book.delete.
+  const { data: genresFromQuery } = useBookGenres(
+    legacyGenres ?? initialGenres,
+  );
+  const genres = genresFromQuery ?? legacyGenres ?? initialGenres ?? [];
 
   const pagination = booksData
     ? {

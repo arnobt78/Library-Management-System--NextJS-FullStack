@@ -43,7 +43,7 @@ export default function CopyableText({
         className,
       )}
     >
-      <span className="truncate tabular-nums text-gray-800">{value}</span>
+      <span className="min-w-0 break-all text-gray-800">{value}</span>
       <button
         type="button"
         onClick={(e) => {

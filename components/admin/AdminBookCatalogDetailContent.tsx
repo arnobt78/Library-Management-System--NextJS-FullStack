@@ -136,11 +136,8 @@ export default function AdminBookCatalogDetailContent({
   const hasTrailer = Boolean(book.videoUrl?.trim());
   const coverHex = book.coverColor?.trim() || "";
   const auditEvents = book.auditEvents ?? [];
-  // Show Updated DNA only after a real catalog write (not create-only seed stamps).
-  const hasCatalogUpdate =
-    Boolean(book.createdAt && book.updatedAt) &&
-    new Date(book.createdAt as Date).getTime() !==
-      new Date(book.updatedAt as Date).getTime();
+  // Updated DNA only after a real catalog edit (updatedBy stamped) — not create.
+  const hasCatalogUpdate = Boolean(book.updatedBy);
 
   return (
     <section className="w-full space-y-4 sm:space-y-6">
@@ -182,6 +179,14 @@ export default function AdminBookCatalogDetailContent({
               coverColor={book.coverColor}
               genre={book.genre}
               rating={book.rating}
+              isActive={book.isActive}
+              totalCopies={book.totalCopies}
+              availableCopies={book.availableCopies}
+              language={book.language}
+              publicationYear={book.publicationYear}
+              isbn={book.isbn}
+              publisher={book.publisher}
+              pageCount={book.pageCount}
               redirectTo="/admin/books"
               triggerClassName={cn(
                 LIGHT_GLASS_CTA.host,

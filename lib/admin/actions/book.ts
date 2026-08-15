@@ -70,11 +70,10 @@ export const createBook = async (params: BookParams) => {
         .values({
           ...safeParams,
           availableCopies: safeParams.totalCopies,
+          // Added-only DNA — Updated stays null until a real catalog edit.
           createdBy: actor.id,
-          updatedBy: actor.id,
           isActive,
           isFeatured,
-          updatedAt: new Date(),
         })
         .returning();
 
@@ -96,7 +95,7 @@ export const createBook = async (params: BookParams) => {
         JSON.stringify({
           ...newBook,
           createdByActor: catalogActor,
-          updatedByActor: catalogActor,
+          updatedByActor: null,
         }),
       ),
     };

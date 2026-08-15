@@ -36,6 +36,14 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
             coverColor={book.coverColor}
             genre={book.genre}
             rating={book.rating}
+            isActive={book.isActive}
+            totalCopies={book.totalCopies}
+            availableCopies={book.availableCopies}
+            language={book.language}
+            publicationYear={book.publicationYear}
+            isbn={book.isbn}
+            publisher={book.publisher}
+            pageCount={book.pageCount}
             redirectTo="/admin/books"
           />
         ) : null

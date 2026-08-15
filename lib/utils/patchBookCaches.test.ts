@@ -477,4 +477,276 @@ describe("patchBookCaches", () => {
       "/images/profile-img.png",
     );
   });
+
+  it("densifyBookWrite create clears updatedByActor while keeping creator", () => {
+    const client = new QueryClient();
+    const creator = {
+      id: "admin-1",
+      fullName: "Test Admin",
+      email: "test@admin.com",
+      universityCard: null as string | null,
+    };
+
+    densifyBookWrite(client, {
+      id: "book-new",
+      title: "Jelly",
+      createdByActor: creator,
+      updatedByActor: null,
+      updatedBy: null,
+    });
+
+    const detail = client.getQueryData<{
+      createdByActor?: typeof creator;
+      updatedByActor?: typeof creator | null;
+      updatedBy?: string | null;
+    }>(queryKeys.books.detail("book-new"));
+    expect(detail?.createdByActor).toEqual(creator);
+    expect(detail?.updatedByActor).toBeNull();
+    expect(detail?.updatedBy).toBeNull();
+  });
+
+  it("prependBookAuditEvent stores action actor for Activity PersonAttribution", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.books.detail("book-1"), {
+      id: "book-1",
+      title: "Jelly",
+      auditEvents: [],
+    });
+
+    prependBookAuditEvent(client, {
+      bookId: "book-1",
+      action: "CREATE",
+      details: { title: "Jelly" },
+      actorId: "admin-1",
+      actorName: "Test Admin",
+      actorEmail: "test@admin.com",
+      actorUniversityCard: "/images/profile-img.png",
+    });
+
+    const detail = client.getQueryData<{
+      auditEvents?: TicketActivityEvent[];
+    }>(queryKeys.books.detail("book-1"));
+    expect(detail?.auditEvents?.[0]?.actorId).toBe("admin-1");
+    expect(detail?.auditEvents?.[0]?.actorName).toBe("Test Admin");
+    expect(detail?.auditEvents?.[0]?.actorEmail).toBe("test@admin.com");
+  });
+
+  it("densifyBookDelete backfills page-12 hole from next warm page", () => {
+    const client = new QueryClient();
+    const page1Filters = { page: 1, limit: 12, sort: "title" as const };
+    const page2Filters = { page: 2, limit: 12, sort: "title" as const };
+    const page1Books = Array.from({ length: 12 }, (_, i) => ({
+      id: `book-${i + 1}`,
+      title: `Title ${String(i + 1).padStart(2, "0")}`,
+    })) as BooksListResponse["books"];
+    const page2Books = [
+      {
+        id: "book-13",
+        title: "Title 13",
+      },
+      {
+        id: "book-14",
+        title: "Title 14",
+      },
+    ] as BooksListResponse["books"];
+
+    client.setQueryData(queryKeys.books.adminList(page1Filters), {
+      books: page1Books,
+      total: 18,
+      page: 1,
+      totalPages: 2,
+      limit: 12,
+    });
+    client.setQueryData(queryKeys.books.adminList(page2Filters), {
+      books: page2Books,
+      total: 18,
+      page: 2,
+      totalPages: 2,
+      limit: 12,
+    });
+
+    densifyBookDelete(client, ["book-1"]);
+
+    const page1 = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(page1Filters),
+    );
+    const page2 = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(page2Filters),
+    );
+    expect(page1?.total).toBe(17);
+    expect(page1?.books).toHaveLength(12);
+    expect(page1?.books.some((b) => b.id === "book-1")).toBe(false);
+    expect(page1?.books.some((b) => b.id === "book-13")).toBe(true);
+    expect(page2?.books).toHaveLength(1);
+    expect(page2?.books[0]?.id).toBe("book-14");
+    expect(page2?.total).toBe(17);
+  });
+
+  it("densifyBookDelete decrements limit:1 universe total without the deleted row", () => {
+    const client = new QueryClient();
+    const universeKey = queryKeys.books.adminList({ page: 1, limit: 1 });
+    client.setQueryData(universeKey, {
+      books: [],
+      total: 18,
+      page: 1,
+      totalPages: 1,
+      limit: 1,
+    });
+
+    densifyBookDelete(client, ["book-gone"]);
+
+    const universe = client.getQueryData<BooksListResponse>(universeKey);
+    expect(universe?.total).toBe(17);
+    expect(universe?.books).toEqual([]);
+  });
+
+  it("densifyBookDelete leaves filtered totals alone when deleted id not in list", () => {
+    const client = new QueryClient();
+    const filteredKey = queryKeys.books.adminList({
+      page: 1,
+      limit: 12,
+      genre: "Fiction",
+    });
+    client.setQueryData(filteredKey, {
+      books: [
+        {
+          id: "fic-1",
+          title: "Novel",
+          genre: "Fiction",
+        } as BooksListResponse["books"][number],
+      ],
+      total: 5,
+      page: 1,
+      totalPages: 1,
+      limit: 12,
+    });
+
+    densifyBookDelete(client, ["cs-book"]);
+
+    const filtered = client.getQueryData<BooksListResponse>(filteredKey);
+    expect(filtered?.total).toBe(5);
+    expect(filtered?.books).toHaveLength(1);
+  });
+
+  it("densifyBookDelete rebuilds genres from remaining catalog titles", () => {
+    const client = new QueryClient();
+    const unfilteredKey = queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED);
+    client.setQueryData(unfilteredKey, {
+      books: [
+        {
+          id: "a",
+          title: "A",
+          genre: "Fiction",
+        } as BooksListResponse["books"][number],
+        {
+          id: "b",
+          title: "B",
+          genre: "Fiction",
+        } as BooksListResponse["books"][number],
+        {
+          id: "c",
+          title: "C",
+          genre: "Science",
+        } as BooksListResponse["books"][number],
+      ],
+      total: 3,
+      page: 1,
+      totalPages: 1,
+      limit: 1000,
+    });
+    client.setQueryData(queryKeys.books.genres, ["Fiction", "Science"]);
+
+    densifyBookDelete(client, ["c"]);
+
+    expect(client.getQueryData<string[]>(queryKeys.books.genres)).toEqual([
+      "Fiction",
+    ]);
+  });
+
+  it("densifyBookDelete uses fallback snapshot when cache misses", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.admin.stats, {
+      totalUsers: 2,
+      approvedUsers: 2,
+      pendingUsers: 0,
+      rejectedUsers: 0,
+      adminUsers: 1,
+      totalBooks: 10,
+      totalCopies: 50,
+      availableCopies: 40,
+      borrowedCopies: 10,
+      activeBooks: 9,
+      inactiveBooks: 1,
+      booksWithISBN: 8,
+      booksWithPublisher: 7,
+      averagePageCount: 200,
+      activeBorrows: 0,
+      pendingBorrows: 0,
+      returnedBooks: 0,
+      cancelledBorrows: 0,
+      recentBorrows: [],
+      recentUsers: [],
+      categoryStats: [
+        {
+          genre: "Solo",
+          count: 1,
+          totalCopies: 2,
+          availableCopies: 2,
+          avgRating: 4,
+          totalRating: 4,
+          ratingCount: 1,
+        },
+        {
+          genre: "Keep",
+          count: 2,
+          totalCopies: 4,
+          availableCopies: 4,
+          avgRating: 5,
+          totalRating: 10,
+          ratingCount: 2,
+        },
+      ],
+      booksByYear: [
+        ["2011", 1],
+        ["2020", 2],
+      ],
+      booksByLanguage: [
+        ["English", 1],
+        ["Bengali", 2],
+      ],
+      topRatedBooks: [],
+      inactiveTitles: [],
+      reservationsWaiting: 0,
+    });
+
+    densifyBookDelete(client, ["orphan-1"], [
+      {
+        id: "orphan-1",
+        isActive: true,
+        totalCopies: 2,
+        availableCopies: 2,
+        genre: "Solo",
+        language: "English",
+        publicationYear: 2011,
+        rating: 4,
+        pageCount: 100,
+        isbn: "978",
+        publisher: "Press",
+      },
+    ]);
+
+    const stats = client.getQueryData<{
+      totalBooks: number;
+      categoryStats: Array<{ genre: string; count: number }>;
+      booksByLanguage: Array<[string, number]>;
+      booksByYear: Array<[string, number]>;
+    }>(queryKeys.admin.stats);
+    expect(stats?.totalBooks).toBe(9);
+    expect(stats?.categoryStats.some((c) => c.genre === "Solo")).toBe(false);
+    expect(stats?.categoryStats.some((c) => c.genre === "Keep")).toBe(true);
+    expect(stats?.booksByLanguage.some(([l]) => l === "English")).toBe(false);
+    expect(stats?.booksByLanguage.some(([l]) => l === "Bengali")).toBe(true);
+    expect(stats?.booksByYear.some(([y]) => y === "2011")).toBe(false);
+    expect(stats?.booksByYear.some(([y]) => y === "2020")).toBe(true);
+  });
 });

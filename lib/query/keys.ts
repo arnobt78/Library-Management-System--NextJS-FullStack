@@ -19,6 +19,9 @@ export const queryKeys = {
       ["book-related", bookId, limit] as const,
     featuredRoot: ["featured-books"] as const,
     featured: (limit: number) => ["featured-books", limit] as const,
+    /** Unique catalog genres for filter dropdowns (densified on book.write). */
+    genresRoot: ["book-genres"] as const,
+    genres: ["book-genres", "list"] as const,
   },
   users: {
     root: ["users"] as const,

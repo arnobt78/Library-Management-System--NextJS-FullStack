@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Vercel log quiet + Node 24; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) delete densify gap closeout; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Node 24 + Sentry quiet local done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - genres RQ + delete snapshot fallback Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `bfb98a4`
 - Latest HEAD: `bfb98a4`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (tip `bfb98a4` Node24/Sentry quiet)
+- Last updated: 2026-08-15 (delete densify gap closeout: genres + snapshot)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,44 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: quiet Vercel build warnings done; Wave B–E still pending
+- Active plan: delete densify gap closeout done; Wave B–E still pending
+
+## Reconciliation snapshot (2026-08-15, delete densify gap closeout)
+
+Verified facts:
+- `useBookGenres` + genresRoot invalidation; AdminBooksList/BookCollection wired.
+- densifyBookGenres rebuilds unique genres from warm catalog (shared stay; orphan drops).
+- densifyBookDelete fallbackSnapshots from DeleteBookDialog DNA for Overview KPIs.
+- Shared buckets count-safe (category/year/language). Prove: patchBookCaches+invalidation 30 PASS; tsc/eslint PASS.
+
+### Next Action
+
+**Human-Verify on deploy:** create Added-only + Activity actor; delete → 12 of N + genres/KPIs; then Wave B.
+
+## Reconciliation snapshot (2026-08-15, all-books delete densify)
+
+Verified facts:
+- `densifyBookDelete` unfiltered totals decrement by deleted count (limit:1 universe too).
+- Paginated page holes backfill from next warm page; else invalidate incomplete keys.
+- Filtered lists only decrement when deleted id/snapshot matches filter.
+- Prove: patchBookCaches 19 PASS; tsc + eslint PASS.
+
+### Next Action
+
+**Human-Verify:** delete a book → soft-nav `/all-books` shows 12 of N (not 11); subtitle matches. Commit when ready.
+
+## Reconciliation snapshot (2026-08-15, book-create closeout)
+
+Verified facts:
+- Media assert: 10s timeout + one AbortError retry; clear timed-out message.
+- Create stamps `createdBy` only; `updatedBy` null; UI Updated gate = Boolean(updatedBy).
+- Create/update Activity densify uses action catalog actor (not session-only → no All admin).
+- CopyableText break-all for long Cover/Trailer URLs.
+- Prove: vitest serverValidation+patchBookCaches 20 PASS; tsc + eslint touched PASS.
+
+### Next Action
+
+**Human-Verify:** add book once — success toast; Added Test Admin; Updated —; Activity PersonAttribution; URLs wrap. Then Wave B or commit.
 
 ## Reconciliation snapshot (2026-08-15, Vercel log quiet + Node 24)
 

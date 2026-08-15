@@ -12,6 +12,7 @@ import {
   getRelatedBooks,
   getBookBorrowStats,
   getFeaturedBooks,
+  getBookGenres,
   type BookFilters,
   type BooksListResponse,
   type BookBorrowStats,
@@ -179,6 +180,22 @@ export const useAllBooks = (
             ? previousData
             : undefined
       : keepPreviousData,
+  });
+};
+
+/**
+ * Unique catalog genres for Genre filter dropdowns (admin + /all-books).
+ * Densified on book.write from warm unfiltered catalog; SSR seed via initialData.
+ */
+export const useBookGenres = (initialGenres?: string[]) => {
+  const { trackQuery } = useQueryPerformance();
+
+  return useQuery({
+    queryKey: queryKeys.books.genres,
+    queryFn: () => trackQuery("book-genres", () => getBookGenres()),
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
+    initialData: initialGenres,
   });
 };
 

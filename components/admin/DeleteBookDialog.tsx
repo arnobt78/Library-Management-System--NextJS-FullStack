@@ -5,6 +5,7 @@
  * Custom `trigger` kept for kebab menus.
  * LIGHT_ALERT settle DNA: dialog stays open with Loader2 until book.write densify
  * finishes (success → close + push; error → stay open, toast from useDeleteBook).
+ * Pass catalog snapshot fields so Overview KPIs densify when RQ cache is thin.
  * Parent: Delete settle UX + book densify closeout
  */
 "use client";
@@ -28,6 +29,7 @@ import {
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 import { LIGHT_ALERT, LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import { cn } from "@/lib/utils";
+import type { AdminStatsBookSnapshot } from "@/lib/utils/patchAdminStatsCaches";
 
 interface DeleteBookDialogProps {
   bookId: string;
@@ -38,6 +40,14 @@ interface DeleteBookDialogProps {
   coverColor?: string | null;
   genre?: string | null;
   rating?: number | null;
+  isActive?: boolean | null;
+  totalCopies?: number | null;
+  availableCopies?: number | null;
+  language?: string | null;
+  publicationYear?: number | string | null;
+  isbn?: string | null;
+  publisher?: string | null;
+  pageCount?: number | null;
   /** Optional trigger button className override (default Delete button). */
   triggerClassName?: string;
   /** Custom trigger (e.g. kebab DropdownMenuItem); default is red Delete button. */
@@ -54,6 +64,14 @@ const DeleteBookDialog = ({
   coverColor,
   genre,
   rating,
+  isActive,
+  totalCopies,
+  availableCopies,
+  language,
+  publicationYear,
+  isbn,
+  publisher,
+  pageCount,
   triggerClassName,
   trigger,
   redirectTo,
@@ -69,6 +87,26 @@ const DeleteBookDialog = ({
   const canSubmit =
     titleMatches && deleteSecret.length > 0 && !isPending;
 
+  /** Thin KPI snapshot for densify when detail/list cache miss. */
+  const deleteSnapshot = (): AdminStatsBookSnapshot => ({
+    id: bookId,
+    title: bookTitle,
+    author: author ?? null,
+    coverUrl: coverUrl ?? null,
+    coverColor: coverColor ?? null,
+    genre: genre ?? null,
+    rating: typeof rating === "number" ? rating : null,
+    isActive: typeof isActive === "boolean" ? isActive : true,
+    totalCopies: typeof totalCopies === "number" ? totalCopies : null,
+    availableCopies:
+      typeof availableCopies === "number" ? availableCopies : null,
+    language: language ?? null,
+    publicationYear: publicationYear ?? null,
+    isbn: isbn ?? null,
+    publisher: publisher ?? null,
+    pageCount: typeof pageCount === "number" ? pageCount : null,
+  });
+
   const handleDelete = async () => {
     if (!canSubmit) return;
 
@@ -78,6 +116,7 @@ const DeleteBookDialog = ({
         bookIds: [bookId],
         bookTitle,
         deleteSecret,
+        snapshots: [deleteSnapshot()],
       });
       setTitleConfirm("");
       setDeleteSecret("");

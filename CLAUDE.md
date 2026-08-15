@@ -146,7 +146,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Book form Wave A (2026-08-15): media/toasts/purge/uploadLimits; CTA gate via silent Zod watch (no mount FormMessage flash); signup rose `*`.
 - Admin books card DNA (2026-08-14): sky title + `OverviewGenreChip` + star; two-col meta (copies/status/featured + year/pages/edition); full-width Publisher `break-words` + meta values `text-dark-200`.
 - Admin book detail (2026-08-14/15): Back+Edit; glass Active/Featured; Cover Color copy; KPI+Context `reviewRatingTone`; Media BookImage/BookA; `TicketSectionHeader` center+SVG mid.
-- Book densify+createdBy (2026-08-14/15): `loadBookWithUpdater` SSR/API; mig `0015`; seed+create stamp both actors; merge preserves; JWT card-less.
+- Book densify+createdBy (2026-08-14/15): `loadBookWithUpdater` SSR/API; mig `0015`; seed may stamp both; **create** stamps `createdBy` only (`updatedBy` null → Updated —); Activity densify uses action actor (not session-only / All admin); media assert 10s + one abort retry; `CopyableText` `break-all`.
+- Delete densify `/all-books`: `densifyBookDelete` decrements unfiltered totals (incl. limit:1 universe); backfills page-12 holes from next warm page; else invalidates incomplete page keys. Genres RQ (`useBookGenres`) densify rebuilds unique list (shared genres stay); delete dialog passes KPI snapshot fallback.
 - Book detail Activity FIFO-25 (2026-08-15): `getBookAuditEvents` SSR; `prependBookAuditEvent` on create/update; merge keeps `auditEvents`; `TicketActivityTimeline`. Shared `fetchBookDetailPreservingDensify` (useBook+PrefetchLink public/admin); SSR `initialDataUpdatedAt`.
 - DeleteBookDialog settle (2026-08-15): LIGHT_ALERT; block dismiss + Loader2 until `book.write` densify; then push list (no refresh flash).
 - Featured exclusivity (2026-08-15): `clearOtherFeatured` only clears `isFeatured` (no sibling `updatedAt`); catalog Updated By shows — until real edit.
