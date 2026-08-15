@@ -2,6 +2,7 @@
  * ImageKit media upload — button (Auth) or dashed dropzone (admin book media trio).
  * Clear is parent-owned (RHF); controlled `value` (incl. "") drives preview.
  * Upload toasts use showToast.file (folder-aware copy; single status emoji).
+ * Size caps from uploadLimits (1MB image / 20MB video) — UI hint + validate + server.
  * Parent: REQ-0021, REQ-0026; dropzone/cap: REQ-0033 media trio polish
  */
 "use client";
@@ -17,6 +18,11 @@ import { useRef, useState, type DragEvent } from "react";
 import config from "@/lib/config";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import {
+  mediaUploadMaxBytes,
+  mediaUploadMaxHint,
+  mediaUploadMaxLabel,
+} from "@/lib/media/uploadLimits";
 import { validateMediaSignature } from "@/lib/media/validation";
 import { Upload } from "lucide-react";
 
@@ -99,6 +105,8 @@ const FileUpload = ({
       : null
     : uploadedFilePath;
   const isDropzone = layout === "dropzone";
+  // Shared with server assertPersistedMediaUrl — do not hardcode MB here.
+  const sizeHint = mediaUploadMaxHint(type);
 
   const styles = {
     button:
@@ -127,9 +135,9 @@ const FileUpload = ({
       return false;
     }
 
-    const maxBytes = type === "image" ? 20 * 1024 * 1024 : 50 * 1024 * 1024;
+    const maxBytes = mediaUploadMaxBytes(type);
     if (file.size > maxBytes) {
-      showToast.file.fileTooLarge(type, type === "image" ? "20MB" : "50MB");
+      showToast.file.fileTooLarge(type, mediaUploadMaxLabel(type));
       return false;
     }
     if (await validateMediaSignature(file)) return true;
@@ -261,6 +269,9 @@ const FileUpload = ({
                 <p className="text-center text-xs text-gray-400">
                   Click or drag and drop
                 </p>
+                <p className="text-center text-xs font-medium text-gray-400">
+                  {sizeHint}
+                </p>
               </>
             ) : (
               <div className="flex w-full flex-col items-center gap-2">
@@ -340,7 +351,16 @@ const FileUpload = ({
                 >
                   {filePath}
                 </p>
-              ) : null}
+              ) : (
+                <p
+                  className={cn(
+                    "text-[10px] sm:text-xs",
+                    variant === "dark" ? "text-light-100/70" : "text-slate-400",
+                  )}
+                >
+                  {sizeHint}
+                </p>
+              )}
             </div>
           </button>
 

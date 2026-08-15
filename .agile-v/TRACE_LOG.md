@@ -224,3 +224,4 @@
 | SPAN-0218 | 2026-08-15 | C2 | Wave A media + ImageKit + toast | Build Agent JS | Dropzone/fill/Clear; imagekitPurge after book write/delete + user:delete; showToast.file folder titles; unit+eslint PASS | require_parent_requirement | REQ-0033 | PASS local; commit pending |
 | SPAN-0219 | 2026-08-15 | C2 | Tip-bind Wave A | Compliance | Bound tip/HEAD to `3e6f597` (book form media + ImageKit purge + toast); push pending | decision_log_append_only | REQ-0033 | PASS |
 | SPAN-0220 | 2026-08-15 | C2 | Tip-bind CLAUDE | Compliance | Point CLAUDE Agile tip at `3e6f597` | decision_log_append_only | REQ-0033 | PASS |
+| SPAN-0221 | 2026-08-15 | C2 | uploadLimits 1MB/20MB | Build Agent JS | Shared caps + Max hint UI; client/server/toast sync; tests+eslint PASS | require_parent_requirement | REQ-0026, REQ-0033 | PASS local; commit pending |

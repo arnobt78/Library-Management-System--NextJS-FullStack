@@ -1,14 +1,22 @@
 // Parent: REQ-0026
 // Persistence boundaries independently verify trusted ImageKit metadata and file signatures.
+// Size ceilings live in uploadLimits (shared with FileUpload UI/toasts).
 
 import config from "@/lib/config";
+import { MEDIA_UPLOAD_LIMITS } from "@/lib/media/uploadLimits";
 import { matchesMediaSignature } from "@/lib/media/validation";
 
 type MediaKind = "image" | "video";
 
 const POLICY = {
-  image: { maximumBytes: 20 * 1024 * 1024, mimeTypes: new Set(["image/jpeg", "image/png", "image/webp"]) },
-  video: { maximumBytes: 50 * 1024 * 1024, mimeTypes: new Set(["video/mp4", "video/webm"]) },
+  image: {
+    maximumBytes: MEDIA_UPLOAD_LIMITS.image.maxBytes,
+    mimeTypes: new Set(["image/jpeg", "image/png", "image/webp"]),
+  },
+  video: {
+    maximumBytes: MEDIA_UPLOAD_LIMITS.video.maxBytes,
+    mimeTypes: new Set(["video/mp4", "video/webm"]),
+  },
 } as const;
 
 function parseTotalBytes(response: Response): number {

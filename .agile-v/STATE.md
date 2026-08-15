@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) book form Wave A + ImageKit purge + upload toasts; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) uploadLimits 1MB/20MB + Wave A; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Wave A local done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - upload limits local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `3e6f597`
-- Latest HEAD: `6d7e7f6`
+- Latest implementation tip: pending (uploadLimits)
+- Latest HEAD: `d2c7acd` (+ committing uploadLimits)
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (Wave A media trio + ImageKit purge + toast copy)
+- Last updated: 2026-08-15 (uploadLimits 1MB image / 20MB video)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,6 +25,17 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
 - Active plan: `final-ui-polish-wave` Wave A done; B–E pending
+
+## Reconciliation snapshot (2026-08-15, uploadLimits 1MB/20MB)
+
+Verified facts:
+- Shared `lib/media/uploadLimits.ts`; FileUpload + serverValidation + toast labels aligned.
+- Empty UI Max 1MB / Max 20MB (dropzone + Auth button).
+- Prove: serverValidation tests + eslint/tsc PASS.
+
+### Next Action
+
+**Human-Verify:** oversize upload toast; then Wave B insights.
 
 ## Reconciliation snapshot (2026-08-15, Wave A media + ImageKit + toast)
 

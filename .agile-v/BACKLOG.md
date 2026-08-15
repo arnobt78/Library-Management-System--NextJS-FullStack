@@ -210,4 +210,4 @@ Repo reconciled: tip `028dc23`, HEAD `48822cc`, `main` == `origin/main`, clean t
 
 ## Book form polish Wave A (2026-08-15)
 
-Owner approved. Delivered: form shell/CTA; media trio dropzone+fill+Clear; ImageKit orphan purge; `showToast.file` copy. Local tsc/eslint + purge unit tests PASS. Waves B–E pending.
+Owner approved. Delivered: form shell/CTA; media trio; ImageKit purge; `showToast.file`; `uploadLimits` 1MB/20MB + Max hint. Local Prove PASS. Waves B–E pending.
