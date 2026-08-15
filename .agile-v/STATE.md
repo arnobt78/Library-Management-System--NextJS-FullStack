@@ -7,8 +7,8 @@
 - Status: ACTIVE - book CRUD UX closeout Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `6d04e9e`
-- Latest HEAD: `6d04e9e`
+- Latest implementation tip: `7d0ae32`
+- Latest HEAD: `7d0ae32`
 - Started: 2026-08-01
 - Last updated: 2026-08-15 (book CRUD UX + Insights polish local Prove)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
