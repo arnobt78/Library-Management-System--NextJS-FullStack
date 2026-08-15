@@ -94,7 +94,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Densify actor card: `AuthorizedActor.universityCard` from DB; `resolveDecisionActor` + SSR `currentAdmin` on All Users / Admin Requests / Sign-up / User 360 / Book Reviews (no JWT card; session fallback null-card intentional).
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `13c65ef` / HEAD `9a91ec6`; uploadLimits shipped; Wave 5/EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip pending form-CTA-gate; Wave 5/EvalGate FAIL blocks Gate 2.
 - CR-0003 (REQ-0034–0037): tickets + review mod + activity FIFO-50 + bell + KPIs/tables; mig `0014`; `ticket.write` + `patchTicketCaches*`; Zod ticket/review; bell SSR unread; My Reviews SSR; reply thread single-source; Prove 110 tests.
 - Ticket UI polish: person stack; KPI/section/date/activity; `CARD_PAD` p-2/sm:p-4 (also `.admin-container` + api-docs/status/performance); `LIGHT_GLASS_CTA` primary-admin/red-800; Tailwind `./lib/**`; sky links; edit dialog; densify + back-nav. Instrumentation removed.
 - Densify Waves A–C + review CRUD: `patchBorrowCaches*`; `optimisticAdminRequestDecision`; await `book.write`; `patchReviewCaches*` (create/update/delete/moderate). Approve **upserts** public `book-reviews` (admin soft-nav). Gold: snapshot → await invalidate → re-patch. Prove 120 tests.
@@ -143,7 +143,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Borrow detail UI polish (2026-08-14): `AdminDetailToolbar` `hasActions`; Status KPI badge-only; Fine overdue + Renewal `1=+7d` hints; Borrow Book Context (Library DB after Catalog Status); parties University ID→Requested + simplified Status + Issuer-when-present; thin IDs & Notes (no Record dump).
 - Borrow detail UI tweaks (2026-08-14): Status KPI mid-align (no `self-start`); IDs & Notes Lucide labels; reject notes `Rejected by admin` (+ legacy librarian display map); Activity `activityEventIcon` + FIFO-25.
 - Admin Book Catalog polish (2026-08-14): `/admin/books/[id]` detail DNA; header Create CTA; Featured/Low/Out/Genres KPIs; compact cards + kebab; edit/new two-col `BookForm`/`AdminBookFormShell`; PrefetchLink `admin-book-catalog-detail` + `book.write` RSC.
-- Book form Wave A (2026-08-15): shell/CTA/labels; media trio dropzone+`fill`+Clear; `showToast.file`; ImageKit purge; uploadLimits **1MB** image / **20MB** video (UI Max hint + client/server).
+- Book form Wave A (2026-08-15): shell/media/toasts/purge/uploadLimits; Add/Update + signup Sign Up disabled until Zod-valid (`BookAdminFormGate`); signup labels rose `*`.
 - Admin books card DNA (2026-08-14): sky title + `OverviewGenreChip` + star; two-col meta (copies/status/featured + year/pages/edition); full-width Publisher `break-words` + meta values `text-dark-200`.
 - Admin book detail (2026-08-14/15): Back+Edit; glass Active/Featured; Cover Color copy; KPI+Context `reviewRatingTone`; Media BookImage/BookA; `TicketSectionHeader` center+SVG mid.
 - Book densify+createdBy (2026-08-14/15): `loadBookWithUpdater` SSR/API; mig `0015`; seed+create stamp both actors; merge preserves; JWT card-less.

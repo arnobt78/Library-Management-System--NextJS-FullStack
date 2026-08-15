@@ -226,3 +226,4 @@
 | SPAN-0220 | 2026-08-15 | C2 | Tip-bind CLAUDE | Compliance | Point CLAUDE Agile tip at `3e6f597` | decision_log_append_only | REQ-0033 | PASS |
 | SPAN-0221 | 2026-08-15 | C2 | uploadLimits 1MB/20MB | Build Agent JS | Shared caps + Max hint UI; client/server/toast sync; tests+eslint PASS | require_parent_requirement | REQ-0026, REQ-0033 | PASS local; commit pending |
 | SPAN-0222 | 2026-08-15 | C2 | Tip-bind uploadLimits | Compliance | Bound tip/HEAD to `13c65ef` | decision_log_append_only | REQ-0033 | PASS |
+| SPAN-0223 | 2026-08-15 | C2 | form CTA gate | Build Agent JS | BookAdminFormGate + signup * / disabled until valid; eslint/tsc PASS | require_parent_requirement | REQ-0033 | PASS local; commit pending |

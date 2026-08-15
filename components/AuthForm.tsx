@@ -9,7 +9,7 @@ import {
   useForm,
 } from "react-hook-form";
 import { ZodType } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +40,7 @@ import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import UserAvatar from "@/components/UserAvatar";
 import { Users, XIcon, Sparkles, Zap, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   setPendingAuthToast,
   type AccountStatusClaim,
@@ -73,9 +74,17 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
 
   const form = useForm<TInput, unknown, TOutput>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues,
   });
 
+  // Signup: validate defaults so Sign Up stays disabled until fields pass Zod.
+  useEffect(() => {
+    if (!isSignIn) void form.trigger();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only for signup gate
+  }, [isSignIn]);
+
+  const { isValid } = form.formState;
   // Shared TEST_ACCOUNTS (constants) — fills email/password; name/image are display-only
   const selectedAccount = TEST_ACCOUNTS.find((a) => a.id === selectedRole);
 
@@ -152,6 +161,8 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
   };
 
   const isSubmitting = form.formState.isSubmitting || isNavigating;
+  const signupSubmitDisabled = !isSignIn && (!isValid || isSubmitting);
+  const submitDisabled = isSignIn ? isSubmitting : signupSubmitDisabled;
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
@@ -258,8 +269,15 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
               name={field as Path<TInput>}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm capitalize sm:text-base">
-                    {FIELD_NAMES[field.name as keyof typeof FIELD_NAMES]}
+                  <FormLabel className="flex items-center gap-1 text-sm capitalize sm:text-base">
+                    <span>
+                      {FIELD_NAMES[field.name as keyof typeof FIELD_NAMES]}
+                    </span>
+                    {!isSignIn ? (
+                      <span className="text-rose-400" aria-hidden>
+                        *
+                      </span>
+                    ) : null}
                   </FormLabel>
                   <FormControl>
                     {field.name === "universityCard" ? (
@@ -274,6 +292,9 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
                         folder="ids"
                         variant="dark"
                         onFileChange={field.onChange}
+                        value={
+                          typeof field.value === "string" ? field.value : ""
+                        }
                       />
                     ) : (
                       <Input
@@ -315,8 +336,14 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
             />
           ))}
 
-          <Button type="submit" className="form-btn" disabled={isSubmitting}>
-            {isSubmitting ? (
+          <Button
+            type="submit"
+            className={cn(
+              "form-btn",
+              submitDisabled && "pointer-events-none opacity-50",
+            )}
+            disabled={submitDisabled}
+          >            {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
                 {isSignIn ? "Signing in..." : "Signing up..."}

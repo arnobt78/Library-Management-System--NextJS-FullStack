@@ -2,11 +2,12 @@
  * Admin book create/update form — icon labels, media trio dropzone, confirm+settle densify.
  * Footer CTAs use LIGHT_GLASS_CTA (detail DNA); Active/Featured 2-col + Info tooltip.
  * Mutations via book.write gateway; soft-nav after densify (no router.refresh flash).
+ * Submit CTAs disabled until Zod-valid; gate syncs shell toolbar (outside FormProvider).
  * Parent: REQ-0033 book form UI polish
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -61,6 +62,7 @@ import {
 } from "@/components/admin/BookFormConfirmDialog";
 import { BookFormFieldLabel } from "@/components/admin/forms/BookFormFieldLabel";
 import { BOOK_ADMIN_FORM_ID } from "@/components/admin/AdminBookFormShell";
+import { useBookAdminFormGate } from "@/components/admin/BookAdminFormGate";
 import { bookSchema } from "@/lib/validations";
 import { useCreateBook, useUpdateBook } from "@/hooks/useMutations";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
@@ -91,6 +93,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
   const updateBookMutation = useUpdateBook();
   const isPending =
     createBookMutation.isPending || updateBookMutation.isPending;
+  const { setGate } = useBookAdminFormGate();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingValues, setPendingValues] = useState<BookFormValues | null>(
@@ -99,6 +102,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
 
   const form = useForm<BookFormInput, unknown, BookFormValues>({
     resolver: zodResolver(bookSchema),
+    mode: "onChange",
     defaultValues: {
       title: book.title || "",
       description: book.description || "",
@@ -130,6 +134,19 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       isFeatured: book.isFeatured ?? false,
     },
   });
+
+  const { isValid } = form.formState;
+
+  // Edit with full defaults: enable CTAs immediately; create stays disabled until filled.
+  useEffect(() => {
+    void form.trigger();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only validate against defaults
+  }, []);
+
+  // Keep shell toolbar submit in sync (outside FormProvider).
+  useEffect(() => {
+    setGate({ canSubmit: isValid, isPending });
+  }, [isValid, isPending, setGate]);
 
   /** Validate then open confirm — mutate only after dialog confirm. */
   const onSubmit = (values: BookFormValues): void => {
@@ -710,8 +727,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
             </button>
             <button
               type="submit"
-              disabled={isPending}
-              className={cn(LIGHT_GLASS_CTA.host, LIGHT_GLASS_CTA.edit)}
+              disabled={!isValid || isPending}
+              aria-disabled={!isValid || isPending}
+              className={cn(
+                LIGHT_GLASS_CTA.host,
+                LIGHT_GLASS_CTA.edit,
+                (!isValid || isPending) && "pointer-events-none opacity-50",
+              )}
             >
               {isPending ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />

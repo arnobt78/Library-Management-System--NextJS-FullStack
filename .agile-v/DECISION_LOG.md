@@ -97,3 +97,4 @@
 | DEC-0093 | 2026-08-15 | C2 | Project Owner / Build | Approve and implement Wave A book create/edit form UI polish | Owner attached screenshots + plan approval; densify path unchanged | REQ-0033 |
 | DEC-0094 | 2026-08-15 | C2 | Build Agent JS | Purge ImageKit orphans server-side after successful book update/delete and user:delete; skip Clear-only; FileUpload toasts via showToast.file (no double emoji) | Free-tier storage hygiene + toast UX; densify unchanged | REQ-0033 |
 | DEC-0095 | 2026-08-15 | C2 | Build Agent JS | Cap ImageKit uploads at 1MB image / 20MB video via shared uploadLimits; show Max hint in FileUpload | Free-tier storage + clearer UX; seed media still fits | REQ-0026, REQ-0033 |
+| DEC-0096 | 2026-08-15 | C2 | Build Agent JS | Disable book Add/Update and signup Sign Up until Zod isValid; rose * on signup labels; shell gate for outer toolbar submit | Prevent incomplete submits; AuthForm sign-in unchanged | REQ-0033 |

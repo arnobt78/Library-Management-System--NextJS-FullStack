@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) uploadLimits 1MB/20MB + Wave A; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) form CTA gate + Wave A; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - upload limits local done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - form CTA gate local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `13c65ef`
-- Latest HEAD: `9a91ec6`
+- Latest implementation tip: pending (form CTA gate)
+- Latest HEAD: `361e9a7` (+ committing form CTA gate)
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (uploadLimits 1MB/20MB shipped)
+- Last updated: 2026-08-15 (form CTA gate: book + signup)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -26,6 +26,17 @@
 - Skills applied this session: agile-v-core, agile-v-pipeline
 - Active plan: `final-ui-polish-wave` Wave A done; B–E pending
 
+## Reconciliation snapshot (2026-08-15, form CTA gate)
+
+Verified facts:
+- BookAdminFormGate syncs shell toolbar; BookForm/AuthForm mode onChange + mount trigger.
+- Signup rose *; Sign Up / Add/Update disabled until Zod-valid; sign-in unchanged.
+- Prove: eslint + tsc touched files PASS.
+
+### Next Action
+
+**Human-Verify:** empty create/signup CTAs disabled; then Wave B insights.
+
 ## Reconciliation snapshot (2026-08-15, uploadLimits 1MB/20MB)
 
 Verified facts:
@@ -35,7 +46,7 @@ Verified facts:
 
 ### Next Action
 
-**Human-Verify:** oversize upload toast; then Wave B insights.
+Superseded by form CTA gate.
 
 ## Reconciliation snapshot (2026-08-15, Wave A media + ImageKit + toast)
 

@@ -1,6 +1,7 @@
 /**
  * Shared chrome for admin book create/edit — detail-style Back, AdminPageHeader,
  * Cancel + form= primary + Delete toolbar; form body in admin-panel.
+ * Toolbar submit disabled until BookForm gate reports Zod-valid (BookAdminFormGate).
  * Parent: REQ-0033 book form UI polish
  */
 "use client";
@@ -18,6 +19,10 @@ import PrefetchLink from "@/components/PrefetchLink";
 import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
 import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import {
+  BookAdminFormGateProvider,
+  useBookAdminFormGate,
+} from "@/components/admin/BookAdminFormGate";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import { LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import { cn } from "@/lib/utils";
@@ -25,7 +30,7 @@ import { cn } from "@/lib/utils";
 /** Form id shared with BookForm so toolbar submit uses native form= attribute. */
 export const BOOK_ADMIN_FORM_ID = "book-admin-form";
 
-export function AdminBookFormShell({
+function AdminBookFormShellInner({
   mode,
   bookId,
   bookTitle,
@@ -42,6 +47,8 @@ export function AdminBookFormShell({
     mode === "edit" && bookId ? `/admin/books/${bookId}` : "/admin/books";
   const goBack = useBackWithRefresh("book.write", backHref);
   const isCreate = mode === "create";
+  const { canSubmit, isPending } = useBookAdminFormGate();
+  const submitDisabled = !canSubmit || isPending;
 
   return (
     <section className="w-full space-y-4 sm:space-y-6">
@@ -86,7 +93,13 @@ export function AdminBookFormShell({
             <button
               type="submit"
               form={BOOK_ADMIN_FORM_ID}
-              className={cn(LIGHT_GLASS_CTA.host, LIGHT_GLASS_CTA.edit)}
+              disabled={submitDisabled}
+              aria-disabled={submitDisabled}
+              className={cn(
+                LIGHT_GLASS_CTA.host,
+                LIGHT_GLASS_CTA.edit,
+                submitDisabled && "pointer-events-none opacity-50",
+              )}
             >
               {isCreate ? (
                 <Plus className="size-3.5" aria-hidden />
@@ -126,5 +139,21 @@ export function AdminBookFormShell({
 
       <div className="admin-panel w-full">{children}</div>
     </section>
+  );
+}
+
+export function AdminBookFormShell(
+  props: {
+    mode: "create" | "edit";
+    bookId?: string;
+    bookTitle?: string;
+    deleteAction?: ReactNode;
+    children: ReactNode;
+  },
+) {
+  return (
+    <BookAdminFormGateProvider>
+      <AdminBookFormShellInner {...props} />
+    </BookAdminFormGateProvider>
   );
 }
