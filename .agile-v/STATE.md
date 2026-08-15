@@ -7,8 +7,8 @@
 - Status: ACTIVE - Phase A densify closeout local Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `c8d6082`
-- Latest HEAD: `c8d6082`
+- Latest implementation tip: `156ec79`
+- Latest HEAD: `156ec79`
 - Started: 2026-08-01
 - Last updated: 2026-08-15 (Phase A densify closeout)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -31,7 +31,7 @@
 - **Done**: Dual `commitMutationCache(..., "notification.write")` after due/overdue reminder send (BroadcastChannel for open bells); `revalidateMutationPaths("notification.write")` in reminders actions + due-reminders cron + reservation-notifications when `delivered > 0`; Automation Hold READY Delivery card (honest cron note, no fake last-run DB). eslint touched PASS; formulas+outbox 9/9 PASS. Audit verdict: scoped closeout OK; no mandatory pre-prod code fix.
 - **Human verify (prod smoke)**: (1) Automation → Send Due Soon / Overdue → same-origin borrower tab bell list/unread updates without full refresh; (2) Automation shows Hold READY Delivery cron card; (3) after hold becomes READY, cron `/api/cron/reservation-notifications` delivers HOLD_READY email+bell (CRON_SECRET).
 - **Remaining**: EvalGate / Gate 2; owner prod smoke on deploy.
-- **Next exact task**: owner prod smoke checklist above; tip already bound on checkpoint commit.
+- **Next exact task**: owner prod smoke checklist above (tip `156ec79`).
 
 ## Reconciliation snapshot (2026-08-15, Phase A + UI fixes)
 
