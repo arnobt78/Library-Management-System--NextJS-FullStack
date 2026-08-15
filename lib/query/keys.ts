@@ -109,6 +109,8 @@ export const queryKeys = {
     list: (limit?: number) => ["notifications", limit ?? 20] as const,
     unreadCountRoot: ["notifications-unread-count"] as const,
     unreadCount: ["notifications-unread-count"] as const,
+    totalCountRoot: ["notifications-total-count"] as const,
+    totalCount: ["notifications-total-count"] as const,
   },
   activityLog: {
     root: ["activity-logs"] as const,

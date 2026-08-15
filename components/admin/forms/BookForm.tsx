@@ -164,22 +164,20 @@ const BookForm = ({ type = "create", ...book }: Props) => {
     try {
       if (isCreate) {
         const data = await createBookMutation.mutateAsync(pendingValues);
-        setConfirmOpen(false);
-        setPendingValues(null);
         const newId =
           data && typeof data === "object" && "id" in data
             ? String((data as Book).id)
             : null;
+        // Push before closing confirm — overlay covers the form until route change.
         router.push(newId ? `/admin/books/${newId}` : "/admin/books");
-      } else {
-        await updateBookMutation.mutateAsync({
-          bookId: book.id!,
-          ...pendingValues,
-        });
-        setConfirmOpen(false);
-        setPendingValues(null);
-        router.push(`/admin/books/${book.id}`);
+        return;
       }
+
+      await updateBookMutation.mutateAsync({
+        bookId: book.id!,
+        ...pendingValues,
+      });
+      router.push(`/admin/books/${book.id}`);
     } catch {
       // Toast from useCreateBook / useUpdateBook; keep dialog open.
     }

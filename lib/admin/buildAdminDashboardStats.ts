@@ -263,6 +263,8 @@ export function buildAdminDashboardStats(
     {} as Record<string, number>,
   );
 
+  // Cap 5 newest years — densify must sort year DESC the same way (not by count).
+  const booksByYearDistinctCount = Object.keys(booksByYearAcc).length;
   const booksByYear = Object.entries(booksByYearAcc)
     .sort(([a], [b]) => {
       if (a === "Unknown") return 1;
@@ -280,6 +282,7 @@ export function buildAdminDashboardStats(
     {} as Record<string, number>,
   );
 
+  const booksByLanguageDistinctCount = Object.keys(booksByLanguageAcc).length;
   const booksByLanguage = Object.entries(booksByLanguageAcc)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5) as Array<[string, number]>;
@@ -343,7 +346,9 @@ export function buildAdminDashboardStats(
     recentUsers,
     categoryStats,
     booksByYear,
+    booksByYearDistinctCount,
     booksByLanguage,
+    booksByLanguageDistinctCount,
     topRatedBooks,
     inactiveTitles,
     reservationsWaiting: input.reservationsWaiting ?? 0,

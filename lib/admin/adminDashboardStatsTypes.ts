@@ -101,8 +101,14 @@ export type AdminDashboardStats = {
   recentBorrows: OverviewRecentBorrow[];
   recentUsers: OverviewRecentUser[];
   categoryStats: AdminDashboardCategoryStat[];
+  /** Newest 5 publication years (year DESC). */
   booksByYear: Array<[string, number]>;
+  /** Distinct publication-year keys in the full catalog (for “+N more”). */
+  booksByYearDistinctCount: number;
+  /** Top 5 languages by book count. */
   booksByLanguage: Array<[string, number]>;
+  /** Distinct language keys in the full catalog (for “+N more”). */
+  booksByLanguageDistinctCount: number;
   topRatedBooks: AdminDashboardTopRatedBook[];
   /** Cap 5 — inactive shelf list (not lendable KPI pool). */
   inactiveTitles: AdminDashboardInactiveTitle[];

@@ -162,10 +162,21 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     recentUsers = [],
     categoryStats = [],
     booksByYear = [],
+    booksByYearDistinctCount = 0,
     booksByLanguage = [],
+    booksByLanguageDistinctCount = 0,
     topRatedBooks = [],
     inactiveTitles = [],
   } = statsData;
+
+  const booksByYearExtraCount = Math.max(
+    0,
+    booksByYearDistinctCount - booksByYear.length,
+  );
+  const booksByLanguageExtraCount = Math.max(
+    0,
+    booksByLanguageDistinctCount - booksByLanguage.length,
+  );
 
   // Densified admin.stats wins over dedicated count queries (same mutation paint).
   // Prefer stats cache whenever present — including pendingReviewCount: 0 after
@@ -590,6 +601,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             align="center"
             icon={<HeartPulse className="size-5" />}
             title="Library Health"
+            subtitle="Live catalog, circulation, and signup pulse"
             iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
           />
           <div className="space-y-2">
@@ -790,6 +802,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             align="center"
             icon={<Library className="size-5" />}
             title="Book Categories"
+            subtitle="All genres with title count and shelf copies"
             iconToneClassName="border-indigo-200 bg-indigo-50 text-indigo-600"
           />
           <div className="space-y-2">
@@ -848,31 +861,40 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             align="center"
             icon={<Calendar className="size-5" />}
             title="Books by Publication Year"
+            subtitle="Newest 5 publication years in the catalog"
             iconToneClassName="border-emerald-200 bg-emerald-50 text-emerald-600"
           />
           <div className="space-y-2">
             {booksByYear.length === 0 ? (
               <p className="text-sm text-gray-500">No publication year data</p>
             ) : (
-              booksByYear.map(([year, count]) => (
-                <div
-                  key={year}
-                  className="flex items-center justify-between rounded-xl bg-gray-50/90 p-3"
-                >
-                  <span className="font-medium text-gray-900">{year}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-green-600">
-                      {count} books
-                    </span>
-                    <div className="h-2 w-16 rounded-full bg-gray-200">
-                      <div
-                        className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
-                        style={{ width: `${pct(count, totalBooks)}%` }}
-                      />
+              <>
+                {booksByYear.map(([year, count]) => (
+                  <div
+                    key={year}
+                    className="flex items-center justify-between rounded-xl bg-gray-50/90 p-3"
+                  >
+                    <span className="font-medium text-gray-900">{year}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-green-600">
+                        {count} books
+                      </span>
+                      <div className="h-2 w-16 rounded-full bg-gray-200">
+                        <div
+                          className="h-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"
+                          style={{ width: `${pct(count, totalBooks)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+                {booksByYearExtraCount > 0 ? (
+                  <p className="px-1 text-xs text-gray-500">
+                    +{booksByYearExtraCount} more year
+                    {booksByYearExtraCount === 1 ? "" : "s"}
+                  </p>
+                ) : null}
+              </>
             )}
           </div>
         </AdminSurfacePanel>
@@ -885,6 +907,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             align="center"
             icon={<Star className="size-5" />}
             title="Top 5 Rated Books"
+            subtitle="Highest catalog ratings (ties A–Z)"
             iconToneClassName="border-amber-200 bg-amber-50 text-amber-600"
           />
           <div className="space-y-2">
@@ -906,6 +929,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             align="center"
             icon={<Ban className="size-5" />}
             title="Inactive Books"
+            subtitle="Up to 5 off-shelf titles (not lendable)"
             iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
           />
           <div className="flex min-h-40 flex-col space-y-2">
@@ -927,6 +951,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             align="center"
             icon={<Languages className="size-5" />}
             title="Books by Language"
+            subtitle="Top 5 languages by book count"
             iconToneClassName="border-violet-200 bg-violet-50 text-violet-600"
           />
           <div className="space-y-2">
@@ -935,27 +960,35 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                 No language data currently available.
               </p>
             ) : (
-              booksByLanguage.map(([language, count]) => (
-                <div
-                  key={language}
-                  className="flex items-center justify-between rounded-xl bg-gray-50/90 p-2"
-                >
-                  <span className="text-sm font-medium text-gray-700">
-                    {language}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-purple-600">
-                      {count}
+              <>
+                {booksByLanguage.map(([language, count]) => (
+                  <div
+                    key={language}
+                    className="flex items-center justify-between rounded-xl bg-gray-50/90 p-2"
+                  >
+                    <span className="text-sm font-medium text-gray-700">
+                      {language}
                     </span>
-                    <div className="h-1 w-12 rounded-full bg-gray-200">
-                      <div
-                        className="h-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
-                        style={{ width: `${pct(count, totalBooks)}%` }}
-                      />
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-purple-600">
+                        {count}
+                      </span>
+                      <div className="h-1 w-12 rounded-full bg-gray-200">
+                        <div
+                          className="h-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+                          style={{ width: `${pct(count, totalBooks)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+                {booksByLanguageExtraCount > 0 ? (
+                  <p className="px-1 text-xs text-gray-500">
+                    +{booksByLanguageExtraCount} more language
+                    {booksByLanguageExtraCount === 1 ? "" : "s"}
+                  </p>
+                ) : null}
+              </>
             )}
           </div>
         </AdminSurfacePanel>

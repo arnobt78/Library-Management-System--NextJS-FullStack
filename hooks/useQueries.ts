@@ -92,6 +92,7 @@ import {
 import {
   getNotifications,
   getUnreadNotificationCount,
+  getNotificationTotalCount,
   type NotificationItem,
 } from "@/lib/services/notifications";
 import {
@@ -1386,25 +1387,31 @@ export const useExportStats = (initialData?: ExportStats) => {
 // Notifications (bell) queries
 /**
  * Hook to fetch the signed-in user's most recent in-app notifications.
- * Polls every 60s so the bell stays fresh across tabs even without an
- * explicit mutation on this device (e.g. an admin action from another tab
- * still reaches this one via the mutation's own invalidation broadcast;
- * polling is a belt-and-suspenders fallback for long-idle tabs).
+ * SSR `initialData` seeds the dropdown so open paints without a skeleton;
+ * refetch still runs when `enabled` (typically when the bell is open).
  *
- * @param enabled - Only fetch while the signed-in session is known (avoid 401 churn)
+ * @param enabled - Only fetch while the dropdown is open / session known
  * @param limit - Max notifications to fetch (default 20)
+ * @param initialData - Header SSR shell list (ISO dates)
  */
-export const useNotifications = (enabled: boolean = true, limit = 20) => {
+export const useNotifications = (
+  enabled: boolean = true,
+  limit = 20,
+  initialData?: NotificationItem[],
+) => {
   const { trackQuery } = useQueryPerformance();
+  const hasSeed = initialData !== undefined;
 
   return useQuery<NotificationItem[]>({
     queryKey: queryKeys.notifications.list(limit),
     queryFn: () =>
       trackQuery("notifications", async () => getNotifications(limit)),
     enabled,
-    staleTime: 30 * 1000,
-    refetchOnMount: true,
-    refetchInterval: 60 * 1000,
+    initialData,
+    // SSR seed: longer stale window avoids instant refetch flash on open.
+    staleTime: hasSeed ? 60 * 1000 : 30 * 1000,
+    refetchOnMount: !hasSeed,
+    refetchInterval: enabled ? 60 * 1000 : false,
   });
 };
 
@@ -1418,6 +1425,7 @@ export const useUnreadNotificationCount = (
   initialData?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const hasSeed = initialData !== undefined;
 
   return useQuery<number>({
     queryKey: queryKeys.notifications.unreadCount,
@@ -1427,9 +1435,34 @@ export const useUnreadNotificationCount = (
       ),
     enabled,
     initialData,
-    staleTime: 15 * 1000,
+    staleTime: hasSeed ? 60 * 1000 : 15 * 1000,
     refetchOnMount: true,
     refetchInterval: 30 * 1000,
+  });
+};
+
+/**
+ * Total notification count for the dropdown header (`N total · M unread`).
+ * Not capped by the list limit; densified on delete / invalidate.
+ */
+export const useNotificationTotalCount = (
+  enabled: boolean = true,
+  initialData?: number,
+) => {
+  const { trackQuery } = useQueryPerformance();
+  const hasSeed = initialData !== undefined;
+
+  return useQuery<number>({
+    queryKey: queryKeys.notifications.totalCount,
+    queryFn: () =>
+      trackQuery("notifications-total-count", async () =>
+        getNotificationTotalCount(),
+      ),
+    enabled,
+    initialData,
+    staleTime: hasSeed ? 60 * 1000 : 15 * 1000,
+    refetchOnMount: true,
+    refetchInterval: 60 * 1000,
   });
 };
 

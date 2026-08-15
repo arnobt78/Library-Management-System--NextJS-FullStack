@@ -12,7 +12,7 @@ import "server-only";
 
 import { db } from "@/database/drizzle";
 import { notifications, users } from "@/database/schema";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 
 type NotificationType =
   | "TICKET_CREATED"
@@ -74,13 +74,28 @@ export async function createInAppNotificationForUsers(
   }
 }
 
+/** Serializable bell list row — matches client `NotificationItem` (ISO dates). */
+export interface NotificationShellItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationShell {
+  notifications: NotificationShellItem[];
+  unreadCount: number;
+  totalCount: number;
+}
+
 /**
  * Unread bell count for `userId`. Read-only counterpart of the API route at
- * `/api/notifications/unread-count` — used by root/admin layouts to SSR-seed
- * `NotificationBell` so the badge paints on first byte instead of a client
- * fetch flash. Kept in sync manually (same WHERE clause); no shared query
- * builder exists yet because the API route also needs the authorization
- * envelope this helper intentionally skips (caller already has the actor).
+ * `/api/notifications/unread-count` — used when only the badge is needed.
+ * Prefer `getNotificationShellForUser` when Header also seeds the list.
  */
 export async function getUnreadNotificationCount(userId: string): Promise<number> {
   const [row] = await db
@@ -89,6 +104,61 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
     .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
 
   return row?.count ?? 0;
+}
+
+/**
+ * SSR shell for NotificationBell: top-N list + unread + total in one round-trip
+ * (parallel counts). Dates are ISO strings so the client component can hydrate
+ * without Date serialization issues. Limit mirrors `/api/notifications` default.
+ */
+export async function getNotificationShellForUser(
+  userId: string,
+  limit = 20,
+): Promise<NotificationShell> {
+  const capped = Math.min(Math.max(limit, 1), 100);
+
+  const [rows, unreadRow, totalRow] = await Promise.all([
+    db
+      .select({
+        id: notifications.id,
+        type: notifications.type,
+        title: notifications.title,
+        message: notifications.message,
+        link: notifications.link,
+        isRead: notifications.isRead,
+        readAt: notifications.readAt,
+        createdAt: notifications.createdAt,
+      })
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(capped),
+    db
+      .select({ count: count() })
+      .from(notifications)
+      .where(
+        and(eq(notifications.userId, userId), eq(notifications.isRead, false)),
+      ),
+    db
+      .select({ count: count() })
+      .from(notifications)
+      .where(eq(notifications.userId, userId)),
+  ]);
+
+  return {
+    notifications: rows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      message: row.message,
+      link: row.link,
+      isRead: row.isRead,
+      readAt: row.readAt ? row.readAt.toISOString() : null,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    unreadCount: unreadRow[0]?.count ?? 0,
+    totalCount: totalRow[0]?.count ?? 0,
+  };
 }
 
 /** Every ADMIN user's id + email — used when an email fan-out is also needed. */

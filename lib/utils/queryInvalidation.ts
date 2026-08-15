@@ -220,6 +220,7 @@ const DOMAIN_KEYS: Record<QueryDomain, readonly QueryKey[]> = {
   notifications: [
     queryKeys.notifications.root,
     queryKeys.notifications.unreadCountRoot,
+    queryKeys.notifications.totalCountRoot,
   ],
   activityLog: [
     queryKeys.activityLog.root,

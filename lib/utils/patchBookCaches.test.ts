@@ -531,6 +531,62 @@ describe("patchBookCaches", () => {
     expect(detail?.auditEvents?.[0]?.actorEmail).toBe("test@admin.com");
   });
 
+  it("densifyBookWrite create keeps limit-12 page length and bumps total", () => {
+    const client = new QueryClient();
+    const page1Filters = { page: 1, limit: 12, sort: "title" as const };
+    const page1Books = Array.from({ length: 12 }, (_, i) => ({
+      id: `book-${i + 1}`,
+      title: `Title ${String(i + 1).padStart(2, "0")}`,
+    })) as BooksListResponse["books"];
+    client.setQueryData(queryKeys.books.adminList(page1Filters), {
+      books: page1Books,
+      total: 12,
+      page: 1,
+      totalPages: 1,
+      limit: 12,
+    });
+    const filteredKey = queryKeys.books.adminList({
+      page: 1,
+      limit: 12,
+      genre: "Fiction",
+    });
+    client.setQueryData(filteredKey, {
+      books: [
+        {
+          id: "fic-1",
+          title: "Novel",
+          genre: "Fiction",
+        } as BooksListResponse["books"][number],
+      ],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+      limit: 12,
+    });
+
+    densifyBookWrite(client, {
+      id: "book-new",
+      title: "AAA New",
+      genre: "Science",
+      availableCopies: 1,
+      totalCopies: 1,
+      isActive: true,
+    });
+
+    const page1 = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(page1Filters),
+    );
+    expect(page1?.total).toBe(13);
+    expect(page1?.books).toHaveLength(12);
+    expect(page1?.books[0]?.id).toBe("book-new");
+    expect(page1?.books.some((b) => b.id === "book-12")).toBe(false);
+
+    const filtered = client.getQueryData<BooksListResponse>(filteredKey);
+    expect(filtered?.total).toBe(1);
+    expect(filtered?.books).toHaveLength(1);
+    expect(filtered?.books.some((b) => b.id === "book-new")).toBe(false);
+  });
+
   it("densifyBookDelete backfills page-12 hole from next warm page", () => {
     const client = new QueryClient();
     const page1Filters = { page: 1, limit: 12, sort: "title" as const };
@@ -710,10 +766,12 @@ describe("patchBookCaches", () => {
         ["2011", 1],
         ["2020", 2],
       ],
+      booksByYearDistinctCount: 2,
       booksByLanguage: [
         ["English", 1],
         ["Bengali", 2],
       ],
+      booksByLanguageDistinctCount: 2,
       topRatedBooks: [],
       inactiveTitles: [],
       reservationsWaiting: 0,

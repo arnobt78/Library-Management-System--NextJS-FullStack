@@ -611,18 +611,74 @@ function removeTopRated(
   return list.filter((b) => b.id !== bookId);
 }
 
-function bumpPairList(
+type PairBumpResult = {
+  pairs: Array<[string, number]>;
+  distinctCount: number;
+};
+
+/**
+ * Bump a [key, count] list and track full-catalog distinct keys (even when the
+ * key falls outside the displayed top-N window after re-slice).
+ */
+function bumpPairListTracked(
   pairs: Array<[string, number]>,
   key: string,
   delta: number,
-): Array<[string, number]> {
+  distinctCount: number,
+  sortEntries: (entries: Array<[string, number]>) => Array<[string, number]>,
+): PairBumpResult {
   const map = new Map(pairs);
+  const had = map.has(key);
   const next = (map.get(key) ?? 0) + delta;
-  if (next <= 0) map.delete(key);
-  else map.set(key, next);
-  return [...map.entries()]
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, LIST_CAP) as Array<[string, number]>;
+  let distinct = distinctCount;
+
+  if (next <= 0) {
+    if (had) {
+      map.delete(key);
+      distinct = Math.max(0, distinct - 1);
+    } else if (delta < 0) {
+      // Key was outside the warm top-N window — still shrink distinct.
+      distinct = Math.max(0, distinct - 1);
+    }
+  } else {
+    if (!had) distinct += 1;
+    map.set(key, next);
+  }
+
+  return {
+    pairs: sortEntries([...map.entries()]).slice(0, LIST_CAP) as Array<
+      [string, number]
+    >,
+    distinctCount: distinct,
+  };
+}
+
+/** Language / count-ranked pair lists — top-N by count DESC. */
+function bumpPairListByCount(
+  pairs: Array<[string, number]>,
+  key: string,
+  delta: number,
+  distinctCount: number,
+): PairBumpResult {
+  return bumpPairListTracked(pairs, key, delta, distinctCount, (entries) =>
+    entries.sort(([, a], [, b]) => b - a),
+  );
+}
+
+/** Publication-year pairs — newest years first (matches SSR buildAdminDashboardStats). */
+function bumpPairListByYearDesc(
+  pairs: Array<[string, number]>,
+  key: string,
+  delta: number,
+  distinctCount: number,
+): PairBumpResult {
+  return bumpPairListTracked(pairs, key, delta, distinctCount, (entries) =>
+    entries.sort(([a], [b]) => {
+      if (a === "Unknown") return 1;
+      if (b === "Unknown") return -1;
+      return parseInt(b, 10) - parseInt(a, 10);
+    }),
+  );
 }
 
 /** Adjust category title count + lendable copies for one active contribution. */
@@ -675,6 +731,7 @@ function applyCategoryDelta(
 /**
  * Densify Overview mid-panel lists (Inactive / Top Rated / Categories / Year / Language).
  * Health bars reuse densified counters — no separate list patch.
+ * Year buckets sort newest-first (SSR parity); language stays count DESC.
  */
 function densifyCatalogMidPanels(
   stats: AdminDashboardStats,
@@ -686,15 +743,34 @@ function densifyCatalogMidPanels(
   stats.booksByYear = [...(stats.booksByYear ?? [])];
   stats.booksByLanguage = [...(stats.booksByLanguage ?? [])];
   stats.categoryStats = [...(stats.categoryStats ?? [])];
+  let yearDistinct = stats.booksByYearDistinctCount ?? stats.booksByYear.length;
+  let langDistinct =
+    stats.booksByLanguageDistinctCount ?? stats.booksByLanguage.length;
 
   if (!before && after) {
     // Create
-    stats.booksByYear = bumpPairList(stats.booksByYear, yearKey(after), 1);
-    stats.booksByLanguage = bumpPairList(
-      stats.booksByLanguage,
-      languageKey(after),
-      1,
-    );
+    {
+      const y = bumpPairListByYearDesc(
+        stats.booksByYear,
+        yearKey(after),
+        1,
+        yearDistinct,
+      );
+      stats.booksByYear = y.pairs;
+      yearDistinct = y.distinctCount;
+    }
+    {
+      const l = bumpPairListByCount(
+        stats.booksByLanguage,
+        languageKey(after),
+        1,
+        langDistinct,
+      );
+      stats.booksByLanguage = l.pairs;
+      langDistinct = l.distinctCount;
+    }
+    stats.booksByYearDistinctCount = yearDistinct;
+    stats.booksByLanguageDistinctCount = langDistinct;
     applyCategoryDelta(stats, after, 1, isBookActive(after));
     if (!isBookActive(after)) {
       stats.inactiveTitles = upsertInactiveTitles(stats.inactiveTitles, after);
@@ -705,12 +781,28 @@ function densifyCatalogMidPanels(
 
   if (before && !after) {
     // Delete
-    stats.booksByYear = bumpPairList(stats.booksByYear, yearKey(before), -1);
-    stats.booksByLanguage = bumpPairList(
-      stats.booksByLanguage,
-      languageKey(before),
-      -1,
-    );
+    {
+      const y = bumpPairListByYearDesc(
+        stats.booksByYear,
+        yearKey(before),
+        -1,
+        yearDistinct,
+      );
+      stats.booksByYear = y.pairs;
+      yearDistinct = y.distinctCount;
+    }
+    {
+      const l = bumpPairListByCount(
+        stats.booksByLanguage,
+        languageKey(before),
+        -1,
+        langDistinct,
+      );
+      stats.booksByLanguage = l.pairs;
+      langDistinct = l.distinctCount;
+    }
+    stats.booksByYearDistinctCount = yearDistinct;
+    stats.booksByLanguageDistinctCount = langDistinct;
     applyCategoryDelta(stats, before, -1, isBookActive(before));
     stats.inactiveTitles = removeInactiveTitle(stats.inactiveTitles, before.id);
     stats.topRatedBooks = removeTopRated(stats.topRatedBooks, before.id);
@@ -726,15 +818,31 @@ function densifyCatalogMidPanels(
   const yBefore = yearKey(before);
   const yAfter = yearKey(after);
   if (yBefore !== yAfter) {
-    stats.booksByYear = bumpPairList(stats.booksByYear, yBefore, -1);
-    stats.booksByYear = bumpPairList(stats.booksByYear, yAfter, 1);
+    const y1 = bumpPairListByYearDesc(
+      stats.booksByYear,
+      yBefore,
+      -1,
+      yearDistinct,
+    );
+    const y2 = bumpPairListByYearDesc(y1.pairs, yAfter, 1, y1.distinctCount);
+    stats.booksByYear = y2.pairs;
+    yearDistinct = y2.distinctCount;
   }
   const lBefore = languageKey(before);
   const lAfter = languageKey(after);
   if (lBefore !== lAfter) {
-    stats.booksByLanguage = bumpPairList(stats.booksByLanguage, lBefore, -1);
-    stats.booksByLanguage = bumpPairList(stats.booksByLanguage, lAfter, 1);
+    const l1 = bumpPairListByCount(
+      stats.booksByLanguage,
+      lBefore,
+      -1,
+      langDistinct,
+    );
+    const l2 = bumpPairListByCount(l1.pairs, lAfter, 1, l1.distinctCount);
+    stats.booksByLanguage = l2.pairs;
+    langDistinct = l2.distinctCount;
   }
+  stats.booksByYearDistinctCount = yearDistinct;
+  stats.booksByLanguageDistinctCount = langDistinct;
 
   // Categories: remove old contribution, add new
   applyCategoryDelta(stats, before, -1, wasActive);

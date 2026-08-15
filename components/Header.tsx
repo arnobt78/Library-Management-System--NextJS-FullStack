@@ -1,6 +1,7 @@
 /**
  * Shared BookWise navbar — public (dark) and admin (light) via `tone`.
- * Brand → `/`; SSR-seeds notification unread for densify-safe first paint.
+ * Brand → `/`; SSR-seeds notification shell (list + unread + total) for
+ * densify-safe first paint without dropdown skeleton flash.
  */
 
 import Link from "next/link";
@@ -16,7 +17,7 @@ import RootHeaderShell, {
 } from "@/components/RootHeaderShell";
 import NotificationBell from "@/components/NotificationBell";
 import PrefetchLink from "@/components/PrefetchLink";
-import { getUnreadNotificationCount } from "@/lib/notifications/inApp";
+import { getNotificationShellForUser } from "@/lib/notifications/inApp";
 
 interface HeaderProps {
   session: Session;
@@ -46,9 +47,9 @@ const Header = async ({ session, tone = "dark" }: HeaderProps) => {
 
   const isAdmin = userData?.role === "ADMIN";
 
-  // SSR-seed the bell badge so it paints immediately (no client fetch flash).
-  const initialUnreadCount = sessionUserId
-    ? await getUnreadNotificationCount(sessionUserId)
+  // SSR shell: list + unread + total in one parallel round-trip.
+  const notificationShell = sessionUserId
+    ? await getNotificationShellForUser(sessionUserId)
     : undefined;
 
   const brandClass = isLight
@@ -60,6 +61,13 @@ const Header = async ({ session, tone = "dark" }: HeaderProps) => {
   const linkHover = isLight
     ? "flex items-center hover:text-gray-700"
     : "flex items-center hover:text-light-200";
+
+  const bellProps = {
+    variant: (isLight ? "light" : "dark") as "light" | "dark",
+    initialNotifications: notificationShell?.notifications,
+    initialUnreadCount: notificationShell?.unreadCount,
+    initialTotalCount: notificationShell?.totalCount,
+  };
 
   return (
     <RootHeaderShell tone={tone}>
@@ -98,10 +106,7 @@ const Header = async ({ session, tone = "dark" }: HeaderProps) => {
 
         {userData && (
           <li className="flex items-center">
-            <NotificationBell
-              variant={isLight ? "light" : "dark"}
-              initialUnreadCount={initialUnreadCount}
-            />
+            <NotificationBell {...bellProps} />
           </li>
         )}
 
@@ -122,10 +127,7 @@ const Header = async ({ session, tone = "dark" }: HeaderProps) => {
       {/* Mobile Menu - Visible only on mobile and sm screens */}
       {userData && (
         <div className="flex items-center gap-1 md:hidden">
-          <NotificationBell
-            variant={isLight ? "light" : "dark"}
-            initialUnreadCount={initialUnreadCount}
-          />
+          <NotificationBell {...bellProps} />
           <MobileMenu
             fullName={userData.fullName}
             email={userData.email}

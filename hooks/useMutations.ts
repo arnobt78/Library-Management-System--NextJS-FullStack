@@ -4125,16 +4125,28 @@ export const useDeleteNotification = () => {
       const previousCount = queryClient.getQueryData<number>(
         queryKeys.notifications.unreadCount,
       );
+      const previousTotal = queryClient.getQueryData<number>(
+        queryKeys.notifications.totalCount,
+      );
 
       let wasUnread = false;
+      let removed = false;
       queryClient.setQueriesData<NotificationItem[]>(
         { queryKey: queryKeys.notifications.root },
         (old) => {
-          const removed = old?.find((n) => n.id === id);
-          if (removed && !removed.isRead) wasUnread = true;
+          const hit = old?.find((n) => n.id === id);
+          if (!hit) return old;
+          removed = true;
+          if (!hit.isRead) wasUnread = true;
           return old?.filter((n) => n.id !== id);
         },
       );
+      if (removed) {
+        queryClient.setQueryData<number>(
+          queryKeys.notifications.totalCount,
+          (old) => Math.max(0, (old ?? 1) - 1),
+        );
+      }
       if (wasUnread) {
         queryClient.setQueryData<number>(
           queryKeys.notifications.unreadCount,
@@ -4142,7 +4154,7 @@ export const useDeleteNotification = () => {
         );
       }
 
-      return { previousLists, previousCount };
+      return { previousLists, previousCount, previousTotal };
     },
     onError: (error: Error, _variables, context) => {
       context?.previousLists?.forEach(([key, data]) => {
@@ -4152,6 +4164,12 @@ export const useDeleteNotification = () => {
         queryClient.setQueryData(
           queryKeys.notifications.unreadCount,
           context.previousCount,
+        );
+      }
+      if (context?.previousTotal !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.notifications.totalCount,
+          context.previousTotal,
         );
       }
       showToast.error(

@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) delete densify gap closeout; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) book CRUD UX + Insights polish; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - genres RQ + delete snapshot fallback Prove done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - book CRUD UX closeout Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `6d04e9e`
 - Latest HEAD: `6d04e9e`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (tip `6d04e9e` book densify closeout)
+- Last updated: 2026-08-15 (book CRUD UX + Insights polish local Prove)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,22 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: delete densify gap closeout done; Wave B–E still pending
+- Active plan: book CRUD UX closeout Prove done; notification UI still deferred
+
+## Reconciliation snapshot (2026-08-15, book CRUD UX + Insights polish)
+
+- **Done**: Overview year/language top-5 keep cap + distinct counts + `+N more` + TicketSectionHeader subtitles; densify year sort = newest-first (SSR parity); BookForm push detail before closing confirm; pagination-/sort-aware create densify for `/all-books` limit-12; Insights Popular Genres (by borrows) rename + chart empty states + panel headers; profile/queue title DNA via `syncBorrowRequestBookFields`; densify unit tests + tsc/eslint PASS.
+- **Human verify**: year 2000 shows under `+N more` not top-5; save confirm stays until detail; all-books no 13-row flash; Insights empty charts professional copy.
+- **Remaining**: notification bell UI (deferred); commit when owner asks; EvalGate / Gate 2 still blocked.
+- **Next exact task**: owner human-verify; checkpoint commit if approved.
+
+## Reconciliation snapshot (2026-08-15, notification bell UI parity)
+
+- **Done**: `getNotificationShellForUser` SSR seeds list+unread+total into Header → NotificationBell; `notifications.totalCount` key + `/api/notifications/total-count`; densify mark/delete/mark-all updates list + unread + total; dropdown rose glass with count chips, New badge, Check/CheckCheck, always-visible Trash, Close footer, Loader2 (no skeletons); unit densify tests PASS; tsc/eslint on touched files PASS.
+- **Human verify**: open bell paints from SSR; `N total · M unread`; mark-all / per-row Check / Trash densify; dark+light Header.
+- **Non-goals kept**: no book CRUD in-app emitters; no stock commerce icon map / Redis notification cache; no full inbox page.
+- **Remaining**: commit when owner asks; EvalGate / Gate 2 still blocked.
+- **Next exact task**: owner human-verify bell UI; then checkpoint commit if approved.
 
 ## Reconciliation snapshot (2026-08-15, delete densify gap closeout)
 
@@ -1375,7 +1390,7 @@ Owner requested a deep audit of the CR-0003 diff before commit. A dedicated suba
 
 - **Bug fixes**: My Reviews tab now SSR-hydrates via `getUserBookReviews` → `initialReviews` prop (no more loading-skeleton flash on first open); My Reviews KPI/tab badge now derive live from `useUserBookReviews` instead of a stale SSR `totalReviews` prop (removed that prop from `MyProfileTabs`/`my-profile/page.tsx`); ticket-detail reply thread no longer double-fetches (`SupportTicketReplyThread` takes `replies` as a prop sourced from `ticket.replies`; removed `useSupportTicketReplies`/`getSupportTicketReplies`/`queryKeys.tickets.replies*`; `useCreateSupportTicketReply` patches the `ticket.detail` cache directly); user support-ticket KPI cards now compute from the unfiltered `allTickets` list (client-side filter is display-only), matching the admin pattern.
 - **Security/validation hardening**: Zod (`lib/validations/review.ts`) now validates `reviews/[bookId]` POST and `reviews/edit/[reviewId]` PUT bodies (author content-edit vs. admin moderation payloads); `support-tickets` GET validates `status`/`priority` query params against their enums before use; `support-tickets/[id]` PUT verifies `assignedToId` references an actual `ADMIN` row (previously any valid user id was accepted); `getPendingReviewCount` now throws `ApiError` on a non-OK response instead of silently returning `0`.
-- **Perf/UX**: `NotificationBell` SSR-seeds `initialUnreadCount` from root `Header.tsx` and `admin/layout.tsx` via new `getUnreadNotificationCount()` in `lib/notifications/inApp.ts` — the bell badge paints on first byte with no client-fetch flash.
+- **Perf/UX**: `NotificationBell` SSR-seeds list+unread+total via `getNotificationShellForUser()` from shared `Header.tsx` (root + admin) — badge + dropdown paint on first open with no skeleton flash; densify keeps `totalCount`/`unreadCount` coherent.
 - **Dead-code / duplication cleanup**: removed unused `getAllAdminUserIds`, `getActivityLogCount`, `getTodayActivityCount`, an unreachable branch in the ticket-replies POST handler, and the unused `reviewId` param on `notifyReviewSubmitted`. Consolidated the four duplicated ticket `STATUS_OPTIONS`/`PRIORITY_OPTIONS` arrays into `lib/ui/ticketOptions.ts` (also now the source for `semanticBadges.tsx` labels) and the four duplicated `StarRow` star-rating helpers into `components/ui/StarRow.tsx`.
 - **API docs**: `lib/apiDocs/endpoints.ts` gained Support Tickets / Notifications / Activity Log categories and the previously missing `reviews/mine`, `reviews/admin`, `reviews/admin/[id]`, `reviews/pending-count` entries (also deduped a pre-existing `reviews/delete` duplicate); `/api-docs` page icon map extended to match.
 

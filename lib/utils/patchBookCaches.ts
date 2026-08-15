@@ -55,6 +55,100 @@ function sortBooksByTitle<T extends { title?: unknown }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => titleOf(a).localeCompare(titleOf(b)));
 }
 
+/** Honor list `sort` when inventing into paginated all-books pages. */
+function sortBooksForList<
+  T extends {
+    title?: unknown;
+    author?: unknown;
+    rating?: unknown;
+    createdAt?: unknown;
+  },
+>(rows: T[], sort: BookFilters["sort"] | undefined): T[] {
+  const copy = [...rows];
+  switch (sort) {
+    case "author":
+      return copy.sort((a, b) =>
+        String(a.author ?? "").localeCompare(String(b.author ?? "")),
+      );
+    case "rating":
+      return copy.sort(
+        (a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0),
+      );
+    case "date":
+      return copy.sort((a, b) =>
+        String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
+      );
+    case "title":
+    default:
+      return sortBooksByTitle(copy);
+  }
+}
+
+/**
+ * Patch one admin/public list page. Create invents only into unfiltered pages
+ * and respects page/limit/sort so limit-12 `/all-books` never grows past limit.
+ * Updates never invent into filtered caches that lack the row.
+ */
+function upsertInListResponse(
+  prev: BooksListResponse | undefined,
+  book: BookLike,
+  allowInsert: boolean,
+  filters: BookFilters = {},
+): BooksListResponse | undefined {
+  if (!prev?.books) {
+    // Do not invent a full list page from a single row.
+    return prev;
+  }
+  const idx = prev.books.findIndex((b) => b.id === book.id);
+  if (idx === -1) {
+    if (!allowInsert) return prev;
+    // Filtered genre/search/etc. — wait for refetch; do not invent membership.
+    if (!isUnfilteredBookListFilters(filters)) return prev;
+
+    const page = prev.page || filters.page || 1;
+    const limit =
+      prev.limit || filters.limit || Math.max(prev.books.length, 1);
+    const nextTotal = prev.total + 1;
+    const totalPages = Math.max(1, Math.ceil(nextTotal / limit) || 1);
+
+    // Later pages: bump total only — membership requires the full catalog.
+    if (page > 1) {
+      return {
+        ...prev,
+        total: nextTotal,
+        totalPages,
+        limit,
+        page,
+      };
+    }
+
+    const merged = sortBooksForList(
+      [
+        book as unknown as BooksListResponse["books"][number],
+        ...prev.books,
+      ],
+      filters.sort ?? "title",
+    );
+    return {
+      ...prev,
+      books: merged.slice(0, limit),
+      total: nextTotal,
+      totalPages,
+      limit,
+      page,
+    };
+  }
+
+  const books = prev.books.map((b, i) =>
+    i === idx ? ({ ...b, ...book } as BooksListResponse["books"][number]) : b,
+  );
+  return {
+    ...prev,
+    books,
+    total: prev.total,
+  };
+}
+
 function toBookSnapshot(book: BookLike): AdminStatsBookSnapshot {
   return {
     id: book.id,
@@ -163,43 +257,6 @@ function densifyBookGenres(queryClient: QueryClient): void {
     return;
   }
   void queryClient.invalidateQueries({ queryKey: queryKeys.books.genresRoot });
-}
-
-/**
- * Patch one admin list page. On update (`allowInsert=false`), never invent into
- * filtered caches that lack the row — that inflated sidebar totals.
- */
-function upsertInListResponse(
-  prev: BooksListResponse | undefined,
-  book: BookLike,
-  allowInsert: boolean,
-): BooksListResponse | undefined {
-  if (!prev?.books) {
-    // Do not invent a full list page from a single row.
-    return prev;
-  }
-  const idx = prev.books.findIndex((b) => b.id === book.id);
-  if (idx === -1) {
-    if (!allowInsert) return prev;
-    const books = sortBooksByTitle([
-      book as unknown as BooksListResponse["books"][number],
-      ...prev.books,
-    ]);
-    return {
-      ...prev,
-      books,
-      total: prev.total + 1,
-    };
-  }
-
-  const books = prev.books.map((b, i) =>
-    i === idx ? ({ ...b, ...book } as BooksListResponse["books"][number]) : b,
-  );
-  return {
-    ...prev,
-    books,
-    total: prev.total,
-  };
 }
 
 function patchBookArray(
@@ -622,10 +679,17 @@ export function densifyBookWrite(
     return incoming;
   });
 
-  queryClient.setQueriesData<BooksListResponse>(
-    { queryKey: queryKeys.books.adminRoot },
-    (old) => upsertInListResponse(old, book, allowInsert),
-  );
+  // Pagination-/sort-aware list densify — pass filters from each warm key.
+  for (const [queryKey, old] of queryClient.getQueriesData<BooksListResponse>({
+    queryKey: queryKeys.books.adminRoot,
+  })) {
+    if (!Array.isArray(queryKey)) continue;
+    const filters = (queryKey[1] as BookFilters | undefined) ?? {};
+    const next = upsertInListResponse(old, book, allowInsert, filters);
+    if (next !== undefined && next !== old) {
+      queryClient.setQueryData(queryKey, next);
+    }
+  }
 
   // Featured exclusivity on admin badges — mirror clearOtherFeatured.
   if (isFeaturedHeroEligible(book)) {
@@ -647,17 +711,33 @@ export function densifyBookWrite(
     previous,
     next: toBookSnapshot(book),
   });
-  // Borrow Queue / detail inventory fallbacks after catalog edit.
+  // Borrow Queue / My Profile / Holds — inventory + title DNA after catalog edit.
   const available =
     typeof book.availableCopies === "number" ? book.availableCopies : undefined;
   const total =
     typeof book.totalCopies === "number" ? book.totalCopies : undefined;
-  if (available !== undefined || total !== undefined) {
-    syncBorrowRequestBookFields(queryClient, book.id, {
-      ...(available !== undefined ? { availableCopies: available } : {}),
-      ...(total !== undefined ? { totalCopies: total } : {}),
-    });
-  }
+  syncBorrowRequestBookFields(queryClient, book.id, {
+    ...(available !== undefined ? { availableCopies: available } : {}),
+    ...(total !== undefined ? { totalCopies: total } : {}),
+    ...(typeof book.title === "string" ? { title: book.title } : {}),
+    ...(typeof book.author === "string" ? { author: book.author } : {}),
+    ...(book.genre !== undefined
+      ? { genre: typeof book.genre === "string" ? book.genre : null }
+      : {}),
+    ...(typeof book.rating === "number" ? { rating: book.rating } : {}),
+    ...(book.coverUrl !== undefined
+      ? {
+          coverUrl:
+            typeof book.coverUrl === "string" ? book.coverUrl : null,
+        }
+      : {}),
+    ...(book.coverColor !== undefined
+      ? {
+          coverColor:
+            typeof book.coverColor === "string" ? book.coverColor : null,
+        }
+      : {}),
+  });
   // Insights charts — evict so soft-nav refetches (no invent series densify).
   evictAnalyticsCaches(queryClient);
 }

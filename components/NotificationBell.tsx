@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * NotificationBell — always-visible navbar bell (stock-inventory parity).
+ * NotificationBell — always-visible navbar bell (stock-inventory feature parity).
  * Parent Header only mounts this for signed-in users; do NOT gate on
  * useSession() (loading/unauthenticated briefly → missing icon).
- * Unread badge is optional; the bell itself is the default chrome.
+ * SSR shell seeds list + unread + total so open paints without skeletons.
  * Parent: CR-0003 / REQ-0034
  */
 import { useState } from "react";
@@ -16,32 +16,53 @@ import {
 import { cn } from "@/lib/utils";
 import {
   useNotifications,
+  useNotificationTotalCount,
   useUnreadNotificationCount,
 } from "@/hooks/useQueries";
+import type { NotificationItem } from "@/lib/services/notifications";
 import NotificationDropdown from "@/components/NotificationDropdown";
 
 export interface NotificationBellProps {
   variant?: "dark" | "light";
   className?: string;
-  /** SSR-seeded unread count — paints the badge on first byte, no fetch flash. */
+  /** SSR-seeded list — paints the dropdown on open with no skeleton flash. */
+  initialNotifications?: NotificationItem[];
+  /** SSR-seeded unread count — paints the badge on first byte. */
   initialUnreadCount?: number;
+  /** SSR-seeded total count — header `N total · M unread`. */
+  initialTotalCount?: number;
 }
 
 export default function NotificationBell({
   variant = "dark",
   className,
+  initialNotifications,
   initialUnreadCount,
+  initialTotalCount,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
 
-  // Always poll unread when mounted (parent already auth-gated via SSR).
   const { data: unreadCount = 0 } = useUnreadNotificationCount(
     true,
     initialUnreadCount,
   );
-  // Only fetch the full list once the bell is opened (avoids an unnecessary
-  // fetch on every page load for every signed-in user).
-  const { data: notifications = [], isLoading } = useNotifications(open);
+  const { data: totalCount = 0 } = useNotificationTotalCount(
+    true,
+    initialTotalCount,
+  );
+
+  // Seeded list shows immediately; fetch/refetch only while open.
+  const {
+    data: notifications = initialNotifications ?? [],
+    isLoading,
+    isError,
+  } = useNotifications(open, 20, initialNotifications);
+
+  // Loader only when no SSR seed and still fetching (never skeleton rows).
+  const showLoading =
+    initialNotifications === undefined &&
+    isLoading &&
+    notifications.length === 0;
 
   const isDark = variant === "dark";
 
@@ -52,7 +73,6 @@ export default function NotificationBell({
           type="button"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
           className={cn(
-            // Always-visible chrome — rose glass like stock-inventory navbar bell
             "relative inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 sm:size-10",
             isDark
               ? "border-rose-400/30 bg-gradient-to-r from-rose-500/25 via-rose-500/15 to-rose-500/10 text-rose-300 shadow-[0_10px_30px_rgba(225,29,72,0.2)] backdrop-blur-md hover:border-rose-300/40 hover:from-rose-500/35 hover:via-rose-500/25 hover:to-rose-500/15 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
@@ -76,10 +96,12 @@ export default function NotificationBell({
       </DropdownMenuTrigger>
       <NotificationDropdown
         notifications={notifications}
-        isLoading={isLoading}
+        isLoading={showLoading}
+        isError={isError}
         unreadCount={unreadCount}
+        totalCount={totalCount}
         variant={variant}
-        onNavigate={() => setOpen(false)}
+        onClose={() => setOpen(false)}
       />
     </DropdownMenu>
   );

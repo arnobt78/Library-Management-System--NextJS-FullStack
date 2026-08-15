@@ -77,7 +77,9 @@ function seedStats(
     ],
     categoryStats: [],
     booksByYear: [],
+    booksByYearDistinctCount: 0,
     booksByLanguage: [],
+    booksByLanguageDistinctCount: 0,
     topRatedBooks: [],
     inactiveTitles: [],
     reservationsWaiting: 0,
@@ -400,6 +402,44 @@ describe("patchAdminStatsCaches", () => {
     expect(next?.booksByLanguage.some(([lang]) => lang === "German")).toBe(
       true,
     );
+  });
+
+  it("year densify keeps newest-5 order and bumps distinct for older years", () => {
+    const client = new QueryClient();
+    seedStats(client, {
+      booksByYear: [
+        ["2020", 2],
+        ["2019", 1],
+        ["2018", 4],
+        ["2017", 1],
+        ["2016", 2],
+      ],
+      booksByYearDistinctCount: 9,
+    });
+    patchAdminStatsOnBookChange(client, {
+      previous: null,
+      next: {
+        id: "b-2000",
+        title: "Old Title",
+        author: "A",
+        isActive: true,
+        totalCopies: 1,
+        availableCopies: 1,
+        genre: "History",
+        publicationYear: 2000,
+        language: "English",
+      },
+    });
+    const next = client.getQueryData<AdminDashboardStats>(queryKeys.admin.stats);
+    expect(next?.booksByYear.map(([y]) => y)).toEqual([
+      "2020",
+      "2019",
+      "2018",
+      "2017",
+      "2016",
+    ]);
+    expect(next?.booksByYear.some(([y]) => y === "2000")).toBe(false);
+    expect(next?.booksByYearDistinctCount).toBe(10);
   });
 
   it("skips lendable Available/Borrowed deltas when book is inactive", () => {

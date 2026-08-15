@@ -444,6 +444,17 @@ export const API_ENDPOINT_CATEGORIES: ApiEndpointCategory[] = [
       },
       {
         method: "GET",
+        path: "/api/notifications/total-count",
+        description:
+          "Total in-app notification count for the signed-in user (dropdown header; not capped by list limit)",
+        auth: true,
+        response: {
+          success: true,
+          count: "number",
+        },
+      },
+      {
+        method: "GET",
         path: "/api/notifications/unread-count",
         description: "Unread notification count for the bell badge",
         auth: true,

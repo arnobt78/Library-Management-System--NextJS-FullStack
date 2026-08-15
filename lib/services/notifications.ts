@@ -60,6 +60,18 @@ export async function getUnreadNotificationCount(): Promise<number> {
   return data.count ?? 0;
 }
 
+/** Total notification count for the dropdown header (not capped by list limit). */
+export async function getNotificationTotalCount(): Promise<number> {
+  const response = await fetch("/api/notifications/total-count", {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await parseJsonOrThrow<{ success: boolean; count: number }>(
+    response,
+  );
+  return data.count ?? 0;
+}
+
 /** Mark a single notification as read. */
 export async function markNotificationRead(id: string): Promise<void> {
   const response = await fetch(`/api/notifications/${id}`, {

@@ -36,7 +36,20 @@ import GenericCardSkeleton from "@/components/skeletons/GenericCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { ADMIN_PANEL_CLASS } from "@/lib/ui/adminSurfaceStyles";
-import { AlertTriangle, BookOpen, BookOpenCheck, Users } from "lucide-react";
+import { AdminDetailEmptyState } from "@/components/admin/AdminDetailEmptyState";
+import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
+import {
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  BookOpen,
+  BookOpenCheck,
+  CalendarDays,
+  CheckCircle2,
+  PieChart as PieChartIcon,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
 interface AnalyticsChartsProps {
   /**
@@ -220,24 +233,25 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         className={ADMIN_PANEL_CLASS}
         aria-labelledby="deterministic-insights"
       >
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2
-              id="deterministic-insights"
-              className="text-lg font-medium text-gray-900"
-            >
-              Explainable operational insights
-            </h2>
-            <p className="text-xs text-gray-500">
-              Formula {data.deterministicInsights.formulaVersion} ·{" "}
-              {data.deterministicInsights.periodStart} to{" "}
-              {data.deterministicInsights.periodEnd}
-            </p>
-          </div>
-          <span className="text-xs text-gray-500">
-            Deterministic database aggregates; no external AI processing
-          </span>
-        </div>
+        <TicketSectionHeader
+          className="mb-0"
+          align="center"
+          icon={<Activity className="size-5" />}
+          title="Explainable operational insights"
+          subtitle={`Formula ${data.deterministicInsights.formulaVersion} · ${data.deterministicInsights.periodStart} to ${data.deterministicInsights.periodEnd}`}
+          iconToneClassName="border-sky-200 bg-sky-50 text-sky-600"
+          trailing={
+            <span className="text-xs text-gray-500">
+              Deterministic database aggregates; no external AI processing
+            </span>
+          }
+        />
+        {data.deterministicInsights.circulation30Days === 0 ? (
+          <p className="mt-2 text-xs text-gray-500">
+            No borrowing activity in this period yet — ratios stay at zero until
+            circulation starts.
+          </p>
+        ) : null}
         <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
           {[
             [
@@ -267,126 +281,177 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </dl>
       </section>
 
-      {/* Charts Grid */}
+      {/* Charts Grid — empty copy when borrow universe is empty (not catalog mix). */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-        {/* Borrowing Trends */}
         <div className={ADMIN_PANEL_CLASS}>
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Borrowing Trends
-          </h3>
-          <div className="w-full overflow-x-auto">
-            <ResponsiveContainer width="100%" height={200} minWidth={300}>
-              <LineChart data={trendsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="borrows"
-                  stroke="#8884d8"
-                  strokeWidth={2}
-                  name="Borrows"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="returns"
-                  stroke="#82ca9d"
-                  strokeWidth={2}
-                  name="Returns"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<TrendingUp className="size-5" />}
+            title="Borrowing Trends"
+            subtitle="Daily borrows and returns over the selected window"
+            iconToneClassName="border-indigo-200 bg-indigo-50 text-indigo-600"
+          />
+          {trendsData.length === 0 ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No borrowing activity yet — trends appear after borrow requests."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <LineChart data={trendsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="borrows"
+                    stroke="#8884d8"
+                    strokeWidth={2}
+                    name="Borrows"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="returns"
+                    stroke="#82ca9d"
+                    strokeWidth={2}
+                    name="Returns"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
-        {/* Popular Books */}
         <div className={ADMIN_PANEL_CLASS}>
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Popular Books
-          </h3>
-          <div className="w-full overflow-x-auto">
-            <ResponsiveContainer width="100%" height={200} minWidth={300}>
-              <BarChart data={popularBooksData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="title"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  fontSize={11}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<BarChart3 className="size-5" />}
+            title="Popular Books"
+            subtitle="Most borrowed titles (not catalog rating)"
+            iconToneClassName="border-violet-200 bg-violet-50 text-violet-600"
+          />
+          {popularBooksData.length === 0 ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No borrowing activity yet — popular books appear after loans."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <BarChart data={popularBooksData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="title"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={11}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
-        {/* Genre Distribution */}
         <div className={ADMIN_PANEL_CLASS}>
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Genre Distribution
-          </h3>
-          <div className="w-full overflow-x-auto">
-            <ResponsiveContainer width="100%" height={200} minWidth={300}>
-              <PieChart>
-                <Pie
-                  data={genresData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={50}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {genresData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<PieChartIcon className="size-5" />}
+            title="Popular Genres (by borrows)"
+            subtitle="Borrow-weighted genre mix — not catalog genre counts"
+            iconToneClassName="border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600"
+          />
+          {genresData.length === 0 ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No borrowing activity yet — genre popularity appears after loans."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <PieChart>
+                  <Pie
+                    data={genresData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={50}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {genresData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
-        {/* User Activity */}
         <div className={ADMIN_PANEL_CLASS}>
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Top Users by Activity
-          </h3>
-          <div className="w-full overflow-x-auto">
-            <ResponsiveContainer width="100%" height={200} minWidth={300}>
-              <BarChart data={userActivityData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  fontSize={11}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<Users className="size-5" />}
+            title="Top Users by Activity"
+            subtitle="Borrowers ranked by total loans"
+            iconToneClassName="border-cyan-200 bg-cyan-50 text-cyan-600"
+          />
+          {userActivityData.length === 0 ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No borrowing activity yet — top users appear after loans."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <BarChart data={userActivityData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={11}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Overdue Books Table */}
       <div className={ADMIN_PANEL_CLASS}>
-        <h3 className="mb-4 text-base font-medium sm:text-lg">Overdue Books</h3>
-        <div className="overflow-x-auto">
+        <TicketSectionHeader
+          className="mb-0"
+          align="center"
+          icon={<AlertTriangle className="size-5" />}
+          title="Overdue Books"
+          subtitle="Active loans past due date with optional fines"
+          iconToneClassName="border-amber-200 bg-amber-50 text-amber-600"
+        />
+        <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-full border-collapse">
             <thead>
               <tr className="border-b">
@@ -412,7 +477,10 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     className="px-2 py-6 text-center text-gray-500 sm:px-4 sm:py-8"
                   >
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="text-3xl sm:text-3xl">✅</div>
+                      <CheckCircle2
+                        className="size-8 text-emerald-500"
+                        aria-hidden
+                      />
                       <div className="text-base font-medium sm:text-lg">
                         No Overdue Books
                       </div>
@@ -472,10 +540,15 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
         <div className={ADMIN_PANEL_CLASS}>
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Monthly Statistics
-          </h3>
-          <div className="space-y-2 sm:space-y-2">
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<CalendarDays className="size-5" />}
+            title="Monthly Statistics"
+            subtitle="Borrow counts for the current and previous month"
+            iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
+          />
+          <div className="mt-4 space-y-2 sm:space-y-2">
             <div className="flex justify-between">
               <span className="text-xs text-gray-600 sm:text-sm">
                 Current Month:
@@ -496,10 +569,15 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         </div>
 
         <div className={ADMIN_PANEL_CLASS}>
-          <h3 className="mb-4 text-base font-medium sm:text-lg">
-            Overdue Analysis
-          </h3>
-          <div className="space-y-2 sm:space-y-2">
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<AlertTriangle className="size-5" />}
+            title="Overdue Analysis"
+            subtitle="Aggregate overdue volume, fines, and rate"
+            iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
+          />
+          <div className="mt-4 space-y-2 sm:space-y-2">
             <div className="flex justify-between">
               <span className="text-xs text-gray-600 sm:text-sm">
                 Total Overdue:

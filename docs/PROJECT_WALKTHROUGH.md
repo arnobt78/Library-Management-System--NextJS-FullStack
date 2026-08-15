@@ -198,7 +198,8 @@ Accepted implementation commit: `d9b9fd9`. Agile V cycle C1 is complete and froz
 
 ## CR-0003 Admin suite + ticket polish (2026-08-05)
 
-- Domains: Support Tickets (user `/support-tickets` + admin `/admin/support-tickets`), book-review moderation, Activity History (`/admin/activity-history`), notification bell (root + admin).
+- Domains: Support Tickets (user `/support-tickets` + admin `/admin/support-tickets`), book-review moderation, Activity History (`/admin/activity-history`), notification bell (root + admin; SSR shell list+unread+total, rose-glass dropdown with New/Check/Close).
+- Book CRUD UX (2026-08-15): Overview year/lang top-5 + `+N more`; form confirm → detail before close; `/all-books` create densify respects page/limit/sort; Insights Popular Genres (by borrows) + empty chart copy (no invent borrow densify).
 - Schema: migration `0014_admin_suite_expansion.sql` (`support_tickets`, replies, `notifications`, `activity_logs`, review status fields).
 - Freshness: `ticket.write` in `queryInvalidation` + RSC paths; after invalidate, `lib/utils/patchTicketCaches.ts` densifies lists/detail/KPIs; cross-tab via BroadcastChannel; back uses `useBackWithRefresh` without a second wipe.
 - UI hubs: `TicketDetailKpiGrid`, `TicketSectionHeader`, `TicketDateMeta`, `TicketActivityTimeline`, `PersonAttribution` stack, `LIGHT_GLASS_CTA`, `CARD_PAD` / `.admin-panel` = `p-2 sm:p-4`, Tailwind `content` includes `./lib/**`.
