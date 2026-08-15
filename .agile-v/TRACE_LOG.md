@@ -242,3 +242,4 @@
 | SPAN-0236 | 2026-08-15 | C2 | 1-day Auth.js JWT session | Build Agent JS | SESSION_MAX_AGE_SECONDS + maxAge/updateAge; SessionProvider refetchOnWindowFocus; DEC-0104; tsc/eslint PASS | require_parent_requirement | REQ-0001, REQ-0026 | PASS local; commit pending |
 | SPAN-0237 | 2026-08-15 | C2 | Tip-bind 1-day JWT session | Compliance | Bound tip/HEAD to `aa75f96` | decision_log_append_only | REQ-0001, REQ-0026 | PASS |
 | SPAN-0238 | 2026-08-15 | C2 | UX polish trio | Build Agent JS | Confirm settle + bell circle + users sort URL drop; tsc/eslint PASS | require_parent_requirement | REQ-0033, REQ-0034 | PASS local; commit pending |
+| SPAN-0239 | 2026-08-15 | C2 | Tip-bind UX polish trio | Compliance | Bound tip/HEAD to `c8d6082` | decision_log_append_only | REQ-0033, REQ-0034 | PASS |

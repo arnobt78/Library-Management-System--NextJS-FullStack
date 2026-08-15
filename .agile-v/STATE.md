@@ -7,8 +7,8 @@
 - Status: ACTIVE - UX polish trio Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `aa75f96`
-- Latest HEAD: `aa75f96`
+- Latest implementation tip: `c8d6082`
+- Latest HEAD: `c8d6082`
 - Started: 2026-08-01
 - Last updated: 2026-08-15 (UX polish trio: confirm settle / bell / users sort)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -30,8 +30,8 @@
 
 - **Done**: BookForm `isConfirmSettling` keeps confirm spinner through soft-nav; bell unread `h-5 min-w-5` circle; drop `/admin/users` `?sort=created` mount rewrite (filters still default created); PrefetchLink warms `ADMIN_USERS_UNFILTERED`; DEC-0105; tsc/eslint PASS.
 - **Human verify**: create/update book spinner until detail; bell `1` circular; `/admin/users` URL stays clean, no avatar double-blink.
-- **Remaining**: EvalGate / Gate 2 still blocked; commit when owner asks.
-- **Next exact task**: owner human-verify; checkpoint commit if approved.
+- **Remaining**: EvalGate / Gate 2 still blocked.
+- **Next exact task**: human-verify confirm spinner / bell circle / users URL; EvalGate evidence separately.
 
 ## Reconciliation snapshot (2026-08-15, 1-day Auth.js session)
 
