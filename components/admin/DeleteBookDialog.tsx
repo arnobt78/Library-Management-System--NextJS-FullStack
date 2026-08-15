@@ -81,8 +81,10 @@ const DeleteBookDialog = ({
   const [open, setOpen] = useState(false);
   const [titleConfirm, setTitleConfirm] = useState("");
   const [deleteSecret, setDeleteSecret] = useState("");
+  // Keep overlay spinner through soft-nav away from detail (avoid 404 flash).
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  const isPending = deleteBookMutation.isPending;
+  const isPending = deleteBookMutation.isPending || isNavigating;
   const titleMatches = titleConfirm.trim() === bookTitle.trim();
   const canSubmit =
     titleMatches && deleteSecret.length > 0 && !isPending;
@@ -120,13 +122,16 @@ const DeleteBookDialog = ({
       });
       setTitleConfirm("");
       setDeleteSecret("");
-      setOpen(false);
-      // Densify already patched RQ list/KPIs — push without router.refresh flash.
+      // Navigate while dialog still open — detail unmounts under overlay (no 404).
       if (redirectTo) {
-        router.push(redirectTo);
+        setIsNavigating(true);
+        router.replace(redirectTo);
+        return;
       }
+      setOpen(false);
     } catch {
       // Toast from useDeleteBook; keep dialog open with fields intact.
+      setIsNavigating(false);
     }
   };
 

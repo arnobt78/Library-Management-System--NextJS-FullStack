@@ -251,7 +251,6 @@ export default function BookReviewList({
   const {
     data: allReviews = [],
     isPending,
-    isFetching,
   } = useAdminBookReviews({}, initialReviews);
 
   const reviews = useMemo(() => {
@@ -562,7 +561,9 @@ export default function BookReviewList({
         <DataTable
           columns={columns}
           data={reviews}
-          isLoading={(isPending || isFetching) && reviews.length === 0}
+          // Match peer admin lists: never gate on isFetching alone — empty SSR []
+          // + staleTime 0 refetch would flash DataTable skeleton forever.
+          isLoading={isPending && reviews.length === 0}
           emptyMessage={
             <AdminFilterEmptyState
               entityLabel="book reviews"

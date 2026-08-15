@@ -154,3 +154,15 @@ Commands: `npx tsc --noEmit` PASS | eslint `auth.ts` + `SessionProviderWrapper.t
 Scope: [built/verified] BookForm isConfirmSettling; NotificationBell circle badge; AdminUsersList no mount sort rewrite; PrefetchLink ADMIN_USERS_UNFILTERED.
 
 Commands: `npx tsc --noEmit` PASS | eslint touched files PASS | outstanding=same nonlocal EvalGate class (`ER-C2-FINAL-CORRECTIVE-5`).
+
+## Phase A densify closeout - Local Prove - 2026-08-15
+
+Scope: [built/verified] Dual notification.write after due/overdue reminders; cron notification revalidate; Automation Hold READY card. DEC-0107.
+
+Commands: eslint touched PASS | vitest formulas+outbox 9/9 PASS | outstanding=same nonlocal EvalGate class.
+
+## Phase A + UI fixes - Local Prove - 2026-08-15
+
+Scope: [built/verified] W1 reviews/avatar/overview/delete; W2 C2-v2 overdueTrend/fineForecast/genreDemandPressure + User 360 next actions + ops chips; W3 `/api/cron/due-reminders`, REMINDER_DUE/HOLD_READY, Automation copy. No LLM.
+
+Commands: eslint touched PASS | vitest formulas+outbox 9/9 PASS | outstanding=same nonlocal EvalGate class.

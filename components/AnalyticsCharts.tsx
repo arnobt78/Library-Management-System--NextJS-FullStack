@@ -38,6 +38,7 @@ import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { ADMIN_PANEL_CLASS } from "@/lib/ui/adminSurfaceStyles";
 import { AdminDetailEmptyState } from "@/components/admin/AdminDetailEmptyState";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
+import PrefetchLink from "@/components/PrefetchLink";
 import {
   Activity,
   AlertTriangle,
@@ -252,7 +253,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             circulation starts.
           </p>
         ) : null}
-        <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
           {[
             [
               "30-day circulation",
@@ -267,6 +268,10 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               "Outstanding fines",
               `$${data.deterministicInsights.outstandingFineTotal.toFixed(2)}`,
             ],
+            [
+              "7-day fine forecast",
+              `$${data.deterministicInsights.fineForecast.total.toFixed(2)}`,
+            ],
             ["Demand / copy", data.deterministicInsights.demandToCopyRatio],
             ["Hold pressure", data.deterministicInsights.holdPressure],
             ["Renewal rate", `${data.deterministicInsights.renewalRate}%`],
@@ -279,7 +284,45 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             </div>
           ))}
         </dl>
+        <p className="mt-2 text-xs text-gray-500">
+          Fine forecast is advisory ({`$${data.deterministicInsights.fineForecast.projectedAccrual.toFixed(2)}`}{" "}
+          projected accrual over{" "}
+          {data.deterministicInsights.fineForecast.horizonDays} days at $
+          {data.deterministicInsights.fineForecast.dailyRate}/day) — does not
+          mutate fines.
+        </p>
       </section>
+
+      {/* Catalog ops shortcuts — filters on Books list (no new mutation family). */}
+      <div className="flex flex-wrap gap-2">
+        <PrefetchLink
+          href="/admin/books?availability=low"
+          prefetchKind="admin-books"
+          className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+        >
+          Low stock books
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/books?availability=unavailable"
+          prefetchKind="admin-books"
+          className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-800 hover:bg-rose-100"
+        >
+          Out of stock
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/books"
+          prefetchKind="admin-books"
+          className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 hover:bg-sky-100"
+        >
+          Featured / catalog ops
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/automation"
+          className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 hover:bg-violet-100"
+        >
+          Reminder automation
+        </PrefetchLink>
+      </div>
 
       {/* Charts Grid — empty copy when borrow universe is empty (not catalog mix). */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
@@ -330,6 +373,44 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           <TicketSectionHeader
             className="mb-0"
             align="center"
+            icon={<AlertTriangle className="size-5" />}
+            title="Overdue Trend (14 days)"
+            subtitle="Loans past due and still out at end of each day"
+            iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
+          />
+          {data.deterministicInsights.overdueTrend.every(
+            (p) => p.overdueCount === 0,
+          ) ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No overdue loans in the last 14 days."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <LineChart data={data.deterministicInsights.overdueTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="overdueCount"
+                    stroke="#e11d48"
+                    strokeWidth={2}
+                    name="Overdue"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className={ADMIN_PANEL_CLASS}>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
             icon={<BarChart3 className="size-5" />}
             title="Popular Books"
             subtitle="Most borrowed titles (not catalog rating)"
@@ -368,7 +449,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             align="center"
             icon={<PieChartIcon className="size-5" />}
             title="Popular Genres (by borrows)"
-            subtitle="Borrow-weighted genre mix — not catalog genre counts"
+            subtitle="Borrow-weighted mix · demand/copy pressure under chart"
             iconToneClassName="border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600"
           />
           {genresData.length === 0 ? (
@@ -377,6 +458,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               message="No borrowing activity yet — genre popularity appears after loans."
             />
           ) : (
+            <>
             <div className="mt-4 w-full overflow-x-auto">
               <ResponsiveContainer width="100%" height={200} minWidth={300}>
                 <PieChart>
@@ -401,6 +483,27 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            {data.deterministicInsights.genreDemandPressure.length > 0 ? (
+              <ul className="mt-3 space-y-1 text-xs text-gray-600">
+                {data.deterministicInsights.genreDemandPressure
+                  .slice(0, 5)
+                  .map((g) => (
+                    <li
+                      key={g.genre}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="truncate font-medium text-gray-800">
+                        {g.genre}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        {g.borrows} borrows · {g.copies} copies · pressure{" "}
+                        {g.pressure}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            ) : null}
+            </>
           )}
         </div>
 
@@ -574,7 +677,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             align="center"
             icon={<AlertTriangle className="size-5" />}
             title="Overdue Analysis"
-            subtitle="Aggregate overdue volume, fines, and rate"
+            subtitle="Volume, fines, rate · advisory 7-day fine forecast"
             iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
           />
           <div className="mt-4 space-y-2 sm:space-y-2">
@@ -617,6 +720,15 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     ).toFixed(1)
                   : 0}
                 %
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-100 pt-2">
+              <span className="text-xs text-gray-600 sm:text-sm">
+                7-day forecast total:
+              </span>
+              <span className="text-xs font-medium text-amber-700 sm:text-sm">
+                $
+                {data.deterministicInsights.fineForecast.total.toFixed(2)}
               </span>
             </div>
           </div>

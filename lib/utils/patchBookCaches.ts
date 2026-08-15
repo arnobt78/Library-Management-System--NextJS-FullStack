@@ -851,7 +851,11 @@ export function densifyBookDelete(
     .filter((b): b is AdminStatsBookSnapshot => Boolean(b));
 
   for (const id of bookIds) {
-    queryClient.removeQueries({ queryKey: queryKeys.books.detail(id) });
+    // Inactive only — removing an active detail observer mid-page causes 404 flash.
+    queryClient.removeQueries({
+      queryKey: queryKeys.books.detail(id),
+      type: "inactive",
+    });
   }
   const idSet = new Set(bookIds);
 

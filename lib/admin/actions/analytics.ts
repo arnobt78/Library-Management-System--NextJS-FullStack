@@ -3,7 +3,14 @@ import { books, users, borrowRecords } from "@/database/schema";
 import { eq, sql, desc, and, gte, lt, count } from "drizzle-orm";
 import type { AnalyticsData } from "@/lib/services/analytics";
 import type { DeterministicInsights } from "@/lib/insights/types";
-import { safePercentage, safeRatio } from "@/lib/insights/formulas";
+import {
+  computeFineForecast,
+  computeGenreDemandPressure,
+  normalizeOverdueTrend,
+  safePercentage,
+  safeRatio,
+} from "@/lib/insights/formulas";
+import { getDailyFineAmount } from "@/lib/admin/actions/config";
 
 function boundedInteger(value: number | undefined, fallback: number, maximum: number) {
   return Number.isFinite(value)
@@ -264,9 +271,10 @@ export async function getSystemHealth() {
   };
 }
 
-/** Versioned formulas keep insight output reproducible and provider-independent. */
+/** Versioned formulas keep insight output reproducible and provider-independent (C2-v2). */
 export async function getDeterministicInsights(): Promise<DeterministicInsights> {
-  const result = await db.execute(sql`
+  const [result, trendResult, genreResult, dailyRate] = await Promise.all([
+    db.execute(sql`
     WITH circulation AS (
       SELECT
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '29 days')::int AS recent,
@@ -297,19 +305,103 @@ export async function getDeterministicInsights(): Promise<DeterministicInsights>
       inventory.copies,
       holds.active AS active_holds
     FROM circulation, inventory, holds
-  `);
+  `),
+    db.execute(sql`
+    SELECT
+      d.day::date::text AS date,
+      COUNT(br.id)::int AS overdue_count
+    FROM generate_series(
+      CURRENT_DATE - INTERVAL '13 days',
+      CURRENT_DATE,
+      INTERVAL '1 day'
+    ) AS d(day)
+    LEFT JOIN borrow_records br ON
+      br.due_date IS NOT NULL
+      AND br.due_date < d.day::date
+      AND COALESCE(br.borrow_date, br.created_at)::date <= d.day::date
+      AND (br.return_date IS NULL OR br.return_date::date > d.day::date)
+    GROUP BY d.day
+    ORDER BY d.day
+  `),
+    db.execute(sql`
+    WITH book_borrows AS (
+      SELECT book_id, COUNT(*)::int AS borrows
+      FROM borrow_records
+      WHERE created_at >= CURRENT_DATE - INTERVAL '29 days'
+      GROUP BY book_id
+    )
+    SELECT
+      b.genre AS genre,
+      COALESCE(SUM(bb.borrows), 0)::int AS borrows,
+      COALESCE(SUM(b.total_copies), 0)::int AS copies
+    FROM books b
+    LEFT JOIN book_borrows bb ON bb.book_id = b.id
+    WHERE b.is_active = true
+    GROUP BY b.genre
+    ORDER BY COALESCE(SUM(bb.borrows), 0) DESC, b.genre ASC
+    LIMIT 8
+  `),
+    getDailyFineAmount(),
+  ]);
+
   const row = result.rows[0];
+  const overdueCount = Number(row?.overdue ?? 0);
+  const outstanding = Number(row?.fines ?? 0);
+
+  const overdueTrend = normalizeOverdueTrend(
+    (trendResult.rows as { date?: string; overdue_count?: number }[]).map(
+      (r) => ({
+        date: String(r.date ?? ""),
+        overdueCount: Number(r.overdue_count ?? 0),
+      }),
+    ),
+  );
+
+  const genreDemandPressure = computeGenreDemandPressure(
+    (
+      genreResult.rows as {
+        genre?: string;
+        borrows?: number;
+        copies?: number;
+      }[]
+    ).map((r) => ({
+      genre: String(r.genre ?? "Unknown"),
+      borrows: Number(r.borrows ?? 0),
+      copies: Number(r.copies ?? 0),
+    })),
+  );
+
   return {
-    formulaVersion: "C2-v1",
+    formulaVersion: "C2-v2",
     periodStart: String(row?.period_start ?? ""),
     periodEnd: String(row?.period_end ?? ""),
     circulation30Days: Number(row?.recent ?? 0),
-    onTimeReturnRate: safePercentage(Number(row?.on_time ?? 0), Number(row?.returned ?? 0)),
-    overdueRatio: safePercentage(Number(row?.overdue ?? 0), Number(row?.active ?? 0)),
-    outstandingFineTotal: Number(row?.fines ?? 0),
-    demandToCopyRatio: safeRatio(Number(row?.recent ?? 0) + Number(row?.active_holds ?? 0), Number(row?.copies ?? 0)),
-    holdPressure: safeRatio(Number(row?.active_holds ?? 0), Number(row?.copies ?? 0)),
-    renewalRate: safePercentage(Number(row?.renewed ?? 0), Number(row?.total ?? 0)),
+    onTimeReturnRate: safePercentage(
+      Number(row?.on_time ?? 0),
+      Number(row?.returned ?? 0),
+    ),
+    overdueRatio: safePercentage(overdueCount, Number(row?.active ?? 0)),
+    outstandingFineTotal: outstanding,
+    demandToCopyRatio: safeRatio(
+      Number(row?.recent ?? 0) + Number(row?.active_holds ?? 0),
+      Number(row?.copies ?? 0),
+    ),
+    holdPressure: safeRatio(
+      Number(row?.active_holds ?? 0),
+      Number(row?.copies ?? 0),
+    ),
+    renewalRate: safePercentage(
+      Number(row?.renewed ?? 0),
+      Number(row?.total ?? 0),
+    ),
+    overdueTrend,
+    fineForecast: computeFineForecast({
+      outstanding,
+      overdueLoanCount: overdueCount,
+      dailyRate: dailyRate,
+      horizonDays: 7,
+    }),
+    genreDemandPressure,
   };
 }
 

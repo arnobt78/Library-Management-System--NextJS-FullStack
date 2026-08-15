@@ -6,6 +6,9 @@ vi.mock("@/database/drizzle", () => ({ db: {} }));
 vi.mock("@/lib/services/email-service", () => ({
   sendIdempotentEmailViaResend: vi.fn(),
 }));
+vi.mock("@/lib/notifications/inApp", () => ({
+  createInAppNotification: vi.fn(async () => undefined),
+}));
 
 import {
   deliverReservationOutbox,
@@ -22,6 +25,7 @@ const readyItem: ReservationOutboxItem = {
   attemptCount: 1,
   reservationStatus: "READY",
   readyExpiresAt: new Date(Date.now() + 60_000),
+  recipientUserId: "30000000-0000-4000-8000-000000000001",
   recipientEmail: "reader@example.test",
   recipientName: "Reader",
   bookTitle: "Book",

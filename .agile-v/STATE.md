@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) UX polish trio; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Phase A densify closeout; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - UX polish trio Prove done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - Phase A densify closeout local Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `c8d6082`
 - Latest HEAD: `c8d6082`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (UX polish trio: confirm settle / bell / users sort)
+- Last updated: 2026-08-15 (Phase A densify closeout)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,21 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: UX polish trio Prove done
+- Active plan: Phase A densify closeout Prove done
+
+## Reconciliation snapshot (2026-08-15, Phase A densify closeout)
+
+- **Done**: Dual `commitMutationCache(..., "notification.write")` after due/overdue reminder send (BroadcastChannel for open bells); `revalidateMutationPaths("notification.write")` in reminders actions + due-reminders cron + reservation-notifications when `delivered > 0`; Automation Hold READY Delivery card (honest cron note, no fake last-run DB). eslint touched PASS; formulas+outbox 9/9 PASS. Audit verdict: scoped closeout OK; no mandatory pre-prod code fix.
+- **Human verify (prod smoke)**: (1) Automation → Send Due Soon / Overdue → same-origin borrower tab bell list/unread updates without full refresh; (2) Automation shows Hold READY Delivery cron card; (3) after hold becomes READY, cron `/api/cron/reservation-notifications` delivers HOLD_READY email+bell (CRON_SECRET).
+- **Remaining**: EvalGate / Gate 2; owner prod smoke on deploy.
+- **Next exact task**: owner prod smoke checklist above; tip already bound on checkpoint commit.
+
+## Reconciliation snapshot (2026-08-15, Phase A + UI fixes)
+
+- **Done**: W1 book-reviews isPending-only loading; UserAvatar loaded-source Set; Overview AdminDetailEmptyState; delete navigate-first + inactive detail remove + omit RSC detail revalidate. W2 insights `C2-v2` overdueTrend/fineForecast/genreDemandPressure + charts/ops chips + User 360 next actions. W3 `/api/cron/due-reminders` + vercel 07:00; REMINDER_DUE/HOLD_READY; lastReminderSent day guard; Automation no-AI copy. DEC-0106.
+- **Human verify**: empty reviews no skeleton; users avatars stable; Overview empties italic-centered; delete book no 404 flash; Insights forecast/trend; cron with CRON_SECRET; bell types on reminder/hold.
+- **Remaining**: EvalGate / Gate 2; commit when owner asks.
+- **Next exact task**: owner human-verify; checkpoint commit if approved.
 
 ## Reconciliation snapshot (2026-08-15, UX polish trio)
 

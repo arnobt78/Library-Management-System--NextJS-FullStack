@@ -14,6 +14,7 @@ import {
   type EmailDeliveryReceipt,
 } from "@/lib/services/email-service";
 import { RESERVATION_OUTBOX_LOCK_TIMEOUT_MS } from "@/lib/circulation/outboxPolicy";
+import { createInAppNotification } from "@/lib/notifications/inApp";
 
 const DEFAULT_BATCH_SIZE = 20;
 const DELIVERY_CONCURRENCY = 5;
@@ -28,6 +29,7 @@ export interface ReservationOutboxItem {
   reservationStatus:
     "WAITING" | "READY" | "FULFILLED" | "CANCELLED" | "EXPIRED";
   readyExpiresAt: Date | null;
+  recipientUserId: string;
   recipientEmail: string;
   recipientName: string;
   bookTitle: string;
@@ -134,6 +136,7 @@ export async function claimReservationEvents(
         attemptCount: reservationEvents.attemptCount,
         reservationStatus: reservations.status,
         readyExpiresAt: reservations.readyExpiresAt,
+        recipientUserId: users.id,
         recipientEmail: users.email,
         recipientName: users.fullName,
         bookTitle: books.title,
@@ -284,6 +287,13 @@ export async function deliverReservationOutbox(
             return;
           }
           await dependencies.complete(item, receipt);
+          void createInAppNotification({
+            userId: item.recipientUserId,
+            type: "HOLD_READY",
+            title: "Hold ready for pickup",
+            message: `"${item.bookTitle}" is ready — pick it up before it expires.`,
+            link: "/my-profile?tab=holds",
+          });
           result.delivered += 1;
         } catch {
           const disposition = await dependencies.retry(item, "DELIVERY_FAILED");

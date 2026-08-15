@@ -525,8 +525,8 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
               <div className="mt-2 text-sm text-green-700">
                 <p>
                   Generated {params.recommendations} personalized
-                  recommendations for {params.users} users using AI-powered
-                  algorithms.
+                  recommendations for {params.users} users using deterministic
+                  rules.
                 </p>
               </div>
             </div>
@@ -738,7 +738,7 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Due Soon Reminders */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -844,6 +844,40 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
                 </Button>
               )}
             </div>
+
+            {/* Hold READY — cron-driven; no invent last-run DB */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="font-medium text-gray-900">Hold READY Delivery</h4>
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-emerald-200 text-emerald-700"
+                >
+                  Cron
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600">
+                When a waitlisted hold becomes READY, email + in-app{" "}
+                <span className="font-medium text-gray-800">HOLD_READY</span>{" "}
+                bells are delivered by the reservation outbox cron — not this
+                manual send button.
+              </p>
+              <div className="rounded-md border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-xs text-emerald-900 sm:text-sm">
+                <p className="font-medium">Job status</p>
+                <p className="mt-1 text-emerald-800/90">
+                  Scheduled via{" "}
+                  <code className="rounded bg-white/70 px-1 py-0.5 text-[0.7rem] sm:text-xs">
+                    /api/cron/reservation-notifications
+                  </code>
+                  . Last-run timestamps are not stored in the database; check
+                  Vercel Cron logs or hit the route with{" "}
+                  <code className="rounded bg-white/70 px-1 py-0.5 text-[0.7rem] sm:text-xs">
+                    CRON_SECRET
+                  </code>{" "}
+                  for a live delivery count.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Reminder Settings */}
@@ -880,10 +914,10 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-medium sm:text-lg">
-            🎯 Smart Recommendations
+            🎯 Rule-based Recommendations
           </CardTitle>
           <p className="text-xs text-gray-600 sm:text-sm">
-            AI-powered book recommendations based on user behavior
+            Deterministic genre/author/trending recommendations (no external AI)
           </p>
         </CardHeader>
         <CardContent>

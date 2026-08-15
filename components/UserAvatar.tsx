@@ -5,6 +5,8 @@
  * university_card (local / remote / ImageKit) → Robohash(email) → initials.
  * Circle chrome is always `bg-light-100` so load gaps never flash black.
  * Ready is keyed by source — parent re-renders do not re-hide a loaded image.
+ * Module Set remembers loaded URLs across remounts (soft-nav) so cached images
+ * do not blink opacity-0 → onLoad again with no network.
  */
 
 import { useState } from "react";
@@ -15,6 +17,13 @@ import { robohashUrl } from "@/lib/media/avatarFallback";
 import { resolveUniversityCard } from "@/lib/media/universityCard";
 import { cn, getInitials } from "@/lib/utils";
 import { useSafeMedia } from "@/hooks/useSafeMedia";
+
+/** Survives remounts within the same tab session. */
+const loadedAvatarSources = new Set<string>();
+
+function markAvatarLoaded(key: string): void {
+  if (key) loadedAvatarSources.add(key);
+}
 
 interface UserAvatarProps {
   universityCard: string | null | undefined;
@@ -58,10 +67,28 @@ const UserAvatar = ({
   const showRobohash = !showPrimary && Boolean(roboSrc) && !roboFailed;
 
   // Keyed ready — when sourceKey/roboSrc changes, ready is false without an effect.
-  const [readyPrimaryKey, setReadyPrimaryKey] = useState<string | null>(null);
-  const [readyRoboKey, setReadyRoboKey] = useState<string | null>(null);
-  const primaryReady = readyPrimaryKey === sourceKey && Boolean(sourceKey);
-  const roboReady = readyRoboKey === roboSrc && Boolean(roboSrc);
+  // Seed from module Set so soft-nav remounts skip the opacity blink.
+  const [readyPrimaryKey, setReadyPrimaryKey] = useState<string | null>(() =>
+    sourceKey && loadedAvatarSources.has(sourceKey) ? sourceKey : null,
+  );
+  const [readyRoboKey, setReadyRoboKey] = useState<string | null>(() =>
+    roboSrc && loadedAvatarSources.has(roboSrc) ? roboSrc : null,
+  );
+  const primaryReady =
+    Boolean(sourceKey) &&
+    (readyPrimaryKey === sourceKey || loadedAvatarSources.has(sourceKey));
+  const roboReady =
+    Boolean(roboSrc) &&
+    (readyRoboKey === roboSrc || loadedAvatarSources.has(roboSrc));
+
+  const onPrimaryLoad = (): void => {
+    markAvatarLoaded(sourceKey);
+    setReadyPrimaryKey(sourceKey);
+  };
+  const onRoboLoad = (): void => {
+    markAvatarLoaded(roboSrc);
+    setReadyRoboKey(roboSrc);
+  };
 
   // Prefer Tailwind size-full when parent already sizes the circle (header buttons)
   const useParentSize = className?.includes("size-full");
@@ -93,7 +120,7 @@ const UserAvatar = ({
           )}
           sizes={sizesAttr}
           onError={onPrimaryError}
-          onLoad={() => setReadyPrimaryKey(sourceKey)}
+          onLoad={onPrimaryLoad}
         />
       ) : showPrimary && resolved.kind === "imagekit" ? (
         <ImageKitImage
@@ -106,7 +133,7 @@ const UserAvatar = ({
             primaryReady ? "opacity-100" : "opacity-0",
           )}
           onError={onPrimaryError}
-          onLoad={() => setReadyPrimaryKey(sourceKey)}
+          onLoad={onPrimaryLoad}
         />
       ) : showRobohash ? (
         <SafeImage
@@ -119,7 +146,7 @@ const UserAvatar = ({
           )}
           sizes={sizesAttr}
           onError={onRoboError}
-          onLoad={() => setReadyRoboKey(roboSrc)}
+          onLoad={onRoboLoad}
         />
       ) : (
         <div className="flex size-full items-center justify-center bg-light-100 text-dark-100">

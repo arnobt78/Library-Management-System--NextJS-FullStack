@@ -3,6 +3,7 @@ import { borrowRecords, users, books } from "@/database/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { sendEmailWithFallback } from "@/lib/services/email-service";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { createInAppNotification } from "@/lib/notifications/inApp";
 
 // Email service for sending reminders
 export class EmailService {
@@ -155,6 +156,7 @@ export async function getBooksDueSoon() {
   const dueSoonBooks = await db
     .select({
       recordId: borrowRecords.id,
+      userId: borrowRecords.userId,
       bookTitle: books.title,
       bookAuthor: books.author,
       userName: users.fullName,
@@ -171,8 +173,13 @@ export async function getBooksDueSoon() {
         eq(borrowRecords.status, "BORROWED"),
         sql`${borrowRecords.dueDate} IS NOT NULL`,
         sql`${borrowRecords.dueDate} >= ${startOfToday}`,
-        sql`${borrowRecords.dueDate} <= ${twoDaysFromNow}`
-      )
+        sql`${borrowRecords.dueDate} <= ${twoDaysFromNow}`,
+        // Once per ~24h — skip if lastReminderSent is still fresh.
+        sql`(
+          ${borrowRecords.lastReminderSent} IS NULL
+          OR ${borrowRecords.lastReminderSent} < ${startOfToday}
+        )`,
+      ),
     );
 
   return dueSoonBooks;
@@ -191,6 +198,7 @@ export async function getOverdueBooks() {
   const overdueBooks = await db
     .select({
       recordId: borrowRecords.id,
+      userId: borrowRecords.userId,
       bookTitle: books.title,
       bookAuthor: books.author,
       userName: users.fullName,
@@ -207,8 +215,12 @@ export async function getOverdueBooks() {
       and(
         eq(borrowRecords.status, "BORROWED"),
         sql`${borrowRecords.dueDate} IS NOT NULL`,
-        sql`${borrowRecords.dueDate} < ${startOfToday}`
-      )
+        sql`${borrowRecords.dueDate} < ${startOfToday}`,
+        sql`(
+          ${borrowRecords.lastReminderSent} IS NULL
+          OR ${borrowRecords.lastReminderSent} < ${startOfToday}
+        )`,
+      ),
     );
 
   return overdueBooks;
@@ -263,6 +275,13 @@ This is an automated reminder. For assistance, please contact us at support@book
       if (!result.success) throw new Error(result.error || "Email delivery failed");
       // Update the lastReminderSent timestamp after successful email
       await updateLastReminderSent(book.recordId);
+      void createInAppNotification({
+        userId: book.userId,
+        type: "REMINDER_DUE",
+        title: "Book due soon",
+        message: `"${book.bookTitle}" is due soon — please return or renew.`,
+        link: "/my-profile?tab=active-borrows",
+      });
       results.push({
         recordId: book.recordId,
         userEmail: book.userEmail,
@@ -283,6 +302,7 @@ This is an automated reminder. For assistance, please contact us at support@book
 
   if (results.some(({ status }) => status === "sent")) {
     revalidateMutationPaths("operations.write");
+    revalidateMutationPaths("notification.write");
   }
   return results;
 }
@@ -340,6 +360,13 @@ This is an automated notice. For assistance, please contact us at support@bookwi
       if (!result.success) throw new Error(result.error || "Email delivery failed");
       // Update the lastReminderSent timestamp after successful email
       await updateLastReminderSent(book.recordId);
+      void createInAppNotification({
+        userId: book.userId,
+        type: "REMINDER_DUE",
+        title: "Overdue book notice",
+        message: `"${book.bookTitle}" is overdue — please return it to avoid further fines.`,
+        link: "/my-profile?tab=active-borrows",
+      });
       results.push({
         recordId: book.recordId,
         userEmail: book.userEmail,
@@ -360,6 +387,7 @@ This is an automated notice. For assistance, please contact us at support@bookwi
 
   if (results.some(({ status }) => status === "sent")) {
     revalidateMutationPaths("operations.write");
+    revalidateMutationPaths("notification.write");
   }
   return results;
 }

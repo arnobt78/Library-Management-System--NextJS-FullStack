@@ -3427,6 +3427,11 @@ export const useSendDueReminders = () => {
           });
         },
       });
+      // REMINDER_DUE in-app rows — invalidate bells same-origin (BroadcastChannel).
+      await commitMutationCache(queryClient, "notification.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
+      });
 
       // Show success toast
       showToast.success(
@@ -3482,6 +3487,10 @@ export const useSendOverdueReminders = () => {
             details: { status: "OVERDUE_REMINDERS", count },
           });
         },
+      });
+      await commitMutationCache(queryClient, "notification.write", {
+        snapshot: () => undefined,
+        densify: () => undefined,
       });
 
       // Show success toast

@@ -21,7 +21,11 @@ type NotificationType =
   | "REVIEW_SUBMITTED"
   | "REVIEW_MODERATED"
   | "ADMIN_REQUEST_SUBMITTED"
-  | "ADMIN_REQUEST_DECIDED";
+  | "ADMIN_REQUEST_DECIDED"
+  | "REMINDER_DUE"
+  | "HOLD_READY";
+
+export type { NotificationType };
 
 interface CreateInAppNotificationInput {
   userId: string;

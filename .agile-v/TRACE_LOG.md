@@ -243,3 +243,5 @@
 | SPAN-0237 | 2026-08-15 | C2 | Tip-bind 1-day JWT session | Compliance | Bound tip/HEAD to `aa75f96` | decision_log_append_only | REQ-0001, REQ-0026 | PASS |
 | SPAN-0238 | 2026-08-15 | C2 | UX polish trio | Build Agent JS | Confirm settle + bell circle + users sort URL drop; tsc/eslint PASS | require_parent_requirement | REQ-0033, REQ-0034 | PASS local; commit pending |
 | SPAN-0239 | 2026-08-15 | C2 | Tip-bind UX polish trio | Compliance | Bound tip/HEAD to `c8d6082` | decision_log_append_only | REQ-0033, REQ-0034 | PASS |
+| SPAN-0240 | 2026-08-15 | C2 | Phase A + UI fixes | Build Agent JS | W1–W3 shipped; formulas+outbox tests PASS; eslint touched PASS | require_parent_requirement | REQ-0031–0034 | PASS local; commit pending |
+| SPAN-0241 | 2026-08-15 | C2 | Phase A densify closeout | Build Agent JS | Dual notification.write + cron revalidate; Hold READY Automation card; DEC-0107; eslint+9 tests PASS | require_parent_requirement | REQ-0032, REQ-0034 | PASS local; commit pending |

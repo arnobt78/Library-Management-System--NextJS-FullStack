@@ -191,17 +191,11 @@ export async function bulkDeleteBooks(
       entityId: safeBookIds.length === 1 ? safeBookIds[0] : null,
       details: { count: safeBookIds.length },
     });
-    revalidateMutationPaths("book.write");
-
-    // Best-effort ImageKit purge for deleted covers/trailers (refcount skips shared).
-    scheduleImageKitPurge(
-      mediaRows.flatMap((row) => [row.coverUrl, row.videoUrl]),
-    );
-
-    return {
-      success: true,
-      message: `Successfully deleted ${bookIds.length} book(s)`,
-    };
+    // Skip detail RSC paths — client navigates to list first; revalidating
+    // /admin/books/[id] while mounted flashes notFound/black 404.
+    revalidateMutationPaths("book.write", {
+      omit: ["/books/[id]", "/admin/books/[id]"],
+    });
   } catch (error) {
     return {
       success: false,

@@ -51,6 +51,7 @@ import { RecentUserRow } from "@/components/admin/RecentUserRow";
 import { OverviewTopRatedRow } from "@/components/admin/OverviewTopRatedRow";
 import { OverviewInactiveTitleRow } from "@/components/admin/OverviewInactiveTitleRow";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
+import { AdminDetailEmptyState } from "@/components/admin/AdminDetailEmptyState";
 import { getAdminNavItemByRoute } from "@/lib/navigation/admin-nav-config";
 
 interface AdminDashboardContentProps {
@@ -560,9 +561,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="space-y-2">
             {recentBorrows.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No recent borrows history yet.
-              </p>
+              <AdminDetailEmptyState message="No recent borrows history yet." />
             ) : (
               recentBorrows.map((borrow) => (
                 <RecentBorrowRow key={borrow.id} borrow={borrow} />
@@ -581,9 +580,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="space-y-2">
             {recentUsers.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No recent signup users yet.
-              </p>
+              <AdminDetailEmptyState message="No recent signup users yet." />
             ) : (
               recentUsers.map((user) => (
                 <RecentUserRow key={user.id} user={user} />
@@ -807,7 +804,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="space-y-2">
             {categoryStats.length === 0 ? (
-              <p className="text-sm text-gray-500">No books found</p>
+              <AdminDetailEmptyState message="No books found" />
             ) : (
               categoryStats.map((category) => (
                 <div
@@ -866,7 +863,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="space-y-2">
             {booksByYear.length === 0 ? (
-              <p className="text-sm text-gray-500">No publication year data</p>
+              <AdminDetailEmptyState message="No publication year data" />
             ) : (
               <>
                 {booksByYear.map(([year, count]) => (
@@ -912,9 +909,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="space-y-2">
             {topRatedBooks.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No rated books currently available.
-              </p>
+              <AdminDetailEmptyState message="No rated books currently available." />
             ) : (
               topRatedBooks.map((book) => (
                 <OverviewTopRatedRow key={book.id} book={book} />
@@ -934,9 +929,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="flex min-h-40 flex-col space-y-2">
             {inactiveTitles.length === 0 ? (
-              <p className="flex flex-1 items-center justify-center text-sm text-gray-500">
-                No inactive books currently in the library shelf.
-              </p>
+              <AdminDetailEmptyState
+                className="min-h-40 flex-1"
+                message="No inactive books currently in the library shelf."
+              />
             ) : (
               inactiveTitles.map((book) => (
                 <OverviewInactiveTitleRow key={book.id} book={book} />
@@ -956,9 +952,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           />
           <div className="space-y-2">
             {booksByLanguage.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No language data currently available.
-              </p>
+              <AdminDetailEmptyState message="No language data currently available." />
             ) : (
               <>
                 {booksByLanguage.map(([language, count]) => (

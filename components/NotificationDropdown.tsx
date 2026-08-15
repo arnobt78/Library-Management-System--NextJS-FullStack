@@ -9,8 +9,10 @@
 import Link from "next/link";
 import {
   Bell,
+  BookMarked,
   Check,
   CheckCheck,
+  Clock,
   Loader2,
   MessageSquare,
   Shield,
@@ -57,6 +59,10 @@ function notificationIcon(type: string): LucideIcon {
     case "ADMIN_REQUEST_SUBMITTED":
     case "ADMIN_REQUEST_DECIDED":
       return Shield;
+    case "REMINDER_DUE":
+      return Clock;
+    case "HOLD_READY":
+      return BookMarked;
     default:
       return Bell;
   }
@@ -74,6 +80,10 @@ function notificationIconTone(type: string, isDark: boolean): string {
     case "ADMIN_REQUEST_SUBMITTED":
     case "ADMIN_REQUEST_DECIDED":
       return isDark ? "text-violet-300" : "text-violet-600";
+    case "REMINDER_DUE":
+      return isDark ? "text-orange-300" : "text-orange-600";
+    case "HOLD_READY":
+      return isDark ? "text-emerald-300" : "text-emerald-600";
     default:
       return isDark ? "text-rose-300" : "text-rose-500";
   }

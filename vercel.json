@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/reservation-notifications",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/due-reminders",
+      "schedule": "0 7 * * *"
     }
   ],
   "headers": [
