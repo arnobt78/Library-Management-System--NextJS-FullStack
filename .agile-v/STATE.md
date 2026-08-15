@@ -7,8 +7,8 @@
 - Status: ACTIVE - Agent Review real fixes done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `4d7cc10`
-- Latest HEAD: `4339316`
+- Latest implementation tip: `0a27e07`
+- Latest HEAD: `0a27e07`
 - Started: 2026-08-01
 - Last updated: 2026-08-15 (Agent Review real fixes)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
