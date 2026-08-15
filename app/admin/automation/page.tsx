@@ -2,7 +2,7 @@
  * Admin Automation Page
  *
  * Server Component that fetches automation data server-side for SSR.
- * Passes initial data to Client Component for React Query integration.
+ * Bulk CTAs run client-side via BulkOperationDialog + useBulkMutations.
  */
 
 import React from "react";
@@ -12,72 +12,10 @@ import {
   getDailyFineAmount,
   initializeDefaultConfigs,
 } from "@/lib/admin/actions/config";
-import { redirect } from "next/navigation";
 import AdminAutomationClient from "@/components/AdminAutomationClient";
 import type { FineConfig } from "@/lib/services/admin";
 
 export const runtime = "nodejs";
-
-// Server Actions for Bulk Operations (Coming Soon)
-async function handleBulkEditBooks() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-edit-books");
-}
-
-async function handleBulkActivateBooks() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-activate-books");
-}
-
-async function handleBulkDeactivateBooks() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-deactivate-books");
-}
-
-async function handleBulkDeleteBooks() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-delete-books");
-}
-
-async function handleBulkApproveUsers() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-approve-users");
-}
-
-async function handleBulkRejectUsers() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-reject-users");
-}
-
-async function handleBulkMakeAdmin() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-make-admin");
-}
-
-async function handleBulkRemoveAdmin() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-remove-admin");
-}
-
-async function handleBulkApproveRequests() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-approve-requests");
-}
-
-async function handleBulkRejectRequests() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-reject-requests");
-}
-
-async function handleBulkSendReminders() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-send-reminders");
-}
-
-async function handleBulkUpdateStatus() {
-  "use server";
-  redirect("/admin/automation?coming-soon=bulk-update-status");
-}
 
 const AutomationDashboard = async ({
   searchParams,
@@ -89,13 +27,10 @@ const AutomationDashboard = async ({
     failed?: string;
     users?: string;
     recommendations?: string;
-    "coming-soon"?: string;
   }>;
 }) => {
   const params = await searchParams;
 
-  // Fetch automation data server-side for SSR
-  // Initialize default configs if they don't exist (for fine config)
   await initializeDefaultConfigs();
 
   const [reminderStats, exportStats, fineAmount] = await Promise.all([
@@ -104,7 +39,6 @@ const AutomationDashboard = async ({
     getDailyFineAmount(),
   ]);
 
-  // Transform fine amount to FineConfig format
   const initialFineConfig: FineConfig = {
     success: true,
     fineAmount,
@@ -116,20 +50,6 @@ const AutomationDashboard = async ({
       initialExportStats={exportStats}
       initialFineConfig={initialFineConfig}
       searchParams={params}
-      serverActions={{
-        handleBulkEditBooks,
-        handleBulkActivateBooks,
-        handleBulkDeactivateBooks,
-        handleBulkDeleteBooks,
-        handleBulkApproveUsers,
-        handleBulkRejectUsers,
-        handleBulkMakeAdmin,
-        handleBulkRemoveAdmin,
-        handleBulkApproveRequests,
-        handleBulkRejectRequests,
-        handleBulkSendReminders,
-        handleBulkUpdateStatus,
-      }}
     />
   );
 };

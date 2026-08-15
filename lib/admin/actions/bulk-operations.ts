@@ -196,6 +196,14 @@ export async function bulkDeleteBooks(
     revalidateMutationPaths("book.write", {
       omit: ["/books/[id]", "/admin/books/[id]"],
     });
+
+    const purgeUrls = mediaRows.flatMap((row) => [row.coverUrl, row.videoUrl]);
+    scheduleImageKitPurge(purgeUrls);
+
+    return {
+      success: true,
+      message: `Successfully deleted ${safeBookIds.length} book(s)`,
+    };
   } catch (error) {
     return {
       success: false,
@@ -771,4 +779,26 @@ export async function validateBulkUserOperation(
   }
 
   return { valid: true, message: "Operation is valid" };
+}
+
+/** Pending signup IDs for Automation “all pending” (capped to parseEntityIds max). */
+export async function listPendingSignupUserIds(): Promise<string[]> {
+  await requireAdminActor();
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.status, "PENDING"))
+    .limit(100);
+  return rows.map((r) => r.id);
+}
+
+/** Pending borrow request IDs for Automation “all pending”. */
+export async function listPendingBorrowRecordIds(): Promise<string[]> {
+  await requireAdminActor();
+  const rows = await db
+    .select({ id: borrowRecords.id })
+    .from(borrowRecords)
+    .where(eq(borrowRecords.status, "PENDING"))
+    .limit(100);
+  return rows.map((r) => r.id);
 }

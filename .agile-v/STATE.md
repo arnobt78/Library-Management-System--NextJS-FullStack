@@ -24,7 +24,14 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Phase A closed (W1–W3 + densify closeout); next = owner Verify when ready
+- Active plan: Bulk Automation wire-up Prove done; Phase A closed
+
+## Reconciliation snapshot (2026-08-15, Bulk Automation wire-up)
+
+- **Done**: Dropped Coming Soon redirects; `BulkOperationDialog` + `useBulkMutations` call live `bulk-operations` (activate/deactivate/delete books, approve/reject users, make/remove admin, approve/reject borrows); pending ID loaders; combined due+overdue reminders; densify via `commitMutationCache` per domain + activity invent; restored bulkDelete success return + ImageKit purge; eslint + parseBulkIds/auth tests PASS.
+- **Human verify**: Automation bulk dialogs with UUIDs; Load all pending; no `?coming-soon=` redirects.
+- **Remaining**: EvalGate / Gate 2; owner Verify when ready.
+- **Next exact task**: owner smoke Automation bulk; commit when asked.
 
 ## Reconciliation snapshot (2026-08-15, Phase A closed tip sync)
 

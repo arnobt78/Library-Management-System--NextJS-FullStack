@@ -32,6 +32,20 @@ import {
   useUpdateTrendingBooks,
   useRefreshRecommendationCache,
 } from "@/hooks/useMutations";
+import {
+  useBulkActivateBooks,
+  useBulkApproveBorrowRequests,
+  useBulkApproveUsers,
+  useBulkDeactivateBooks,
+  useBulkDeleteBooksAutomation,
+  useBulkMakeAdminUsers,
+  useBulkRejectBorrowRequests,
+  useBulkRejectUsers,
+  useBulkRemoveAdminUsers,
+  listPendingBorrowRecordIds,
+  listPendingSignupUserIds,
+} from "@/hooks/useBulkMutations";
+import { BulkOperationDialog } from "@/components/admin/BulkOperationDialog";
 import { useReminderStats, useExportStats } from "@/hooks/useQueries";
 import { showToast } from "@/lib/toast";
 import FineManagement from "@/components/FineManagement";
@@ -53,7 +67,6 @@ import {
   Clock,
   Download,
   Mail,
-  Pencil,
   RefreshCw,
   Send,
   Shield,
@@ -83,21 +96,6 @@ interface ExportStats {
   lastExportDate?: string;
 }
 
-interface ServerActions {
-  handleBulkEditBooks: () => Promise<void>;
-  handleBulkActivateBooks: () => Promise<void>;
-  handleBulkDeactivateBooks: () => Promise<void>;
-  handleBulkDeleteBooks: () => Promise<void>;
-  handleBulkApproveUsers: () => Promise<void>;
-  handleBulkRejectUsers: () => Promise<void>;
-  handleBulkMakeAdmin: () => Promise<void>;
-  handleBulkRemoveAdmin: () => Promise<void>;
-  handleBulkApproveRequests: () => Promise<void>;
-  handleBulkRejectRequests: () => Promise<void>;
-  handleBulkSendReminders: () => Promise<void>;
-  handleBulkUpdateStatus: () => Promise<void>;
-}
-
 interface AdminAutomationClientProps {
   /**
    * Initial reminder stats from SSR (prevents duplicate fetch)
@@ -118,9 +116,7 @@ interface AdminAutomationClientProps {
     failed?: string;
     users?: string;
     recommendations?: string;
-    "coming-soon"?: string;
   };
-  serverActions: ServerActions;
 }
 
 const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
@@ -128,7 +124,6 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   initialExportStats,
   initialFineConfig,
   searchParams: params,
-  serverActions,
 }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -227,6 +222,30 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   const generateRecommendationsMutation = useGenerateAllUserRecommendations();
   const updateTrendingMutation = useUpdateTrendingBooks();
   const refreshCacheMutation = useRefreshRecommendationCache();
+  const bulkActivateBooks = useBulkActivateBooks();
+  const bulkDeactivateBooks = useBulkDeactivateBooks();
+  const bulkDeleteBooks = useBulkDeleteBooksAutomation();
+  const bulkApproveUsers = useBulkApproveUsers();
+  const bulkRejectUsers = useBulkRejectUsers();
+  const bulkMakeAdmin = useBulkMakeAdminUsers();
+  const bulkRemoveAdmin = useBulkRemoveAdminUsers();
+  const bulkApproveBorrows = useBulkApproveBorrowRequests();
+  const bulkRejectBorrows = useBulkRejectBorrowRequests();
+  const [bulkRemindersBusy, setBulkRemindersBusy] = useState(false);
+
+  const runBulkSendReminders = async () => {
+    setBulkRemindersBusy(true);
+    try {
+      await Promise.all([
+        sendDueRemindersMutation.mutateAsync(),
+        sendOverdueRemindersMutation.mutateAsync(),
+      ]);
+    } catch {
+      // Per-mutation toasts already shown
+    } finally {
+      setBulkRemindersBusy(false);
+    }
+  };
 
   // Local state to track successful actions for UI feedback
   // (since we're using mutations instead of URL params now)
@@ -688,45 +707,6 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
         </div>
       )}
 
-      {/* Coming Soon Messages for Bulk Operations - Keep all existing messages */}
-      {/* Note: These are kept as-is since they're just informational messages */}
-      {params["coming-soon"] === "bulk-edit-books" && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <svg
-                className="size-5 text-blue-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule={"evenodd" as const}
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clipRule={"evenodd" as const}
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">
-                🚀 Bulk Edit Books - Coming Soon!
-              </h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <p>
-                  This feature will allow you to edit multiple books
-                  simultaneously, updating common attributes like genre,
-                  publisher, and descriptions across your entire collection.
-                  Stay tuned!
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Continue with all other coming-soon messages... */}
-      {/* For brevity, I'll include a comment indicating all messages are preserved */}
-      {/* All other success/error/coming-soon messages from the original file are preserved here */}
-
       {/* Auto-Reminders Section */}
       <Card>
         <CardHeader>
@@ -1149,177 +1129,157 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
             ⚡ Bulk Operations
           </CardTitle>
           <p className="text-xs text-gray-600 sm:text-sm">
-            Perform batch actions on multiple books, users, or borrow requests
+            Paste UUIDs (or load all pending) — live bulk actions with densify
+            invalidation
           </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
-            {/* Book Operations */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Book Operations</h4>
               <div className="space-y-2">
-                <form action={serverActions.handleBulkEditBooks}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <Pencil className="size-4" />
-                    Bulk Edit Books
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkActivateBooks}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <CheckCircle className="size-4" />
-                    Bulk Activate Books
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkDeactivateBooks}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <X className="size-4" />
-                    Bulk Deactivate Books
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkDeleteBooks}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start text-red-600"
-                  >
-                    <Trash2 className="size-4" />
-                    Bulk Delete Books
-                  </Button>
-                </form>
+                <BulkOperationDialog
+                  title="Bulk Activate Books"
+                  description="Paste book UUIDs to set isActive = true."
+                  triggerLabel="Bulk Activate Books"
+                  triggerIcon={<CheckCircle className="size-4" />}
+                  onConfirm={async ({ ids }) => {
+                    await bulkActivateBooks.mutateAsync(ids);
+                  }}
+                />
+                <BulkOperationDialog
+                  title="Bulk Deactivate Books"
+                  description="Paste book UUIDs to set isActive = false."
+                  triggerLabel="Bulk Deactivate Books"
+                  triggerIcon={<X className="size-4" />}
+                  onConfirm={async ({ ids }) => {
+                    await bulkDeactivateBooks.mutateAsync(ids);
+                  }}
+                />
+                <BulkOperationDialog
+                  title="Bulk Delete Books"
+                  description="Hard-delete books. Requires ADMIN_DELETE_SECRET. Blocked if active loans/holds exist."
+                  triggerLabel="Bulk Delete Books"
+                  triggerIcon={<Trash2 className="size-4" />}
+                  destructive
+                  requireDeleteSecret
+                  onConfirm={async ({ ids, deleteSecret }) => {
+                    await bulkDeleteBooks.mutateAsync({
+                      bookIds: ids,
+                      deleteSecret: deleteSecret ?? "",
+                    });
+                  }}
+                />
               </div>
             </div>
 
-            {/* User Operations */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">User Operations</h4>
               <div className="space-y-2">
-                <form action={serverActions.handleBulkApproveUsers}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <Check className="size-4" />
-                    Bulk Approve Users
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkRejectUsers}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <UserX className="size-4" />
-                    Bulk Reject Users
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkMakeAdmin}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <Shield className="size-4" />
-                    Bulk Make Admin
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkRemoveAdmin}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <ShieldOff className="size-4" />
-                    Bulk Remove Admin
-                  </Button>
-                </form>
+                <BulkOperationDialog
+                  title="Bulk Approve Users"
+                  description="Approve signup users by UUID. Demo accounts are skipped."
+                  triggerLabel="Bulk Approve Users"
+                  triggerIcon={<Check className="size-4" />}
+                  loadPendingIds={listPendingSignupUserIds}
+                  loadPendingLabel="Load all pending signups"
+                  onConfirm={async ({ ids }) => {
+                    await bulkApproveUsers.mutateAsync(ids);
+                  }}
+                />
+                <BulkOperationDialog
+                  title="Bulk Reject Users"
+                  description="Reject signup users by UUID. Demo accounts are skipped."
+                  triggerLabel="Bulk Reject Users"
+                  triggerIcon={<UserX className="size-4" />}
+                  destructive
+                  loadPendingIds={listPendingSignupUserIds}
+                  loadPendingLabel="Load all pending signups"
+                  onConfirm={async ({ ids }) => {
+                    await bulkRejectUsers.mutateAsync(ids);
+                  }}
+                />
+                <BulkOperationDialog
+                  title="Bulk Make Admin"
+                  description="Promote users to ADMIN (ledger-aware). Demo / already-admin skipped."
+                  triggerLabel="Bulk Make Admin"
+                  triggerIcon={<Shield className="size-4" />}
+                  onConfirm={async ({ ids }) => {
+                    await bulkMakeAdmin.mutateAsync(ids);
+                  }}
+                />
+                <BulkOperationDialog
+                  title="Bulk Remove Admin"
+                  description="Demote ADMIN users to USER (ledger-aware). Demo skipped."
+                  triggerLabel="Bulk Remove Admin"
+                  triggerIcon={<ShieldOff className="size-4" />}
+                  destructive
+                  onConfirm={async ({ ids }) => {
+                    await bulkRemoveAdmin.mutateAsync(ids);
+                  }}
+                />
               </div>
             </div>
 
-            {/* Borrow Operations */}
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Borrow Operations</h4>
               <div className="space-y-2">
-                <form action={serverActions.handleBulkApproveRequests}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <CheckCircle className="size-4" />
-                    Bulk Approve Requests
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkRejectRequests}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <X className="size-4" />
-                    Bulk Reject Requests
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkSendReminders}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <Mail className="size-4" />
-                    Bulk Send Reminders
-                  </Button>
-                </form>
-                <form action={serverActions.handleBulkUpdateStatus}>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <BarChart3 className="size-4" />
-                    Bulk Update Status
-                  </Button>
-                </form>
+                <BulkOperationDialog
+                  title="Bulk Approve Requests"
+                  description="Approve PENDING borrow requests by record UUID."
+                  triggerLabel="Bulk Approve Requests"
+                  triggerIcon={<CheckCircle className="size-4" />}
+                  loadPendingIds={listPendingBorrowRecordIds}
+                  loadPendingLabel="Load all pending requests"
+                  onConfirm={async ({ ids }) => {
+                    await bulkApproveBorrows.mutateAsync(ids);
+                  }}
+                />
+                <BulkOperationDialog
+                  title="Bulk Reject Requests"
+                  description="Soft-cancel PENDING borrow requests by record UUID."
+                  triggerLabel="Bulk Reject Requests"
+                  triggerIcon={<X className="size-4" />}
+                  destructive
+                  loadPendingIds={listPendingBorrowRecordIds}
+                  loadPendingLabel="Load all pending requests"
+                  onConfirm={async ({ ids }) => {
+                    await bulkRejectBorrows.mutateAsync(ids);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={
+                    bulkRemindersBusy ||
+                    sendDueRemindersMutation.isPending ||
+                    sendOverdueRemindersMutation.isPending
+                  }
+                  onClick={() => void runBulkSendReminders()}
+                >
+                  <Mail className="size-4" />
+                  {bulkRemindersBusy
+                    ? "Sending…"
+                    : "Bulk Send Reminders (due + overdue)"}
+                </Button>
               </div>
             </div>
           </div>
 
           <div className="mt-4 rounded-lg bg-yellow-50 p-3 sm:mt-6 sm:p-4">
-            <div className="flex items-center">
-              <div className="shrink-0">
-                <svg
-                  className="size-5 text-yellow-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule={"evenodd" as const}
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule={"evenodd" as const}
-                  />
-                </svg>
-              </div>
+            <div className="flex items-start">
+              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-yellow-500" />
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-yellow-800">
                   Bulk Operations Notice
                 </h3>
                 <div className="mt-2 text-sm text-yellow-700">
                   <p>
-                    Bulk operations will be performed on selected items. Please
-                    ensure you have selected the correct items before
-                    proceeding.
+                    Free-form bulk field edit is not offered — use
+                    Activate/Deactivate for catalog status. Signup status uses
+                    Approve/Reject. Combined reminders run the Due Soon +
+                    Overdue jobs.
                   </p>
                 </div>
               </div>
