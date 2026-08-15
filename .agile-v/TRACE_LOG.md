@@ -223,3 +223,4 @@
 | SPAN-0217 | 2026-08-15 | C2 | Book form CTA + flags | Build Agent JS | Footer LIGHT_GLASS_CTA; Active/Featured 2-col + Info tooltip; tsc/eslint PASS | require_parent_requirement | REQ-0033 | PASS local |
 | SPAN-0218 | 2026-08-15 | C2 | Wave A media + ImageKit + toast | Build Agent JS | Dropzone/fill/Clear; imagekitPurge after book write/delete + user:delete; showToast.file folder titles; unit+eslint PASS | require_parent_requirement | REQ-0033 | PASS local; commit pending |
 | SPAN-0219 | 2026-08-15 | C2 | Tip-bind Wave A | Compliance | Bound tip/HEAD to `3e6f597` (book form media + ImageKit purge + toast); push pending | decision_log_append_only | REQ-0033 | PASS |
+| SPAN-0220 | 2026-08-15 | C2 | Tip-bind CLAUDE | Compliance | Point CLAUDE Agile tip at `3e6f597` | decision_log_append_only | REQ-0033 | PASS |
