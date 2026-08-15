@@ -7,10 +7,10 @@
 - Status: ACTIVE - public ticket detail delete parity Prove closed locally; commit pending
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `102e119` (pre-fix tip; WT has delete-404 + universal unlink + public ticket)
-- Latest HEAD: `102e119`
+- Latest implementation tip: `4b255dc`
+- Latest HEAD: `4b255dc`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (public ticket delete never-paint 404)
+- Last updated: 2026-08-15 (tip-bind never-paint 404 + activity unlink)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,13 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Public ticket detail never-paint 404 — local Prove PASS; commit when owner asks
+- Active plan: Never-paint 404 + universal activity unlink shipped (`4b255dc`); owner prod smoke
+
+## Reconciliation snapshot (2026-08-15, tip-bind never-paint 404)
+
+- **Done**: Bound tip/HEAD to `4b255dc` on origin/main.
+- **Remaining**: EvalGate / Gate 2; owner prod smoke.
+- **Next exact task**: owner Verify after Vercel deploy.
 
 ## Reconciliation snapshot (2026-08-15, public ticket delete never-paint 404)
 
