@@ -239,3 +239,4 @@
 | SPAN-0233 | 2026-08-15 | C2 | Notification bell UI parity | Build Agent JS | Shell SSR + totalCount + densify + rose dropdown (New/Check/Trash/Close); densify unit + tsc/eslint PASS | require_parent_requirement | REQ-0034, REQ-0023 | PASS local; commit pending |
 | SPAN-0234 | 2026-08-15 | C2 | Book CRUD UX + Insights polish | Build Agent JS | Year/lang +N; form flash; all-books densify; Insights empty/headers; 49 densify tests + tsc/eslint PASS | require_parent_requirement | REQ-0023, REQ-0033 | PASS local; commit pending |
 | SPAN-0235 | 2026-08-15 | C2 | Tip-bind book CRUD UX + bell | Compliance | Bound tip/HEAD to `7d0ae32` | decision_log_append_only | REQ-0023, REQ-0033, REQ-0034 | PASS |
+| SPAN-0236 | 2026-08-15 | C2 | 1-day Auth.js JWT session | Build Agent JS | SESSION_MAX_AGE_SECONDS + maxAge/updateAge; SessionProvider refetchOnWindowFocus; DEC-0104; tsc/eslint PASS | require_parent_requirement | REQ-0001, REQ-0026 | PASS local; commit pending |

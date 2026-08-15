@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) book CRUD UX + Insights polish; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) 1-day Auth.js JWT session; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - book CRUD UX closeout Prove done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - 1-day session maxAge Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `7d0ae32`
 - Latest HEAD: `7d0ae32`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (book CRUD UX + Insights polish local Prove)
+- Last updated: 2026-08-15 (1-day Auth.js session maxAge)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,14 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: book CRUD UX closeout Prove done; notification UI still deferred
+- Active plan: 1-day Auth.js session Prove done
+
+## Reconciliation snapshot (2026-08-15, 1-day Auth.js session)
+
+- **Done**: `SESSION_MAX_AGE_SECONDS` = 86400 in `auth.ts` with `session.maxAge` + `updateAge`; `SessionProvider` `refetchOnWindowFocus`; DEC-0104; tsc/eslint PASS on touched files.
+- **Human verify**: sign out once (or clear cookies) then sign in; after >1 day idle expect `/sign-in`; hard-reload alone stays logged in; Clear site data (cookies) + reload logs out.
+- **Remaining**: EvalGate / Gate 2 still blocked; commit when owner asks.
+- **Next exact task**: owner human-verify; checkpoint commit if approved.
 
 ## Reconciliation snapshot (2026-08-15, book CRUD UX + Insights polish)
 

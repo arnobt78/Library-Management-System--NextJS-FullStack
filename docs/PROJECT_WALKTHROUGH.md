@@ -93,6 +93,7 @@ Domains cover books, users, borrows, reviews, admin state, analytics, recommenda
 ## Authentication and authorization
 
 - Auth.js credentials produce JWT sessions; database role/status is authoritative.
+- Session idle TTL: `SESSION_MAX_AGE_SECONDS` = 1 day in `auth.ts` (`maxAge` + `updateAge`); Auth.js sets HttpOnly cookie Max-Age from that. Hard-reload keeps cookies; Clear site data logs out. `SessionProvider` uses `refetchOnWindowFocus`. Re-sign-in once after deploy to replace any pre-change ~30d JWT.
 - Passwords: versioned scrypt (`lib/auth/password.ts`) with legacy SHA-256 verify + rehash-on-login.
 - `lib/auth/authorization.ts` resolves the session ID against current database role/status for actions and privileged API routes.
 - User writes enforce ownership; admin/reviewer/audit identities come from the server and cannot be supplied by the browser.

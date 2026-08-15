@@ -55,3 +55,5 @@
 | ART-0021 | REQ-0027 | universal mutation consumers, server actions/routes, `queryInvalidation.ts`, `revalidateMutation.ts` | One typed registry drives client domains and RSC paths for all ten mutation families |
 | ART-0022 | REQ-0030, REQ-0032 | outbox worker/scheduler/cron, schema/migration, idempotent Resend boundary, environment guide | Retry-safe immediate delivery plus secured scheduled recovery; deployed receipt pending |
 | ART-0023 | REQ-0026 through REQ-0030 | registry, provider, cron, worker, boundary-validation and PostgreSQL concurrency tests | 84 default tests and 10/10 disposable-PostgreSQL tests across 10 stress runs PASS on 2026-08-02 |
+
+| ART-0024 | REQ-0001, REQ-0026 | `auth.ts` SESSION_MAX_AGE_SECONDS + session maxAge/updateAge 1d; `SessionProviderWrapper` refetchOnWindowFocus | Explicit idle TTL (was Auth.js ~30d default); rollback session block only |

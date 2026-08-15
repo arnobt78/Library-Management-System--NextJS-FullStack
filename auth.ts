@@ -51,12 +51,22 @@ async function getEq() {
 }
 
 /**
+ * Idle JWT + session-cookie lifetime in seconds.
+ * Auth.js derives the HttpOnly session cookie Max-Age from `session.maxAge`.
+ * Default without this is ~30 days — keep explicit so overnight idle expires.
+ */
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24; // 1 day
+
+/**
  * NextAuth configuration export
  * Provides: handlers (for API routes), signIn, signOut, and auth (for server components)
  */
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt", // Use JWT tokens instead of database sessions (faster, stateless)
+    maxAge: SESSION_MAX_AGE_SECONDS,
+    // Throttle JWT refresh; same window as maxAge for clear 1-day idle ops.
+    updateAge: SESSION_MAX_AGE_SECONDS,
   },
   providers: [
     /**

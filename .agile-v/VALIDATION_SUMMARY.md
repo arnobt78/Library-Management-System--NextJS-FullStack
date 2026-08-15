@@ -142,3 +142,9 @@ Findings:
 - `review.write` gold path preserved (`commitMutationCache` + `decisionActor`/`sourceItem`).
 
 Commands: `npm run typecheck` PASS | `npm run lint` PASS | densify unit tests 14/14 PASS | outstanding=same nonlocal EvalGate class (`ER-C2-FINAL-CORRECTIVE-5`).
+
+## 1-day Auth.js session - Local Prove - 2026-08-15
+
+Scope: [built/verified] Auth.js JWT idle TTL 86400s (was default ~30d); cookie Max-Age derived by Auth.js; SessionProvider refetchOnWindowFocus. No densify/Redis/CRUD changes.
+
+Commands: `npx tsc --noEmit` PASS | eslint `auth.ts` + `SessionProviderWrapper.tsx` PASS | outstanding=same nonlocal EvalGate class (`ER-C2-FINAL-CORRECTIVE-5`).

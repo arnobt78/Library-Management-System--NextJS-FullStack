@@ -5,7 +5,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 ## Stack
 
 - Next.js 16 App Router, React 19, strict TypeScript, Tailwind 3, PostgreSQL/Drizzle.
-- Auth.js v5 JWT sessions; Redis is rate limiting only; QStash workflows are optional.
+- Auth.js v5 JWT sessions (`SESSION_MAX_AGE_SECONDS` = 1d idle); Redis is rate limiting only; QStash workflows are optional.
 - TanStack Query owns client server-state; ImageKit handles media; Brevo falls back to Resend.
 
 ## Structure
@@ -51,7 +51,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Demo seed: `npm run seed:reset` (`scripts/reset-and-seed.ts`) wipes FK-safe transactional tables, reseeds `TEST_ACCOUNTS` then 17 `dummybooks.json` books (`availableCopies` = total; `created_by`/`updated_by` = test@admin.com) + `status_reviewed_*` stamps; queues/reviews/tickets/holds/activity intentionally empty for one-by-one testing.
 - Nav `/my-profile` label: Borrow History. Profile SSR uses `BorrowRecordFull` + `initialDataUpdatedAt` so RQ does not flash Unknown Book.
 - Docs: educational `README.md` + `SECURITY.md` (<contact@arnobmahmud.com>); portable auth UI → `docs/PORTABLE_AUTH_UI_GUIDE.md` (Select + Robohash + profile `modal={false}`); seed commands match `seed:reset`. (No VPS/Coolify runbooks in this repo — keep those local elsewhere.)
-- Auth ops: apply `0009` before `users.updated_at`/`updated_by`; rehash-on-login non-fatal. Legacy + scrypt verify; keep prod deploy in sync with hash format. GitGuardian `$scrypt$ln` on `UNKNOWN_ACCOUNT_PASSWORD` is FP (dummy equal-cost hash).
+- Auth ops: apply `0009` before `users.updated_at`/`updated_by`; rehash-on-login non-fatal. Legacy + scrypt verify; keep prod deploy in sync with hash format. GitGuardian `$scrypt$ln` on `UNKNOWN_ACCOUNT_PASSWORD` is FP (dummy equal-cost hash). JWT idle TTL: `SESSION_MAX_AGE_SECONDS` = 1 day in `auth.ts` (+ matching `updateAge`); Auth.js derives cookie Max-Age; hard-reload keeps session (cookies only); post-deploy sign-out once to drop old 30d JWTs.
 - UI shell: `.page-shell` + `max-w-9xl` (96rem) public only; root Header/main/`Footer`; auth `Footer variant="auth"`; admin full-bleed (no max-w) frosted Header+Sidebar over `bg-slate-50`.
 - Admin chrome: shared `components/Header` `tone="light"` (orphan `admin/Header` deleted); `.root-header` `py-2` + `items-center`; `--admin-header-offset` 3/3.5rem; admin logo `/icons/admin/logo.svg`; dual `@tailwind base` in `admin.css` kept (soft-nav residual).
 - Nav counts densify: `getAdminNavCounts` SSR + `/api/admin/nav-counts` (`authorizeAdminRoute`) + `patchAdminNavCounts` absolute merge after domain patches; signup INSERT/CLI skip client densify.
@@ -94,7 +94,8 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Densify actor card: `AuthorizedActor.universityCard` from DB; `resolveDecisionActor` + SSR `currentAdmin` on All Users / Admin Requests / Sign-up / User 360 / Book Reviews (no JWT card; session fallback null-card intentional).
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `7d0ae32` / HEAD `7d0ae32`; book CRUD UX + bell SSR shell shipped; Wave 5/EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip pending 1-day JWT session; Wave 5/EvalGate FAIL blocks Gate 2.
+- Auth JWT idle: `SESSION_MAX_AGE_SECONDS` = 1d (`auth.ts`); hard-reload keeps cookies; clear cookies to logout.
 - CR-0003 (REQ-0034–0037): tickets + review mod + activity FIFO-50 + bell + KPIs/tables; mig `0014`; `ticket.write` + `patchTicketCaches*`; Zod ticket/review; bell SSR shell (list+unread+total) + `totalCount` densify + rose New/Check/Close dropdown; My Reviews SSR; reply thread single-source; Prove 110 tests.
 - Ticket UI polish: person stack; KPI/section/date/activity; `CARD_PAD` p-2/sm:p-4 (also `.admin-container` + api-docs/status/performance); `LIGHT_GLASS_CTA` primary-admin/red-800; Tailwind `./lib/**`; sky links; edit dialog; densify + back-nav. Instrumentation removed.
 - Densify Waves A–C + review CRUD: `patchBorrowCaches*`; `optimisticAdminRequestDecision`; await `book.write`; `patchReviewCaches*` (create/update/delete/moderate). Approve **upserts** public `book-reviews` (admin soft-nav). Gold: snapshot → await invalidate → re-patch. Prove 120 tests.
