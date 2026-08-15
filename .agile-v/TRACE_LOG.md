@@ -246,3 +246,4 @@
 | SPAN-0240 | 2026-08-15 | C2 | Phase A + UI fixes | Build Agent JS | W1–W3 shipped; formulas+outbox tests PASS; eslint touched PASS | require_parent_requirement | REQ-0031–0034 | PASS local; commit pending |
 | SPAN-0241 | 2026-08-15 | C2 | Phase A densify closeout | Build Agent JS | Dual notification.write + cron revalidate; Hold READY Automation card; DEC-0107; eslint+9 tests PASS | require_parent_requirement | REQ-0032, REQ-0034 | PASS local; commit pending |
 | SPAN-0242 | 2026-08-15 | C2 | Tip-bind Phase A densify closeout | Compliance | Bound tip/HEAD to `156ec79` | decision_log_append_only | REQ-0031–0034 | PASS |
+| SPAN-0243 | 2026-08-15 | C2 | Phase A closed tip sync | Compliance | CLAUDE+STATE tip `156ec79` / HEAD `9bc26a2`; Active plan Phase A closed | decision_log_append_only | REQ-0031–0034 | PASS |
