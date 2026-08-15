@@ -30,6 +30,7 @@ import {
 } from "@/lib/services/supportTickets";
 import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
 import { fetchBookDetailPreservingDensify } from "@/lib/books/fetchBookDetailPreservingDensify";
+import { ADMIN_USERS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 
 export type PrefetchKind =
@@ -423,9 +424,10 @@ export default function PrefetchLink({
       case "admin-users":
         // staleTime 0 — after user/admin-request densify, hover prefetch must
         // not reuse a 30s-fresh pre-mutation All Users list.
+        // Warm the same key as AdminUsersList / ADMIN_USERS_UNFILTERED (sort=created).
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.users.adminList({}),
-          queryFn: () => getUsersList({}),
+          queryKey: queryKeys.users.adminList(ADMIN_USERS_UNFILTERED),
+          queryFn: () => getUsersList(ADMIN_USERS_UNFILTERED),
           staleTime: 0,
         });
         break;

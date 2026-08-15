@@ -148,3 +148,9 @@ Commands: `npm run typecheck` PASS | `npm run lint` PASS | densify unit tests 14
 Scope: [built/verified] Auth.js JWT idle TTL 86400s (was default ~30d); cookie Max-Age derived by Auth.js; SessionProvider refetchOnWindowFocus. No densify/Redis/CRUD changes.
 
 Commands: `npx tsc --noEmit` PASS | eslint `auth.ts` + `SessionProviderWrapper.tsx` PASS | outstanding=same nonlocal EvalGate class (`ER-C2-FINAL-CORRECTIVE-5`).
+
+## UX polish trio - Local Prove - 2026-08-15
+
+Scope: [built/verified] BookForm isConfirmSettling; NotificationBell circle badge; AdminUsersList no mount sort rewrite; PrefetchLink ADMIN_USERS_UNFILTERED.
+
+Commands: `npx tsc --noEmit` PASS | eslint touched files PASS | outstanding=same nonlocal EvalGate class (`ER-C2-FINAL-CORRECTIVE-5`).

@@ -49,6 +49,7 @@ Browser
 - Book detail Activity FIFO-25 (2026-08-15): `getBookAuditEvents` + densify prepend; `TicketActivityTimeline` light; shared densify-preserving book fetch; DeleteBookDialog LIGHT_ALERT settle then push; Featured exclusivity no sibling `updatedAt`.
 - FilterSelect flash fix (2026-08-15): explicit SelectValue icon+label (no Radix Portal clone flash on hard refresh).
 - Book form Wave A (2026-08-15): shell + media + uploadLimits; CTA gate (silent Zod, onTouched errors); signup `*`. Next: insights → automation → notif.
+- UX polish trio (2026-08-15): BookForm `isConfirmSettling` keeps confirm spinner through soft-nav; bell unread `h-5 min-w-5` circle; `/admin/users` default sort in filters only (no `?sort=created` rewrite); PrefetchLink warms `ADMIN_USERS_UNFILTERED`.
 
 ## Admin Stockly chrome (2026-08-07)
 

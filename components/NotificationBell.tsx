@@ -84,7 +84,8 @@ export default function NotificationBell({
           {unreadCount > 0 ? (
             <span
               className={cn(
-                "absolute -right-0.5 -top-0.5 flex min-w-[1.1rem] items-center justify-center rounded-full px-1 text-[10px] font-medium leading-[1.1rem]",
+                // h-5 === min-w-5 → circle for single digit; px-1 lets 99+ widen.
+                "absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-medium leading-none tabular-nums",
                 "border-2 bg-rose-500 text-white",
                 isDark ? "border-gray-900" : "border-white",
               )}

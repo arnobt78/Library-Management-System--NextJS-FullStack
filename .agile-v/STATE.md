@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) 1-day Auth.js JWT session; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) UX polish trio; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - 1-day session maxAge Prove done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - UX polish trio Prove done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `aa75f96`
 - Latest HEAD: `aa75f96`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (1-day Auth.js session maxAge)
+- Last updated: 2026-08-15 (UX polish trio: confirm settle / bell / users sort)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,14 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: 1-day Auth.js session Prove done
+- Active plan: UX polish trio Prove done
+
+## Reconciliation snapshot (2026-08-15, UX polish trio)
+
+- **Done**: BookForm `isConfirmSettling` keeps confirm spinner through soft-nav; bell unread `h-5 min-w-5` circle; drop `/admin/users` `?sort=created` mount rewrite (filters still default created); PrefetchLink warms `ADMIN_USERS_UNFILTERED`; DEC-0105; tsc/eslint PASS.
+- **Human verify**: create/update book spinner until detail; bell `1` circular; `/admin/users` URL stays clean, no avatar double-blink.
+- **Remaining**: EvalGate / Gate 2 still blocked; commit when owner asks.
+- **Next exact task**: owner human-verify; checkpoint commit if approved.
 
 ## Reconciliation snapshot (2026-08-15, 1-day Auth.js session)
 

@@ -280,7 +280,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
         const trimmedSearch = localSearch.trim();
         if (trimmedSearch) params.set("search", trimmedSearch);
         else params.delete("search");
-        if (!params.get("sort")) params.set("sort", "created");
+        // Default sort stays in filters (`|| "created"`) — do not force URL rewrite.
         lastSyncedSearchRef.current = trimmedSearch;
         router.replace(`/admin/users?${params.toString()}`, { scroll: false });
       }
@@ -365,7 +365,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       if (value && value !== "all") params.set(key, value);
       else params.delete(key);
     });
-    if (!params.get("sort")) params.set("sort", "created");
+    // Do not inject default sort into the URL (avoids remount/avatar blink).
     router.replace(`/admin/users?${params.toString()}`, { scroll: false });
   };
 
@@ -375,7 +375,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
 
   const clearFilters = () => {
     setLocalSearch("");
-    router.push("/admin/users?sort=created");
+    router.push("/admin/users");
   };
 
   React.useEffect(() => {
@@ -387,14 +387,6 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
       lastSyncedSearchRef.current = currentSearch;
     }
   }, [currentSearch, localSearch]);
-
-  React.useEffect(() => {
-    if (!searchParamsHook.get("sort")) {
-      const params = new URLSearchParams(searchParamsHook.toString());
-      params.set("sort", "created");
-      router.replace(`/admin/users?${params.toString()}`, { scroll: false });
-    }
-  }, [searchParamsHook, router]);
 
   const users: User[] = React.useMemo(() => {
     const base =

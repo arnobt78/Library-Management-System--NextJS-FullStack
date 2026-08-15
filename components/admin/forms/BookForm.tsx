@@ -91,8 +91,13 @@ const BookForm = ({ type = "create", ...book }: Props) => {
 
   const createBookMutation = useCreateBook();
   const updateBookMutation = useUpdateBook();
+  // Keep confirm spinner through soft-nav: TanStack isPending ends after densify,
+  // before router.push paints the detail page.
+  const [isConfirmSettling, setIsConfirmSettling] = useState(false);
   const isPending =
-    createBookMutation.isPending || updateBookMutation.isPending;
+    createBookMutation.isPending ||
+    updateBookMutation.isPending ||
+    isConfirmSettling;
   const { setGate } = useBookAdminFormGate();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -161,6 +166,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
   const handleConfirm = async (): Promise<void> => {
     if (!pendingValues) return;
 
+    setIsConfirmSettling(true);
     try {
       if (isCreate) {
         const data = await createBookMutation.mutateAsync(pendingValues);
@@ -168,7 +174,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
           data && typeof data === "object" && "id" in data
             ? String((data as Book).id)
             : null;
-        // Push before closing confirm — overlay covers the form until route change.
+        // Push before closing confirm — overlay + spinner until route unmounts form.
         router.push(newId ? `/admin/books/${newId}` : "/admin/books");
         return;
       }
@@ -179,7 +185,8 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       });
       router.push(`/admin/books/${book.id}`);
     } catch {
-      // Toast from useCreateBook / useUpdateBook; keep dialog open.
+      // Toast from useCreateBook / useUpdateBook; keep dialog open for retry.
+      setIsConfirmSettling(false);
     }
   };
 
