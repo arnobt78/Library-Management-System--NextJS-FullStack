@@ -7,10 +7,10 @@
 - Status: ACTIVE - upload limits local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: pending (uploadLimits)
-- Latest HEAD: `d2c7acd` (+ committing uploadLimits)
+- Latest implementation tip: `13c65ef`
+- Latest HEAD: `13c65ef`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (uploadLimits 1MB image / 20MB video)
+- Last updated: 2026-08-15 (uploadLimits 1MB/20MB shipped)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
