@@ -7,8 +7,8 @@
 - Status: ACTIVE - Wave A local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: pending (book form Wave A commit)
-- Latest HEAD: `48822cc` (+ committing Wave A)
+- Latest implementation tip: `3e6f597`
+- Latest HEAD: `3e6f597`
 - Started: 2026-08-01
 - Last updated: 2026-08-15 (Wave A media trio + ImageKit purge + toast copy)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
