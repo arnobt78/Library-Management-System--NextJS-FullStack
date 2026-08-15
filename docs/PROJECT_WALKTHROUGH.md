@@ -1,6 +1,6 @@
 # Project Walkthrough
 
-> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-15 | Status: C2 Stage 4; Wave A + form CTA gate; Gate 2 blocked (EvalGate nonlocal)
+> Parent: REQ-0018, REQ-0024, CR-0002, CR-0003 | Updated: 2026-08-15 | Status: C2 Stage 4; form CTA gate (silent Zod); Gate 2 blocked (EvalGate nonlocal)
 
 ## Purpose
 
@@ -48,7 +48,7 @@ Browser
 - Admin book detail + createdBy (2026-08-14/15): glass badges; Cover Color; KPI+Context rating tones; Media icons; Added/Updated PersonAttribution; mig `0015` + `loadBookWithUpdater` SSR/API densify (JWT card-less).
 - Book detail Activity FIFO-25 (2026-08-15): `getBookAuditEvents` + densify prepend; `TicketActivityTimeline` light; shared densify-preserving book fetch; DeleteBookDialog LIGHT_ALERT settle then push; Featured exclusivity no sibling `updatedAt`.
 - FilterSelect flash fix (2026-08-15): explicit SelectValue icon+label (no Radix Portal clone flash on hard refresh).
-- Book form Wave A (2026-08-15): shell + media + uploadLimits; submit CTAs disabled until valid (book gate + signup `*`). Next: insights → automation → notif dropdown.
+- Book form Wave A (2026-08-15): shell + media + uploadLimits; CTA gate (silent Zod, onTouched errors); signup `*`. Next: insights → automation → notif.
 
 ## Admin Stockly chrome (2026-08-07)
 

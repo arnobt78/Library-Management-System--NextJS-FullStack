@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) form CTA gate + Wave A; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) form CTA silent Zod gate; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - form CTA gate local done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - CTA gate flash-fix local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `0e3e068`
-- Latest HEAD: `6d15b58`
+- Latest implementation tip: pending (CTA gate flash-fix)
+- Latest HEAD: `446da07` (+ committing CTA flash-fix)
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (form CTA gate: book + signup)
+- Last updated: 2026-08-15 (CTA gate: silent Zod, no mount errors)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -26,6 +26,18 @@
 - Skills applied this session: agile-v-core, agile-v-pipeline
 - Active plan: `final-ui-polish-wave` Wave A done; B–E pending
 
+## Reconciliation snapshot (2026-08-15, CTA gate silent Zod)
+
+Verified facts:
+- Removed mount form.trigger; schemaOk via watch+safeParse; mode onTouched.
+- Signup/book CTAs stay disabled until valid without error wall on visit.
+- eslint scoped incompatible-library for AuthForm/BookForm watch.
+- Prove: eslint/tsc PASS.
+
+### Next Action
+
+**Human-Verify:** /sign-up clean labels; then Wave B insights.
+
 ## Reconciliation snapshot (2026-08-15, form CTA gate)
 
 Verified facts:
@@ -35,7 +47,7 @@ Verified facts:
 
 ### Next Action
 
-**Human-Verify:** empty create/signup CTAs disabled; then Wave B insights.
+Superseded by CTA silent Zod flash-fix.
 
 ## Reconciliation snapshot (2026-08-15, uploadLimits 1MB/20MB)
 

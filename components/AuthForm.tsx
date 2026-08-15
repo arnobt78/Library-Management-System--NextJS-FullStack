@@ -74,17 +74,21 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
 
   const form = useForm<TInput, unknown, TOutput>({
     resolver: zodResolver(schema),
-    mode: "onChange",
+    // onTouched: errors after blur/submit — never paint all required msgs on visit.
+    mode: "onTouched",
     defaultValues,
   });
 
-  // Signup: validate defaults so Sign Up stays disabled until fields pass Zod.
+  // Silent Zod gate (subscription) — avoid form.trigger() mount flash.
+  const [schemaOk, setSchemaOk] = useState(() =>
+    schema.safeParse(form.getValues()).success,
+  );
   useEffect(() => {
-    if (!isSignIn) void form.trigger();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only for signup gate
-  }, [isSignIn]);
-
-  const { isValid } = form.formState;
+    const sub = form.watch((values) => {
+      setSchemaOk(schema.safeParse(values).success);
+    });
+    return () => sub.unsubscribe();
+  }, [form, schema]);
   // Shared TEST_ACCOUNTS (constants) — fills email/password; name/image are display-only
   const selectedAccount = TEST_ACCOUNTS.find((a) => a.id === selectedRole);
 
@@ -161,7 +165,7 @@ const AuthForm = <TInput extends AuthFields, TOutput extends AuthFields>({
   };
 
   const isSubmitting = form.formState.isSubmitting || isNavigating;
-  const signupSubmitDisabled = !isSignIn && (!isValid || isSubmitting);
+  const signupSubmitDisabled = !isSignIn && (!schemaOk || isSubmitting);
   const submitDisabled = isSignIn ? isSubmitting : signupSubmitDisabled;
 
   return (

@@ -102,7 +102,8 @@ const BookForm = ({ type = "create", ...book }: Props) => {
 
   const form = useForm<BookFormInput, unknown, BookFormValues>({
     resolver: zodResolver(bookSchema),
-    mode: "onChange",
+    // onTouched: field errors after blur/submit — not a wall of errors on create visit.
+    mode: "onTouched",
     defaultValues: {
       title: book.title || "",
       description: book.description || "",
@@ -135,18 +136,21 @@ const BookForm = ({ type = "create", ...book }: Props) => {
     },
   });
 
-  const { isValid } = form.formState;
-
-  // Edit with full defaults: enable CTAs immediately; create stays disabled until filled.
+  // Silent Zod gate for CTAs (subscription — no form.trigger mount FormMessage flash).
+  const [schemaOk, setSchemaOk] = useState(() =>
+    bookSchema.safeParse(form.getValues()).success,
+  );
   useEffect(() => {
-    void form.trigger();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only validate against defaults
-  }, []);
+    const sub = form.watch((values) => {
+      setSchemaOk(bookSchema.safeParse(values).success);
+    });
+    return () => sub.unsubscribe();
+  }, [form]);
 
   // Keep shell toolbar submit in sync (outside FormProvider).
   useEffect(() => {
-    setGate({ canSubmit: isValid, isPending });
-  }, [isValid, isPending, setGate]);
+    setGate({ canSubmit: schemaOk, isPending });
+  }, [schemaOk, isPending, setGate]);
 
   /** Validate then open confirm — mutate only after dialog confirm. */
   const onSubmit = (values: BookFormValues): void => {
@@ -727,12 +731,12 @@ const BookForm = ({ type = "create", ...book }: Props) => {
             </button>
             <button
               type="submit"
-              disabled={!isValid || isPending}
-              aria-disabled={!isValid || isPending}
+              disabled={!schemaOk || isPending}
+              aria-disabled={!schemaOk || isPending}
               className={cn(
                 LIGHT_GLASS_CTA.host,
                 LIGHT_GLASS_CTA.edit,
-                (!isValid || isPending) && "pointer-events-none opacity-50",
+                (!schemaOk || isPending) && "pointer-events-none opacity-50",
               )}
             >
               {isPending ? (

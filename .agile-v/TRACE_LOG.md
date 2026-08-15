@@ -228,3 +228,4 @@
 | SPAN-0222 | 2026-08-15 | C2 | Tip-bind uploadLimits | Compliance | Bound tip/HEAD to `13c65ef` | decision_log_append_only | REQ-0033 | PASS |
 | SPAN-0223 | 2026-08-15 | C2 | form CTA gate | Build Agent JS | BookAdminFormGate + signup * / disabled until valid; eslint/tsc PASS | require_parent_requirement | REQ-0033 | PASS local; commit pending |
 | SPAN-0224 | 2026-08-15 | C2 | Tip-bind form CTA | Compliance | Bound tip to `0e3e068` | decision_log_append_only | REQ-0033 | PASS |
+| SPAN-0225 | 2026-08-15 | C2 | CTA silent Zod | Build Agent JS | Drop mount trigger; watch+safeParse gate; onTouched errors; eslint scope; PASS | require_parent_requirement | REQ-0033 | PASS local; commit pending |

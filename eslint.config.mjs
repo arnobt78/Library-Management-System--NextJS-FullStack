@@ -31,5 +31,16 @@ export default defineConfig([
       "react-hooks/incompatible-library": "off",
     },
   },
+  {
+    // RHF form.watch() subscription for silent Zod submit-gates (Auth/Book forms).
+    // Same React Compiler false-positive as useReactTable — documented RHF API.
+    files: [
+      "components/AuthForm.tsx",
+      "components/admin/forms/BookForm.tsx",
+    ],
+    rules: {
+      "react-hooks/incompatible-library": "off",
+    },
+  },
   globalIgnores([".next/**", "coverage/**"]),
 ]);
