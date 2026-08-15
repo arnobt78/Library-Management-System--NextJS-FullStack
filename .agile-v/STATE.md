@@ -7,8 +7,8 @@
 - Status: ACTIVE - CTA gate flash-fix local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: pending (CTA gate flash-fix)
-- Latest HEAD: `446da07` (+ committing CTA flash-fix)
+- Latest implementation tip: `b0b76bc`
+- Latest HEAD: `b0b76bc`
 - Started: 2026-08-01
 - Last updated: 2026-08-15 (CTA gate: silent Zod, no mount errors)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
