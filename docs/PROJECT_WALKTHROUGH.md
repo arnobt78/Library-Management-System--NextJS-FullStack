@@ -51,6 +51,7 @@ Browser
 - Book form Wave A (2026-08-15): shell + media + uploadLimits; CTA gate (silent Zod, onTouched errors); signup `*`. Next: insights → automation → notif.
 - UX polish trio (2026-08-15): BookForm `isConfirmSettling` keeps confirm spinner through soft-nav; bell unread `h-5 min-w-5` circle; `/admin/users` default sort in filters only (no `?sort=created` rewrite); PrefetchLink warms `ADMIN_USERS_UNFILTERED`.
 - Phase A (2026-08-15, no LLM): Insights formulaVersion `C2-v2` + overdueTrend / fineForecast / genreDemandPressure; Overview empties via `AdminDetailEmptyState`; delete book navigate-first + inactive detail remove; `/api/cron/due-reminders` (07:00) + REMINDER_DUE / HOLD_READY in-app; User 360 advisory Next actions.
+- Bulk Automation (2026-08-15): live UUID dialogs + pending loaders; DEC-0109 densifyBookDelete + reminder stamp-fail closed; no Coming Soon redirects.
 
 ## Admin Stockly chrome (2026-08-07)
 

@@ -273,8 +273,22 @@ This is an automated reminder. For assistance, please contact us at support@book
         body
       );
       if (!result.success) throw new Error(result.error || "Email delivery failed");
-      // Update the lastReminderSent timestamp after successful email
-      await updateLastReminderSent(book.recordId);
+      // Stamp before marking sent — if stamp fails, do not count as sent (day guard stays open).
+      try {
+        await updateLastReminderSent(book.recordId);
+      } catch (stampError) {
+        results.push({
+          recordId: book.recordId,
+          userEmail: book.userEmail,
+          bookTitle: book.bookTitle,
+          status: "failed",
+          error:
+            stampError instanceof Error
+              ? `Email sent but reminder stamp failed: ${stampError.message}`
+              : "Email sent but reminder stamp failed",
+        });
+        continue;
+      }
       void createInAppNotification({
         userId: book.userId,
         type: "REMINDER_DUE",
@@ -358,8 +372,22 @@ This is an automated notice. For assistance, please contact us at support@bookwi
         body
       );
       if (!result.success) throw new Error(result.error || "Email delivery failed");
-      // Update the lastReminderSent timestamp after successful email
-      await updateLastReminderSent(book.recordId);
+      // Stamp before marking sent — if stamp fails, do not count as sent (day guard stays open).
+      try {
+        await updateLastReminderSent(book.recordId);
+      } catch (stampError) {
+        results.push({
+          recordId: book.recordId,
+          userEmail: book.userEmail,
+          bookTitle: book.bookTitle,
+          status: "failed",
+          error:
+            stampError instanceof Error
+              ? `Email sent but reminder stamp failed: ${stampError.message}`
+              : "Email sent but reminder stamp failed",
+        });
+        continue;
+      }
       void createInAppNotification({
         userId: book.userId,
         type: "REMINDER_DUE",

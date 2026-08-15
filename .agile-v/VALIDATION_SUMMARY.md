@@ -155,6 +155,12 @@ Scope: [built/verified] BookForm isConfirmSettling; NotificationBell circle badg
 
 Commands: `npx tsc --noEmit` PASS | eslint touched files PASS | outstanding=same nonlocal EvalGate class (`ER-C2-FINAL-CORRECTIVE-5`).
 
+## Agent Review real fixes - Local Prove - 2026-08-15
+
+Scope: [built/verified] Bulk count + densifyBookDelete; no invent activity; reminder stamp≠sent on stamp fail. DEC-0109.
+
+Commands: eslint touched PASS | vitest parseBulkIds+bulk auth | outstanding=EvalGate.
+
 ## Bulk Automation wire-up - Local Prove - 2026-08-15
 
 Scope: [built/verified] Automation Bulk CTAs → BulkOperationDialog + useBulkMutations → bulk-operations; densify domains; DEC-0108.

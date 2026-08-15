@@ -1,11 +1,11 @@
 /**
  * Automation bulk mutations — invalidate densify per domain after server bulk-*.
- * Parent: Bulk Automation wire-up
+ * Server already logActivity; client invent skipped to avoid duplicate Activity rows.
+ * Parent: Bulk Automation wire-up + Agent Review real fixes
  */
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
 import {
   bulkActivateBooks,
   bulkApproveBorrowRequests,
@@ -20,65 +20,39 @@ import {
   listPendingSignupUserIds,
 } from "@/lib/admin/actions/bulk-operations";
 import { commitMutationCache } from "@/lib/query/mutationGateway";
-import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
+import { densifyBookDelete } from "@/lib/utils/patchBookCaches";
 import { showToast } from "@/lib/toast";
 import type { MutationDomainName } from "@/lib/utils/queryInvalidation";
 
-function activityActorFromSession(session: ReturnType<typeof useSession>["data"]) {
-  const su = session?.user;
-  return {
-    actorId: su?.id ?? null,
-    actorName: su?.name?.trim() || null,
-    actorEmail: su?.email ?? null,
-    actorUniversityCard: null as string | null,
-  };
-}
+type BulkOk = { success: true; message?: string; count?: number };
 
-async function commitBulk(
-  queryClient: ReturnType<typeof useQueryClient>,
-  domain: MutationDomainName,
-  session: ReturnType<typeof useSession>["data"],
-  details: {
-    action: "UPDATE" | "DELETE";
-    entityType: string;
-    status: string;
-    count: number;
-  },
-) {
-  await commitMutationCache(queryClient, domain, {
-    snapshot: () => undefined,
-    densify: () => {
-      densifyActivityLog(queryClient, {
-        ...activityActorFromSession(session),
-        action: details.action,
-        entityType: details.entityType,
-        entityId: null,
-        details: { status: details.status, count: details.count },
-      });
-    },
-  });
-}
-
-function assertOk(result: { success: boolean; message?: string }) {
+function assertOk(
+  result: { success: boolean; message?: string; count?: number },
+): BulkOk {
   if (!result.success) {
     throw new Error(result.message || "Bulk operation failed");
   }
-  return result;
+  return result as BulkOk;
+}
+
+/** Invalidate-only — server already appended activity; no invent row. */
+async function commitBulkInvalidate(
+  queryClient: ReturnType<typeof useQueryClient>,
+  domain: MutationDomainName,
+) {
+  await commitMutationCache(queryClient, domain, {
+    snapshot: () => undefined,
+    densify: () => undefined,
+  });
 }
 
 export function useBulkActivateBooks() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (bookIds: string[]) =>
       assertOk(await bulkActivateBooks(bookIds)),
-    onSuccess: async (data, bookIds) => {
-      await commitBulk(queryClient, "book.write", session, {
-        action: "UPDATE",
-        entityType: "book",
-        status: "ACTIVE",
-        count: bookIds.length,
-      });
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "book.write");
       showToast.success("Books Activated", data.message || "Done.");
     },
     onError: (error: Error) => {
@@ -89,17 +63,11 @@ export function useBulkActivateBooks() {
 
 export function useBulkDeactivateBooks() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (bookIds: string[]) =>
       assertOk(await bulkDeactivateBooks(bookIds)),
-    onSuccess: async (data, bookIds) => {
-      await commitBulk(queryClient, "book.write", session, {
-        action: "UPDATE",
-        entityType: "book",
-        status: "INACTIVE",
-        count: bookIds.length,
-      });
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "book.write");
       showToast.success("Books Deactivated", data.message || "Done.");
     },
     onError: (error: Error) => {
@@ -110,16 +78,20 @@ export function useBulkDeactivateBooks() {
 
 export function useBulkDeleteBooksAutomation() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
-    mutationFn: async (args: { bookIds: string[]; deleteSecret: string }) =>
-      assertOk(await bulkDeleteBooks(args.bookIds, args.deleteSecret)),
-    onSuccess: async (data, args) => {
-      await commitBulk(queryClient, "book.write", session, {
-        action: "DELETE",
-        entityType: "book",
-        status: "DELETED",
-        count: args.bookIds.length,
+    mutationFn: async (args: { bookIds: string[]; deleteSecret: string }) => {
+      const result = assertOk(
+        await bulkDeleteBooks(args.bookIds, args.deleteSecret),
+      );
+      return { ...result, bookIds: args.bookIds };
+    },
+    onSuccess: async (data) => {
+      // Catalog densify parity with useDeleteBook (lists/KPIs); no activity invent.
+      await commitMutationCache(queryClient, "book.write", {
+        snapshot: () => undefined,
+        densify: () => {
+          densifyBookDelete(queryClient, data.bookIds);
+        },
       });
       showToast.success("Books Deleted", data.message || "Done.");
     },
@@ -131,18 +103,18 @@ export function useBulkDeleteBooksAutomation() {
 
 export function useBulkApproveUsers() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (userIds: string[]) =>
       assertOk(await bulkApproveUsers(userIds)),
-    onSuccess: async (data, userIds) => {
-      await commitBulk(queryClient, "user.write", session, {
-        action: "UPDATE",
-        entityType: "user",
-        status: "APPROVED",
-        count: userIds.length,
-      });
-      showToast.success("Users Approved", data.message || "Done.");
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "user.write");
+      showToast.success(
+        "Users Approved",
+        data.message ||
+          (typeof data.count === "number"
+            ? `Approved ${data.count} user(s).`
+            : "Done."),
+      );
     },
     onError: (error: Error) => {
       showToast.error("Approve Failed", error.message);
@@ -152,17 +124,11 @@ export function useBulkApproveUsers() {
 
 export function useBulkRejectUsers() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (userIds: string[]) =>
       assertOk(await bulkRejectUsers(userIds)),
-    onSuccess: async (data, userIds) => {
-      await commitBulk(queryClient, "user.write", session, {
-        action: "UPDATE",
-        entityType: "user",
-        status: "REJECTED",
-        count: userIds.length,
-      });
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "user.write");
       showToast.success("Users Rejected", data.message || "Done.");
     },
     onError: (error: Error) => {
@@ -173,17 +139,11 @@ export function useBulkRejectUsers() {
 
 export function useBulkMakeAdminUsers() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (userIds: string[]) =>
       assertOk(await bulkMakeAdminUsers(userIds)),
-    onSuccess: async (data, userIds) => {
-      await commitBulk(queryClient, "admin-request.write", session, {
-        action: "UPDATE",
-        entityType: "admin-request",
-        status: "APPROVED",
-        count: userIds.length,
-      });
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "admin-request.write");
       showToast.success("Admins Promoted", data.message || "Done.");
     },
     onError: (error: Error) => {
@@ -194,17 +154,11 @@ export function useBulkMakeAdminUsers() {
 
 export function useBulkRemoveAdminUsers() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (userIds: string[]) =>
       assertOk(await bulkRemoveAdminUsers(userIds)),
-    onSuccess: async (data, userIds) => {
-      await commitBulk(queryClient, "admin-request.write", session, {
-        action: "UPDATE",
-        entityType: "admin-request",
-        status: "REVOKED",
-        count: userIds.length,
-      });
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "admin-request.write");
       showToast.success("Admins Demoted", data.message || "Done.");
     },
     onError: (error: Error) => {
@@ -215,17 +169,11 @@ export function useBulkRemoveAdminUsers() {
 
 export function useBulkApproveBorrowRequests() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (recordIds: string[]) =>
       assertOk(await bulkApproveBorrowRequests(recordIds)),
-    onSuccess: async (data, recordIds) => {
-      await commitBulk(queryClient, "borrow.lifecycle", session, {
-        action: "UPDATE",
-        entityType: "borrow",
-        status: "BORROWED",
-        count: recordIds.length,
-      });
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "borrow.lifecycle");
       showToast.success("Requests Approved", data.message || "Done.");
     },
     onError: (error: Error) => {
@@ -236,17 +184,11 @@ export function useBulkApproveBorrowRequests() {
 
 export function useBulkRejectBorrowRequests() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   return useMutation({
     mutationFn: async (recordIds: string[]) =>
       assertOk(await bulkRejectBorrowRequests(recordIds)),
-    onSuccess: async (data, recordIds) => {
-      await commitBulk(queryClient, "borrow.lifecycle", session, {
-        action: "UPDATE",
-        entityType: "borrow",
-        status: "CANCELLED",
-        count: recordIds.length,
-      });
+    onSuccess: async (data) => {
+      await commitBulkInvalidate(queryClient, "borrow.lifecycle");
       showToast.success("Requests Rejected", data.message || "Done.");
     },
     onError: (error: Error) => {

@@ -249,3 +249,4 @@
 | SPAN-0243 | 2026-08-15 | C2 | Phase A closed tip sync | Compliance | CLAUDE+STATE tip `156ec79` / HEAD `9bc26a2`; Active plan Phase A closed | decision_log_append_only | REQ-0031–0034 | PASS |
 | SPAN-0244 | 2026-08-15 | C2 | Bulk Automation wire-up | Build Agent JS | Live bulk dialogs+hooks densify; drop coming-soon; DEC-0108; eslint+3 tests PASS | require_parent_requirement | REQ-0032, REQ-0023 | PASS local; commit pending |
 | SPAN-0245 | 2026-08-15 | C2 | Tip-bind Bulk Automation | Compliance | Bound tip/HEAD to `4d7cc10`; push closeout | decision_log_append_only | REQ-0032, REQ-0023 | PASS |
+| SPAN-0246 | 2026-08-15 | C2 | Agent Review real fixes | Build Agent JS | Bulk count+densifyBookDelete; no activity invent; reminder stamp fail closed; DEC-0109 | require_parent_requirement | REQ-0032, REQ-0023 | PASS local; commit pending |

@@ -79,7 +79,8 @@ export async function bulkUpdateBooks(
     revalidateMutationPaths("book.write");
     return {
       success: true,
-      message: `Successfully updated ${bookIds.length} book(s)`,
+      message: `Successfully updated ${safeBookIds.length} book(s)`,
+      count: safeBookIds.length,
     };
   } catch (error) {
     return {
@@ -203,6 +204,7 @@ export async function bulkDeleteBooks(
     return {
       success: true,
       message: `Successfully deleted ${safeBookIds.length} book(s)`,
+      count: safeBookIds.length,
     };
   } catch (error) {
     return {
@@ -286,7 +288,8 @@ export async function bulkUpdateUsers(
     revalidateMutationPaths("user.write");
     return {
       success: true,
-      message: `Successfully updated ${userIds.length} user(s)`,
+      message: `Successfully updated ${safeUserIds.length} user(s)`,
+      count: safeUserIds.length,
     };
   } catch (error) {
     return {
@@ -378,6 +381,7 @@ export async function bulkApproveUsers(userIds: string[]) {
     return {
       success: true,
       message: `Successfully approved ${eligibleIds.length} user(s)`,
+      count: eligibleIds.length,
     };
   } catch (error) {
     return {
@@ -469,6 +473,7 @@ export async function bulkRejectUsers(userIds: string[]) {
     return {
       success: true,
       message: `Successfully rejected ${eligibleIds.length} user(s)`,
+      count: eligibleIds.length,
     };
   } catch (error) {
     return {
@@ -542,6 +547,7 @@ export async function bulkMakeAdminUsers(userIds: string[]) {
     return {
       success: true,
       message: `Successfully promoted ${eligible.length} user(s) to admin`,
+      count: eligible.length,
     };
   } catch (error) {
     return {
@@ -615,6 +621,7 @@ export async function bulkRemoveAdminUsers(userIds: string[]) {
     return {
       success: true,
       message: `Successfully removed admin from ${eligible.length} user(s)`,
+      count: eligible.length,
     };
   } catch (error) {
     return {
@@ -647,7 +654,8 @@ export async function bulkApproveBorrowRequests(recordIds: string[]) {
     revalidateMutationPaths("borrow.lifecycle");
     return {
       success: true,
-      message: `Successfully approved ${recordIds.length} borrow request(s)`,
+      message: `Successfully approved ${safeRecordIds.length} borrow request(s)`,
+      count: safeRecordIds.length,
     };
   } catch (error) {
     return {
@@ -679,7 +687,8 @@ export async function bulkRejectBorrowRequests(recordIds: string[]) {
     revalidateMutationPaths("borrow.lifecycle");
     return {
       success: true,
-      message: `Successfully rejected ${recordIds.length} borrow request(s)`,
+      message: `Successfully rejected ${safeRecordIds.length} borrow request(s)`,
+      count: safeRecordIds.length,
     };
   } catch (error) {
     return {

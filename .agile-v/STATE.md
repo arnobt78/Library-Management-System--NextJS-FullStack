@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Phase A closed; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) Agent Review fixes; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Phase A W1–W3 + densify closeout closed; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - Agent Review real fixes done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `4d7cc10`
 - Latest HEAD: `4339316`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (Phase A closed — tip sync)
+- Last updated: 2026-08-15 (Agent Review real fixes)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,13 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Bulk Automation wire-up Prove done; Phase A closed
+- Active plan: Agent Review real fixes closed — ship commit
+
+## Reconciliation snapshot (2026-08-15, Agent Review real fixes)
+
+- **Done**: Bulk success `count`; invalidate-only (no activity invent); bulk delete uses `densifyBookDelete`; reminder stamp failure → `failed` not `sent`. DEC-0109. Left FP overdue-trend / delete-dialog order / reminder KPI alone.
+- **Remaining**: EvalGate / Gate 2; owner prod smoke.
+- **Next exact task**: commit when owner asks.
 
 ## Reconciliation snapshot (2026-08-15, Bulk Automation wire-up)
 
