@@ -73,7 +73,9 @@ export function isProtectedDemoAccount(user: {
   const universityId = user.universityId ?? null;
   return TEST_ACCOUNTS.some(
     (account) =>
-      (email != null && email.length > 0 && account.email.toLowerCase() === email) ||
+      (email != null &&
+        email.length > 0 &&
+        account.email.toLowerCase() === email) ||
       (universityId != null && account.universityId === universityId),
   );
 }
@@ -104,7 +106,7 @@ export const FIELD_PLACEHOLDERS = {
 export const BOOK_FIELD_PLACEHOLDERS = {
   title: "Book title",
   author: "Author name",
-  genre: "Enter genre",
+  genre: "Book category",
   rating: "1-5",
   totalCopies: "Number of copies",
   description: "Book description",

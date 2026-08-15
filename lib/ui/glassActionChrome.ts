@@ -74,7 +74,8 @@ export function actionAlertChrome(variant: ActionChromeVariant = "dark") {
  * Same py/px rhythm as `.profile-action-btn` for equal Edit/Delete height.
  */
 export const LIGHT_GLASS_CTA = {
-  host: "relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-[box-shadow,background-color,opacity] duration-200 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm",
+  // Fixed h-8 + locked SVG so Cancel / Edit / Delete share one height (no shadcn Button fight).
+  host: "relative inline-flex h-8 items-center justify-center gap-1.5 overflow-hidden rounded-lg border px-2.5 py-0 text-xs font-medium leading-none shadow-sm transition-[box-shadow,background-color,opacity] duration-200 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm [&_svg]:size-3.5 [&_svg]:shrink-0",
   edit: "border-primary-admin/40 bg-primary-admin text-white hover:bg-primary-admin/90 hover:shadow-md",
   delete:
     "border-red-800/40 bg-red-800 text-white hover:bg-red-800/90 hover:shadow-md",

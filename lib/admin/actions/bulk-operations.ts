@@ -38,6 +38,7 @@ import {
   settlePendingOrInsertApprovedAdminRequest,
 } from "@/lib/admin/adminPrivilegeLedger";
 import { logActivity } from "@/lib/admin/activityLog";
+import { scheduleImageKitPurge } from "@/lib/media/scheduleImageKitPurge";
 
 type BulkBookUpdates = Pick<typeof books.$inferInsert, "isActive">;
 type BulkUserUpdates = Pick<typeof users.$inferInsert, "role" | "status">;
@@ -111,6 +112,15 @@ export async function bulkDeleteBooks(
       };
     }
 
+    // Capture CDN URLs before hard-delete so we can purge orphans after commit.
+    const mediaRows = await db
+      .select({
+        coverUrl: books.coverUrl,
+        videoUrl: books.videoUrl,
+      })
+      .from(books)
+      .where(inArray(books.id, safeBookIds));
+
     const result = await db.transaction(async (tx) => {
       await tx
         .select({ id: borrowRecords.id })
@@ -182,6 +192,12 @@ export async function bulkDeleteBooks(
       details: { count: safeBookIds.length },
     });
     revalidateMutationPaths("book.write");
+
+    // Best-effort ImageKit purge for deleted covers/trailers (refcount skips shared).
+    scheduleImageKitPurge(
+      mediaRows.flatMap((row) => [row.coverUrl, row.videoUrl]),
+    );
+
     return {
       success: true,
       message: `Successfully deleted ${bookIds.length} book(s)`,

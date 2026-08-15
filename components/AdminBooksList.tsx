@@ -36,7 +36,7 @@ import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import { OverviewGenreChip } from "@/lib/ui/overviewGenreChip";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import {
-  Plus,
+  BookPlus,
   Eye,
   Pencil,
   BookMarked,
@@ -258,7 +258,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             actions={
               <Button className="bg-primary-admin" asChild>
                 <Link href="/admin/books/new" className="text-white">
-                  <Plus className="size-4" />
+                  <BookPlus className="size-4" />
                   Create a New Book
                 </Link>
               </Button>
@@ -291,7 +291,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             actions={
               <Button className="bg-primary-admin" asChild>
                 <Link href="/admin/books/new" className="text-white">
-                  <Plus className="size-4" />
+                  <BookPlus className="size-4" />
                   Create a New Book
                 </Link>
               </Button>
@@ -346,7 +346,7 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
           actions={
             <Button className="bg-primary-admin" asChild>
               <Link href="/admin/books/new" className="text-white">
-                <Plus className="size-4" />
+                <BookPlus className="size-4" />
                 Create a New Book
               </Link>
             </Button>
@@ -602,6 +602,11 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
                               <DeleteBookDialog
                                 bookId={book.id}
                                 bookTitle={book.title}
+                                author={book.author}
+                                coverUrl={book.coverUrl}
+                                coverColor={book.coverColor}
+                                genre={book.genre}
+                                rating={book.rating}
                                 trigger={
                                   <DropdownMenuItem
                                     onSelect={(e) => e.preventDefault()}

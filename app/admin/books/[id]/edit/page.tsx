@@ -31,6 +31,11 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
           <DeleteBookDialog
             bookId={book.id}
             bookTitle={book.title}
+            author={book.author}
+            coverUrl={book.coverUrl}
+            coverColor={book.coverColor}
+            genre={book.genre}
+            rating={book.rating}
             redirectTo="/admin/books"
           />
         ) : null

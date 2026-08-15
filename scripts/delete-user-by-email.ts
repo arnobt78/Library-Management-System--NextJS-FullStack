@@ -6,6 +6,7 @@
  *
  * Does NOT wipe books, demo accounts, or system_config.
  * Restores available_copies for any BORROWED rows owned by the deleted user.
+ * After commit, best-effort ImageKit purge of university_card when it lives under ids/.
  *
  * Usage:
  *   npx tsx scripts/delete-user-by-email.ts
@@ -22,6 +23,7 @@ config({ path: ".env" });
 config({ path: ".env.local", override: true });
 
 import { isProtectedDemoAccount } from "@/constants";
+import { purgeImageKitMedia } from "@/lib/media/imagekitPurge";
 
 const DEFAULT_EMAIL = "arnob_t78@yahoo.com";
 
@@ -40,6 +42,8 @@ async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const client = await pool.connect();
 
+  let universityCard: string | null = null;
+
   try {
     await client.query("BEGIN");
 
@@ -50,8 +54,9 @@ async function main() {
       university_id: number;
       status: string;
       role: string;
+      university_card: string | null;
     }>(
-      `SELECT id, email, full_name, university_id, status, role
+      `SELECT id, email, full_name, university_id, status, role, university_card
        FROM users
        WHERE lower(email) = $1
        LIMIT 1`,
@@ -65,6 +70,7 @@ async function main() {
     }
 
     const user = found.rows[0];
+    universityCard = user.university_card;
 
     if (
       isProtectedDemoAccount({
@@ -177,6 +183,13 @@ async function main() {
 
     await client.query("COMMIT");
     console.log(`\nDone. You can sign up again with ${email}.`);
+
+    // After commit: purge ImageKit ID card if allowlisted (local seeds skipped).
+    // Await so the CLI process does not exit before the Management API call finishes.
+    if (universityCard) {
+      await purgeImageKitMedia([universityCard]);
+      console.log("  ✓ ImageKit university_card purge attempted (best-effort)");
+    }
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

@@ -83,10 +83,6 @@
     @apply min-h-14 border border-gray-100 bg-light-600 p-4 text-base font-medium placeholder:font-normal placeholder:text-slate-500 !important;
   }
 
-  .book-form_btn {
-    @apply min-h-14 w-full bg-primary-admin hover:bg-primary-admin/95 !important;
-  }
-
   /* Home Page */
   .view-btn {
     @apply bg-light-300 rounded-md text-primary-admin font-medium hover:bg-light-300/80 shadow-none !important;

@@ -272,23 +272,65 @@ export const showToast = {
   },
 
   file: {
-    uploadSuccess: (type: "image" | "video", fileName: string) => {
+    /**
+     * ImageKit upload success — folder-aware title; single ✅ only (raw toast, not showToast.success).
+     * Callers must not prepend emoji to avoid double glyphs.
+     */
+    uploadSuccess: (opts: {
+      type: "image" | "video";
+      folder: string;
+      fileName: string;
+      filePath: string;
+    }) => {
+      const folder = opts.folder.replace(/^\/+|\/+$/g, "");
+      const title =
+        folder === "books/covers"
+          ? "Book cover uploaded"
+          : folder === "books/videos"
+            ? "Book trailer uploaded"
+            : folder === "ids"
+              ? "University ID uploaded"
+              : opts.type === "image"
+                ? "Image uploaded"
+                : "Video uploaded";
       toast({
-        title: `✅ ${type === "image" ? "Image" : "Video"} Uploaded!`,
-        description: `${fileName} has been uploaded successfully and is ready to use.`,
+        title: `✅ ${title}`,
+        description: `"${opts.fileName}" saved · ${opts.filePath} · ready to use`,
       });
     },
-    uploadError: (message: string) => {
+    uploadError: (type: "image" | "video", message?: string) => {
+      const kind = type === "image" ? "Image" : "Video";
       toast({
-        title: "📁 Upload Failed",
-        description: message,
+        title: `❌ ${kind} upload failed`,
+        description:
+          message?.trim() ||
+          `The ${kind.toLowerCase()} could not be uploaded. Please try again.`,
+        variant: "destructive",
+      });
+    },
+    unsupportedType: (type: "image" | "video") => {
+      toast({
+        title: "❌ Unsupported file",
+        description:
+          type === "image"
+            ? "Choose a JPEG, PNG, or WebP image."
+            : "Choose an MP4 or WebM video.",
+        variant: "destructive",
+      });
+    },
+    invalidSignature: () => {
+      toast({
+        title: "❌ Invalid file",
+        description:
+          "The file content does not match its declared media type.",
         variant: "destructive",
       });
     },
     fileTooLarge: (type: "image" | "video", maxSize: string) => {
+      const kind = type === "image" ? "Image" : "Video";
       toast({
-        title: "📁 File Too Large",
-        description: `${type === "image" ? "Image" : "Video"} files must be smaller than ${maxSize}. Please compress your file and try again.`,
+        title: "❌ File too large",
+        description: `${kind} files must be smaller than ${maxSize}. Compress the file and try again.`,
         variant: "destructive",
       });
     },

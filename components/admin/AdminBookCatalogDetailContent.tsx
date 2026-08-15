@@ -177,6 +177,11 @@ export default function AdminBookCatalogDetailContent({
             <DeleteBookDialog
               bookId={book.id}
               bookTitle={book.title}
+              author={book.author}
+              coverUrl={book.coverUrl}
+              coverColor={book.coverColor}
+              genre={book.genre}
+              rating={book.rating}
               redirectTo="/admin/books"
               triggerClassName={cn(
                 LIGHT_GLASS_CTA.host,

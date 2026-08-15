@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) FilterSelect flash fix; nonlocal Verify / EvalGate still outstanding
-- SCOPE-V phase: Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - FilterSelect flash shipped; next: book add/edit UI polish; C2 Gate 2 EvalGate-blocked
+- Stage: 4 - Prove (local) book form Wave A + ImageKit purge + upload toasts; nonlocal Verify / EvalGate still outstanding
+- SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
+- Status: ACTIVE - Wave A local done; C2 Gate 2 EvalGate-blocked
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `028dc23`
-- Latest HEAD: `2e7b310`
+- Latest implementation tip: pending (book form Wave A commit)
+- Latest HEAD: `48822cc` (+ committing Wave A)
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (FilterSelect flash shipped)
+- Last updated: 2026-08-15 (Wave A media trio + ImageKit purge + toast copy)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,17 +24,61 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
+- Active plan: `final-ui-polish-wave` Wave A done; B–E pending
+
+## Reconciliation snapshot (2026-08-15, Wave A media + ImageKit + toast)
+
+Verified facts:
+- Media trio: FileUpload `layout=dropzone`, ColorPicker `fill`, label Clear; Auth button unchanged.
+- ImageKit purge: allowlist covers/videos/ids; after() on book update/delete; CLI awaits card purge.
+- Upload toasts: `showToast.file` folder titles; no double ✅.
+- Prove: tsc + eslint touched + imagekitPurge unit tests PASS.
+
+### Next Action
+
+**Human-Verify:** replace/delete media in ImageKit library; then Wave B insights.
+
+## Reconciliation snapshot (2026-08-15, book form CTA + flags polish)
+
+Verified facts:
+- Footer Cancel/primary → LIGHT_GLASS_CTA (drop book-form_btn min-h-14).
+- Active/Featured 2-col; no label icons; Featured helper on Info tooltip.
+- Prove: tsc + eslint BookForm PASS.
+
+### Next Action
+
+Superseded by media + ImageKit + toast.
+
+## Reconciliation snapshot (2026-08-15, book form UI polish Wave A)
+
+Verified facts:
+- Shell: detail-style Back, AdminPageHeader, Cancel + form= primary + Delete.
+- Labels: Lucide + rose *; media trio Cover|Color|Trailer; desc|summary 2-col.
+- Confirm LIGHT_ALERT + ReviewBookIdentity; mutateAsync densify settle; no router.refresh.
+- Prove: tsc + eslint touched files PASS.
+
+### Next Action
+
+Superseded by CTA + flags polish.
+
+## Reconciliation snapshot (2026-08-15, Agile V resume + final polish wave)
+
+Verified facts:
+- Repo HEAD was `48822cc`; plan `final-ui-polish-wave` A–E proposed.
+
+### Next Action
+
+Superseded by Wave A implementation.
 
 ## Reconciliation snapshot (2026-08-15, FilterSelect flash shipped)
 
 Verified facts:
-- Tip `028dc23` + docs `2e7b310` pushed.
-- Explicit SelectValue; FilterSelect covered; MultiSelect OK; AuthForm leave (already paints selected).
-- Prove: tsc/lint/274 PASS.
+- Tip `028dc23` + docs tip-binds; HEAD later `48822cc`.
+- Explicit SelectValue; FilterSelect covered; MultiSelect OK; AuthForm leave.
 
 ### Next Action
 
-**Human-Decision:** hard-refresh filters; polish book add/edit UI → insights/automation/notif dropdown → scratch test.
+Superseded by Agile V resume + polish-wave plan.
 
 ## Reconciliation snapshot (2026-08-15, FilterSelect flash fix)
 

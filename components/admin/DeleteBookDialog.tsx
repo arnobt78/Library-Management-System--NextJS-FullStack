@@ -1,5 +1,8 @@
 /**
  * Hard-delete book confirm — title + ADMIN_DELETE_SECRET (server-verified).
+ * Preview uses ReviewBookIdentity DNA (cover · title · author · genre · rating).
+ * Default trigger is native LIGHT_GLASS_CTA delete (same h-8 as Cancel/Edit).
+ * Custom `trigger` kept for kebab menus.
  * LIGHT_ALERT settle DNA: dialog stays open with Loader2 until book.write densify
  * finishes (success → close + push; error → stay open, toast from useDeleteBook).
  * Parent: Delete settle UX + book densify closeout
@@ -22,12 +25,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { LIGHT_ALERT } from "@/lib/ui/glassActionChrome";
+import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
+import { LIGHT_ALERT, LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import { cn } from "@/lib/utils";
 
 interface DeleteBookDialogProps {
   bookId: string;
   bookTitle: string;
+  /** Optional catalog DNA for LIGHT_ALERT preview (falls back to title-only strip). */
+  author?: string | null;
+  coverUrl?: string | null;
+  coverColor?: string | null;
+  genre?: string | null;
+  rating?: number | null;
   /** Optional trigger button className override (default Delete button). */
   triggerClassName?: string;
   /** Custom trigger (e.g. kebab DropdownMenuItem); default is red Delete button. */
@@ -39,6 +49,11 @@ interface DeleteBookDialogProps {
 const DeleteBookDialog = ({
   bookId,
   bookTitle,
+  author,
+  coverUrl,
+  coverColor,
+  genre,
+  rating,
   triggerClassName,
   trigger,
   redirectTo,
@@ -91,15 +106,17 @@ const DeleteBookDialog = ({
     >
       <AlertDialogTrigger asChild>
         {trigger ?? (
-          <Button
-            size="sm"
-            variant="destructive"
-            className={triggerClassName}
+          <button
             type="button"
+            className={cn(
+              LIGHT_GLASS_CTA.host,
+              LIGHT_GLASS_CTA.delete,
+              triggerClassName,
+            )}
           >
-            <Trash2 className="size-4" />
+            <Trash2 aria-hidden />
             Delete
-          </Button>
+          </button>
         )}
       </AlertDialogTrigger>
       <AlertDialogContent className={LIGHT_ALERT.content}>
@@ -115,9 +132,17 @@ const DeleteBookDialog = ({
                 exact title and your ADMIN_DELETE_SECRET to confirm.
               </p>
               <div className={LIGHT_ALERT.preview}>
-                <p className="line-clamp-2 text-sm font-medium text-dark-400">
-                  {bookTitle}
-                </p>
+                <ReviewBookIdentity
+                  variant="light"
+                  showMeta
+                  catalogRatingMode="number"
+                  title={bookTitle}
+                  author={author}
+                  coverUrl={coverUrl}
+                  coverColor={coverColor}
+                  genre={genre}
+                  bookRating={rating}
+                />
               </div>
             </div>
           </AlertDialogDescription>

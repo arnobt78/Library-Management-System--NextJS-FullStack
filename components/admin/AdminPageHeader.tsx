@@ -49,9 +49,7 @@ export function AdminPageHeader({
           ) : null}
         </div>
       </div>
-      {actions ? (
-        <div className="shrink-0 self-center">{actions}</div>
-      ) : null}
+      {actions ? <div className="shrink-0 self-center">{actions}</div> : null}
     </div>
   );
 }

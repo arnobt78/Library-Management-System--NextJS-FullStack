@@ -18,6 +18,7 @@ import {
 } from "@/lib/auth/authorization";
 import { bookSchema, bookUpdateSchema } from "@/lib/validations";
 import { assertPersistedMediaUrl } from "@/lib/media/serverValidation";
+import { scheduleImageKitPurge } from "@/lib/media/scheduleImageKitPurge";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { logActivity } from "@/lib/admin/activityLog";
 import {
@@ -227,6 +228,26 @@ export const updateBook = async (
       details: { title: updatedBook.title },
     });
     revalidateMutationPaths("book.write");
+
+    // After DB commit: purge superseded ImageKit cover/video (best-effort).
+    const previous = currentBook[0];
+    const orphanUrls: string[] = [];
+    if (
+      safeParams.coverUrl !== undefined &&
+      safeParams.coverUrl !== previous.coverUrl
+    ) {
+      orphanUrls.push(previous.coverUrl);
+    }
+    if (
+      safeParams.videoUrl !== undefined &&
+      safeParams.videoUrl !== previous.videoUrl
+    ) {
+      orphanUrls.push(previous.videoUrl);
+    }
+    if (orphanUrls.length > 0) {
+      scheduleImageKitPurge(orphanUrls);
+    }
+
     return {
       success: true,
       data: JSON.parse(

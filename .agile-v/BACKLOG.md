@@ -203,3 +203,11 @@ Repo reconciled: tip `d8845bc`, HEAD `57333b5`, `main` == `origin/main`, clean t
 4. **Bug fix** — name symptom + expected behavior
 5. **Docs-only tip-bind commit** — ship this reconcile delta (no product code)
 6. **Other named scope** — explicit path/files/outcome
+
+## Session resume note (2026-08-15, final polish wave plan)
+
+Repo reconciled: tip `028dc23`, HEAD `48822cc`, `main` == `origin/main`, clean tree (`.cursor/` + `agile_v_skills/` untracked). FilterSelect shipped; AuthForm Select leave. Planned `final-ui-polish-wave` A–E (book form → insights → automation → notif → scratch Prove). **No code until owner approves.** EvalGate FAIL / Gate 2 unchanged.
+
+## Book form polish Wave A (2026-08-15)
+
+Owner approved. Delivered: form shell/CTA; media trio dropzone+fill+Clear; ImageKit orphan purge; `showToast.file` copy. Local tsc/eslint + purge unit tests PASS. Waves B–E pending.
