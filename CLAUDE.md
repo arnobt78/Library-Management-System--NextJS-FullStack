@@ -94,7 +94,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Densify actor card: `AuthorizedActor.universityCard` from DB; `resolveDecisionActor` + SSR `currentAdmin` on All Users / Admin Requests / Sign-up / User 360 / Book Reviews (no JWT card; session fallback null-card intentional).
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `156ec79` / HEAD `9bc26a2`; Phase A W1–W3 + densify closeout closed; Wave 5/EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip `156ec79` / HEAD `d5a8cf4`; Phase A W1–W3 + densify closeout closed; Wave 5/EvalGate FAIL blocks Gate 2.
 - Auth JWT idle: `SESSION_MAX_AGE_SECONDS` = 1d (`auth.ts`); hard-reload keeps cookies; clear cookies to logout.
 - UX polish (2026-08-15): BookForm confirm settle through soft-nav; bell unread circle; `/admin/users` no `?sort=created` URL rewrite (in-memory default + PrefetchLink `ADMIN_USERS_UNFILTERED`).
 - Phase A (2026-08-15, no LLM): Insights `C2-v2` (overdue trend, fine forecast, genre pressure); User 360 next actions; `/api/cron/due-reminders` + REMINDER_DUE/HOLD_READY; delete book no 404 flash; reviews empty no skeleton; Overview shared empty.
