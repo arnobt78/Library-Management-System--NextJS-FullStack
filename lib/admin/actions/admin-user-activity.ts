@@ -13,6 +13,7 @@ import {
   activityHistoryForUserWhere,
   type AdminUserActivityEntry,
 } from "@/lib/admin/adminUserActivity";
+import { annotateMissingActivityEntities } from "@/lib/server/annotateActivityEntityDeleted";
 
 export async function getAdminUserActivityHistory(
   userId: string,
@@ -35,13 +36,15 @@ export async function getAdminUserActivityHistory(
     .orderBy(desc(activityLogs.createdAt))
     .limit(25);
 
-  return rows.map((row) => ({
+  const mapped = rows.map((row) => ({
     id: row.id,
     action: row.action,
     entityType: row.entityType,
     entityId: row.entityId,
-    details: row.details,
+    details: (row.details as Record<string, unknown> | null) ?? null,
     createdAt: row.createdAt,
     actorId: row.actorId,
   }));
+
+  return annotateMissingActivityEntities(mapped);
 }

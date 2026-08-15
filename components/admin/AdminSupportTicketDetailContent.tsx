@@ -24,7 +24,6 @@ import { useSession } from "next-auth/react";
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -94,17 +93,29 @@ export default function AdminSupportTicketDetailContent({
   );
   const deleteMutation = useDeleteSupportTicket();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isNavigatingAfterDelete, setIsNavigatingAfterDelete] = useState(false);
 
   const activityEvents = useMemo(
     () => buildTicketActivityTimeline(ticket, ticket.auditEvents ?? []),
     [ticket],
   );
 
-  const handleDelete = () => {
-    deleteMutation.mutate(
-      { ticketId: ticket.id, decisionActor },
-      { onSuccess: () => router.push("/admin/support-tickets") },
-    );
+  const deletePending =
+    deleteMutation.isPending || isNavigatingAfterDelete;
+
+  const handleDelete = async () => {
+    try {
+      // Await densify; soft-nav while dialog still open (no 404 remount flash).
+      await deleteMutation.mutateAsync({
+        ticketId: ticket.id,
+        decisionActor,
+      });
+      setIsNavigatingAfterDelete(true);
+      router.replace("/admin/support-tickets");
+    } catch {
+      setIsNavigatingAfterDelete(false);
+    }
   };
 
   return (
@@ -147,11 +158,17 @@ export default function AdminSupportTicketDetailContent({
               <span className="hidden sm:inline">Edit Ticket</span>
               <span className="sm:hidden">Edit</span>
             </button>
-            <AlertDialog>
+            <AlertDialog
+              open={deleteOpen}
+              onOpenChange={(next) => {
+                if (deletePending && !next) return;
+                setDeleteOpen(next);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <button
                   type="button"
-                  disabled={deleteMutation.isPending}
+                  disabled={deletePending}
                   className={cn(
                     LIGHT_GLASS_CTA.host,
                     LIGHT_GLASS_CTA.delete,
@@ -186,23 +203,26 @@ export default function AdminSupportTicketDetailContent({
                 </AlertDialogHeader>
                 <AlertDialogFooter className={LIGHT_ALERT.footer}>
                   <AlertDialogCancel
-                    disabled={deleteMutation.isPending}
+                    disabled={deletePending}
                     className={LIGHT_ALERT.cancel}
                   >
                     Cancel
                   </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={deleteMutation.isPending}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDelete();
+                    }}
+                    disabled={deletePending}
                     className={LIGHT_ALERT.destructive}
                   >
-                    {deleteMutation.isPending ? (
+                    {deletePending ? (
                       <Loader2 className="size-3.5 animate-spin sm:size-4" />
                     ) : (
                       <Trash2 className="size-3.5 sm:size-4" />
                     )}
-                    {deleteMutation.isPending ? "Deleting…" : "Delete ticket"}
-                  </AlertDialogAction>
+                    {deletePending ? "Deleting…" : "Delete ticket"}
+                  </button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

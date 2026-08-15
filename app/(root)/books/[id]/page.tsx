@@ -3,7 +3,7 @@ import { db } from "@/database/drizzle";
 import { books, bookReviews, users, borrowRecords } from "@/database/schema";
 import { eq, desc, and, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import BookOverview from "@/components/BookOverview";
 import BookDetailContent from "@/components/BookDetailContent";
@@ -25,7 +25,8 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
     .where(eq(books.id, id))
     .limit(1);
 
-  if (!bookDetails) redirect("/404");
+  // Root `app/not-found.tsx` — dead `/404` redirect had no matching route.
+  if (!bookDetails) notFound();
 
   // Fetch user borrows for SSR (if user is logged in)
   // This ensures BookBorrowButton shows correct state immediately on first load

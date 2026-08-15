@@ -24,7 +24,6 @@ import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -89,6 +88,8 @@ export default function AdminBookReviewDetailContent({
   const deleteMutation = useDeleteReview();
   const [moderateTarget, setModerateTarget] =
     useState<ModerateReviewTargetStatus | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isNavigatingAfterDelete, setIsNavigatingAfterDelete] = useState(false);
 
   const decisionActor =
     resolveDecisionActor(currentAdmin, session?.user) ?? undefined;
@@ -97,6 +98,9 @@ export default function AdminBookReviewDetailContent({
   const moderatingStatus = moderateMutation.isPending
     ? moderateMutation.variables?.status
     : undefined;
+
+  const deletePending =
+    deleteMutation.isPending || isNavigatingAfterDelete;
 
   const handleModerateConfirm = () => {
     if (!moderateTarget) return;
@@ -111,16 +115,20 @@ export default function AdminBookReviewDetailContent({
     );
   };
 
-  const handleDelete = () => {
-    deleteMutation.mutate(
-      {
+  const handleDelete = async () => {
+    try {
+      // Await densify; soft-nav while dialog still open (no 404 remount flash).
+      await deleteMutation.mutateAsync({
         reviewId: review.id,
         bookId: review.bookId,
         bookTitle: review.bookTitle,
         userId: review.userId,
-      },
-      { onSuccess: () => router.push("/admin/book-reviews") },
-    );
+      });
+      setIsNavigatingAfterDelete(true);
+      router.replace("/admin/book-reviews");
+    } catch {
+      setIsNavigatingAfterDelete(false);
+    }
   };
 
   const author = {
@@ -213,11 +221,17 @@ export default function AdminBookReviewDetailContent({
           />
         }
         actions={
-          <AlertDialog>
+          <AlertDialog
+            open={deleteOpen}
+            onOpenChange={(next) => {
+              if (deletePending && !next) return;
+              setDeleteOpen(next);
+            }}
+          >
             <AlertDialogTrigger asChild>
               <button
                 type="button"
-                disabled={deleteMutation.isPending}
+                disabled={deletePending}
                 className={cn(
                   LIGHT_GLASS_CTA.host,
                   LIGHT_GLASS_CTA.delete,
@@ -255,23 +269,26 @@ export default function AdminBookReviewDetailContent({
               </AlertDialogHeader>
               <AlertDialogFooter className={LIGHT_ALERT.footer}>
                 <AlertDialogCancel
-                  disabled={deleteMutation.isPending}
+                  disabled={deletePending}
                   className={LIGHT_ALERT.cancel}
                 >
                   Cancel
                 </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDelete();
+                  }}
+                  disabled={deletePending}
                   className={LIGHT_ALERT.destructive}
                 >
-                  {deleteMutation.isPending ? (
+                  {deletePending ? (
                     <Loader2 className="size-3.5 animate-spin sm:size-4" />
                   ) : (
                     <Trash2 className="size-3.5 sm:size-4" />
                   )}
-                  {deleteMutation.isPending ? "Deleting…" : "Delete review"}
-                </AlertDialogAction>
+                  {deletePending ? "Deleting…" : "Delete review"}
+                </button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

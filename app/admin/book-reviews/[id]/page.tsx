@@ -4,8 +4,11 @@
  *
  * SSR currentAdmin supplies Approver densify attribution (card + name)
  * when client useSession is empty.
+ *
+ * Missing review → redirect to list (not notFound) so hard-delete remount
+ * never paints black/custom 404 before client soft-nav.
  */
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { requireAdminActor } from "@/lib/auth/authorization";
 import { getReviewAuditEvents } from "@/lib/admin/reviewAudit";
 import { getAdminReviewDetail } from "@/lib/server/reviewData";
@@ -35,8 +38,9 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
       .then((rows) => rows[0] ?? null),
   ]);
 
-  if (!review) notFound();
-
+  if (!review) {
+    redirect("/admin/book-reviews");
+  }
   const currentAdmin = adminRow
     ? {
         id: adminRow.id,

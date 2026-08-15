@@ -308,6 +308,16 @@ export const showToast = {
         variant: "destructive",
       });
     },
+    /** Upload auth sliding window exhausted (5 grants / 10 minutes). */
+    uploadRateLimited: (type: "image" | "video") => {
+      const kind = type === "image" ? "Image" : "Video";
+      toast({
+        title: `❌ ${kind} upload rate limited`,
+        description:
+          "Too many upload authorizations in the last 10 minutes (limit 5). Wait a few minutes, then try again.",
+        variant: "destructive",
+      });
+    },
     unsupportedType: (type: "image" | "video") => {
       toast({
         title: "❌ Unsupported file",

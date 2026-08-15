@@ -321,7 +321,10 @@ export async function DELETE(
 
     await db.delete(supportTickets).where(eq(supportTickets.id, id));
 
-    revalidateMutationPaths("ticket.write");
+    revalidateMutationPaths("ticket.write", {
+      // Skip detail RSC — client soft-navs to list; remounting missing id flashes 404.
+      omit: ["/admin/support-tickets/[id]", "/support-tickets/[id]"],
+    });
     await logActivity({
       actorId: actor.id,
       action: "DELETE",

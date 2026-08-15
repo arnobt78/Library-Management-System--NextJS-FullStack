@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) Agent Review fixes; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) public ticket delete never-paint 404; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Agent Review real fixes done; C2 Gate 2 EvalGate-blocked
+- Status: ACTIVE - public ticket detail delete parity Prove closed locally; commit pending
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `0a27e07`
-- Latest HEAD: `0a27e07`
+- Latest implementation tip: `102e119` (pre-fix tip; WT has delete-404 + universal unlink + public ticket)
+- Latest HEAD: `102e119`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (Agent Review real fixes)
+- Last updated: 2026-08-15 (public ticket delete never-paint 404)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,13 +24,40 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Agent Review real fixes closed — ship commit
+- Active plan: Public ticket detail never-paint 404 — local Prove PASS; commit when owner asks
+
+## Reconciliation snapshot (2026-08-15, public ticket delete never-paint 404)
+
+- **Done**: `/support-tickets/[id]` missing/unauthorized → `redirect(/support-tickets)`; `SupportTicketDetailContent` settle `mutateAsync` + `replace` (admin parity). RSC omit already present. typecheck + eslint PASS.
+- **Human verify**: User deletes open ticket from public detail → list + toast, zero 404.
+- **Remaining**: EvalGate / Gate 2; owner commit when ready.
+- **Next exact task**: commit when owner asks.
+
+## Reconciliation snapshot (2026-08-15, universal hard-delete unlink)
+
+- **Done**: Ticket/review detail missing → redirect list; settle soft-nav after densify; omit detail RSC on ticket/review DELETE; `annotateMissingActivityEntities` (book/review/ticket/user/borrow + reservation bookId); densify `markActivityEntitiesDeleted` on review+ticket delete; typecheck + eslint + 27 unit tests PASS. Soft reject/cancel stay linkable.
+- **Human verify**: Delete book/ticket/review from detail → list + toast, zero 404; Activity CREATE/UPDATE for that id non-clickable; soft-rejected borrow still clickable.
+- **Remaining**: EvalGate / Gate 2; owner commit when ready.
+- **Next exact task**: commit when owner asks.
+
+## Reconciliation snapshot (2026-08-15, delete-detail 404 + not-found)
+
+- **Done**: Admin book detail missing → `redirect(/admin/books)` (parity with edit; stops SA remount black 404). `app/not-found.tsx` + `app/admin/not-found.tsx`. Public book miss → `notFound()`. Activity densify `markActivityEntityDeleted` + SSR `annotateMissingBookEntities`; linkability respects `details.entityDeleted`. ImageKit 429 → `uploadRateLimited` toast (limit still 5/10m). typecheck + eslint touched + 25 unit tests PASS.
+- **Human verify**: Delete from admin book detail — dialog settles → catalog, no black 404; Activity CREATE/UPDATE for deleted book not clickable; nonsense admin id → admin-shell 404; upload auth 429 copy.
+- **Remaining**: EvalGate / Gate 2; owner commit/push when ready.
+- **Next exact task**: commit when owner asks.
+
+## Reconciliation snapshot (2026-08-15, Agile V resume)
+
+- **Done**: Loaded protocol + CLAUDE + STATE; reconciled tip `0a27e07` / HEAD `102e119` == origin/main; WT clean except untracked `agile_v_skills/`. Phase A + Bulk + DEC-0109 shipped.
+- **Remaining**: EvalGate / Gate 2; owner prod smoke. No new product request in resume prompt.
+- **Next exact task**: Human-Decision — tip-sync already applied in STATE; await owner Verify or name next Build scope. No coding until approved scope.
 
 ## Reconciliation snapshot (2026-08-15, Agent Review real fixes)
 
-- **Done**: Bulk success `count`; invalidate-only (no activity invent); bulk delete uses `densifyBookDelete`; reminder stamp failure → `failed` not `sent`. DEC-0109. Left FP overdue-trend / delete-dialog order / reminder KPI alone.
+- **Done**: Bulk success `count`; invalidate-only (no activity invent); bulk delete uses `densifyBookDelete`; reminder stamp failure → `failed` not `sent`. DEC-0109. Shipped as `0a27e07` + tip-bind `102e119`.
 - **Remaining**: EvalGate / Gate 2; owner prod smoke.
-- **Next exact task**: commit when owner asks.
+- **Next exact task**: closed — see Agile V resume snapshot above.
 
 ## Reconciliation snapshot (2026-08-15, Bulk Automation wire-up)
 

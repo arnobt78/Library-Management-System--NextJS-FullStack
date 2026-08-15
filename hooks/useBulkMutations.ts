@@ -21,6 +21,7 @@ import {
 } from "@/lib/admin/actions/bulk-operations";
 import { commitMutationCache } from "@/lib/query/mutationGateway";
 import { densifyBookDelete } from "@/lib/utils/patchBookCaches";
+import { markActivityEntitiesDeleted } from "@/lib/utils/patchActivityCaches";
 import { showToast } from "@/lib/toast";
 import type { MutationDomainName } from "@/lib/utils/queryInvalidation";
 
@@ -91,6 +92,7 @@ export function useBulkDeleteBooksAutomation() {
         snapshot: () => undefined,
         densify: () => {
           densifyBookDelete(queryClient, data.bookIds);
+          markActivityEntitiesDeleted(queryClient, "book", data.bookIds);
         },
       });
       showToast.success("Books Deleted", data.message || "Done.");

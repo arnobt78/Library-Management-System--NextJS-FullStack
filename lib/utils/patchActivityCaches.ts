@@ -156,3 +156,103 @@ export function densifyActivityLog(
     });
   }
 }
+
+function withEntityDeletedFlag(
+  details: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  return { ...(details ?? {}), entityDeleted: true };
+}
+
+function activityRowTargetsDeletedEntity(
+  row: {
+    entityType: string;
+    entityId: string | null;
+    details?: Record<string, unknown> | null;
+  },
+  entityType: string,
+  entityId: string,
+): boolean {
+  if (row.entityType === entityType && row.entityId === entityId) {
+    return true;
+  }
+  // Reservation Entity links via details.bookId → same book hard-delete.
+  if (
+    entityType === "book" &&
+    row.entityType === "reservation" &&
+    row.details?.bookId === entityId
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * After hard-delete: mark prior CREATE/UPDATE (and reservation) rows so
+ * Entity cells stop linking to a missing detail page. FIFO order preserved.
+ */
+export function markActivityEntityDeleted(
+  queryClient: QueryClient,
+  entityType: string,
+  entityId: string,
+): void {
+  if (!entityType || !entityId) return;
+
+  queryClient.setQueriesData<ActivityLogItem[]>(
+    { queryKey: queryKeys.activityLog.root },
+    (old) => {
+      if (!Array.isArray(old)) return old;
+      return old.map((row) => {
+        if (!activityRowTargetsDeletedEntity(row, entityType, entityId)) {
+          return row;
+        }
+        return {
+          ...row,
+          details: withEntityDeletedFlag(row.details),
+        };
+      });
+    },
+  );
+
+  queryClient.setQueriesData<AdminUserActivityEntry[]>(
+    { queryKey: queryKeys.activityLog.userRoot },
+    (old) => {
+      if (!Array.isArray(old)) return old;
+      return old.map((row) => {
+        const details =
+          row.details &&
+          typeof row.details === "object" &&
+          !Array.isArray(row.details)
+            ? (row.details as Record<string, unknown>)
+            : null;
+        if (
+          !activityRowTargetsDeletedEntity(
+            {
+              entityType: row.entityType,
+              entityId: row.entityId,
+              details,
+            },
+            entityType,
+            entityId,
+          )
+        ) {
+          return row;
+        }
+        return {
+          ...row,
+          details: withEntityDeletedFlag(details),
+        };
+      });
+    },
+  );
+}
+
+/** Mark every deleted id in warm activity caches (single + bulk delete). */
+export function markActivityEntitiesDeleted(
+  queryClient: QueryClient,
+  entityType: string,
+  entityIds: string[],
+): void {
+  for (const id of entityIds) {
+    markActivityEntityDeleted(queryClient, entityType, id);
+  }
+}

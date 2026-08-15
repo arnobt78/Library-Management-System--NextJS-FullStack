@@ -76,7 +76,10 @@ export async function DELETE(
     // Delete the review
     await db.delete(bookReviews).where(eq(bookReviews.id, reviewId));
 
-    revalidateMutationPaths("review.write");
+    revalidateMutationPaths("review.write", {
+      // Skip detail RSC — client soft-navs to list; remounting missing id flashes 404.
+      omit: ["/admin/book-reviews/[id]"],
+    });
 
     if (actor.role === "ADMIN") {
       await logActivity({

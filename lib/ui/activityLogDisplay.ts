@@ -92,6 +92,13 @@ function detailBookId(
   return typeof raw === "string" && raw.length > 0 ? raw : null;
 }
 
+/** Server/densify flag when the target entity row was hard-deleted. */
+export function isActivityEntityDeleted(
+  details: Record<string, unknown> | null | undefined,
+): boolean {
+  return details?.entityDeleted === true;
+}
+
 /**
  * Resolve admin href for an activity entity.
  * admin-request → `/admin/users/{details.userId}` (request id alone has no page).
@@ -134,6 +141,8 @@ export function isActivityEntityLinkable(args: {
 }): boolean {
   const { action, entityType, entityId, details } = args;
   if (action === "DELETE") return false;
+  // Densify/SSR flag after hard-delete — prior CREATE/UPDATE stay in FIFO.
+  if (isActivityEntityDeleted(details)) return false;
   if (!activityEntityHref(entityType, entityId, details)) return false;
   const status = detailStatus(details);
   if (
@@ -154,7 +163,7 @@ export function activityEntityUnavailableReason(args: {
   details?: Record<string, unknown> | null;
 }): string {
   const label = formatActivityEntityLabel(args.entityType).toLowerCase();
-  if (args.action === "DELETE") {
+  if (args.action === "DELETE" || isActivityEntityDeleted(args.details)) {
     return `This ${label} was deleted and is no longer available.`;
   }
   const status = detailStatus(args.details);
@@ -224,8 +233,8 @@ export function formatActivityDetails(
 
   for (const [key, value] of Object.entries(details)) {
     if (used.has(key)) continue;
-    // Href helpers — skip cluttering Details.
-    if (key === "userId" || key === "bookId") continue;
+    // Href helpers / densify flags — skip cluttering Details.
+    if (key === "userId" || key === "bookId" || key === "entityDeleted") continue;
     const text = formatDetailValue(value);
     if (text == null || text === "") continue;
     lines.push(`${key}: ${text}`);

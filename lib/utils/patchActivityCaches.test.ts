@@ -14,6 +14,7 @@ import {
   ACTIVITY_LOG_CACHE_RETENTION,
   densifyActivityLog,
   inventActivityLogItem,
+  markActivityEntityDeleted,
   patchActivityCachesOnLog,
   resolveActivitySubjectUserId,
 } from "@/lib/utils/patchActivityCaches";
@@ -172,5 +173,82 @@ describe("patchActivityCaches", () => {
     expect(
       client.getQueryData(queryKeys.activityLog.user("anyone")),
     ).toBeUndefined();
+  });
+
+  it("markActivityEntityDeleted flags matching book + reservation rows", () => {
+    const client = new QueryClient();
+    const key7 = queryKeys.activityLog.list({ period: "7days" });
+    const userKey = queryKeys.activityLog.user("u1");
+    client.setQueryData<ActivityLogItem[]>(key7, [
+      {
+        ...sampleRow("create-b1"),
+        action: "CREATE",
+        entityType: "book",
+        entityId: "b1",
+        details: { title: "Algorithms" },
+      },
+      {
+        ...sampleRow("res-1"),
+        action: "CREATE",
+        entityType: "reservation",
+        entityId: "r1",
+        details: { bookId: "b1", status: "WAITING" },
+      },
+      {
+        ...sampleRow("other"),
+        entityType: "book",
+        entityId: "b2",
+        details: { title: "Other" },
+      },
+    ]);
+    client.setQueryData<AdminUserActivityEntry[]>(userKey, [
+      {
+        id: "ua-1",
+        action: "UPDATE",
+        entityType: "book",
+        entityId: "b1",
+        details: { title: "Algorithms" },
+        createdAt: new Date().toISOString(),
+        actorId: "a1",
+      },
+    ]);
+
+    markActivityEntityDeleted(client, "book", "b1");
+
+    const next = client.getQueryData<ActivityLogItem[]>(key7)!;
+    expect(next[0]?.details).toMatchObject({ entityDeleted: true });
+    expect(next[1]?.details).toMatchObject({ entityDeleted: true });
+    expect(next[2]?.details).not.toMatchObject({ entityDeleted: true });
+
+    const userNext = client.getQueryData<AdminUserActivityEntry[]>(userKey)!;
+    expect(userNext[0]?.details).toMatchObject({ entityDeleted: true });
+  });
+
+  it("markActivityEntityDeleted flags review and ticket CREATE/UPDATE rows", () => {
+    const client = new QueryClient();
+    const key7 = queryKeys.activityLog.list({ period: "7days" });
+    client.setQueryData<ActivityLogItem[]>(key7, [
+      {
+        ...sampleRow("rv-create"),
+        action: "CREATE",
+        entityType: "review",
+        entityId: "rv1",
+        details: { bookId: "b1" },
+      },
+      {
+        ...sampleRow("t-update"),
+        action: "UPDATE",
+        entityType: "ticket",
+        entityId: "t1",
+        details: { subject: "Help" },
+      },
+    ]);
+
+    markActivityEntityDeleted(client, "review", "rv1");
+    markActivityEntityDeleted(client, "ticket", "t1");
+
+    const next = client.getQueryData<ActivityLogItem[]>(key7)!;
+    expect(next[0]?.details).toMatchObject({ entityDeleted: true });
+    expect(next[1]?.details).toMatchObject({ entityDeleted: true });
   });
 });

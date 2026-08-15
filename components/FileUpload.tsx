@@ -70,6 +70,12 @@ async function getUploadAuthentication(): Promise<UploadAuthentication> {
   const response = await fetch("/api/auth/imagekit", { cache: "no-store" });
 
   if (!response.ok) {
+    // Sliding window (5 / 10m) — surface 429 distinctly so retries wait the window.
+    if (response.status === 429) {
+      const err = new Error("UPLOAD_AUTH_RATE_LIMITED");
+      err.name = "UploadAuthRateLimited";
+      throw err;
+    }
     throw new Error(`Upload authorization failed with status ${response.status}`);
   }
 
@@ -184,8 +190,17 @@ const FileUpload = ({
         fileName: selectedFile.name,
         filePath: result.filePath,
       });
-    } catch {
-      showToast.file.uploadError(type);
+    } catch (error) {
+      // REQ-0026: 5 upload-auth grants / 10m — expected after cover+video+retries.
+      if (
+        error instanceof Error &&
+        (error.name === "UploadAuthRateLimited" ||
+          error.message === "UPLOAD_AUTH_RATE_LIMITED")
+      ) {
+        showToast.file.uploadRateLimited(type);
+      } else {
+        showToast.file.uploadError(type);
+      }
     } finally {
       setIsUploading(false);
     }

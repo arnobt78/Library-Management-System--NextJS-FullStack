@@ -1,9 +1,13 @@
 /**
  * Admin Book Catalog detail — SSR-seeds book + borrow stats + FIFO-25 Activity.
  * Parent: Admin Book Detail FIFO-25 Activity
+ *
+ * Missing book → redirect to catalog (same as edit), not notFound().
+ * After hard-delete the Server Action remounts this route; redirect avoids
+ * the default black Next/Vercel 404 flash before client soft-nav to list.
  */
 
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getBookById } from "@/lib/admin/actions/book";
 import { getBookAuditEvents } from "@/lib/admin/bookAudit";
 import { loadBookBorrowStats } from "@/lib/services/loadBookBorrowStats";
@@ -20,7 +24,9 @@ const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
     getBookAuditEvents(id),
   ]);
 
-  if (!result.success || !result.data) notFound();
+  if (!result.success || !result.data) {
+    redirect("/admin/books");
+  }
 
   const seeded: Book = {
     ...result.data,

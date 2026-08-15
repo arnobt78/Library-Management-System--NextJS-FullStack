@@ -11,6 +11,7 @@ import "server-only";
 import { db } from "@/database/drizzle";
 import { activityLogs, users } from "@/database/schema";
 import { and, desc, eq, gte, ilike, or } from "drizzle-orm";
+import { annotateMissingActivityEntities } from "@/lib/server/annotateActivityEntityDeleted";
 
 export type ActivityLogPeriod = "today" | "7days" | "30days" | "all";
 
@@ -91,8 +92,10 @@ export async function getActivityLogs(
     .orderBy(desc(activityLogs.createdAt))
     .limit(limit);
 
-  return rows.map((row) => ({
-    ...row,
-    details: (row.details as Record<string, unknown> | null) ?? null,
-  }));
+  return annotateMissingActivityEntities(
+    rows.map((row) => ({
+      ...row,
+      details: (row.details as Record<string, unknown> | null) ?? null,
+    })),
+  );
 }

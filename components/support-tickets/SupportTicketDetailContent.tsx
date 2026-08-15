@@ -4,7 +4,8 @@
  * Personal ticket detail — dark glass:
  * Back row + Edit/Delete (justify-between); full-width title card;
  * KPI grid (status/priority/messages/assigned); Activity + Conversation.
- * Parent: CR-0003 / REQ-0034
+ * Delete settle DNA matches admin: dialog stays open until densify then
+ * router.replace list (no 404 remount flash). Parent: CR-0003 / REQ-0034
  */
 
 import { useMemo, useState } from "react";
@@ -20,7 +21,6 @@ import {
 import { useBackWithRefresh } from "@/hooks/useBackWithRefresh";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -65,6 +65,8 @@ export default function SupportTicketDetailContent({
   );
   const deleteMutation = useDeleteSupportTicket();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isNavigatingAfterDelete, setIsNavigatingAfterDelete] = useState(false);
 
   const isOwner = ticket.userId === currentUserId;
   const canEdit =
@@ -76,19 +78,32 @@ export default function SupportTicketDetailContent({
     [ticket],
   );
 
-  const handleDelete = () => {
-    deleteMutation.mutate(
-      { ticketId: ticket.id },
-      { onSuccess: () => router.push("/support-tickets") },
-    );
+  const deletePending =
+    deleteMutation.isPending || isNavigatingAfterDelete;
+
+  const handleDelete = async () => {
+    try {
+      // Await densify; soft-nav while dialog still open (no 404 remount flash).
+      await deleteMutation.mutateAsync({ ticketId: ticket.id });
+      setIsNavigatingAfterDelete(true);
+      router.replace("/support-tickets");
+    } catch {
+      setIsNavigatingAfterDelete(false);
+    }
   };
 
   const deleteDialog = (
-    <AlertDialog>
+    <AlertDialog
+      open={deleteOpen}
+      onOpenChange={(next) => {
+        if (deletePending && !next) return;
+        setDeleteOpen(next);
+      }}
+    >
       <AlertDialogTrigger asChild>
         <button
           type="button"
-          disabled={deleteMutation.isPending}
+          disabled={deletePending}
           className="profile-action-btn profile-action-btn--cancel-request inline-flex shrink-0 items-center gap-1.5"
         >
           <Trash2 className="size-4" />
@@ -119,23 +134,26 @@ export default function SupportTicketDetailContent({
         </AlertDialogHeader>
         <AlertDialogFooter className={GLASS_ALERT.footer}>
           <AlertDialogCancel
-            disabled={deleteMutation.isPending}
+            disabled={deletePending}
             className={GLASS_ALERT.cancel}
           >
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
+          <button
+            type="button"
+            onClick={() => {
+              void handleDelete();
+            }}
+            disabled={deletePending}
             className={GLASS_ALERT.destructive}
           >
-            {deleteMutation.isPending ? (
+            {deletePending ? (
               <Loader2 className="size-3.5 animate-spin sm:size-4" />
             ) : (
               <Trash2 className="size-3.5 sm:size-4" />
             )}
-            {deleteMutation.isPending ? "Deleting…" : "Delete ticket"}
-          </AlertDialogAction>
+            {deletePending ? "Deleting…" : "Delete ticket"}
+          </button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

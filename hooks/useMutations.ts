@@ -145,7 +145,10 @@ import {
   snapshotBorrowListBaselines,
 } from "@/lib/utils/patchBorrowCaches";
 import { applyReturnInventoryDensify } from "@/lib/utils/applyReturnInventoryDensify";
-import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
+import {
+  densifyActivityLog,
+  markActivityEntitiesDeleted,
+} from "@/lib/utils/patchActivityCaches";
 import {
   resolveActivityActor,
   type ActivityActorFields,
@@ -508,6 +511,8 @@ export const useDeleteBook = () => {
             data.bookIds,
             variables.snapshots,
           );
+          // Prior CREATE/UPDATE rows stay in FIFO but stop linking to missing detail.
+          markActivityEntitiesDeleted(queryClient, "book", data.bookIds);
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),
             action: "DELETE",
@@ -2712,6 +2717,9 @@ export const useDeleteReview = () => {
             densifyMeta,
             baselines,
           );
+          markActivityEntitiesDeleted(queryClient, "review", [
+            variables.reviewId,
+          ]);
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),
             action: "DELETE",
@@ -4033,6 +4041,7 @@ export const useDeleteSupportTicket = () => {
             baselines,
             previousPriority,
           );
+          markActivityEntitiesDeleted(queryClient, "ticket", [ticketId]);
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session, variables.decisionActor),
             action: "DELETE",

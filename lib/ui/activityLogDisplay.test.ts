@@ -83,6 +83,25 @@ describe("isActivityEntityLinkable", () => {
     ).toBe(false);
   });
 
+  it("blocks CREATE/UPDATE when details.entityDeleted (hard-delete densify/SSR)", () => {
+    expect(
+      isActivityEntityLinkable({
+        action: "UPDATE",
+        entityType: "book",
+        entityId: "b1",
+        details: { entityDeleted: true, title: "Gone" },
+      }),
+    ).toBe(false);
+    expect(
+      isActivityEntityLinkable({
+        action: "CREATE",
+        entityType: "book",
+        entityId: "b1",
+        details: { entityDeleted: true },
+      }),
+    ).toBe(false);
+  });
+
   it("blocks CANCELLED book (no sensible cancelled-book admin surface)", () => {
     expect(
       isActivityEntityLinkable({
@@ -167,6 +186,17 @@ describe("activityEntityUnavailableReason", () => {
         action: "DELETE",
         entityType: "book",
         entityId: "b1",
+      }),
+    ).toMatch(/deleted/i);
+  });
+
+  it("mentions deleted when entityDeleted flag is set on CREATE/UPDATE", () => {
+    expect(
+      activityEntityUnavailableReason({
+        action: "UPDATE",
+        entityType: "book",
+        entityId: "b1",
+        details: { entityDeleted: true },
       }),
     ).toMatch(/deleted/i);
   });

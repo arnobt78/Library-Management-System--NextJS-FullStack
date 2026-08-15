@@ -11,6 +11,7 @@ import type { AdminPrivilegeHistoryEntry } from "@/lib/admin/adminPrivilegeHisto
 import { activityHistoryForUserWhere } from "@/lib/admin/adminUserActivity";
 import { loadSignupDecisionEntries } from "@/lib/admin/signupStatusDecisions";
 import type { SignupRequestDecisionEntry } from "@/lib/admin/signupStatusDecisions";
+import { annotateMissingActivityEntities } from "@/lib/server/annotateActivityEntityDeleted";
 import {
   activityLogs,
   adminRequests,
@@ -288,6 +289,14 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         : null,
   }));
 
+  // Soft UUID activity — delink CREATE/UPDATE when hard-deleted targets are gone.
+  const activityHistoryAnnotated = await annotateMissingActivityEntities(
+    activityHistory.map((row) => ({
+      ...row,
+      details: (row.details as Record<string, unknown> | null) ?? null,
+    })),
+  );
+
   return {
     user,
     history,
@@ -295,7 +304,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     requestHistory,
     reservationHistory,
     ticketHistory,
-    activityHistory,
+    activityHistory: activityHistoryAnnotated,
     /** Full user_status_decisions ledger — densify via signupRequestDetail. */
     signupDecisions: signupDecisions as SignupRequestDecisionEntry[],
     metrics: metrics.rows[0] as Record<string, string | number>,
