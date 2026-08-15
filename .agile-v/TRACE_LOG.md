@@ -235,3 +235,4 @@
 | SPAN-0229 | 2026-08-15 | C2 | Book create closeout | Build Agent JS | Media 10s+retry; create Added-only stamps; Activity action actor; CopyableText break-all; 20 tests + tsc/eslint PASS | require_parent_requirement | REQ-0026, REQ-0033 | PASS local; commit pending |
 | SPAN-0230 | 2026-08-15 | C2 | all-books delete densify | Build Agent JS | densifyBookDelete total+backfill page holes; 19 tests + tsc/eslint PASS | require_parent_requirement | REQ-0023, REQ-0033 | PASS local; commit pending |
 | SPAN-0231 | 2026-08-15 | C2 | delete densify gap closeout | Build Agent JS | useBookGenres + densifyBookGenres; delete snapshot fallback; 30 tests + tsc/eslint PASS | require_parent_requirement | REQ-0023, REQ-0033 | PASS local; commit pending |
+| SPAN-0232 | 2026-08-15 | C2 | Tip-bind book densify | Compliance | Bound tip/HEAD to `6d04e9e` | decision_log_append_only | REQ-0023, REQ-0026, REQ-0033 | PASS |
