@@ -4,11 +4,11 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - 404 contrast + Sentry filter Prove closed locally; commit pending
+- Status: ACTIVE - Sentry filter + root 404 contrast shipped (`073afae`); tip-bind `cf61020`
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `073afae`
-- Latest HEAD: `073afae`
+- Latest HEAD: `cf61020`
 - Started: 2026-08-01
 - Last updated: 2026-08-16 (404 contrast + Sentry closeout)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -28,9 +28,9 @@
 
 ## Reconciliation snapshot (2026-08-16, 404 contrast + Sentry closeout)
 
-- **Done**: Root `#not-found` h4/p → dark tokens; Browse link `SKY_LINK_LIGHT`. Sentry auth filter already in WT.
-- **Remaining**: owner commit (Sentry + 404); Resolve old Sentry issues after deploy; book CRUD Verify after `seed:reset`.
-- **Next exact task**: commit when owner asks.
+- **Done**: Root `#not-found` h4/p → dark tokens; Browse link `SKY_LINK_LIGHT`. Sentry auth filter + admin redirect shipped `073afae` / tip-bind `cf61020`.
+- **Remaining**: EvalGate / Gate 2; Resolve old Sentry issues after deploy; book CRUD Verify after `seed:reset`.
+- **Next exact task**: owner Verify / prod smoke.
 
 ## Reconciliation snapshot (2026-08-16, Sentry auth denial noise)
 
