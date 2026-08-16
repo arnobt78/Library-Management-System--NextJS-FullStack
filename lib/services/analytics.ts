@@ -68,6 +68,8 @@ export interface UserActivity {
  */
 export interface OverdueBook {
   recordId: string;
+  bookId: string;
+  userId: string;
   bookTitle: string;
   bookAuthor: string;
   userName: string;
@@ -88,9 +90,14 @@ export interface OverdueStats {
 }
 
 /**
- * Monthly statistics
+ * Monthly statistics — last 12 calendar months + current/last convenience fields.
  */
 export interface MonthlyStats {
+  /** Oldest → newest, always 12 slots (zero-filled). */
+  months: Array<{
+    month: string; // YYYY-MM format
+    borrows: number;
+  }>;
   currentMonth: {
     month: string; // YYYY-MM format
     borrows: number;
@@ -102,7 +109,7 @@ export interface MonthlyStats {
 }
 
 /**
- * System health metrics
+ * System health metrics (Insights KPIs + legacy totals)
  */
 export interface SystemHealth {
   totalBooks: number;
@@ -110,6 +117,14 @@ export interface SystemHealth {
   activeBorrows: number;
   pendingRequests: number;
   overdueBooks: number;
+  /** BORROWED loans due within the next 48 hours (not yet overdue). */
+  dueSoon48h: number;
+  /** WAITING reservation holds. */
+  holdsWaiting: number;
+  /** OPEN + IN_PROGRESS support tickets. */
+  openTickets: number;
+  /** PENDING book reviews awaiting moderation. */
+  pendingReviews: number;
   recentActivity: number;
 }
 

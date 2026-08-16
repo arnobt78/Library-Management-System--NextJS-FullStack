@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - book trailer max-h shipped (`44a08ba`)
+- Status: ACTIVE - Business Insights polish shipped (awaiting owner Verify)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `44a08ba`
-- Latest HEAD: `fd43f22`
+- Latest implementation tip: (pending commit) Insights polish + overdue severity
+- Latest HEAD: `b969a62`
 - Started: 2026-08-01
-- Last updated: 2026-08-16 (book trailer max-h tip-bind)
+- Last updated: 2026-08-17 (Insights polish + overdue severity)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,13 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Densify closeout shipped; Sentry expected-auth filter + admin redirect; ImageKit upload-limit deferred; owner Verify / name next Build
+- Active plan: Insights polish + overdue severity shipped; ImageKit upload-limit deferred; owner Verify Insights / EvalGate blocks Gate 2
+
+## Reconciliation snapshot (2026-08-17, Business Insights polish)
+
+- **Done**: Waves A–E — overdue DataTable + PrefetchLinks; 8 StatCards; shared `opsPeriod`; 8 charts; cross-domain chips; `daysOverdue` severity buckets/floors (not dueDate windows); dead `matchesInsightsOpsPeriod` removed. Evict + remount refetch only. typecheck/lint after tip-bind.
+- **Remaining**: EvalGate / Gate 2; owner Verify Insights page.
+- **Next exact task**: owner Verify `/admin/business-insights`.
 
 ## Reconciliation snapshot (2026-08-16, book trailer max-h)
 

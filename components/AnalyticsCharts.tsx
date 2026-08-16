@@ -1,19 +1,12 @@
 "use client";
 
 /**
- * AnalyticsCharts Component
- *
- * Client component that displays comprehensive analytics charts and metrics.
- * Uses React Query for data fetching and caching, with SSR initial data support.
- *
- * Features:
- * - Uses useBusinessInsights hook with initialData from SSR
- * - Displays skeleton loaders while fetching
- * - Shows error state if fetch fails
- * - All existing UI, styling, and functionality preserved
+ * AnalyticsCharts — Business Insights ops dashboard.
+ * SSR snapshot + RQ staleTime 0 / always remount refetch (no invent densify series).
+ * 8 KPIs · shared opsPeriod · 8 charts · overdue DataTable · cross-domain chips.
  */
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -30,37 +23,87 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useBusinessInsights } from "@/hooks/useQueries";
-import type { AnalyticsData } from "@/lib/services/analytics";
+import type { AnalyticsData, OverdueBook } from "@/lib/services/analytics";
 import ChartSkeleton from "@/components/skeletons/ChartSkeleton";
 import GenericCardSkeleton from "@/components/skeletons/GenericCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { ADMIN_PANEL_CLASS } from "@/lib/ui/adminSurfaceStyles";
 import { AdminDetailEmptyState } from "@/components/admin/AdminDetailEmptyState";
+import { InsightsOverdueTable } from "@/components/admin/InsightsOverdueTable";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import PrefetchLink from "@/components/PrefetchLink";
+import {
+  insightsOpsPeriodMonthCount,
+  insightsOpsPeriodOptions,
+  insightsOpsPeriodToDays,
+  matchesOverdueOpsDaysPeriod,
+  type InsightsOpsPeriod,
+} from "@/lib/ui/periodFilterOptions";
 import {
   Activity,
   AlertTriangle,
   BarChart3,
-  BookOpen,
-  BookOpenCheck,
-  CalendarDays,
-  CheckCircle2,
+  BookMarked,
+  ClipboardList,
+  Clock,
+  DollarSign,
+  FileWarning,
+  Inbox,
+  MessageSquareWarning,
+  Percent,
   PieChart as PieChartIcon,
+  Star,
+  Ticket,
   TrendingUp,
   Users,
 } from "lucide-react";
 
 interface AnalyticsChartsProps {
-  /**
-   * Initial analytics data from SSR (prevents duplicate fetch)
-   */
   initialData?: AnalyticsData;
 }
 
+const OPS_PERIOD_OPTIONS = insightsOpsPeriodOptions("light");
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
+const CHIP_CLASS =
+  "rounded-full border px-3 py-1 text-xs font-medium transition-colors";
+
+function filterOverdueByOpsPeriod(
+  rows: OverdueBook[],
+  period: InsightsOpsPeriod,
+): OverdueBook[] {
+  return rows.filter((r) =>
+    matchesOverdueOpsDaysPeriod(r.daysOverdue, period),
+  );
+}
+
+function overdueAnalysisFromRows(
+  rows: OverdueBook[],
+  activeBorrows: number,
+): {
+  totalOverdue: number;
+  avgDaysOverdue: number;
+  totalFines: number;
+  overdueRate: number;
+} {
+  const totalOverdue = rows.length;
+  const totalFines = rows.reduce((sum, r) => sum + (Number(r.fineAmount) || 0), 0);
+  const avgDaysOverdue =
+    totalOverdue === 0
+      ? 0
+      : rows.reduce((sum, r) => sum + (Number(r.daysOverdue) || 0), 0) /
+        totalOverdue;
+  const overdueRate =
+    activeBorrows > 0 ? (totalOverdue / activeBorrows) * 100 : 0;
+  return { totalOverdue, avgDaysOverdue, totalFines, overdueRate };
+}
+
 const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
-  // React Query hook with SSR initial data
+  const [opsPeriod, setOpsPeriod] = useState<InsightsOpsPeriod>("30days");
+  const trendsDays = insightsOpsPeriodToDays(opsPeriod);
+
   const {
     data: analyticsData,
     isLoading: analyticsLoading,
@@ -69,22 +112,45 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
   } = useBusinessInsights(
     {
       popularBooksLimit: 10,
+      borrowingTrendsDays: trendsDays,
     },
     initialData,
   );
 
-  // CRITICAL: Always prefer React Query data over initialData
-  // React Query data is fresh and updates immediately after mutations
-  // initialData is only used as fallback during initial load
   const data: AnalyticsData | undefined = analyticsData ?? initialData;
 
-  // Show skeleton while loading (only if no initial data)
+  const periodOverdue = useMemo(
+    () => filterOverdueByOpsPeriod(data?.overdueBooks ?? [], opsPeriod),
+    [data?.overdueBooks, opsPeriod],
+  );
+
+  const periodOverdueStats = useMemo(
+    () =>
+      overdueAnalysisFromRows(
+        periodOverdue,
+        data?.systemHealth?.activeBorrows ?? 0,
+      ),
+    [periodOverdue, data?.systemHealth?.activeBorrows],
+  );
+
+  const monthlySeries = useMemo(() => {
+    const months = data?.monthlyStats?.months ?? [];
+    const n = insightsOpsPeriodMonthCount(opsPeriod);
+    return months.slice(-n).map((m) => ({
+      month: m.month,
+      label: new Date(`${m.month}-01T00:00:00`).toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      }),
+      borrows: m.borrows,
+    }));
+  }, [data?.monthlyStats?.months, opsPeriod]);
+
   if (analyticsLoading && !initialData) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        {/* Key Metrics Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
             <GenericCardSkeleton
               key={`metric-skeleton-${i}`}
               showHeader={false}
@@ -96,42 +162,21 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ))}
         </div>
-
-        {/* Charts Grid Skeleton */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={`chart-skeleton-${i}`}
-              className={ADMIN_PANEL_CLASS}
-            >
+          {[...Array(8)].map((_, i) => (
+            <div key={`chart-skeleton-${i}`} className={ADMIN_PANEL_CLASS}>
               <Skeleton className="mb-4 h-7 w-40" />
               <ChartSkeleton
-                variant={i === 2 ? "pie" : i % 2 === 0 ? "line" : "bar"}
+                variant={i === 3 ? "pie" : i % 2 === 0 ? "line" : "bar"}
                 height={300}
               />
             </div>
           ))}
         </div>
-
-        {/* Overdue Books Table Skeleton */}
-        <div className={ADMIN_PANEL_CLASS}>
-          <Skeleton className="mb-4 h-7 w-40" />
-          <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={`table-row-skeleton-${i}`} className="flex gap-4">
-                <Skeleton className="h-6 flex-1" />
-                <Skeleton className="h-6 flex-1" />
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-6 w-24" />
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     );
   }
 
-  // Show error state
   if (analyticsError && !initialData) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -149,7 +194,6 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
     );
   }
 
-  // Show empty state if no data
   if (!data) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -161,7 +205,10 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
       </div>
     );
   }
-  // Prepare data for charts
+
+  const health = data.systemHealth;
+  const insights = data.deterministicInsights;
+
   const trendsData = data.borrowingTrends.map((trend) => ({
     date: new Date(trend.date).toLocaleDateString("en-US", {
       month: "short",
@@ -177,14 +224,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         ? book.bookTitle.substring(0, 20) + "..."
         : book.bookTitle,
     borrows: book.totalBorrows,
-    active: book.activeBorrows,
-    returned: book.returnedBorrows,
   }));
 
   const genresData = data.popularGenres.map((genre) => ({
     name: genre.genre,
     value: genre.totalBorrows,
-    books: genre.uniqueBooks,
   }));
 
   const userActivityData = data.userActivity.slice(0, 10).map((user) => ({
@@ -193,40 +237,108 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         ? user.userName.substring(0, 15) + "..."
         : user.userName,
     borrows: user.totalBorrows,
-    active: user.activeBorrows,
-    returned: user.returnedBorrows,
   }));
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+  const fineForecastData = [
+    {
+      name: "Outstanding",
+      amount: insights.fineForecast.outstanding,
+    },
+    {
+      name: `Projected (+${insights.fineForecast.horizonDays}d)`,
+      amount: insights.fineForecast.projectedAccrual,
+    },
+  ];
 
-  // Sibling stack under AdminPageShell — no overflow-x-hidden (clips KPI shadows).
+  const genrePressureData = insights.genreDemandPressure.slice(0, 8).map((g) => ({
+    genre: g.genre.length > 14 ? `${g.genre.slice(0, 14)}…` : g.genre,
+    pressure: g.pressure,
+    borrows: g.borrows,
+  }));
+
   return (
     <div className="w-full max-w-full space-y-4 sm:space-y-6">
-      {/* Key Metrics Cards — shared StatCard grid (Wave 4 rollout) */}
-      <StatCardGrid>
-        <StatCard
-          title="Total Books"
-          value={data.systemHealth?.totalBooks || 0}
-          icon={BookOpen}
-          hue="blue"
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-600">
+          Trends and analysis window · charts refetch on change (no densify invent)
+        </p>
+        <FilterSelect
+          label="Ops period"
+          variant="light"
+          labelLayout="embedded"
+          value={opsPeriod}
+          onValueChange={(v) => setOpsPeriod(v as InsightsOpsPeriod)}
+          options={OPS_PERIOD_OPTIONS}
+          className="w-full sm:w-48"
         />
+      </div>
+
+      <StatCardGrid className="lg:grid-cols-4">
         <StatCard
-          title="Total Users"
-          value={data.systemHealth?.totalUsers || 0}
-          icon={Users}
-          hue="emerald"
-        />
-        <StatCard
-          title="Active Borrows"
-          value={data.systemHealth?.activeBorrows || 0}
-          icon={BookOpenCheck}
-          hue="violet"
-        />
-        <StatCard
-          title="Overdue Books"
-          value={data.systemHealth?.overdueBooks || 0}
+          title="Overdue now"
+          value={health.overdueBooks}
           icon={AlertTriangle}
+          hue="rose"
+          badges={[
+            {
+              label: `${periodOverdueStats.totalOverdue} in window`,
+              hue: "amber",
+            },
+          ]}
+        />
+        <StatCard
+          title="Due ≤48h"
+          value={health.dueSoon48h}
+          icon={Clock}
           hue="amber"
+          badges={[{ label: "Still on loan", hue: "slate" }]}
+        />
+        <StatCard
+          title="Fines outstanding"
+          value={`$${insights.outstandingFineTotal.toFixed(2)}`}
+          icon={DollarSign}
+          hue="rose"
+          badges={[
+            {
+              label: `Forecast $${insights.fineForecast.total.toFixed(0)}`,
+              hue: "amber",
+            },
+          ]}
+        />
+        <StatCard
+          title="Pending borrow queue"
+          value={health.pendingRequests}
+          icon={Inbox}
+          hue="violet"
+          badges={[{ label: "Awaiting approval", hue: "violet" }]}
+        />
+        <StatCard
+          title="Holds waiting"
+          value={health.holdsWaiting}
+          icon={BookMarked}
+          hue="blue"
+          badges={[{ label: "WAITING", hue: "blue" }]}
+        />
+        <StatCard
+          title="On-time returns"
+          value={`${insights.onTimeReturnRate}%`}
+          icon={Percent}
+          hue="emerald"
+          badges={[{ label: "Returned on time", hue: "emerald" }]}
+        />
+        <StatCard
+          title="Open tickets"
+          value={health.openTickets}
+          icon={Ticket}
+          hue="amber"
+          badges={[{ label: "OPEN + in progress", hue: "amber" }]}
+        />
+        <StatCard
+          title="Pending reviews"
+          value={health.pendingReviews}
+          icon={Star}
+          hue="violet"
+          badges={[{ label: "Awaiting moderation", hue: "violet" }]}
         />
       </StatCardGrid>
 
@@ -238,16 +350,16 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           className="mb-0"
           align="center"
           icon={<Activity className="size-5" />}
-          title="Explainable operational insights"
-          subtitle={`Formula ${data.deterministicInsights.formulaVersion} · ${data.deterministicInsights.periodStart} to ${data.deterministicInsights.periodEnd}`}
+          title="Explainable Operational Insights"
+          subtitle={`Formula ${insights.formulaVersion} · ${insights.periodStart} to ${insights.periodEnd}`}
           iconToneClassName="border-sky-200 bg-sky-50 text-sky-600"
           trailing={
             <span className="text-xs text-gray-500">
-              Deterministic database aggregates; no external AI processing
+              Deterministic aggregates · advisory forecast only
             </span>
           }
         />
-        {data.deterministicInsights.circulation30Days === 0 ? (
+        {insights.circulation30Days === 0 ? (
           <p className="mt-2 text-xs text-gray-500">
             No borrowing activity in this period yet — ratios stay at zero until
             circulation starts.
@@ -255,26 +367,20 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
         ) : null}
         <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
           {[
-            [
-              "30-day circulation",
-              data.deterministicInsights.circulation30Days,
-            ],
-            [
-              "On-time returns",
-              `${data.deterministicInsights.onTimeReturnRate}%`,
-            ],
-            ["Overdue ratio", `${data.deterministicInsights.overdueRatio}%`],
+            ["30-day circulation", insights.circulation30Days],
+            ["On-time returns", `${insights.onTimeReturnRate}%`],
+            ["Overdue ratio", `${insights.overdueRatio}%`],
             [
               "Outstanding fines",
-              `$${data.deterministicInsights.outstandingFineTotal.toFixed(2)}`,
+              `$${insights.outstandingFineTotal.toFixed(2)}`,
             ],
             [
-              "7-day fine forecast",
-              `$${data.deterministicInsights.fineForecast.total.toFixed(2)}`,
+              `${insights.fineForecast.horizonDays}-day fine forecast`,
+              `$${insights.fineForecast.total.toFixed(2)}`,
             ],
-            ["Demand / copy", data.deterministicInsights.demandToCopyRatio],
-            ["Hold pressure", data.deterministicInsights.holdPressure],
-            ["Renewal rate", `${data.deterministicInsights.renewalRate}%`],
+            ["Demand / copy", insights.demandToCopyRatio],
+            ["Hold pressure", insights.holdPressure],
+            ["Renewal rate", `${insights.renewalRate}%`],
           ].map(([label, value]) => (
             <div key={String(label)} className="rounded-lg bg-gray-50 p-3">
               <dt className="text-xs text-gray-500">{label}</dt>
@@ -285,46 +391,78 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           ))}
         </dl>
         <p className="mt-2 text-xs text-gray-500">
-          Fine forecast is advisory ({`$${data.deterministicInsights.fineForecast.projectedAccrual.toFixed(2)}`}{" "}
-          projected accrual over{" "}
-          {data.deterministicInsights.fineForecast.horizonDays} days at $
-          {data.deterministicInsights.fineForecast.dailyRate}/day) — does not
-          mutate fines.
+          Fine forecast is advisory ($
+          {insights.fineForecast.projectedAccrual.toFixed(2)} projected accrual
+          over {insights.fineForecast.horizonDays} days at $
+          {insights.fineForecast.dailyRate}/day) — does not mutate fines.
         </p>
       </section>
 
-      {/* Catalog ops shortcuts — filters on Books list (no new mutation family). */}
       <div className="flex flex-wrap gap-2">
+        <PrefetchLink
+          href="/admin/book-requests"
+          prefetchKind="admin-book-requests"
+          className={`${CHIP_CLASS} border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100`}
+        >
+          Borrow Queue
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/account-requests"
+          prefetchKind="admin-account-requests"
+          className={`${CHIP_CLASS} border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100`}
+        >
+          Registration Queue
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/book-reviews"
+          prefetchKind="admin-reviews"
+          className={`${CHIP_CLASS} border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800 hover:bg-fuchsia-100`}
+        >
+          Book Reviews
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/support-tickets"
+          prefetchKind="admin-tickets"
+          className={`${CHIP_CLASS} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}
+        >
+          Support Tickets
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/admin-requests"
+          prefetchKind="admin-admin-requests"
+          className={`${CHIP_CLASS} border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100`}
+        >
+          Admin Requests
+        </PrefetchLink>
+        <PrefetchLink
+          href="/admin/automation"
+          className={`${CHIP_CLASS} border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100`}
+        >
+          Automation
+        </PrefetchLink>
         <PrefetchLink
           href="/admin/books?availability=low"
           prefetchKind="admin-books"
-          className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+          className={`${CHIP_CLASS} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}
         >
-          Low stock books
+          Low stock
         </PrefetchLink>
         <PrefetchLink
           href="/admin/books?availability=unavailable"
           prefetchKind="admin-books"
-          className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-800 hover:bg-rose-100"
+          className={`${CHIP_CLASS} border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100`}
         >
           Out of stock
         </PrefetchLink>
         <PrefetchLink
           href="/admin/books"
           prefetchKind="admin-books"
-          className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 hover:bg-sky-100"
+          className={`${CHIP_CLASS} border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
         >
-          Featured / catalog ops
-        </PrefetchLink>
-        <PrefetchLink
-          href="/admin/automation"
-          className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 hover:bg-violet-100"
-        >
-          Reminder automation
+          Featured / catalog
         </PrefetchLink>
       </div>
 
-      {/* Charts Grid — empty copy when borrow universe is empty (not catalog mix). */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         <div className={ADMIN_PANEL_CLASS}>
           <TicketSectionHeader
@@ -332,7 +470,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             align="center"
             icon={<TrendingUp className="size-5" />}
             title="Borrowing Trends"
-            subtitle="Daily borrows and returns over the selected window"
+            subtitle={`Daily borrows and returns · last ${trendsDays} days`}
             iconToneClassName="border-indigo-200 bg-indigo-50 text-indigo-600"
           />
           {trendsData.length === 0 ? (
@@ -378,9 +516,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             subtitle="Loans past due and still out at end of each day"
             iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
           />
-          {data.deterministicInsights.overdueTrend.every(
-            (p) => p.overdueCount === 0,
-          ) ? (
+          {insights.overdueTrend.every((p) => p.overdueCount === 0) ? (
             <AdminDetailEmptyState
               className="min-h-[200px]"
               message="No overdue loans in the last 14 days."
@@ -388,7 +524,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
               <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <LineChart data={data.deterministicInsights.overdueTrend}>
+                <LineChart data={insights.overdueTrend}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis allowDecimals={false} />
@@ -449,7 +585,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             align="center"
             icon={<PieChartIcon className="size-5" />}
             title="Popular Genres (by borrows)"
-            subtitle="Borrow-weighted mix · demand/copy pressure under chart"
+            subtitle="Borrow-weighted mix"
             iconToneClassName="border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600"
           />
           {genresData.length === 0 ? (
@@ -458,7 +594,6 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
               message="No borrowing activity yet — genre popularity appears after loans."
             />
           ) : (
-            <>
             <div className="mt-4 w-full overflow-x-auto">
               <ResponsiveContainer width="100%" height={200} minWidth={300}>
                 <PieChart>
@@ -471,7 +606,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {genresData.map((entry, index) => (
+                    {genresData.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -483,27 +618,6 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            {data.deterministicInsights.genreDemandPressure.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-xs text-gray-600">
-                {data.deterministicInsights.genreDemandPressure
-                  .slice(0, 5)
-                  .map((g) => (
-                    <li
-                      key={g.genre}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="truncate font-medium text-gray-800">
-                        {g.genre}
-                      </span>
-                      <span className="shrink-0 tabular-nums">
-                        {g.borrows} borrows · {g.copies} copies · pressure{" "}
-                        {g.pressure}
-                      </span>
-                    </li>
-                  ))}
-              </ul>
-            ) : null}
-            </>
           )}
         </div>
 
@@ -542,195 +656,159 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             </div>
           )}
         </div>
+
+        <div className={ADMIN_PANEL_CLASS}>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<DollarSign className="size-5" />}
+            title="Fine Forecast"
+            subtitle={`Outstanding vs projected accrual · ${insights.fineForecast.horizonDays}-day horizon`}
+            iconToneClassName="border-amber-200 bg-amber-50 text-amber-600"
+          />
+          {insights.fineForecast.outstanding === 0 &&
+          insights.fineForecast.projectedAccrual === 0 ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No outstanding or projected fines."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <BarChart data={fineForecastData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => [
+                      `$${Number(value ?? 0).toFixed(2)}`,
+                      "Amount",
+                    ]}
+                  />
+                  <Legend />
+                  <Bar dataKey="amount" fill="#f59e0b" name="USD" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className={ADMIN_PANEL_CLASS}>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<ClipboardList className="size-5" />}
+            title="Genre Demand Pressure"
+            subtitle="Borrows ÷ copies (deterministic)"
+            iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
+          />
+          {genrePressureData.length === 0 ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No genre pressure yet — appears after circulation."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <BarChart data={genrePressureData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="genre"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={11}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="pressure" fill="#e11d48" name="Pressure" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className={ADMIN_PANEL_CLASS}>
+          <TicketSectionHeader
+            className="mb-0"
+            align="center"
+            icon={<BarChart3 className="size-5" />}
+            title="Monthly Borrows"
+            subtitle={`Trailing ${monthlySeries.length} month${monthlySeries.length === 1 ? "" : "s"} from 12-month series`}
+            iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
+          />
+          {monthlySeries.every((m) => m.borrows === 0) ? (
+            <AdminDetailEmptyState
+              className="min-h-[200px]"
+              message="No monthly borrow volume in this window."
+            />
+          ) : (
+            <div className="mt-4 w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={200} minWidth={300}>
+                <BarChart data={monthlySeries}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" fontSize={11} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="borrows" fill="#6366f1" name="Borrows" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Overdue Books Table */}
+      <InsightsOverdueTable rows={data.overdueBooks} />
+
       <div className={ADMIN_PANEL_CLASS}>
         <TicketSectionHeader
           className="mb-0"
           align="center"
-          icon={<AlertTriangle className="size-5" />}
-          title="Overdue Books"
-          subtitle="Active loans past due date with optional fines"
-          iconToneClassName="border-amber-200 bg-amber-50 text-amber-600"
+          icon={<FileWarning className="size-5" />}
+          title="Overdue Analysis"
+          subtitle={`Volume, fines, rate for ops window · advisory ${insights.fineForecast.horizonDays}-day fine forecast`}
+          iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
+          trailing={
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <MessageSquareWarning className="size-3.5" aria-hidden />
+              Period-filtered
+            </span>
+          }
         />
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-full border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="min-w-[150px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[200px] sm:px-4 sm:py-2 sm:text-sm">
-                  Book
-                </th>
-                <th className="min-w-[150px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[200px] sm:px-4 sm:py-2 sm:text-sm">
-                  User
-                </th>
-                <th className="min-w-[120px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[150px] sm:px-4 sm:py-2 sm:text-sm">
-                  Days Overdue
-                </th>
-                <th className="min-w-[100px] whitespace-nowrap px-2 py-1.5 text-left text-xs sm:min-w-[120px] sm:px-4 sm:py-2 sm:text-sm">
-                  Fine Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.overdueBooks.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-2 py-6 text-center text-gray-500 sm:px-4 sm:py-8"
-                  >
-                    <div className="flex flex-col items-center space-y-2">
-                      <CheckCircle2
-                        className="size-8 text-emerald-500"
-                        aria-hidden
-                      />
-                      <div className="text-base font-medium sm:text-lg">
-                        No Overdue Books
-                      </div>
-                      <div className="text-xs sm:text-sm">
-                        All books are returned on time!
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                data.overdueBooks.map((book) => (
-                  <tr key={book.recordId} className="border-b">
-                    <td className="min-w-[150px] whitespace-nowrap px-2 py-1.5 sm:min-w-[200px] sm:px-4 sm:py-2">
-                      <div>
-                        <div className="text-xs font-medium sm:text-sm">
-                          {book.bookTitle}
-                        </div>
-                        <div className="text-xs text-gray-600 sm:text-sm">
-                          {book.bookAuthor}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="min-w-[150px] whitespace-nowrap px-2 py-1.5 sm:min-w-[200px] sm:px-4 sm:py-2">
-                      <div>
-                        <div className="text-xs font-medium sm:text-sm">
-                          {book.userName}
-                        </div>
-                        <div className="text-xs text-gray-600 sm:text-sm">
-                          {book.userEmail}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="min-w-[120px] whitespace-nowrap px-2 py-1.5 sm:min-w-[150px] sm:px-4 sm:py-2">
-                      <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs text-red-800 sm:px-2 sm:py-1 sm:text-sm">
-                        {book.daysOverdue} days
-                      </span>
-                    </td>
-                    <td className="min-w-[100px] whitespace-nowrap px-2 py-1.5 sm:min-w-[120px] sm:px-4 sm:py-2">
-                      {book.fineAmount ? (
-                        <span className="text-xs font-medium text-red-600 sm:text-sm">
-                          ${book.fineAmount}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-500 sm:text-sm">
-                          No fine
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
-        <div className={ADMIN_PANEL_CLASS}>
-          <TicketSectionHeader
-            className="mb-0"
-            align="center"
-            icon={<CalendarDays className="size-5" />}
-            title="Monthly Statistics"
-            subtitle="Borrow counts for the current and previous month"
-            iconToneClassName="border-slate-200 bg-slate-50 text-slate-600"
-          />
-          <div className="mt-4 space-y-2 sm:space-y-2">
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">
-                Current Month:
-              </span>
-              <span className="text-xs font-medium sm:text-sm">
-                {data.monthlyStats?.currentMonth?.borrows || 0}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">
-                Last Month:
-              </span>
-              <span className="text-xs font-medium sm:text-sm">
-                {data.monthlyStats?.lastMonth?.borrows || 0}
-              </span>
-            </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="rounded-lg bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">Total overdue</p>
+            <p className="mt-1 text-lg font-medium tabular-nums">
+              {periodOverdueStats.totalOverdue}
+            </p>
           </div>
-        </div>
-
-        <div className={ADMIN_PANEL_CLASS}>
-          <TicketSectionHeader
-            className="mb-0"
-            align="center"
-            icon={<AlertTriangle className="size-5" />}
-            title="Overdue Analysis"
-            subtitle="Volume, fines, rate · advisory 7-day fine forecast"
-            iconToneClassName="border-rose-200 bg-rose-50 text-rose-600"
-          />
-          <div className="mt-4 space-y-2 sm:space-y-2">
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">
-                Total Overdue:
-              </span>
-              <span className="text-xs font-medium sm:text-sm">
-                {data.overdueStats?.totalOverdue || 0}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">
-                Avg Days Overdue:
-              </span>
-              <span className="text-xs font-medium sm:text-sm">
-                {typeof data.overdueStats?.avgDaysOverdue === "number"
-                  ? data.overdueStats.avgDaysOverdue.toFixed(1)
-                  : 0}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">
-                Total Fines:
-              </span>
-              <span className="text-xs font-medium text-red-600 sm:text-sm">
-                ${data.overdueStats?.totalFines || 0}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-600 sm:text-sm">
-                Overdue Rate:
-              </span>
-              <span className="text-xs font-medium sm:text-sm">
-                {data.systemHealth?.activeBorrows > 0
-                  ? (
-                      ((data.systemHealth?.overdueBooks || 0) /
-                        data.systemHealth?.activeBorrows) *
-                      100
-                    ).toFixed(1)
-                  : 0}
-                %
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-gray-100 pt-2">
-              <span className="text-xs text-gray-600 sm:text-sm">
-                7-day forecast total:
-              </span>
-              <span className="text-xs font-medium text-amber-700 sm:text-sm">
-                $
-                {data.deterministicInsights.fineForecast.total.toFixed(2)}
-              </span>
-            </div>
+          <div className="rounded-lg bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">Avg days overdue</p>
+            <p className="mt-1 text-lg font-medium tabular-nums">
+              {periodOverdueStats.avgDaysOverdue.toFixed(1)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">Total fines</p>
+            <p className="mt-1 text-lg font-medium tabular-nums text-rose-600">
+              ${periodOverdueStats.totalFines.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">Overdue rate</p>
+            <p className="mt-1 text-lg font-medium tabular-nums">
+              {periodOverdueStats.overdueRate.toFixed(1)}%
+            </p>
+          </div>
+          <div className="rounded-lg bg-amber-50/80 p-3 sm:col-span-2 lg:col-span-1">
+            <p className="text-xs text-amber-800">
+              {insights.fineForecast.horizonDays}-day forecast total
+            </p>
+            <p className="mt-1 text-lg font-medium tabular-nums text-amber-800">
+              ${insights.fineForecast.total.toFixed(2)}
+            </p>
           </div>
         </div>
       </div>

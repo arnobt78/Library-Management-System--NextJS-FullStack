@@ -1,6 +1,13 @@
 import { db } from "@/database/drizzle";
-import { books, users, borrowRecords } from "@/database/schema";
-import { eq, sql, desc, and, gte, lt, count } from "drizzle-orm";
+import {
+  books,
+  users,
+  borrowRecords,
+  reservations,
+  supportTickets,
+  bookReviews,
+} from "@/database/schema";
+import { eq, sql, desc, and, gte, count, inArray } from "drizzle-orm";
 import type { AnalyticsData } from "@/lib/services/analytics";
 import type { DeterministicInsights } from "@/lib/insights/types";
 import {
@@ -112,6 +119,8 @@ export async function getOverdueAnalysis() {
   const overdueBooks = await db
     .select({
       recordId: borrowRecords.id,
+      bookId: borrowRecords.bookId,
+      userId: borrowRecords.userId,
       bookTitle: books.title,
       bookAuthor: books.author,
       userName: users.fullName,
@@ -168,58 +177,36 @@ export async function getOverdueStats() {
   };
 }
 
-// Get monthly borrowing statistics
+// Get monthly borrowing statistics (last 12 calendar months, zero-filled)
 export async function getMonthlyStats() {
-  const currentMonth = new Date();
-  const lastMonth = new Date();
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
-  // Construct month strings in JavaScript
-  const currentMonthStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, "0")}`;
-  const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
-
-  const currentMonthStats = await db
+  const rows = await db
     .select({
-      month: sql<string>`${currentMonthStr}`,
+      month: sql<string>`to_char(date_trunc('month', ${borrowRecords.createdAt}), 'YYYY-MM')`,
       borrows: count(),
     })
     .from(borrowRecords)
-    .where(
-      and(
-        gte(
-          borrowRecords.createdAt,
-          new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
-        ),
-        lt(
-          borrowRecords.createdAt,
-          new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
-        )
-      )
-    );
+    .where(gte(borrowRecords.createdAt, start))
+    .groupBy(sql`date_trunc('month', ${borrowRecords.createdAt})`)
+    .orderBy(sql`date_trunc('month', ${borrowRecords.createdAt})`);
 
-  const lastMonthStats = await db
-    .select({
-      month: sql<string>`${lastMonthStr}`,
-      borrows: count(),
-    })
-    .from(borrowRecords)
-    .where(
-      and(
-        gte(
-          borrowRecords.createdAt,
-          new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1)
-        ),
-        lt(
-          borrowRecords.createdAt,
-          new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 1)
-        )
-      )
-    );
+  const byMonth = new Map(
+    rows.map((r) => [r.month, Number(r.borrows) || 0] as const),
+  );
 
-  return {
-    currentMonth: currentMonthStats[0] || { month: "", borrows: 0 },
-    lastMonth: lastMonthStats[0] || { month: "", borrows: 0 },
-  };
+  const months: Array<{ month: string; borrows: number }> = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    months.push({ month: key, borrows: byMonth.get(key) ?? 0 });
+  }
+
+  const currentMonth = months[months.length - 1] ?? { month: "", borrows: 0 };
+  const lastMonth = months[months.length - 2] ?? { month: "", borrows: 0 };
+
+  return { months, currentMonth, lastMonth };
 }
 
 // Get system health metrics
@@ -234,6 +221,10 @@ export async function getSystemHealth() {
     activeBorrowsResult,
     pendingRequestsResult,
     overdueBooksResult,
+    dueSoon48hResult,
+    holdsWaitingResult,
+    openTicketsResult,
+    pendingReviewsResult,
     recentActivityResult,
   ] = await Promise.all([
     db.select({ count: count() }).from(books),
@@ -258,6 +249,28 @@ export async function getSystemHealth() {
     db
       .select({ count: count() })
       .from(borrowRecords)
+      .where(
+        and(
+          eq(borrowRecords.status, "BORROWED"),
+          sql`${borrowRecords.dueDate} >= CURRENT_DATE`,
+          sql`${borrowRecords.dueDate} <= CURRENT_DATE + INTERVAL '2 days'`,
+        )
+      ),
+    db
+      .select({ count: count() })
+      .from(reservations)
+      .where(eq(reservations.status, "WAITING")),
+    db
+      .select({ count: count() })
+      .from(supportTickets)
+      .where(inArray(supportTickets.status, ["OPEN", "IN_PROGRESS"])),
+    db
+      .select({ count: count() })
+      .from(bookReviews)
+      .where(eq(bookReviews.status, "PENDING")),
+    db
+      .select({ count: count() })
+      .from(borrowRecords)
       .where(gte(borrowRecords.createdAt, sevenDaysAgo)),
   ]);
 
@@ -267,6 +280,10 @@ export async function getSystemHealth() {
     activeBorrows: activeBorrowsResult[0]?.count || 0,
     pendingRequests: pendingRequestsResult[0]?.count || 0,
     overdueBooks: overdueBooksResult[0]?.count || 0,
+    dueSoon48h: dueSoon48hResult[0]?.count || 0,
+    holdsWaiting: holdsWaitingResult[0]?.count || 0,
+    openTickets: openTicketsResult[0]?.count || 0,
+    pendingReviews: pendingReviewsResult[0]?.count || 0,
     recentActivity: recentActivityResult[0]?.count || 0,
   };
 }
