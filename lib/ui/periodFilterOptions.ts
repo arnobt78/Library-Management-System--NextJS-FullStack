@@ -173,25 +173,25 @@ export function overdueSeverityPeriodOptions(
   return [
     {
       value: "today",
-      label: "1–6 days",
+      label: "1–6 Days",
       icon: CalendarDays,
       iconClassName: surface === "dark" ? "text-sky-300" : "text-sky-500",
     },
     {
       value: "7days",
-      label: "7–29 days",
+      label: "7–29 Days",
       icon: CalendarRange,
       iconClassName: surface === "dark" ? "text-violet-300" : "text-violet-500",
     },
     {
       value: "30days",
-      label: "30+ days",
+      label: "30+ Days",
       icon: CalendarClock,
       iconClassName: surface === "dark" ? "text-amber-300" : "text-amber-500",
     },
     {
       value: "all",
-      label: "All overdue",
+      label: "All Overdue",
       icon: List,
       iconClassName: muted,
     },

@@ -275,70 +275,74 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
 
       <StatCardGrid className="lg:grid-cols-4">
         <StatCard
-          title="Overdue now"
+          title="Overdue Now"
           value={health.overdueBooks}
           icon={AlertTriangle}
           hue="rose"
-          badges={[
-            {
-              label: `${periodOverdueStats.totalOverdue} in window`,
-              hue: "amber",
-            },
-          ]}
+          badges={
+            periodOverdueStats.totalOverdue !== health.overdueBooks
+              ? [
+                  {
+                    label: `${periodOverdueStats.totalOverdue} In Window`,
+                    hue: "amber",
+                  },
+                ]
+              : undefined
+          }
         />
         <StatCard
           title="Due ≤48h"
           value={health.dueSoon48h}
           icon={Clock}
           hue="amber"
-          badges={[{ label: "Still on loan", hue: "slate" }]}
         />
         <StatCard
-          title="Fines outstanding"
+          title="Fines Outstanding"
           value={`$${insights.outstandingFineTotal.toFixed(2)}`}
           icon={DollarSign}
           hue="rose"
-          badges={[
-            {
-              label: `Forecast $${insights.fineForecast.total.toFixed(0)}`,
-              hue: "amber",
-            },
-          ]}
+          badges={
+            Math.abs(
+              insights.fineForecast.total - insights.outstandingFineTotal,
+            ) > 0.009
+              ? [
+                  {
+                    label: `Forecast $${insights.fineForecast.total.toFixed(0)}`,
+                    hue: "amber",
+                  },
+                ]
+              : undefined
+          }
         />
         <StatCard
-          title="Pending borrow queue"
+          title="Pending Borrow Queue"
           value={health.pendingRequests}
           icon={Inbox}
           hue="violet"
-          badges={[{ label: "Awaiting approval", hue: "violet" }]}
         />
         <StatCard
-          title="Holds waiting"
+          title="Holds Waiting"
           value={health.holdsWaiting}
           icon={BookMarked}
           hue="blue"
-          badges={[{ label: "WAITING", hue: "blue" }]}
         />
         <StatCard
-          title="On-time returns"
+          title="On-Time Returns"
           value={`${insights.onTimeReturnRate}%`}
           icon={Percent}
           hue="emerald"
-          badges={[{ label: "Returned on time", hue: "emerald" }]}
         />
         <StatCard
-          title="Open tickets"
+          title="Open Tickets"
           value={health.openTickets}
           icon={Ticket}
           hue="amber"
-          badges={[{ label: "OPEN + in progress", hue: "amber" }]}
         />
         <StatCard
-          title="Pending reviews"
+          title="Pending Reviews"
           value={health.pendingReviews}
           icon={Star}
           hue="violet"
-          badges={[{ label: "Awaiting moderation", hue: "violet" }]}
         />
       </StatCardGrid>
 
@@ -445,21 +449,21 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           prefetchKind="admin-books"
           className={`${CHIP_CLASS} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`}
         >
-          Low stock
+          Low Stock
         </PrefetchLink>
         <PrefetchLink
           href="/admin/books?availability=unavailable"
           prefetchKind="admin-books"
           className={`${CHIP_CLASS} border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100`}
         >
-          Out of stock
+          Out Of Stock
         </PrefetchLink>
         <PrefetchLink
           href="/admin/books"
           prefetchKind="admin-books"
           className={`${CHIP_CLASS} border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
         >
-          Featured / catalog
+          Featured / Catalog
         </PrefetchLink>
       </div>
 

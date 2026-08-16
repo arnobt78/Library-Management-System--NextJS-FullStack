@@ -25,6 +25,7 @@
     "test:integration": "vitest run lib/admin/security-transactions.integration.test.ts",
     "test:watch": "vitest",
     "seed:reset": "tsx scripts/reset-and-seed.ts",
+    "seed:demo": "tsx scripts/seed-demo-ops.ts",
     "user:delete": "tsx scripts/delete-user-by-email.ts",
     "admin-requests:purge": "tsx scripts/purge-admin-request-history.ts",
     "signup-decisions:purge": "tsx scripts/purge-signup-status-decisions.ts",

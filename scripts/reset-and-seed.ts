@@ -3,12 +3,13 @@
  *
  * Atomically wipes all transactional data and re-seeds:
  *   - 2 test accounts first (Test User + Test Admin) with scrypt-hashed passwords
- *   - 17 canonical books with created_by + updated_by = test@admin.com (Added/Updated DNA)
+ *   - 17 canonical books with created_by = test@admin.com, updated_by = NULL
+ *     (Updated DNA stays "—" until first real edit)
  *   - status_reviewed_* stamped on both accounts (no ledger / circulation rows)
  *
  * Intentionally empty after seed: borrows, holds, reviews, tickets,
  * admin_requests, notifications, activity_logs, user_status_decisions.
- * Create those while testing one-by-one.
+ * Create those while testing one-by-one, or run `npm run seed:demo` for mixed ops.
  *
  * Delete order respects FK constraints:
  *   reservation_events → circulation_commands → operation_telemetry →
@@ -142,7 +143,7 @@ async function main() {
 
   console.log("\nSeeding books...");
 
-  // ── 3. Books with Created-by / Updated-by = Test Admin
+  // ── 3. Books with Created-by = Test Admin; Updated-by null until first edit
   for (const book of dummybooks) {
     await db.execute(sql`
       INSERT INTO books (
@@ -176,7 +177,7 @@ async function main() {
         ${book.isActive ?? true},
         ${book.id === FEATURED_BOOK_ID},
         ${adminId}::uuid,
-        ${adminId}::uuid,
+        NULL,
         NOW(),
         NOW()
       )
@@ -186,7 +187,8 @@ async function main() {
   }
 
   console.log("\nreset-and-seed complete (17 books + 2 accounts; queues empty).");
-  console.log("  Catalog Added/Updated stamps → test@admin.com");
+  console.log("  Catalog Added → test@admin.com; Updated → — until first edit");
+  console.log("  Mixed ops fixture: npm run seed:demo");
   await pool.end();
 }
 

@@ -64,7 +64,7 @@ export interface UserActivity {
 }
 
 /**
- * Overdue book analysis
+ * Overdue book analysis (Insights table DNA fields)
  */
 export interface OverdueBook {
   recordId: string;
@@ -72,8 +72,16 @@ export interface OverdueBook {
   userId: string;
   bookTitle: string;
   bookAuthor: string;
+  bookCoverUrl: string | null;
+  bookCoverColor: string | null;
+  bookGenre: string | null;
+  bookRating: number | null;
+  bookAvailableCopies: number | null;
+  bookTotalCopies: number | null;
   userName: string;
   userEmail: string;
+  userUniversityId: number | null;
+  userUniversityCard: string | null;
   borrowDate: Date | null;
   dueDate: string | null;
   daysOverdue: number;

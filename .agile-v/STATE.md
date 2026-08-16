@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Business Insights polish shipped (awaiting owner Verify)
+- Status: ACTIVE - Insights UX + seed:demo shipped (awaiting owner Verify)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `b7cd9f7`
-- Latest HEAD: `d27f992`
+- Latest implementation tip: (pending commit) Insights UX + seed:demo
+- Latest HEAD: `236b9db`
 - Started: 2026-08-01
-- Last updated: 2026-08-17 (Insights polish + overdue severity)
+- Last updated: 2026-08-17 (Insights UX DNA + seed:demo + Updated dash)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,13 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Insights polish + overdue severity shipped; ImageKit upload-limit deferred; owner Verify Insights / EvalGate blocks Gate 2
+- Active plan: Insights UX + seed:demo shipped; ImageKit upload-limit deferred; owner Verify Insights / EvalGate blocks Gate 2
+
+## Reconciliation snapshot (2026-08-17, Insights UX + seed:demo)
+
+- **Done**: Title Case KPIs/chips; delta-only KPI badges; overdue DNA (`AdminBookIdentityCell` + `PersonAttribution` + dates + university ID) + `DismissibleFilterChips`; `TicketDateMeta` Updated — when no real edit; `seed:reset` created_by only; `npm run seed:demo` mixed ops. Genre Pressure left as-is.
+- **Remaining**: EvalGate / Gate 2; owner Verify Insights + User 360 after `seed:demo`.
+- **Next exact task**: `npm run seed:demo` then Verify `/admin/business-insights`.
 
 ## Reconciliation snapshot (2026-08-17, Business Insights polish)
 

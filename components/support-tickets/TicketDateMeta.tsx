@@ -3,11 +3,26 @@
  * Optional labels for Joined / Registered / Requested under PersonAttribution.
  * hideCreated / hideUpdated allow single-line stacks (e.g. Created under Requester,
  * Updated under Assigned To — Borrow Queue DNA).
+ * Updated shows "—" when null or same instant as Created (DB defaultNow on insert).
  * Parent: CR-0003 / REQ-0034
  */
 import { CalendarClock, CalendarPlus } from "lucide-react";
 import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
 import { cn } from "@/lib/utils";
+
+/** True when updatedAt is a meaningful edit after createdAt (not insert default). */
+export function hasMeaningfulUpdatedAt(
+  createdAt?: string | Date | null,
+  updatedAt?: string | Date | null,
+): boolean {
+  if (updatedAt == null || updatedAt === "") return false;
+  if (createdAt == null || createdAt === "") return true;
+  const c = createdAt instanceof Date ? createdAt.getTime() : new Date(createdAt).getTime();
+  const u = updatedAt instanceof Date ? updatedAt.getTime() : new Date(updatedAt).getTime();
+  if (Number.isNaN(c) || Number.isNaN(u)) return Boolean(updatedAt);
+  // Same-second insert defaults count as "no update yet".
+  return Math.abs(u - c) >= 1000;
+}
 
 export function TicketDateMeta({
   createdAt,
@@ -40,6 +55,9 @@ export function TicketDateMeta({
   const updatedTone = isDark ? "text-amber-200/80" : "text-amber-700/90";
   const showCreated = !hideCreated;
   const showUpdated = !hideUpdated;
+  const updatedDisplay = hasMeaningfulUpdatedAt(createdAt, updatedAt)
+    ? formatMediumDateTime(updatedAt)
+    : "—";
 
   if (layout === "inline") {
     return (
@@ -66,7 +84,7 @@ export function TicketDateMeta({
           <span className={cn("inline-flex items-center gap-1", updatedTone)}>
             <CalendarClock className="size-3.5 shrink-0 opacity-80" aria-hidden />
             <span className="opacity-70">{updatedLabel}</span>{" "}
-            {formatMediumDateTime(updatedAt)}
+            {updatedDisplay}
           </span>
         ) : null}
       </p>
@@ -92,7 +110,7 @@ export function TicketDateMeta({
         <p className={cn("inline-flex items-center gap-1 leading-none", updatedTone)}>
           <CalendarClock className="size-3 shrink-0 opacity-80" aria-hidden />
           <span className="opacity-70">{updatedLabel}:</span>{" "}
-          {formatMediumDateTime(updatedAt)}
+          {updatedDisplay}
         </p>
       ) : null}
     </div>
