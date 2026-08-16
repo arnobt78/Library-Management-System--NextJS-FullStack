@@ -29,8 +29,8 @@
 ## Reconciliation snapshot (2026-08-16, root 404 dark shell)
 
 - **Done**: Reverted `#not-found` to white/light-100; wrap `root-container`+`bg-pattern`; Lucide Home/BookOpen; browse `SKY_LINK_DARK`.
-- **Remaining**: EvalGate / Gate 2; owner Verify.
-- **Next exact task**: commit when owner asks.
+- **Remaining**: EvalGate / Gate 2; owner Verify after deploy.
+- **Next exact task**: owner prod smoke.
 
 ## Reconciliation snapshot (2026-08-16, 404 contrast + Sentry closeout)
 
