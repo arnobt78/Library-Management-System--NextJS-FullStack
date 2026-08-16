@@ -98,7 +98,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Auth JWT idle: `SESSION_MAX_AGE_SECONDS` = 1d (`auth.ts`); hard-reload keeps cookies; clear cookies to logout.
 - Densify closeout (2026-08-16): book `finiteTotal`/thin-key sync; early delete densify book+review+ticket; bulk densify (+admin pending clear); reminder bell bump; debug ingest gone.
 - Sentry (2026-08-16): drop expected `AuthorizationError` via shared `beforeSend`; admin pages `requireAdminActorOrRedirect` (no digest noise).
-- Root 404 (2026-08-16): public `root-container` + `bg-pattern`; Lucide Home/BookOpen; `#not-found` light text + `SKY_LINK_DARK`.
+- Book trailer (2026-08-16): detail `BookVideo` frame `max-h-[min(50vh,28rem)]` + `object-contain`; placeholder `min-h` only.
 - UX polish (2026-08-15): BookForm confirm settle through soft-nav; bell unread circle; `/admin/users` no `?sort=created` URL rewrite (in-memory default + PrefetchLink `ADMIN_USERS_UNFILTERED`).
 - Phase A (2026-08-15, no LLM): Insights `C2-v2` (overdue trend, fine forecast, genre pressure); User 360 next actions; `/api/cron/due-reminders` + REMINDER_DUE/HOLD_READY; delete book no 404 flash; reviews empty no skeleton; Overview shared empty.
 - Bulk Automation (DEC-0108/0109): UUID dialog + pending loaders; success `count`; invalidate-only (no invent activity); bulk delete → `densifyBookDelete`; reminder stamp fail ≠ sent.

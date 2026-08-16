@@ -55,6 +55,7 @@ Browser
 - Densify consistency closeout (2026-08-16): `finiteTotal` + create absolute reconcile + thin unfiltered total sync; early hard-delete densify (book/review/ticket); paged SSR seed; list `count` coerce; bulk activate/user/admin/borrow densify + admin pending clear; reminder bell unread/total bump; debug ingest stripped. Deferred: ImageKit upload-limit UX.
 - Sentry auth noise (2026-08-16): `beforeSend` drops expected `AuthorizationError`; admin RSC `requireAdminActorOrRedirect` (sign-in / home).
 - Root 404 (2026-08-16): public `root-container` + `bg-pattern`; Lucide Home/BookOpen; light `#not-found` text + `SKY_LINK_DARK`.
+- Book trailer (2026-08-16): detail `BookVideo` `max-h-[min(50vh,28rem)]` + `object-contain` (letterbox OK); placeholder min-h only.
 
 ## Admin Stockly chrome (2026-08-07)
 

@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - root 404 dark shell shipped (`9a5ff07`)
+- Status: ACTIVE - book trailer max-h Prove closed locally; commit pending
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `9a5ff07`
 - Latest HEAD: `a8e6b22`
 - Started: 2026-08-01
-- Last updated: 2026-08-16 (root 404 dark shell)
+- Last updated: 2026-08-16 (book trailer max-h)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,6 +25,18 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
 - Active plan: Densify closeout shipped; Sentry expected-auth filter + admin redirect; ImageKit upload-limit deferred; owner Verify / name next Build
+
+## Reconciliation snapshot (2026-08-16, book trailer max-h)
+
+- **Done**: `BookVideo` play frame `max-h-[min(50vh,28rem)]` + `object-contain`; unified ImageKit path; placeholder `min-h-48/64` only. typecheck + eslint PASS. Owner keeps letterbox (no stretch/cover).
+- **Remaining**: EvalGate / Gate 2; Insights polish when owner asks.
+- **Next exact task**: owner Verify on 14″ laptop book detail (optional).
+
+## Reconciliation snapshot (2026-08-16, owner Verify book CRUD densify)
+
+- **Human verify**: Book CRUD OK — no detail→list flash on delete; KPI/badge counters immediate; Activity History rows not late catch-up.
+- **Remaining**: EvalGate / Gate 2; ImageKit upload-limit deferred; Resolve old Sentry auth issues after deploy if still open.
+- **Next exact task**: owner name next Build or continue Verify elsewhere.
 
 ## Reconciliation snapshot (2026-08-16, root 404 dark shell)
 

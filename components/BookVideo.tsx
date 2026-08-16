@@ -1,13 +1,22 @@
+/**
+ * Book detail trailer — full-width frame with max-h so tall clips do not eat the fold.
+ * Placeholder keeps min-h only (create still requires videoUrl; invalid/legacy URLs land here).
+ * Parent: book detail media polish
+ */
 "use client";
 
 import React from "react";
 import { ImageKitProvider, Video as ImageKitVideo } from "@imagekit/next";
 import config from "@/lib/config";
+import { cn } from "@/lib/utils";
+
+/** Laptop-friendly cap: half viewport or 28rem, whichever is smaller. */
+const VIDEO_FRAME_MAX =
+  "max-h-[min(50vh,28rem)]";
 
 const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
-  // Check if the URL is actually a video file or an ImageKit video URL
   const isVideoFile =
-    videoUrl &&
+    Boolean(videoUrl) &&
     (videoUrl.endsWith(".mp4") ||
       videoUrl.endsWith(".webm") ||
       videoUrl.endsWith(".ogg") ||
@@ -17,29 +26,39 @@ const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
       (videoUrl.includes("imagekit.io") &&
         videoUrl.includes("/books/videos/")));
 
-  // If it's not a video file, show a placeholder
+  // Empty / non-video URL — stable slot only (not used for playing clips).
   if (!isVideoFile) {
     return (
-      <div className="flex h-48 w-full items-center justify-center rounded-xl bg-gray-100 sm:h-64">
-        <p className="text-sm text-gray-500 sm:text-base">No video available</p>
+      <div
+        className={cn(
+          "flex w-full items-center justify-center rounded-xl bg-dark-300/40",
+          "min-h-48 sm:min-h-64",
+        )}
+      >
+        <p className="text-sm text-light-200 sm:text-base">No video available</p>
       </div>
     );
   }
 
-  // For ImageKit URLs in videos folder, try to play them as videos
-  // even if they have .png extension (they might be misnamed video files)
-  if (videoUrl.includes("imagekit.io") && videoUrl.includes("/books/videos/")) {
-    return (
-      <ImageKitProvider urlEndpoint={config.env.imagekit.urlEndpoint}>
-        <ImageKitVideo src={videoUrl} controls className="h-auto w-full max-w-full rounded-xl" />
-      </ImageKitProvider>
-    );
-  }
-
   return (
-    <ImageKitProvider urlEndpoint={config.env.imagekit.urlEndpoint}>
-      <ImageKitVideo src={videoUrl} controls className="w-full rounded-xl" />
-    </ImageKitProvider>
+    <div
+      className={cn(
+        "flex w-full items-center justify-center overflow-hidden rounded-xl bg-dark-300/40",
+        VIDEO_FRAME_MAX,
+      )}
+    >
+      <ImageKitProvider urlEndpoint={config.env.imagekit.urlEndpoint}>
+        <ImageKitVideo
+          src={videoUrl}
+          controls
+          className={cn(
+            "h-full w-full max-w-full object-contain",
+            VIDEO_FRAME_MAX,
+          )}
+        />
+      </ImageKitProvider>
+    </div>
   );
 };
+
 export default BookVideo;
