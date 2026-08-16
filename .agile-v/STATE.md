@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - book trailer max-h Prove closed locally; commit pending
+- Status: ACTIVE - book trailer max-h shipped (`44a08ba`)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `9a5ff07`
+- Latest implementation tip: `44a08ba`
 - Latest HEAD: `a8e6b22`
 - Started: 2026-08-01
-- Last updated: 2026-08-16 (book trailer max-h)
+- Last updated: 2026-08-16 (book trailer max-h tip-bind)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
