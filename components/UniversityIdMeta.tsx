@@ -35,7 +35,7 @@ export default function UniversityIdMeta({
         label="university ID"
         className={cn(
           "font-medium",
-          isDark ? "text-light-100" : "text-dark-400",
+          isDark ? "text-light-100" : "text-dark-200",
         )}
       />
     </span>

@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * AnalyticsCharts — Business Insights ops dashboard.
+ * AnalyticsCharts — Business Insights ops dashboard body.
  * SSR snapshot + RQ staleTime 0 / always remount refetch (no invent densify series).
- * 8 KPIs · shared opsPeriod · 8 charts · overdue DataTable · cross-domain chips.
+ * Controlled opsPeriod from BusinessInsightsClient header.
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -21,6 +21,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import { useBusinessInsights } from "@/hooks/useQueries";
 import type { AnalyticsData, OverdueBook } from "@/lib/services/analytics";
@@ -28,15 +29,18 @@ import ChartSkeleton from "@/components/skeletons/ChartSkeleton";
 import GenericCardSkeleton from "@/components/skeletons/GenericCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
-import { FilterSelect } from "@/components/ui/filter-select";
 import { ADMIN_PANEL_CLASS } from "@/lib/ui/adminSurfaceStyles";
 import { AdminDetailEmptyState } from "@/components/admin/AdminDetailEmptyState";
 import { InsightsOverdueTable } from "@/components/admin/InsightsOverdueTable";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
 import PrefetchLink from "@/components/PrefetchLink";
 import {
+  formatChartCount,
+  formatChartPercent,
+  formatChartUsd,
+} from "@/lib/ui/chartLabelFormat";
+import {
   insightsOpsPeriodMonthCount,
-  insightsOpsPeriodOptions,
   insightsOpsPeriodToDays,
   matchesOverdueOpsDaysPeriod,
   type InsightsOpsPeriod,
@@ -62,21 +66,26 @@ import {
 
 interface AnalyticsChartsProps {
   initialData?: AnalyticsData;
+  /** Controlled from BusinessInsightsClient header (default All History). */
+  opsPeriod: InsightsOpsPeriod;
+  onOpsPeriodChange?: (period: InsightsOpsPeriod) => void;
 }
 
-const OPS_PERIOD_OPTIONS = insightsOpsPeriodOptions("light");
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
 const CHIP_CLASS =
   "rounded-full border px-3 py-1 text-xs font-medium transition-colors";
 
+/** Room for LabelList above points + angled category ticks. */
+const CHART_MARGIN = { top: 28, right: 12, left: 4, bottom: 8 };
+const CHART_MARGIN_ANGLED = { top: 28, right: 12, left: 4, bottom: 72 };
+const CHART_HEIGHT = 240;
+
 function filterOverdueByOpsPeriod(
   rows: OverdueBook[],
   period: InsightsOpsPeriod,
 ): OverdueBook[] {
-  return rows.filter((r) =>
-    matchesOverdueOpsDaysPeriod(r.daysOverdue, period),
-  );
+  return rows.filter((r) => matchesOverdueOpsDaysPeriod(r.daysOverdue, period));
 }
 
 function overdueAnalysisFromRows(
@@ -89,7 +98,10 @@ function overdueAnalysisFromRows(
   overdueRate: number;
 } {
   const totalOverdue = rows.length;
-  const totalFines = rows.reduce((sum, r) => sum + (Number(r.fineAmount) || 0), 0);
+  const totalFines = rows.reduce(
+    (sum, r) => sum + (Number(r.fineAmount) || 0),
+    0,
+  );
   const avgDaysOverdue =
     totalOverdue === 0
       ? 0
@@ -100,8 +112,10 @@ function overdueAnalysisFromRows(
   return { totalOverdue, avgDaysOverdue, totalFines, overdueRate };
 }
 
-const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
-  const [opsPeriod, setOpsPeriod] = useState<InsightsOpsPeriod>("30days");
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
+  initialData,
+  opsPeriod,
+}) => {
   const trendsDays = insightsOpsPeriodToDays(opsPeriod);
 
   const {
@@ -250,29 +264,16 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
     },
   ];
 
-  const genrePressureData = insights.genreDemandPressure.slice(0, 8).map((g) => ({
-    genre: g.genre.length > 14 ? `${g.genre.slice(0, 14)}…` : g.genre,
-    pressure: g.pressure,
-    borrows: g.borrows,
-  }));
+  const genrePressureData = insights.genreDemandPressure
+    .slice(0, 8)
+    .map((g) => ({
+      genre: g.genre.length > 14 ? `${g.genre.slice(0, 14)}…` : g.genre,
+      pressure: g.pressure,
+      borrows: g.borrows,
+    }));
 
   return (
     <div className="w-full max-w-full space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600">
-          Trends and analysis window · charts refetch on change (no densify invent)
-        </p>
-        <FilterSelect
-          label="Ops period"
-          variant="light"
-          labelLayout="embedded"
-          value={opsPeriod}
-          onValueChange={(v) => setOpsPeriod(v as InsightsOpsPeriod)}
-          options={OPS_PERIOD_OPTIONS}
-          className="w-full sm:w-48"
-        />
-      </div>
-
       <StatCardGrid className="lg:grid-cols-4">
         <StatCard
           title="Overdue Now"
@@ -456,7 +457,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
           prefetchKind="admin-books"
           className={`${CHIP_CLASS} border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100`}
         >
-          Out Of Stock
+          Out of Stock
         </PrefetchLink>
         <PrefetchLink
           href="/admin/books"
@@ -484,11 +485,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <LineChart data={trendsData}>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <LineChart data={trendsData} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
-                  <YAxis />
+                  <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
                   <Line
@@ -497,14 +498,28 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     stroke="#8884d8"
                     strokeWidth={2}
                     name="Borrows"
-                  />
+                  >
+                    <LabelList
+                      dataKey="borrows"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartCount(v, true)}
+                    />
+                  </Line>
                   <Line
                     type="monotone"
                     dataKey="returns"
                     stroke="#82ca9d"
                     strokeWidth={2}
                     name="Returns"
-                  />
+                  >
+                    <LabelList
+                      dataKey="returns"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartCount(v, true)}
+                    />
+                  </Line>
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -527,8 +542,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <LineChart data={insights.overdueTrend}>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <LineChart data={insights.overdueTrend} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis allowDecimals={false} />
@@ -540,7 +555,14 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     stroke="#e11d48"
                     strokeWidth={2}
                     name="Overdue"
-                  />
+                  >
+                    <LabelList
+                      dataKey="overdueCount"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartCount(v, true)}
+                    />
+                  </Line>
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -563,8 +585,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <BarChart data={popularBooksData}>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <BarChart data={popularBooksData} margin={CHART_MARGIN_ANGLED}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="title"
@@ -572,11 +594,19 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     textAnchor="end"
                     height={80}
                     fontSize={11}
+                    interval={0}
                   />
-                  <YAxis />
+                  <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
+                  <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows">
+                    <LabelList
+                      dataKey="borrows"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartCount(v)}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -599,14 +629,17 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <PieChart>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <PieChart margin={CHART_MARGIN}>
                   <Pie
                     data={genresData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    outerRadius={50}
+                    labelLine
+                    label={({ name, percent }) =>
+                      `${name} ${formatChartPercent((percent ?? 0) * 100)}`
+                    }
+                    outerRadius={58}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -641,8 +674,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <BarChart data={userActivityData}>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <BarChart data={userActivityData} margin={CHART_MARGIN_ANGLED}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
@@ -650,11 +683,19 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     textAnchor="end"
                     height={80}
                     fontSize={11}
+                    interval={0}
                   />
-                  <YAxis />
+                  <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows" />
+                  <Bar dataKey="borrows" fill="#8884d8" name="Total Borrows">
+                    <LabelList
+                      dataKey="borrows"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartCount(v)}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -678,8 +719,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <BarChart data={fineForecastData}>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <BarChart data={fineForecastData} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
@@ -690,7 +731,14 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     ]}
                   />
                   <Legend />
-                  <Bar dataKey="amount" fill="#f59e0b" name="USD" />
+                  <Bar dataKey="amount" fill="#f59e0b" name="USD">
+                    <LabelList
+                      dataKey="amount"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartUsd(v)}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -713,8 +761,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <BarChart data={genrePressureData}>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <BarChart data={genrePressureData} margin={CHART_MARGIN_ANGLED}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="genre"
@@ -722,11 +770,19 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
                     textAnchor="end"
                     height={80}
                     fontSize={11}
+                    interval={0}
                   />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="pressure" fill="#e11d48" name="Pressure" />
+                  <Bar dataKey="pressure" fill="#e11d48" name="Pressure">
+                    <LabelList
+                      dataKey="pressure"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartCount(v)}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -749,14 +805,21 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ initialData }) => {
             />
           ) : (
             <div className="mt-4 w-full overflow-x-auto">
-              <ResponsiveContainer width="100%" height={200} minWidth={300}>
-                <BarChart data={monthlySeries}>
+              <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={300}>
+                <BarChart data={monthlySeries} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" fontSize={11} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="borrows" fill="#6366f1" name="Borrows" />
+                  <Bar dataKey="borrows" fill="#6366f1" name="Borrows">
+                    <LabelList
+                      dataKey="borrows"
+                      position="top"
+                      className="fill-slate-600 text-[10px]"
+                      formatter={(v: unknown) => formatChartCount(v, true)}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>

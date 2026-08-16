@@ -108,9 +108,9 @@ export const bookSchema = z.object({
       /^#[0-9A-F]{6}$/i,
       "Primary color must be a valid hex color (e.g., #FF5733)",
     ),
-  videoUrl: z
-    .string()
-    .min(1, "Book trailer is required. Please upload a book trailer video."),
+  // Optional trailer — empty string allowed; server normalizes to NULL and
+  // asserts ImageKit only when a non-empty URL is supplied.
+  videoUrl: z.string().trim(),
   summary: z
     .string()
     .trim()

@@ -143,7 +143,7 @@ interface BorrowRecordWithBook {
     description: string;
     coverColor: string;
     coverUrl: string;
-    videoUrl: string;
+    videoUrl: string | null;
     summary: string;
     isbn?: string | null;
     publicationYear?: number | null;

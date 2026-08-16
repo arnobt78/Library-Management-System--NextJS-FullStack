@@ -154,7 +154,8 @@ export const books = pgTable("books", {
   description: text("description").notNull(), // Book description/synopsis
   totalCopies: integer("total_copies").notNull().default(1), // Total inventory
   availableCopies: integer("available_copies").notNull().default(0), // Available to borrow
-  videoUrl: text("video_url").notNull(), // Book trailer or related video
+  // Optional trailer — NULL when admin skips upload (migration 0016).
+  videoUrl: text("video_url"),
   summary: varchar("summary").notNull(), // Detailed summary
   // Enhanced tracking and control fields
   isbn: varchar("isbn", { length: 20 }), // International Standard Book Number

@@ -73,7 +73,7 @@ integration("PostgreSQL lifecycle invariants", () => {
         genre text NOT NULL, rating integer NOT NULL, cover_url text NOT NULL,
         cover_color text NOT NULL, description text NOT NULL,
         total_copies integer NOT NULL, available_copies integer NOT NULL,
-        video_url text NOT NULL, summary text NOT NULL, is_active boolean NOT NULL,
+        video_url text, summary text NOT NULL, is_active boolean NOT NULL,
         is_featured boolean NOT NULL, updated_at timestamptz, updated_by uuid,
         created_at timestamptz
       );

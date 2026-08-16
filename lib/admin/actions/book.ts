@@ -47,13 +47,26 @@ async function clearOtherFeatured(tx: Tx, keepId?: string) {
   }
 }
 
+/** Empty / whitespace trailer → NULL (optional product field; cover stays required). */
+function normalizeOptionalVideoUrl(
+  value: string | null | undefined,
+): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 export const createBook = async (params: BookParams) => {
   try {
     const actor = await requireAdminActor();
     const safeParams = bookSchema.parse(params);
+    const videoUrl = normalizeOptionalVideoUrl(safeParams.videoUrl);
     await Promise.all([
       assertPersistedMediaUrl(safeParams.coverUrl, "image"),
-      assertPersistedMediaUrl(safeParams.videoUrl, "video"),
+      // Skip ImageKit video assert when admin omits trailer.
+      videoUrl
+        ? assertPersistedMediaUrl(videoUrl, "video")
+        : Promise.resolve(),
     ]);
     const wantFeatured = safeParams.isFeatured === true;
     // Inactive cannot be curated homepage hero.
@@ -69,6 +82,7 @@ export const createBook = async (params: BookParams) => {
         .insert(books)
         .values({
           ...safeParams,
+          videoUrl,
           availableCopies: safeParams.totalCopies,
           // Added-only DNA — Updated stays null until a real catalog edit.
           createdBy: actor.id,
@@ -127,14 +141,22 @@ export const updateBook = async (
       .limit(1);
     if (!currentBook[0]) throw new Error("Book not found");
 
+    // Empty trailer clears to NULL; assert ImageKit only for a newly supplied URL.
+    const videoPatch =
+      safeParams.videoUrl !== undefined
+        ? { videoUrl: normalizeOptionalVideoUrl(safeParams.videoUrl) }
+        : {};
+    const nextVideoUrl =
+      videoPatch.videoUrl !== undefined ? videoPatch.videoUrl : undefined;
+
     // Existing legacy media remains editable; every newly supplied location
     // must pass the current trusted-origin, metadata, size, and signature policy.
     await Promise.all([
       safeParams.coverUrl && safeParams.coverUrl !== currentBook[0].coverUrl
         ? assertPersistedMediaUrl(safeParams.coverUrl, "image")
         : Promise.resolve(),
-      safeParams.videoUrl && safeParams.videoUrl !== currentBook[0].videoUrl
-        ? assertPersistedMediaUrl(safeParams.videoUrl, "video")
+      nextVideoUrl && nextVideoUrl !== currentBook[0].videoUrl
+        ? assertPersistedMediaUrl(nextVideoUrl, "video")
         : Promise.resolve(),
     ]);
     const wantFeatured = safeParams.isFeatured === true;
@@ -188,6 +210,7 @@ export const updateBook = async (
           .update(books)
           .set({
             ...safeParams,
+            ...videoPatch,
             availableCopies: newAvailableCopies,
             updatedBy: actor.id,
             updatedAt: new Date(),
@@ -206,6 +229,7 @@ export const updateBook = async (
         .update(books)
         .set({
           ...safeParams,
+          ...videoPatch,
           updatedBy: actor.id,
           updatedAt: new Date(),
           ...featuredPatch,
@@ -238,8 +262,9 @@ export const updateBook = async (
       orphanUrls.push(previous.coverUrl);
     }
     if (
-      safeParams.videoUrl !== undefined &&
-      safeParams.videoUrl !== previous.videoUrl
+      nextVideoUrl !== undefined &&
+      nextVideoUrl !== previous.videoUrl &&
+      previous.videoUrl
     ) {
       orphanUrls.push(previous.videoUrl);
     }

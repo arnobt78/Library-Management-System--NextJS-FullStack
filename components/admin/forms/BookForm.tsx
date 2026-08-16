@@ -426,7 +426,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <BookFormFieldLabel icon={FileVideoCamera} required>
+                    <BookFormFieldLabel icon={FileVideoCamera}>
                       Book Trailer
                     </BookFormFieldLabel>
                     {field.value ? (

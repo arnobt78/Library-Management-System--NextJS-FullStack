@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Insights UX + seed:demo shipped (awaiting owner Verify)
+- Status: ACTIVE - Optional trailer + Insights header polish tip shipping
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `ac266ee`
-- Latest HEAD: `b9d8d95`
+- Latest implementation tip: (pending bind after push)
+- Latest HEAD: `be5c841`
 - Started: 2026-08-01
-- Last updated: 2026-08-17 (Insights UX DNA + seed:demo + Updated dash)
+- Last updated: 2026-08-17 (optional trailer + Insights polish)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,19 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Insights UX + seed:demo shipped; ImageKit upload-limit deferred; owner Verify Insights / EvalGate blocks Gate 2
+- Active plan: owner Verify create-without-trailer + Insights; EvalGate blocks Gate 2
+
+## Reconciliation snapshot (2026-08-17, optional book trailer)
+
+- **Done**: mig `0016` nullable `video_url` (local applied); Zod empty OK; create/update NULL + conditional assert; BookForm no Trailer `*`; BookVideo null-safe; Insights header All History + LabelList + Actions kebab.
+- **Remaining**: EvalGate / Gate 2; owner UI Verify.
+- **Next exact task**: Verify cover-only create + Insights charts.
+
+## Reconciliation snapshot (2026-08-17, Insights header + chart labels)
+
+- **Done**: `BusinessInsightsClient` header FilterSelect (default `all`) + chips; removed densify invent subtitle; Recharts LabelList + margins; University ID `text-dark-200`; Due/Borrowed emerald/amber via `independentUpdated`; overdue Actions kebab View Details.
+- **Remaining**: EvalGate / Gate 2; owner Verify Insights.
+- **Next exact task**: owner Verify `/admin/business-insights` charts + overdue table.
 
 ## Reconciliation snapshot (2026-08-17, Insights UX + seed:demo)
 

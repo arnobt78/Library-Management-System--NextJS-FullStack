@@ -1220,7 +1220,7 @@ export const useBorrowBook = () => {
         description: string;
         coverColor: string;
         coverUrl: string;
-        videoUrl: string;
+        videoUrl: string | null;
         summary: string;
         isActive: boolean;
         createdAt: Date | null;

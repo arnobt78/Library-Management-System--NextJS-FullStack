@@ -198,7 +198,11 @@ export async function bulkDeleteBooks(
       omit: ["/books/[id]", "/admin/books/[id]"],
     });
 
-    const purgeUrls = mediaRows.flatMap((row) => [row.coverUrl, row.videoUrl]);
+    const purgeUrls = mediaRows.flatMap((row) =>
+      [row.coverUrl, row.videoUrl].filter(
+        (url): url is string => Boolean(url),
+      ),
+    );
     scheduleImageKitPurge(purgeUrls);
 
     return {

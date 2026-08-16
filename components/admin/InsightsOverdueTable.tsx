@@ -1,16 +1,24 @@
 /**
  * Insights overdue ops table — Borrow Queue DNA (book + person) + severity filters.
- * PrefetchLinks to book / User 360 / borrow request detail.
+ * Actions kebab: View Details only (read-only Insights surface).
  */
 "use client";
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Eye, MoreVertical, X } from "lucide-react";
 import type { OverdueBook } from "@/lib/services/analytics";
 import { DataTable } from "@/components/ui/data-table";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
 import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState";
 import { AdminBookIdentityCell } from "@/components/admin/AdminBookIdentityCell";
@@ -19,13 +27,12 @@ import PrefetchLink from "@/components/PrefetchLink";
 import UniversityIdMeta from "@/components/UniversityIdMeta";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { ADMIN_PANEL_CLASS } from "@/lib/ui/adminSurfaceStyles";
-import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
+import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import {
   matchesOverdueDaysPeriod,
   overdueSeverityPeriodOptions,
   type ListPeriod,
 } from "@/lib/ui/periodFilterOptions";
-import { cn } from "@/lib/utils";
 
 const PERIOD_OPTIONS = overdueSeverityPeriodOptions("light");
 
@@ -43,6 +50,45 @@ function matchesOverdueSearch(row: OverdueBook, q: string): boolean {
     .join(" ")
     .toLowerCase();
   return hay.includes(q);
+}
+
+function OverdueRowActions({ recordId }: { recordId: string }) {
+  const detailHref = `/admin/book-requests/${recordId}`;
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Overdue request actions"
+          className={LIGHT_MENU.trigger}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreVertical className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className={LIGHT_MENU.content}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuItem asChild className={LIGHT_MENU.item}>
+          <PrefetchLink
+            href={detailHref}
+            prefetchKind="borrow-request-detail"
+            prefetch={false}
+          >
+            <Eye className="size-3.5" />
+            View Details
+          </PrefetchLink>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className={LIGHT_MENU.separator} />
+        <DropdownMenuItem className={LIGHT_MENU.item}>
+          <X className="size-3.5" />
+          Cancel
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 const columns: ColumnDef<OverdueBook>[] = [
@@ -96,15 +142,11 @@ const columns: ColumnDef<OverdueBook>[] = [
               <TicketDateMeta
                 createdAt={r.dueDate}
                 createdLabel="Due"
-                hideUpdated
+                updatedAt={r.borrowDate}
+                updatedLabel="Borrowed"
+                hideUpdated={!r.borrowDate}
+                independentUpdated
               />
-              {r.borrowDate ? (
-                <TicketDateMeta
-                  createdAt={r.borrowDate}
-                  createdLabel="Borrowed"
-                  hideUpdated
-                />
-              ) : null}
             </div>
           }
         />
@@ -141,19 +183,13 @@ const columns: ColumnDef<OverdueBook>[] = [
     },
   },
   {
-    id: "request",
-    header: "Request",
+    id: "actions",
+    header: "Actions",
     accessorKey: "recordId",
-    size: 80,
-    cell: ({ row }) => (
-      <PrefetchLink
-        href={`/admin/book-requests/${row.original.recordId}`}
-        prefetchKind="borrow-request-detail"
-        className={cn(SKY_LINK_LIGHT, "text-sm font-medium")}
-      >
-        View
-      </PrefetchLink>
-    ),
+    size: 64,
+    minSize: 56,
+    enableSorting: false,
+    cell: ({ row }) => <OverdueRowActions recordId={row.original.recordId} />,
   },
 ];
 

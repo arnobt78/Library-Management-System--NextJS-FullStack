@@ -1,6 +1,6 @@
 /**
  * Book detail trailer — full-width frame with max-h so tall clips do not eat the fold.
- * Placeholder keeps min-h only (create still requires videoUrl; invalid/legacy URLs land here).
+ * Trailer is optional (NULL/empty → placeholder); invalid/legacy URLs land here too.
  * Parent: book detail media polish
  */
 "use client";
@@ -14,17 +14,18 @@ import { cn } from "@/lib/utils";
 const VIDEO_FRAME_MAX =
   "max-h-[min(50vh,28rem)]";
 
-const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
+const BookVideo = ({ videoUrl }: { videoUrl: string | null | undefined }) => {
+  const src = videoUrl?.trim() ?? "";
   const isVideoFile =
-    Boolean(videoUrl) &&
-    (videoUrl.endsWith(".mp4") ||
-      videoUrl.endsWith(".webm") ||
-      videoUrl.endsWith(".ogg") ||
-      videoUrl.endsWith(".avi") ||
-      videoUrl.endsWith(".mov") ||
-      videoUrl.includes("/video/") ||
-      (videoUrl.includes("imagekit.io") &&
-        videoUrl.includes("/books/videos/")));
+    Boolean(src) &&
+    (src.endsWith(".mp4") ||
+      src.endsWith(".webm") ||
+      src.endsWith(".ogg") ||
+      src.endsWith(".avi") ||
+      src.endsWith(".mov") ||
+      src.includes("/video/") ||
+      (src.includes("imagekit.io") &&
+        src.includes("/books/videos/")));
 
   // Empty / non-video URL — stable slot only (not used for playing clips).
   if (!isVideoFile) {
@@ -49,7 +50,7 @@ const BookVideo = ({ videoUrl }: { videoUrl: string }) => {
     >
       <ImageKitProvider urlEndpoint={config.env.imagekit.urlEndpoint}>
         <ImageKitVideo
-          src={videoUrl}
+          src={src}
           controls
           className={cn(
             "h-full w-full max-w-full object-contain",

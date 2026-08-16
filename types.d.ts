@@ -23,7 +23,7 @@ interface Book {
   description: string;
   coverColor: string;
   coverUrl: string;
-  videoUrl: string;
+  videoUrl: string | null;
   summary: string;
   // Enhanced tracking and control fields
   isbn?: string | null;
@@ -75,7 +75,7 @@ interface BookParams {
   coverColor: string;
   description: string;
   totalCopies: number;
-  videoUrl: string;
+  videoUrl: string | null;
   summary: string;
   // Enhanced optional fields
   isbn?: string;

@@ -38,6 +38,8 @@ export function TicketDateMeta({
   hideCreated = false,
   /** When true, skip Updated row even if updatedAt is set. */
   hideUpdated = false,
+  /** When true, always format updatedAt (Due/Borrowed pairs) — skip insert-default dash. */
+  independentUpdated = false,
   className,
 }: {
   createdAt?: string | Date | null | undefined;
@@ -48,6 +50,7 @@ export function TicketDateMeta({
   updatedLabel?: string;
   hideCreated?: boolean;
   hideUpdated?: boolean;
+  independentUpdated?: boolean;
   className?: string;
 }) {
   const isDark = variant === "dark";
@@ -55,9 +58,12 @@ export function TicketDateMeta({
   const updatedTone = isDark ? "text-amber-200/80" : "text-amber-700/90";
   const showCreated = !hideCreated;
   const showUpdated = !hideUpdated;
-  const updatedDisplay = hasMeaningfulUpdatedAt(createdAt, updatedAt)
-    ? formatMediumDateTime(updatedAt)
-    : "—";
+  const updatedDisplay =
+    independentUpdated && updatedAt != null && updatedAt !== ""
+      ? formatMediumDateTime(updatedAt)
+      : hasMeaningfulUpdatedAt(createdAt, updatedAt)
+        ? formatMediumDateTime(updatedAt)
+        : "—";
 
   if (layout === "inline") {
     return (

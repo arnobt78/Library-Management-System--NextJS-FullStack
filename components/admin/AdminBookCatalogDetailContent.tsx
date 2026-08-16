@@ -479,7 +479,7 @@ export default function AdminBookCatalogDetailContent({
               />
               <FieldRow
                 label="Trailer URL"
-                value={hasTrailer ? book.videoUrl : "—"}
+                value={displayOrDash(book.videoUrl)}
                 copyable={hasTrailer}
                 icon={Video}
               />
