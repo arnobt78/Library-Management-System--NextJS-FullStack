@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Sentry filter + root 404 contrast shipped (`073afae`); tip-bind `cf61020`
+- Status: ACTIVE - root 404 dark shell + Lucide CTAs Prove closed locally; commit pending
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `073afae`
 - Latest HEAD: `7a32100`
 - Started: 2026-08-01
-- Last updated: 2026-08-16 (404 contrast + Sentry closeout)
+- Last updated: 2026-08-16 (root 404 dark shell)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -25,6 +25,12 @@
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
 - Active plan: Densify closeout shipped; Sentry expected-auth filter + admin redirect; ImageKit upload-limit deferred; owner Verify / name next Build
+
+## Reconciliation snapshot (2026-08-16, root 404 dark shell)
+
+- **Done**: Reverted `#not-found` to white/light-100; wrap `root-container`+`bg-pattern`; Lucide Home/BookOpen; browse `SKY_LINK_DARK`.
+- **Remaining**: EvalGate / Gate 2; owner Verify.
+- **Next exact task**: commit when owner asks.
 
 ## Reconciliation snapshot (2026-08-16, 404 contrast + Sentry closeout)
 

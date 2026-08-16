@@ -54,7 +54,7 @@ Browser
 - Bulk Automation (2026-08-15): live UUID dialogs + pending loaders; DEC-0109 densifyBookDelete + reminder stamp-fail closed; no Coming Soon redirects.
 - Densify consistency closeout (2026-08-16): `finiteTotal` + create absolute reconcile + thin unfiltered total sync; early hard-delete densify (book/review/ticket); paged SSR seed; list `count` coerce; bulk activate/user/admin/borrow densify + admin pending clear; reminder bell unread/total bump; debug ingest stripped. Deferred: ImageKit upload-limit UX.
 - Sentry auth noise (2026-08-16): `beforeSend` drops expected `AuthorizationError`; admin RSC `requireAdminActorOrRedirect` (sign-in / home).
-- Root 404 contrast (2026-08-16): `#not-found` dark title/body; Browse link `SKY_LINK_LIGHT` (light shell).
+- Root 404 (2026-08-16): public `root-container` + `bg-pattern`; Lucide Home/BookOpen; light `#not-found` text + `SKY_LINK_DARK`.
 
 ## Admin Stockly chrome (2026-08-07)
 

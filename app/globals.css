@@ -444,17 +444,17 @@ html body[data-scroll-locked] {
     @apply absolute inset-x-0 -bottom-6 flex flex-row gap-1.5;
   }
 
-  /* Not Found — root shell is light (app/layout); dark tokens for contrast */
+  /* Not Found — light text assumes dark root-container / bg-pattern shell */
   #not-found {
     @apply flex justify-center items-center flex-col text-center w-full;
   }
 
   #not-found h4 {
-    @apply mt-6 text-xl font-medium text-dark-100;
+    @apply mt-6 text-xl font-medium text-white;
   }
 
   #not-found p {
-    @apply mt-1 w-[360px] text-dark-200;
+    @apply mt-1 w-[360px] text-light-100;
   }
 
   .not-found-btn {
