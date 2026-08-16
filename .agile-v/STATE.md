@@ -8,7 +8,7 @@
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `44a08ba`
-- Latest HEAD: `a8e6b22`
+- Latest HEAD: `6dc49a4`
 - Started: 2026-08-01
 - Last updated: 2026-08-16 (book trailer max-h tip-bind)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
