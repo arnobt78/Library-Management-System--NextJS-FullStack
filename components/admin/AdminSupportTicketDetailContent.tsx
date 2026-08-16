@@ -39,6 +39,8 @@ import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { cn } from "@/lib/utils";
 import { buildTicketActivityTimeline } from "@/lib/ui/ticketActivity";
 import PersonAttribution from "@/components/PersonAttribution";
+import UniversityIdMeta from "@/components/UniversityIdMeta";
+import { Button } from "@/components/ui/button";
 import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
 import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
@@ -194,6 +196,23 @@ export default function AdminSupportTicketDetailContent({
                         <p className="line-clamp-2 text-sm font-medium">
                           {ticket.subject}
                         </p>
+                        <div className="mt-2">
+                          <PersonAttribution
+                            variant="light"
+                            person={{
+                              id: ticket.userId,
+                              fullName: ticket.userName,
+                              email: ticket.userEmail,
+                              universityCard: ticket.userUniversityCard ?? null,
+                            }}
+                            meta={
+                              <UniversityIdMeta
+                                universityId={ticket.userUniversityId}
+                                variant="light"
+                              />
+                            }
+                          />
+                        </div>
                         <p className="mt-1.5 line-clamp-3 text-xs opacity-80">
                           {ticket.description}
                         </p>
@@ -208,21 +227,21 @@ export default function AdminSupportTicketDetailContent({
                   >
                     Cancel
                   </AlertDialogCancel>
-                  <button
+                  <Button
                     type="button"
+                    disabled={deletePending}
+                    className={LIGHT_ALERT.destructive}
                     onClick={() => {
                       void handleDelete();
                     }}
-                    disabled={deletePending}
-                    className={LIGHT_ALERT.destructive}
                   >
                     {deletePending ? (
-                      <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
                     ) : (
-                      <Trash2 className="size-3.5 sm:size-4" />
+                      <Trash2 className="size-4" aria-hidden />
                     )}
-                    {deletePending ? "Deleting…" : "Delete ticket"}
-                  </button>
+                    {deletePending ? "Deleting…" : "Delete Ticket"}
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

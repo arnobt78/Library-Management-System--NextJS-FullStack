@@ -130,12 +130,12 @@ const BookForm = ({ type = "create", ...book }: Props) => {
       coverColor: book.coverColor || "",
       videoUrl: book.videoUrl || "",
       summary: book.summary || "",
-      isbn: book.isbn || undefined,
+      isbn: book.isbn || "",
       publicationYear: book.publicationYear ?? undefined,
-      publisher: book.publisher || undefined,
-      language: type === "create" ? undefined : (book.language ?? undefined),
+      publisher: book.publisher || "",
+      language: type === "create" ? "" : (book.language ?? ""),
       pageCount: book.pageCount ?? undefined,
-      edition: book.edition || undefined,
+      edition: book.edition || "",
       isActive: book.isActive ?? true,
       isFeatured: book.isFeatured ?? false,
     },
@@ -522,6 +522,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       <Input
                         placeholder={BOOK_FIELD_PLACEHOLDERS.isbn}
                         {...field}
+                        value={field.value ?? ""}
                         className="book-form_input"
                       />
                     </FormControl>
@@ -574,6 +575,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       <Input
                         placeholder={BOOK_FIELD_PLACEHOLDERS.publisher}
                         {...field}
+                        value={field.value ?? ""}
                         className="book-form_input"
                       />
                     </FormControl>
@@ -593,6 +595,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       <Input
                         placeholder={BOOK_FIELD_PLACEHOLDERS.language}
                         {...field}
+                        value={field.value ?? ""}
                         className="book-form_input"
                       />
                     </FormControl>
@@ -644,6 +647,7 @@ const BookForm = ({ type = "create", ...book }: Props) => {
                       <Input
                         placeholder={BOOK_FIELD_PLACEHOLDERS.edition}
                         {...field}
+                        value={field.value ?? ""}
                         className="book-form_input"
                       />
                     </FormControl>

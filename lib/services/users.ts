@@ -149,12 +149,16 @@ export async function getUsersList(
 
   // Handle different response formats
   if (data.users && Array.isArray(data.users)) {
+    const total = Number(data.total ?? data.users.length);
+    const page = Number(data.page ?? 1);
+    const limit = Number(data.limit ?? data.users.length);
+    const totalPages = Number(data.totalPages ?? 1);
     return {
       users: data.users,
-      total: data.total || data.users.length,
-      page: data.page || 1,
-      totalPages: data.totalPages || 1,
-      limit: data.limit || data.users.length,
+      total: Number.isFinite(total) ? total : data.users.length,
+      page: Number.isFinite(page) && page > 0 ? page : 1,
+      totalPages: Number.isFinite(totalPages) ? totalPages : 1,
+      limit: Number.isFinite(limit) && limit > 0 ? limit : data.users.length,
     };
   }
 

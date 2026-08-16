@@ -1,5 +1,6 @@
 "use client";
 
+
 /**
  * ActivityLogSection — admin Activity History table (KPI row + period/search
  * toolbar + sortable TanStack table).
@@ -8,9 +9,9 @@
  * Parent: CR-0003 / REQ-0034
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FilePen, FilePlus, History, Trash2 } from "lucide-react";
+import { FilePen, FilePlus, History, Shield, Trash2, Users } from "lucide-react";
 import { useActivityLogs } from "@/hooks/useQueries";
 import type {
   ActivityLogFilters,
@@ -20,7 +21,7 @@ import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { DataTable } from "@/components/ui/data-table";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { FilterSelect } from "@/components/ui/filter-select";
+import { FilterSelect, type FilterSelectOption } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
 import { AuditActionBadge } from "@/lib/ui/semanticBadges";
 import PersonAttribution from "@/components/PersonAttribution";
@@ -49,6 +50,14 @@ import { periodFilterOptions } from "@/lib/ui/periodFilterOptions";
 
 const PERIOD_OPTIONS = periodFilterOptions("light");
 
+const ACCOUNT_FILTER_OPTIONS: FilterSelectOption[] = [
+  { value: "all", label: "All Accounts", icon: Users },
+  { value: "USER", label: "Users", icon: Users },
+  { value: "ADMIN", label: "Admins", icon: Shield },
+];
+
+type AccountFilter = "all" | "USER" | "ADMIN";
+
 export default function ActivityLogSection({
   initialLogs,
 }: {
@@ -56,9 +65,10 @@ export default function ActivityLogSection({
 }) {
   const [period, setPeriod] = useState<ActivityLogFilters["period"]>("7days");
   const [search, setSearch] = useState("");
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
 
-  // Period drives the server fetch; search filters the loaded rows locally so
-  // typing matches from the first character (no RQ refetch per keystroke).
+  // Period drives the server fetch; search + account filter locally so
+  // typing / role chips match from the first character (no RQ refetch).
   const filters = useMemo<ActivityLogFilters>(() => ({ period }), [period]);
   const { data: periodLogs = [], isPending } = useActivityLogs(
     filters,
@@ -67,8 +77,10 @@ export default function ActivityLogSection({
 
   const logs = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return periodLogs;
     return periodLogs.filter((log) => {
+      if (accountFilter === "USER" && log.actorRole !== "USER") return false;
+      if (accountFilter === "ADMIN" && log.actorRole !== "ADMIN") return false;
+      if (!q) return true;
       const hay = [
         log.actorName ?? "",
         log.actorEmail ?? "",
@@ -81,7 +93,7 @@ export default function ActivityLogSection({
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [periodLogs, search]);
+  }, [periodLogs, search, accountFilter]);
 
   const stats = useMemo(() => {
     let created = 0;
@@ -97,11 +109,16 @@ export default function ActivityLogSection({
   }, [periodLogs]);
 
   const filterChipGroups = useMemo(() => {
-    if (period === "7days") return [];
-    const label =
-      PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? period;
-    return [
-      {
+    const groups: {
+      label: string;
+      values: string[];
+      onClear: () => void;
+      renderBadge: () => ReactNode;
+    }[] = [];
+    if (period !== "7days") {
+      const label =
+        PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? period;
+      groups.push({
         label: "Period",
         values: [period],
         onClear: () => setPeriod("7days"),
@@ -110,16 +127,35 @@ export default function ActivityLogSection({
             {label}
           </span>
         ),
-      },
-    ];
-  }, [period]);
+      });
+    }
+    if (accountFilter !== "all") {
+      const label =
+        ACCOUNT_FILTER_OPTIONS.find((o) => o.value === accountFilter)?.label ??
+        accountFilter;
+      groups.push({
+        label: "Account",
+        values: [accountFilter],
+        onClear: () => setAccountFilter("all"),
+        renderBadge: () => (
+          <span className="inline-flex items-center rounded-full border border-gray-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+            {label}
+          </span>
+        ),
+      });
+    }
+    return groups;
+  }, [period, accountFilter]);
 
   const handleResetFilters = () => {
     setSearch("");
     setPeriod("7days");
+    setAccountFilter("all");
   };
 
-  const hasDisplayFilters = Boolean(search.trim() || period !== "7days");
+  const hasDisplayFilters = Boolean(
+    search.trim() || period !== "7days" || accountFilter !== "all",
+  );
 
   const columns = useMemo<ColumnDef<ActivityLogItem>[]>(
     () => [
@@ -257,8 +293,8 @@ export default function ActivityLogSection({
     <AdminPageShell
       header={
         <AdminPageHeader
-          title="Activity History"
-          description="Recent admin actions across the system"
+          title="Library Activity History"
+          description="Recent library actions across accounts and admin operations"
           icon={History}
         />
       }
@@ -293,7 +329,7 @@ export default function ActivityLogSection({
     >
       <div className="admin-panel">
         <AdminListToolbar
-          title="Admin Activity History"
+          title="Library Activity History"
           count={logs.length}
           chips={
             <DismissibleFilterChips
@@ -309,6 +345,15 @@ export default function ActivityLogSection({
             placeholder="Search actor, action…"
             debounceMs={0}
             className="sm:min-w-64"
+          />
+          <FilterSelect
+            label="Accounts"
+            variant="light"
+            labelLayout="embedded"
+            className="sm:min-w-[170px]"
+            value={accountFilter}
+            onValueChange={(value) => setAccountFilter(value as AccountFilter)}
+            options={ACCOUNT_FILTER_OPTIONS}
           />
           <FilterSelect
             label="Period"

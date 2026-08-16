@@ -5,6 +5,7 @@
  */
 "use client";
 
+
 import { Loader2, Plus, Save } from "lucide-react";
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 import { Button } from "@/components/ui/button";
@@ -97,10 +98,7 @@ export function BookFormConfirmDialog({
           <Button
             type="button"
             disabled={isPending}
-            className={cn(
-              LIGHT_ALERT.destructive,
-              "border-primary-admin/40 bg-primary-admin hover:bg-primary-admin/90",
-            )}
+            className={LIGHT_ALERT.confirm}
             onClick={() => {
               onConfirm();
             }}

@@ -21,6 +21,7 @@ function makeDetail(
     userName: "Test User",
     userEmail: "test@user.com",
     userUniversityCard: "/cards/user.jpg",
+    userUniversityId: 1001,
     assignedToId: null,
     assignedToName: null,
     assignedToEmail: null,

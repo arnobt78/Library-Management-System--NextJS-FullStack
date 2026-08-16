@@ -3,7 +3,7 @@
  * so registry=required stays honest after invalidateMutation.
  *
  * Exact keys: list (prefix root), unreadCount, totalCount.
- * totalCount changes only on delete; mark-read / mark-all only touch unread.
+ * totalCount changes on delete and reminder bell bumps; mark-read / mark-all only touch unread.
  */
 
 import type { QueryClient } from "@tanstack/react-query";
@@ -59,6 +59,34 @@ export function densifyNotificationMarkAllRead(
     old.map((n) => (n.isRead ? n : { ...n, isRead: true, readAt: now })),
   );
   queryClient.setQueryData<number>(queryKeys.notifications.unreadCount, 0);
+}
+
+/**
+ * Bump bell unread/total when server returns a known send count (reminders).
+ * Does not invent list rows — badge only until list refetch.
+ */
+export function densifyNotificationBellBump(
+  queryClient: QueryClient,
+  args: { unreadDelta: number; totalDelta?: number },
+): void {
+  const unread = Math.max(0, Math.floor(Number(args.unreadDelta) || 0));
+  if (unread <= 0) return;
+  const total = Math.max(
+    0,
+    Math.floor(
+      Number(args.totalDelta !== undefined ? args.totalDelta : unread) || 0,
+    ),
+  );
+  queryClient.setQueryData<number>(
+    queryKeys.notifications.unreadCount,
+    (old) => Math.max(0, (old ?? 0) + unread),
+  );
+  if (total > 0) {
+    queryClient.setQueryData<number>(
+      queryKeys.notifications.totalCount,
+      (old) => Math.max(0, (old ?? 0) + total),
+    );
+  }
 }
 
 /** Remove a notification from lists; decrement unread + total when applicable. */

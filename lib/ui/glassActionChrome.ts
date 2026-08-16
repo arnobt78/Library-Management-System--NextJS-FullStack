@@ -26,9 +26,9 @@ export const GLASS_ALERT = {
   preview:
     "rounded-md border border-gray-600 bg-gray-900/40 p-2.5 text-light-100",
   cancel:
-    "mt-0 w-full border-gray-500 bg-gray-600 text-xs text-white hover:bg-gray-500 hover:text-white sm:w-auto sm:text-sm",
+    "mt-0 h-9 w-full shrink-0 gap-1.5 border-gray-500 bg-gray-600 px-3 text-xs font-medium text-white shadow-sm hover:bg-gray-500 hover:text-white sm:w-auto sm:px-4 sm:text-sm",
   destructive:
-    "w-full gap-1.5 bg-red-600 text-xs text-white hover:bg-red-700 sm:w-auto sm:text-sm",
+    "h-9 w-full shrink-0 gap-1.5 whitespace-nowrap rounded-md !bg-red-600 px-3 text-xs font-medium !text-white shadow-sm hover:!bg-red-700 sm:w-auto sm:px-4 sm:text-sm [&_svg]:size-4 [&_svg]:shrink-0",
   footer: "flex-col gap-2 sm:flex-row sm:gap-0",
 } as const;
 
@@ -51,9 +51,12 @@ export const LIGHT_ALERT = {
   description: "text-xs text-gray-500 sm:text-sm",
   preview: "rounded-md border border-gray-200 bg-gray-50 p-2.5 text-dark-400",
   cancel:
-    "mt-0 w-full border-gray-300 bg-white text-xs text-dark-400 hover:bg-gray-50 sm:w-auto sm:text-sm",
+    "mt-0 h-9 w-full shrink-0 gap-1.5 border-gray-300 bg-white px-3 text-xs font-medium text-dark-400 shadow-sm hover:bg-gray-50 sm:w-auto sm:px-4 sm:text-sm",
+  /** Non-destructive confirm (Add / Update book) — primary-admin blue, not red. */
+  confirm:
+    "h-9 w-full shrink-0 gap-1.5 whitespace-nowrap rounded-md border border-primary-admin/40 !bg-primary-admin px-3 text-xs font-medium !text-white shadow-sm hover:!bg-primary-admin/90 sm:w-auto sm:px-4 sm:text-sm [&_svg]:size-4 [&_svg]:shrink-0",
   destructive:
-    "w-full gap-1.5 bg-red-600 text-xs text-white hover:bg-red-700 sm:w-auto sm:text-sm",
+    "h-9 w-full shrink-0 gap-1.5 whitespace-nowrap rounded-md !bg-red-600 px-3 text-xs font-medium !text-white shadow-sm hover:!bg-red-700 sm:w-auto sm:px-4 sm:text-sm [&_svg]:size-4 [&_svg]:shrink-0",
   footer: "flex-col gap-2 sm:flex-row sm:gap-0",
 } as const;
 

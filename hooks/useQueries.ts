@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { queryKeys } from "@/lib/query/keys";
-import { seedFromSsrIfEmpty } from "@/lib/utils/queryCacheLists";
+import { seedFromSsrIfEmpty, seedPagedListFromSsrIfEmpty } from "@/lib/utils/queryCacheLists";
 import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
 import { useQueryPerformance } from "@/hooks/usePerformance";
 import {
@@ -140,6 +140,7 @@ export const useAllBooks = (
   },
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
   // Get filters from URL params if not provided
@@ -163,6 +164,12 @@ export const useAllBooks = (
 
   // Build query key from filters for proper caching (different from useBooks)
   const queryKey = queryKeys.books.adminList(urlFilters);
+  // Prefer densify over stale RSC — Low Stock / KPI cards derive from books[].
+  const seed = seedPagedListFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    initialData,
+  );
 
   return useQuery({
     queryKey,
@@ -172,7 +179,7 @@ export const useAllBooks = (
       }),
     staleTime: 30 * 1000, // Reconcile after 30 seconds or explicit invalidation
     refetchOnMount: true, // Refetch if stale (after invalidation)
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    initialData: seed,
     // Instant filter UX: show previous results until the new key resolves (no empty flash).
     // skipEmptyPlaceholder: clearing from 0 hits must not keep empty as placeholder.
     placeholderData: options?.skipEmptyPlaceholder
@@ -419,6 +426,7 @@ export const useAllUsers = (
   initialData?: UsersListResponse
 ) => {
   const { trackQuery } = useQueryPerformance();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
   // Get filters from URL params if not provided
@@ -437,6 +445,11 @@ export const useAllUsers = (
 
   // Build query key from filters for proper caching
   const queryKey = queryKeys.users.adminList(urlFilters);
+  const seed = seedPagedListFromSsrIfEmpty(
+    queryClient,
+    queryKey,
+    initialData,
+  );
 
   return useQuery({
     queryKey,
@@ -446,7 +459,7 @@ export const useAllUsers = (
       }),
     staleTime: 0, // Always refetch when query key changes (filters change)
     refetchOnMount: true, // Refetch on mount
-    initialData, // Use SSR data if provided (prevents duplicate fetch)
+    initialData: seed,
     // Instant filter UX: show previous results until the new key resolves (no empty flash)
     placeholderData: keepPreviousData,
   });

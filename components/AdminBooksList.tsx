@@ -1,5 +1,6 @@
 "use client";
 
+
 /**
  * AdminBooksList — catalog grid with universe KPIs, header Create CTA,
  * sky DNA cards (title/author/genre chip/star) + kebab + two-col meta + full-width Publisher.
@@ -158,7 +159,9 @@ const AdminBooksList: React.FC<AdminBooksListProps> = ({ initialBooks }) => {
             total: initialBooks.length,
             page: 1,
             totalPages: 1,
-            limit: initialBooks.length,
+            // Must match ADMIN_BOOKS_UNFILTERED — never seed limit === length
+            // (create densify would slice away the new row → badge 18 / KPI 17).
+            limit: ADMIN_BOOKS_UNFILTERED.limit ?? 1000,
           }
         : undefined,
     [initialBooks],

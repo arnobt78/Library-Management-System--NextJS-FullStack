@@ -205,6 +205,14 @@ export async function bulkDeleteBooks(
       success: true,
       message: `Successfully deleted ${safeBookIds.length} book(s)`,
       count: safeBookIds.length,
+      /** Client densify attribution — never invent System for admin deletes. */
+      actor: {
+        id: actor.id,
+        fullName: actor.name,
+        email: actor.email,
+        universityCard: actor.universityCard,
+        role: actor.role,
+      },
     };
   } catch (error) {
     return {

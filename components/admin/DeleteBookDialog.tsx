@@ -113,7 +113,8 @@ const DeleteBookDialog = ({
     if (!canSubmit) return;
 
     try {
-      // Await densify (commitMutationCache inside useDeleteBook onSuccess).
+      // Same settle as review/ticket detail: await densify inside mutateAsync,
+      // then soft-nav while dialog still open (no extra ensureQueryData).
       await deleteBookMutation.mutateAsync({
         bookIds: [bookId],
         bookTitle,
@@ -122,7 +123,7 @@ const DeleteBookDialog = ({
       });
       setTitleConfirm("");
       setDeleteSecret("");
-      // Navigate while dialog still open — detail unmounts under overlay (no 404).
+
       if (redirectTo) {
         setIsNavigating(true);
         router.replace(redirectTo);
@@ -238,7 +239,6 @@ const DeleteBookDialog = ({
           </AlertDialogCancel>
           <Button
             type="button"
-            variant="destructive"
             disabled={!canSubmit}
             className={LIGHT_ALERT.destructive}
             onClick={() => {
@@ -250,7 +250,7 @@ const DeleteBookDialog = ({
             ) : (
               <Trash2 className="size-4" aria-hidden />
             )}
-            {isPending ? "Deleting..." : "Delete Permanently"}
+            {isPending ? "Deleting…" : "Delete Permanently"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

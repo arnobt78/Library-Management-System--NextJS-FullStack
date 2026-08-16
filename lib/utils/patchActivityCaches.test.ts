@@ -26,6 +26,7 @@ function sampleRow(id: string): ActivityLogItem {
     actorName: "Admin",
     actorEmail: "admin@test.com",
     actorUniversityCard: null,
+    actorRole: "ADMIN",
     action: "UPDATE",
     entityType: "borrow",
     entityId: "br1",
@@ -92,7 +93,7 @@ describe("patchActivityCaches", () => {
     expect(next[0]?.entityId).toBe("b9");
   });
 
-  it("seeds default 7days key when no activity query was mounted", () => {
+  it("does not cold-seed 7days with a single optimistic row", () => {
     const client = new QueryClient();
     densifyActivityLog(client, {
       action: "UPDATE",
@@ -101,9 +102,8 @@ describe("patchActivityCaches", () => {
       details: { status: "RETURNED" },
     });
     const key = queryKeys.activityLog.list({ period: "7days" });
-    const next = client.getQueryData<ActivityLogItem[]>(key)!;
-    expect(next).toHaveLength(1);
-    expect(next[0]?.entityId).toBe("br-cold");
+    // Cold seed blocked SSR heal — leave empty so soft-nav uses full SSR FIFO.
+    expect(client.getQueryData(key)).toBeUndefined();
   });
 
   it("resolveActivitySubjectUserId prefers details.userId over entity", () => {

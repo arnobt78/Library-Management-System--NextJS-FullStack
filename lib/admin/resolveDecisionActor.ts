@@ -9,6 +9,7 @@ export type SessionActorUser = {
   id?: string;
   name?: string | null;
   email?: string | null;
+  role?: string | null;
 };
 
 /** Build decisionActor for optimistic + gold densify (never invents “an admin”). */
@@ -40,6 +41,8 @@ export type ActivityActorFields = {
   actorName: string | null;
   actorEmail: string | null;
   actorUniversityCard: string | null;
+  /** Role for Activity History All Accounts / Users / Admins filter */
+  actorRole?: "USER" | "ADMIN" | null;
 };
 
 /**
@@ -52,10 +55,15 @@ export function resolveActivityActor(
 ): ActivityActorFields | Record<string, never> {
   const resolved = resolveDecisionActor(decisionActor, sessionUser);
   if (!resolved) return {};
+  const role =
+    sessionUser?.role === "ADMIN" || sessionUser?.role === "USER"
+      ? sessionUser.role
+      : null;
   return {
     actorId: resolved.id ?? null,
     actorName: resolved.fullName,
     actorEmail: resolved.email,
     actorUniversityCard: resolved.universityCard ?? null,
+    actorRole: role,
   };
 }

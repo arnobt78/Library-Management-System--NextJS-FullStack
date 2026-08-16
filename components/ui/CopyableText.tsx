@@ -38,12 +38,12 @@ export default function CopyableText({
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 max-w-full items-center gap-1",
+        "inline-flex min-w-0 max-w-full items-center gap-1 text-gray-800",
         ATTRIBUTION_EMAIL_SIZE,
         className,
       )}
     >
-      <span className="min-w-0 break-all text-gray-800">{value}</span>
+      <span className="min-w-0 break-all text-inherit">{value}</span>
       <button
         type="button"
         onClick={(e) => {

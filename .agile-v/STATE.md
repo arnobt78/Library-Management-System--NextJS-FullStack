@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) public ticket delete never-paint 404; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) densify consistency closeout Waves 1–3 closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - public ticket detail delete parity Prove closed locally; commit pending
+- Status: ACTIVE - densify consistency closeout shipped; tip bind after commit
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `4b255dc`
-- Latest HEAD: `4b255dc`
+- Latest HEAD: `6c60c1b`
 - Started: 2026-08-01
-- Last updated: 2026-08-15 (tip-bind never-paint 404 + activity unlink)
+- Last updated: 2026-08-16 (densify consistency closeout Waves 1–3)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,18 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Never-paint 404 + universal activity unlink shipped (`4b255dc`); owner prod smoke
+- Active plan: Densify consistency closeout Waves 1–3 shipped; ImageKit upload-limit UX deferred; owner prod smoke
+
+## Reconciliation snapshot (2026-08-16, densify consistency closeout)
+
+- **Done (Wave 1)**: Book list `total` coercion (`count(*)::int` + `Number` at API/service); `finiteTotal` in upsert; create absolute-reconcile universe `total=books.length`; unfiltered thin-key total sync from universe; strip debug-ingest/sessionLog/agent logs; keep early delete densify in `useDeleteBook` `mutationFn`.
+- **Done (Wave 2)**: Early densify for review/ticket hard-delete remount; `seedPagedListFromSsrIfEmpty` on books+users; coerce users/borrows list counts.
+- **Done (Wave 3)**: Bulk activate/deactivate/user/admin/borrow densify (no activity invent); bulk admin also drops pending privilege queue; reminder `notification.write` bell unread/total bump from send count.
+- **Deferred**: ImageKit upload rate-limit UX (owner later). Insights invent densify / shipping-payments out of scope.
+- **Security**: uncommitted densify diff — no medium/high/critical; privileged writes remain server-gated.
+- **Prove**: typecheck + eslint + **310** unit tests PASS (11 skipped).
+- **Remaining**: EvalGate / Gate 2; tip-bind after push.
+- **Next exact task**: owner Verify after Vercel deploy.
 
 ## Reconciliation snapshot (2026-08-15, tip-bind never-paint 404)
 

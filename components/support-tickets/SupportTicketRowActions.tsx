@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -37,6 +36,9 @@ import {
   actionAlertChrome,
   actionMenuChrome,
 } from "@/lib/ui/glassActionChrome";
+import PersonAttribution from "@/components/PersonAttribution";
+import UniversityIdMeta from "@/components/UniversityIdMeta";
+import { Button } from "@/components/ui/button";
 import SupportTicketDialog, {
   type AssignableAdminOption,
 } from "@/components/support-tickets/SupportTicketDialog";
@@ -164,6 +166,23 @@ export function SupportTicketRowActions({
                   <p className="line-clamp-2 text-sm font-medium">
                     {ticket.subject}
                   </p>
+                  <div className="mt-2">
+                    <PersonAttribution
+                      variant={variant === "dark" ? "dark" : "light"}
+                      person={{
+                        id: ticket.userId,
+                        fullName: ticket.userName,
+                        email: ticket.userEmail,
+                        universityCard: ticket.userUniversityCard ?? null,
+                      }}
+                      meta={
+                        <UniversityIdMeta
+                          universityId={ticket.userUniversityId}
+                          variant={variant === "dark" ? "dark" : "light"}
+                        />
+                      }
+                    />
+                  </div>
                   {ticket.description?.trim() ? (
                     <p className="mt-1.5 line-clamp-3 text-xs opacity-80">
                       {ticket.description.trim()}
@@ -180,7 +199,8 @@ export function SupportTicketRowActions({
             >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              type="button"
               className={alert.destructive}
               disabled={deleteMutation.isPending}
               onClick={(e) => {
@@ -189,12 +209,12 @@ export function SupportTicketRowActions({
               }}
             >
               {deleteMutation.isPending ? (
-                <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
-                <Trash2 className="size-3.5 sm:size-4" />
+                <Trash2 className="size-4" aria-hidden />
               )}
-              {deleteMutation.isPending ? "Deleting…" : "Delete ticket"}
-            </AlertDialogAction>
+              {deleteMutation.isPending ? "Deleting…" : "Delete Ticket"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

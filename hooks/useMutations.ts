@@ -66,6 +66,7 @@ import {
 } from "@/lib/services/notifications";
 import type { AdminRequest } from "@/lib/services/users";
 import {
+  densifyNotificationBellBump,
   densifyNotificationDelete,
   densifyNotificationMarkAllRead,
   densifyNotificationMarkRead,
@@ -285,12 +286,17 @@ export const useCreateBook = () => {
                 }
               : null;
           const catalogActor = fromAction ?? sessionActor ?? undefined;
+          const sessionRole =
+            "actorRole" in sessionFields ? sessionFields.actorRole : null;
+          // Prefer DB actor for PersonAttribution; always stamp role for
+          // Activity All Accounts / Users / Admins filter (fromAction omits role).
           const auditActor = catalogActor
             ? {
                 actorId: catalogActor.id,
                 actorName: catalogActor.fullName,
                 actorEmail: catalogActor.email,
                 actorUniversityCard: catalogActor.universityCard,
+                actorRole: sessionRole ?? ("ADMIN" as const),
               }
             : sessionFields;
           // Create stamps Added-by only — Updated stays null until a real edit.
@@ -408,12 +414,15 @@ export const useUpdateBook = () => {
                 }
               : null;
           const updatedByActor = fromAction ?? sessionActor ?? undefined;
+          const sessionRole =
+            "actorRole" in sessionFields ? sessionFields.actorRole : null;
           const auditActor = updatedByActor
             ? {
                 actorId: updatedByActor.id,
                 actorName: updatedByActor.fullName,
                 actorEmail: updatedByActor.email,
                 actorUniversityCard: updatedByActor.universityCard,
+                actorRole: sessionRole ?? ("ADMIN" as const),
               }
             : sessionFields;
           densifyBookWrite(queryClient, {
@@ -487,6 +496,8 @@ export const useDeleteBook = () => {
     mutationFn: async ({
       bookIds,
       deleteSecret,
+      bookTitle,
+      snapshots,
     }: {
       bookIds: string[];
       bookTitle?: string; // Optional, for toast message
@@ -499,10 +510,85 @@ export const useDeleteBook = () => {
       if (!result.success) {
         throw new Error(result.message || "Failed to delete book(s)");
       }
-      return { bookIds, message: result.message };
+      const actor =
+        result &&
+        typeof result === "object" &&
+        "actor" in result &&
+        result.actor
+          ? result.actor
+          : null;
+
+      // CRITICAL: densify BEFORE mutationFn returns. Server Actions refresh the
+      // current route (detail → missing → catalog fallback) before onSuccess runs;
+      // without this, KPIs paint stale until invalidate refetch catches up.
+      densifyBookDelete(queryClient, bookIds, snapshots);
+      markActivityEntitiesDeleted(queryClient, "book", bookIds);
+      const fromServer =
+        actor &&
+        typeof actor === "object" &&
+        "email" in actor &&
+        typeof (actor as { email?: unknown }).email === "string"
+          ? (actor as {
+              id: string;
+              fullName: string;
+              email: string;
+              universityCard: string | null;
+              role: "USER" | "ADMIN";
+            })
+          : null;
+      const fromSession = activityActorFromSession(session);
+      const deleteActor = {
+        ...(fromServer
+          ? {
+              actorId: fromServer.id,
+              actorName: fromServer.fullName,
+              actorEmail: fromServer.email,
+              actorUniversityCard: fromServer.universityCard,
+              actorRole: fromServer.role,
+            }
+          : fromSession),
+        actorRole:
+          fromServer?.role ??
+          ("actorRole" in fromSession ? fromSession.actorRole : null) ??
+          ("ADMIN" as const),
+      };
+      densifyActivityLog(queryClient, {
+        ...deleteActor,
+        action: "DELETE",
+        entityType: "book",
+        entityId: bookIds.length === 1 ? bookIds[0] : null,
+        details: {
+          count: bookIds.length,
+          ...(bookTitle ? { title: bookTitle } : {}),
+        },
+      });
+
+      return {
+        bookIds,
+        message: result.message,
+        actor,
+        /** Skip duplicate activity invent in onSuccess densify */
+        activityAlreadyDensified: true as const,
+      };
     },
     onSuccess: async (data, variables) => {
       const count = data.bookIds.length;
+      const serverActor =
+        data &&
+        typeof data === "object" &&
+        "actor" in data &&
+        data.actor &&
+        typeof data.actor === "object" &&
+        "email" in data.actor &&
+        typeof (data.actor as { email?: unknown }).email === "string"
+          ? (data.actor as {
+              id: string;
+              fullName: string;
+              email: string;
+              universityCard: string | null;
+              role: "USER" | "ADMIN";
+            })
+          : null;
       await commitMutationCache(queryClient, "book.write", {
         snapshot: () => undefined,
         densify: () => {
@@ -511,10 +597,30 @@ export const useDeleteBook = () => {
             data.bookIds,
             variables.snapshots,
           );
-          // Prior CREATE/UPDATE rows stay in FIFO but stop linking to missing detail.
           markActivityEntitiesDeleted(queryClient, "book", data.bookIds);
+          // Activity row already prepended in mutationFn (before SA remount).
+          if (data.activityAlreadyDensified) {
+            return;
+          }
+          const fromServer = serverActor
+            ? {
+                actorId: serverActor.id,
+                actorName: serverActor.fullName,
+                actorEmail: serverActor.email,
+                actorUniversityCard: serverActor.universityCard,
+                actorRole: serverActor.role,
+              }
+            : null;
+          const fromSession = activityActorFromSession(session);
+          const deleteActor = {
+            ...(fromServer ?? fromSession),
+            actorRole:
+              fromServer?.actorRole ??
+              ("actorRole" in fromSession ? fromSession.actorRole : null) ??
+              "ADMIN",
+          };
           densifyActivityLog(queryClient, {
-            ...activityActorFromSession(session),
+            ...deleteActor,
             action: "DELETE",
             entityType: "book",
             entityId: count === 1 ? data.bookIds[0] : null,
@@ -2647,16 +2753,53 @@ export const useDeleteReview = () => {
   return useMutation({
     mutationFn: async ({
       reviewId,
+      bookId,
+      userId,
     }: {
       reviewId: string;
       bookId?: string;
       bookTitle?: string;
       userId?: string;
     }) => {
-      return deleteReview(reviewId);
+      const cached = findCachedAdminReview(queryClient, reviewId);
+      const densifyMeta = {
+        status: cached?.status ?? null,
+        userId: userId ?? cached?.userId ?? null,
+        bookId: bookId ?? cached?.bookId ?? null,
+      };
+      const baselines = snapshotReviewListBaselines(queryClient);
+      await deleteReview(reviewId);
+      // Early densify before SA remount of missing detail (same race as book delete).
+      patchReviewCachesOnDelete(
+        queryClient,
+        reviewId,
+        densifyMeta,
+        baselines,
+      );
+      markActivityEntitiesDeleted(queryClient, "review", [reviewId]);
+      densifyActivityLog(queryClient, {
+        ...activityActorFromSession(session),
+        action: "DELETE",
+        entityType: "review",
+        entityId: reviewId,
+        details: densifyMeta.bookId ? { bookId: densifyMeta.bookId } : null,
+      });
+      if (densifyMeta.bookId) {
+        queryClient.setQueryData(
+          queryKeys.reviews.eligibility(densifyMeta.bookId),
+          (prev: ReviewEligibility | undefined) => ({
+            success: true,
+            canReview: true,
+            hasExistingReview: false,
+            isCurrentlyBorrowed: prev?.isCurrentlyBorrowed ?? false,
+            reason: "You can review this book",
+          }),
+        );
+      }
+      return { densifyMeta, activityAlreadyDensified: true as const };
     },
     onMutate: async (variables) => {
-      // Optimistic list remove only — pending-count bump runs once in onSuccess
+      // Optimistic list remove only — pending-count bump runs once in densify
       // (ticket densify pattern; avoids double-decrement of sidebar badge).
       const cached = findCachedAdminReview(queryClient, variables.reviewId);
       const previousMeta = {
@@ -2698,9 +2841,9 @@ export const useDeleteReview = () => {
         baselines,
       };
     },
-    onSuccess: async (_data, variables, context) => {
+    onSuccess: async (data, variables, context) => {
       const previousMeta = context?.previousMeta;
-      const densifyMeta = {
+      const densifyMeta = data?.densifyMeta ?? {
         status: previousMeta?.status ?? null,
         userId: previousMeta?.userId ?? variables.userId ?? null,
         bookId: previousMeta?.bookId ?? variables.bookId ?? null,
@@ -2709,8 +2852,6 @@ export const useDeleteReview = () => {
         snapshot: () =>
           context?.baselines ?? snapshotReviewListBaselines(queryClient),
         densify: (baselines) => {
-          // Always pass bookId/userId — do not gate on status (status may be
-          // unknown when deleting from a surface that never cached admin rows).
           patchReviewCachesOnDelete(
             queryClient,
             variables.reviewId,
@@ -2720,6 +2861,7 @@ export const useDeleteReview = () => {
           markActivityEntitiesDeleted(queryClient, "review", [
             variables.reviewId,
           ]);
+          if (data?.activityAlreadyDensified) return;
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session),
             action: "DELETE",
@@ -2729,7 +2871,6 @@ export const useDeleteReview = () => {
               ? { bookId: densifyMeta.bookId }
               : null,
           });
-          // Eligibility densify — ReviewButton can submit again without flash.
           if (densifyMeta.bookId) {
             queryClient.setQueryData(
               queryKeys.reviews.eligibility(densifyMeta.bookId),
@@ -3435,10 +3576,12 @@ export const useSendDueReminders = () => {
           });
         },
       });
-      // REMINDER_DUE in-app rows — invalidate bells same-origin (BroadcastChannel).
+      // REMINDER_DUE in-app rows — bump bell badges from known send count.
       await commitMutationCache(queryClient, "notification.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () => {
+          densifyNotificationBellBump(queryClient, { unreadDelta: count });
+        },
       });
 
       // Show success toast
@@ -3498,7 +3641,9 @@ export const useSendOverdueReminders = () => {
       });
       await commitMutationCache(queryClient, "notification.write", {
         snapshot: () => undefined,
-        densify: () => undefined,
+        densify: () => {
+          densifyNotificationBellBump(queryClient, { unreadDelta: count });
+        },
       });
 
       // Show success toast
@@ -4008,7 +4153,7 @@ export const useDeleteSupportTicket = () => {
   return useMutation({
     mutationFn: async ({
       ticketId,
-      decisionActor: _decisionActor,
+      decisionActor,
     }: {
       ticketId: string;
       decisionActor?: AdminRequestReviewer | null;
@@ -4017,17 +4162,46 @@ export const useDeleteSupportTicket = () => {
       const detail = queryClient.getQueryData<SupportTicketDetail>(
         queryKeys.tickets.detail(ticketId),
       );
+      const userId = detail?.userId ?? null;
+      const previousPriority = detail?.priority ?? null;
+      const subject = detail?.subject ?? null;
+      const baselines = snapshotTicketListBaselines(queryClient);
       await deleteSupportTicket(ticketId);
+      // Early densify before SA remount of missing detail (same race as book delete).
+      patchTicketCachesOnDelete(
+        queryClient,
+        ticketId,
+        previousStatus,
+        userId,
+        baselines,
+        previousPriority,
+      );
+      markActivityEntitiesDeleted(queryClient, "ticket", [ticketId]);
+      densifyActivityLog(queryClient, {
+        ...activityActorFromSession(session, decisionActor),
+        action: "DELETE",
+        entityType: "ticket",
+        entityId: ticketId,
+        details: subject ? { subject } : null,
+      });
       return {
         ticketId,
         previousStatus,
-        previousPriority: detail?.priority ?? null,
-        userId: detail?.userId ?? null,
-        subject: detail?.subject ?? null,
+        previousPriority,
+        userId,
+        subject,
+        activityAlreadyDensified: true as const,
       };
     },
     onSuccess: async (
-      { ticketId, previousStatus, previousPriority, userId, subject },
+      {
+        ticketId,
+        previousStatus,
+        previousPriority,
+        userId,
+        subject,
+        activityAlreadyDensified,
+      },
       variables,
     ) => {
       await commitMutationCache(queryClient, "ticket.write", {
@@ -4042,6 +4216,7 @@ export const useDeleteSupportTicket = () => {
             previousPriority,
           );
           markActivityEntitiesDeleted(queryClient, "ticket", [ticketId]);
+          if (activityAlreadyDensified) return;
           densifyActivityLog(queryClient, {
             ...activityActorFromSession(session, variables.decisionActor),
             action: "DELETE",

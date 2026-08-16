@@ -46,6 +46,62 @@ type BookLike = {
 /** Match review/borrow detail Activity FIFO (User 360 DNA). */
 const BOOK_AUDIT_FIFO = 25;
 
+/**
+ * Coerce list `total` — pg count(*) and densify `+ 1` must never leave strings
+ * (`"17"+1` → `"171"`) or NaN in RQ cache.
+ */
+function finiteTotal(
+  prev: Pick<BooksListResponse, "total" | "books"> | undefined,
+): number {
+  if (!prev) return 0;
+  const n = Number(prev.total);
+  if (Number.isFinite(n) && n >= 0) return n;
+  return prev.books?.length ?? 0;
+}
+
+function isFullUniverseDump(
+  limit: number,
+  filtersLimit?: number,
+): boolean {
+  const floor = ADMIN_BOOKS_UNFILTERED.limit ?? 1000;
+  return limit >= floor || (filtersLimit ?? 0) >= floor;
+}
+
+/**
+ * After universe absolute reconcile, stamp the same total onto warm unfiltered
+ * thin keys (limit:12 / limit:1 / sort) so badge/pagination cannot drift.
+ * Skips when the universe key is an incomplete clone (partial books[]).
+ */
+function syncUnfilteredThinTotalsFromUniverse(
+  queryClient: QueryClient,
+): void {
+  const universe = queryClient.getQueryData<BooksListResponse>(
+    queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+  );
+  if (!universe?.books) return;
+  const universeTotal = finiteTotal(universe);
+  const len = universe.books.length;
+  // Incomplete dumps (thin page cloned into universe) must not stomp pagination.
+  if (len !== universeTotal) return;
+
+  for (const [queryKey, page] of queryClient.getQueriesData<BooksListResponse>({
+    queryKey: queryKeys.books.adminRoot,
+  })) {
+    if (!Array.isArray(queryKey) || !page?.books) continue;
+    const filters = (queryKey[1] as BookFilters | undefined) ?? {};
+    if (!isUnfilteredBookListFilters(filters)) continue;
+    if (finiteTotal(page) === universeTotal) continue;
+    const limit =
+      page.limit || filters.limit || Math.max(page.books.length, 1);
+    if (isFullUniverseDump(limit, filters.limit)) continue;
+    queryClient.setQueryData(queryKey, {
+      ...page,
+      total: universeTotal,
+      totalPages: Math.max(1, Math.ceil(universeTotal / limit) || 1),
+    });
+  }
+}
+
 function titleOf(book: { title?: unknown }): string {
   return typeof book.title === "string" ? book.title : "";
 }
@@ -106,9 +162,9 @@ function upsertInListResponse(
     if (!isUnfilteredBookListFilters(filters)) return prev;
 
     const page = prev.page || filters.page || 1;
-    const limit =
+    let limit =
       prev.limit || filters.limit || Math.max(prev.books.length, 1);
-    const nextTotal = prev.total + 1;
+    const nextTotal = finiteTotal(prev) + 1;
     const totalPages = Math.max(1, Math.ceil(nextTotal / limit) || 1);
 
     // Later pages: bump total only — membership requires the full catalog.
@@ -129,6 +185,29 @@ function upsertInListResponse(
       ],
       filters.sort ?? "title",
     );
+
+    // Universe / full-dump keys (filters.limit or prev.limit ≥ 1000) must keep
+    // every row. Legacy SSR seeded limit===length onto ADMIN_BOOKS_UNFILTERED;
+    // filters still carry limit:1000 so we expand instead of slice(0, 17).
+    const preferFullUniverse = isFullUniverseDump(limit, filters.limit);
+    if (preferFullUniverse) {
+      limit = Math.max(
+        limit,
+        filters.limit ?? 0,
+        ADMIN_BOOKS_UNFILTERED.limit ?? 1000,
+        merged.length,
+      );
+      return {
+        ...prev,
+        books: merged,
+        // Absolute: full dumps must match length (never string concat / drift).
+        total: merged.length,
+        totalPages: Math.max(1, Math.ceil(merged.length / limit) || 1),
+        limit,
+        page,
+      };
+    }
+
     return {
       ...prev,
       books: merged.slice(0, limit),
@@ -142,10 +221,18 @@ function upsertInListResponse(
   const books = prev.books.map((b, i) =>
     i === idx ? ({ ...b, ...book } as BooksListResponse["books"][number]) : b,
   );
+  const preferFullUniverse = isFullUniverseDump(
+    prev.limit || filters.limit || books.length,
+    filters.limit,
+  );
+  const coerced = finiteTotal(prev);
+  // Absolute length only when the dump already held every row.
+  const total =
+    preferFullUniverse && books.length >= coerced ? books.length : coerced;
   return {
     ...prev,
     books,
-    total: prev.total,
+    total,
   };
 }
 
@@ -204,8 +291,20 @@ function syncBooksNav(queryClient: QueryClient): void {
   const unfiltered = queryClient.getQueryData<BooksListResponse>(
     queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
   );
-  if (unfiltered && typeof unfiltered.total === "number") {
-    patchAdminNavCounts(queryClient, { books: unfiltered.total });
+  if (unfiltered?.books) {
+    const preferFullUniverse = isFullUniverseDump(
+      unfiltered.limit ?? 0,
+      ADMIN_BOOKS_UNFILTERED.limit,
+    );
+    const coerced = finiteTotal(unfiltered);
+    // Prefer max(total, length) on universe dumps so a drifted low total
+    // (badge 16) cannot lag KPI length (17), while thin pages keep SSR total.
+    const booksCount = preferFullUniverse
+      ? Math.max(coerced, unfiltered.books.length)
+      : coerced > 0
+        ? coerced
+        : unfiltered.books.length;
+    patchAdminNavCounts(queryClient, { books: booksCount });
     return;
   }
 
@@ -214,9 +313,10 @@ function syncBooksNav(queryClient: QueryClient): void {
   for (const [, page] of queryClient.getQueriesData<BooksListResponse>({
     queryKey: queryKeys.books.adminRoot,
   })) {
-    if (!page || typeof page.total !== "number") continue;
-    if (page.books.length === page.total) {
-      if (best === null || page.total < best) best = page.total;
+    if (!page?.books) continue;
+    const total = finiteTotal(page);
+    if (page.books.length === total) {
+      if (best === null || total < best) best = total;
     }
   }
   if (best !== null) {
@@ -385,7 +485,10 @@ function densifyBookListDeletes(
 
     let totalDelta: number;
     if (unfiltered) {
-      const maxTotal = Math.max(...group.map((e) => e.data.total), 0);
+      const maxTotal = Math.max(
+        ...group.map((e) => finiteTotal(e.data)),
+        0,
+      );
       totalDelta = Math.min(bookIds.length, maxTotal);
     } else {
       const matching = new Set<string>();
@@ -412,11 +515,17 @@ function densifyBookListDeletes(
     const pages: MutablePage[] = group.map((entry) => {
       const books = entry.data.books.filter((b) => !idSet.has(b.id));
       const removedFromPage = entry.data.books.length - books.length;
-      const total = Math.max(0, entry.data.total - totalDelta);
       const limit =
         entry.data.limit ||
         entry.filters.limit ||
         Math.max(books.length, 1);
+      // Full-universe dumps (limit ≥ 1000): total must equal books.length.
+      // Unfiltered thin keys: absolute total from finiteTotal - delta (sync
+      // from universe happens after ensureAdminBooksUniverse).
+      const preferFullUniverse = isFullUniverseDump(limit, entry.filters.limit);
+      const total = preferFullUniverse
+        ? books.length
+        : Math.max(0, finiteTotal(entry.data) - totalDelta);
       const page = entry.data.page || entry.filters.page || 1;
       const totalPages = Math.max(1, Math.ceil(total / limit) || 1);
       return {
@@ -427,7 +536,9 @@ function densifyBookListDeletes(
           ...entry.data,
           books,
           total,
-          limit,
+          limit: preferFullUniverse
+            ? Math.max(limit, ADMIN_BOOKS_UNFILTERED.limit ?? 1000)
+            : limit,
           page,
           totalPages,
         },
@@ -652,6 +763,56 @@ export function patchAdminListAvailability(
   );
 }
 
+/**
+ * Ensure AdminBooksList KPI universe key stays in sync with densify.
+ * PrefetchLink used to warm `adminList({})` while KPIs use ADMIN_BOOKS_UNFILTERED
+ * — different keys → sidebar badge ahead of Total Books / Catalog (N).
+ */
+function ensureAdminBooksUniverse(
+  queryClient: QueryClient,
+  mutator: (
+    prev: BooksListResponse | undefined,
+  ) => BooksListResponse | undefined,
+): void {
+  const universeKey = queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED);
+  let prev = queryClient.getQueryData<BooksListResponse>(universeKey);
+
+  // Clone densest warm unfiltered page into universe when KPI key was never mounted.
+  if (!prev) {
+    let best: BooksListResponse | undefined;
+    let bestScore = -1;
+    for (const [queryKey, page] of queryClient.getQueriesData<BooksListResponse>(
+      { queryKey: queryKeys.books.adminRoot },
+    )) {
+      if (!Array.isArray(queryKey) || !page?.books) continue;
+      const filters = (queryKey[1] as BookFilters | undefined) ?? {};
+      if (!isUnfilteredBookListFilters(filters)) continue;
+      const complete = page.books.length >= page.total ? 1_000_000 : 0;
+      const score = complete + page.total * 1_000 + page.books.length;
+      if (score > bestScore) {
+        best = page;
+        bestScore = score;
+      }
+    }
+    if (best) {
+      prev = {
+        ...best,
+        page: 1,
+        limit: Math.max(
+          ADMIN_BOOKS_UNFILTERED.limit ?? 1000,
+          best.limit ?? 0,
+          best.books.length,
+        ),
+      };
+    }
+  }
+
+  const next = mutator(prev);
+  if (next !== undefined && next !== prev) {
+    queryClient.setQueryData(universeKey, next);
+  }
+}
+
 /** Upsert book detail + patch cached admin list + featured/related strips. */
 export function densifyBookWrite(
   queryClient: QueryClient,
@@ -689,6 +850,41 @@ export function densifyBookWrite(
     if (next !== undefined && next !== old) {
       queryClient.setQueryData(queryKey, next);
     }
+  }
+
+  // KPI / Catalog (N) subscribe to ADMIN_BOOKS_UNFILTERED — always keep it warm.
+  ensureAdminBooksUniverse(queryClient, (prev) => {
+    const next = upsertInListResponse(
+      prev,
+      book,
+      allowInsert,
+      ADMIN_BOOKS_UNFILTERED,
+    );
+    if (!next?.books) return next;
+    const limit = Math.max(
+      next.limit ?? 0,
+      ADMIN_BOOKS_UNFILTERED.limit ?? 1000,
+      next.books.length,
+    );
+    const coerced = finiteTotal(next);
+    // Absolute only when the dump holds every row (incomplete clones keep coerced total).
+    const complete = next.books.length >= coerced;
+    const total = complete ? next.books.length : coerced;
+    return {
+      ...next,
+      books: next.books,
+      total,
+      limit,
+      page: 1,
+      totalPages: Math.max(1, Math.ceil(total / limit) || 1),
+    };
+  });
+
+  const universe = queryClient.getQueryData<BooksListResponse>(
+    queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+  );
+  if (universe) {
+    syncUnfilteredThinTotalsFromUniverse(queryClient);
   }
 
   // Featured exclusivity on admin badges — mirror clearOtherFeatured.
@@ -860,6 +1056,34 @@ export function densifyBookDelete(
   const idSet = new Set(bookIds);
 
   densifyBookListDeletes(queryClient, bookIds, snapshots);
+
+  // Absolute reconcile on KPI universe — never re-apply totalDelta on top of
+  // densifyBookListDeletes (that produced badge 16 while list still had 17).
+  ensureAdminBooksUniverse(queryClient, (prev) => {
+    if (!prev?.books) return prev;
+    const nextBooks = prev.books.filter((b) => !idSet.has(b.id));
+    const removed = prev.books.length - nextBooks.length;
+    const limit = Math.max(
+      prev.limit ?? 0,
+      ADMIN_BOOKS_UNFILTERED.limit ?? 1000,
+      nextBooks.length,
+    );
+    const wasComplete = prev.books.length >= finiteTotal(prev);
+    // Only subtract rows actually removed from this dump (no double-decrement).
+    const total = wasComplete
+      ? nextBooks.length
+      : Math.max(0, finiteTotal(prev) - removed);
+    return {
+      ...prev,
+      books: nextBooks,
+      total,
+      limit,
+      page: 1,
+      totalPages: Math.max(1, Math.ceil(total / limit) || 1),
+    };
+  });
+
+  syncUnfilteredThinTotalsFromUniverse(queryClient);
 
   queryClient.setQueriesData<BookLike[]>(
     { queryKey: queryKeys.books.featuredRoot },

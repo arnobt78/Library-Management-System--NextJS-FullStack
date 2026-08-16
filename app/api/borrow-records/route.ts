@@ -195,12 +195,12 @@ export async function GET(request: NextRequest) {
 
     // Get total count for pagination
     const totalRecordsResult = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(borrowRecords)
       .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
 
-    const totalRecords = totalRecordsResult[0]?.count || 0;
-    const totalPages = Math.ceil(totalRecords / limit);
+    const totalRecords = Number(totalRecordsResult[0]?.count ?? 0);
+    const totalPages = Math.max(1, Math.ceil(totalRecords / limit) || 1);
 
     return NextResponse.json({
       success: true,

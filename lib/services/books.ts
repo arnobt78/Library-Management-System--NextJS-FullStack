@@ -112,21 +112,36 @@ export async function getBooksList(
   if (data.books && Array.isArray(data.books)) {
     // New format with pagination object
     if (data.pagination) {
+      const total = Number(
+        data.pagination.totalBooks ?? data.books.length,
+      );
+      const page = Number(data.pagination.currentPage ?? 1);
+      const limit = Number(
+        data.pagination.booksPerPage ?? data.books.length,
+      );
+      const totalPages = Number(
+        data.pagination.totalPages ??
+          Math.max(1, Math.ceil(total / Math.max(limit, 1)) || 1),
+      );
       return {
         books: data.books,
-        total: data.pagination.totalBooks || data.books.length,
-        page: data.pagination.currentPage || 1,
-        totalPages: data.pagination.totalPages || 1,
-        limit: data.pagination.booksPerPage || data.books.length,
+        total: Number.isFinite(total) ? total : data.books.length,
+        page: Number.isFinite(page) && page > 0 ? page : 1,
+        totalPages: Number.isFinite(totalPages) ? totalPages : 1,
+        limit: Number.isFinite(limit) && limit > 0 ? limit : data.books.length,
       };
     }
     // Legacy format with direct properties
+    const total = Number(data.total ?? data.books.length);
+    const page = Number(data.page ?? 1);
+    const limit = Number(data.limit ?? data.books.length);
+    const totalPages = Number(data.totalPages ?? 1);
     return {
       books: data.books,
-      total: data.total || data.books.length,
-      page: data.page || 1,
-      totalPages: data.totalPages || 1,
-      limit: data.limit || data.books.length,
+      total: Number.isFinite(total) ? total : data.books.length,
+      page: Number.isFinite(page) && page > 0 ? page : 1,
+      totalPages: Number.isFinite(totalPages) ? totalPages : 1,
+      limit: Number.isFinite(limit) && limit > 0 ? limit : data.books.length,
     };
   }
 

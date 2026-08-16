@@ -109,3 +109,18 @@ export function seedFromSsrIfEmpty<T>(
   if (Array.isArray(after) && isDensifiedEmpty(key)) return after;
   return initialData;
 }
+
+/**
+ * Paged list responses (`{ books, total, ... }`) — prefer warm densify over
+ * stale RSC soft-nav seeds. Catalog KPIs (Low Stock, Out of Stock, etc.) are
+ * derived from `books[]`; SSR stomping resurrected deleted low-stock rows.
+ */
+export function seedPagedListFromSsrIfEmpty<T>(
+  queryClient: QueryClient,
+  key: QueryKey,
+  initialData: T | undefined,
+): T | undefined {
+  const cached = queryClient.getQueryData<T>(key);
+  if (cached !== undefined) return cached;
+  return initialData;
+}

@@ -22,16 +22,15 @@ import type { ActivityLogItem } from "@/lib/services/activityLogs";
 /** Matches server retention in `lib/admin/activityLog.ts`. */
 export const ACTIVITY_LOG_CACHE_RETENTION = 50;
 
-/** SSR / Activity History default period key — always seed when cold. */
-const DEFAULT_ACTIVITY_LIST_KEY = queryKeys.activityLog.list({
-  period: "7days",
-});
+/** SSR / Activity History default period key — soft-nav uses full SSR when cold. */
+// Cold single-row seeds removed (first-row flash); warm lists still prepend.
 
 export type InventActivityLogInput = {
   actorId?: string | null;
   actorName?: string | null;
   actorEmail?: string | null;
   actorUniversityCard?: string | null;
+  actorRole?: "USER" | "ADMIN" | null;
   action: "CREATE" | "UPDATE" | "DELETE";
   entityType: string;
   entityId?: string | null;
@@ -48,6 +47,7 @@ export function inventActivityLogItem(
     actorName: input.actorName ?? null,
     actorEmail: input.actorEmail ?? null,
     actorUniversityCard: input.actorUniversityCard ?? null,
+    actorRole: input.actorRole ?? null,
     action: input.action,
     entityType: input.entityType,
     entityId: input.entityId ?? null,
@@ -116,10 +116,10 @@ export function patchActivityCachesOnLog(
     { queryKey: queryKeys.activityLog.root },
     (old) => prependFifo(old, row),
   );
-  // setQueriesData only updates existing entries — cold tab needs an explicit seed.
-  if (queryClient.getQueryData(DEFAULT_ACTIVITY_LIST_KEY) === undefined) {
-    queryClient.setQueryData(DEFAULT_ACTIVITY_LIST_KEY, [row]);
-  }
+  // Do NOT cold-seed [row] into 7days — that blocks seedFromSsrIfEmpty from
+  // applying the full SSR FIFO and paints only the optimistic first row until
+  // refetch (Activity History flash). Warm caches get prepend; cold soft-nav
+  // uses full SSR (server already awaited logActivity).
 }
 
 /** Prepend into User 360 per-user activity cache (cold-seeds when missing). */

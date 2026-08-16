@@ -62,6 +62,7 @@ describe("resolveActivityActor", () => {
       actorName: "Test Admin",
       actorEmail: "test@admin.com",
       actorUniversityCard: "/cards/admin.jpg",
+      actorRole: null,
     });
   });
 
@@ -77,6 +78,7 @@ describe("resolveActivityActor", () => {
       actorName: "Test Admin",
       actorEmail: "test@admin.com",
       actorUniversityCard: null,
+      actorRole: null,
     });
   });
 });

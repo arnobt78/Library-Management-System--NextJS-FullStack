@@ -22,6 +22,8 @@ export interface ActivityLogRow {
   actorEmail: string | null;
   /** University card / Robohash seed for PersonAttribution avatar */
   actorUniversityCard: string | null;
+  /** Joined users.role — All Accounts / User / Admin filter */
+  actorRole: "USER" | "ADMIN" | null;
   action: string;
   entityType: string;
   entityId: string | null;
@@ -80,6 +82,7 @@ export async function getActivityLogs(
       actorName: users.fullName,
       actorEmail: users.email,
       actorUniversityCard: users.universityCard,
+      actorRole: users.role,
       action: activityLogs.action,
       entityType: activityLogs.entityType,
       entityId: activityLogs.entityId,
@@ -95,6 +98,10 @@ export async function getActivityLogs(
   return annotateMissingActivityEntities(
     rows.map((row) => ({
       ...row,
+      actorRole:
+        row.actorRole === "USER" || row.actorRole === "ADMIN"
+          ? row.actorRole
+          : null,
       details: (row.details as Record<string, unknown> | null) ?? null,
     })),
   );

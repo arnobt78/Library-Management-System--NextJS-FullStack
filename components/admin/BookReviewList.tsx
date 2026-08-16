@@ -41,6 +41,9 @@ import {
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
+import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
+import UniversityIdMeta from "@/components/UniversityIdMeta";
+import { Button } from "@/components/ui/button";
 import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
@@ -50,7 +53,6 @@ import { AdminFilterEmptyState } from "@/components/admin/AdminFilterEmptyState"
 import { ModerateReviewAlertDialog } from "@/components/admin/ModerateReviewAlertDialog";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -189,13 +191,46 @@ function ReviewRowActions({
                   action cannot be undone.
                 </p>
                 <div className={LIGHT_ALERT.preview}>
-                  <StarRow
-                    rating={review.rating}
-                    starClassName="size-4"
-                    filledClassName="fill-yellow-400 text-yellow-400"
-                    emptyClassName="fill-gray-300 text-gray-300"
-                  />
-                  <p className="mt-1.5 line-clamp-3 text-sm">{review.comment}</p>
+                  <div className="space-y-3">
+                    <ReviewBookIdentity
+                      variant="light"
+                      showMeta
+                      catalogRatingMode="number"
+                      title={review.bookTitle}
+                      author={review.bookAuthor}
+                      coverUrl={review.bookCoverUrl}
+                      coverColor={review.bookCoverColor}
+                      genre={review.bookGenre}
+                      bookRating={review.bookRating}
+                    />
+                    <PersonAttribution
+                      variant="light"
+                      person={{
+                        id: review.userId,
+                        fullName: review.userName,
+                        email: review.userEmail,
+                        universityCard: review.userUniversityCard,
+                      }}
+                      meta={
+                        <UniversityIdMeta
+                          universityId={review.userUniversityId}
+                          variant="light"
+                        />
+                      }
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <StarRow
+                        rating={review.rating}
+                        starClassName="size-4"
+                        filledClassName="fill-yellow-400 text-yellow-400"
+                        emptyClassName="fill-gray-300 text-gray-300"
+                      />
+                      <span className="text-sm font-medium text-amber-600">
+                        {review.rating}
+                      </span>
+                    </div>
+                    <p className="line-clamp-3 text-sm">{review.comment}</p>
+                  </div>
                 </div>
               </div>
             </AlertDialogDescription>
@@ -207,7 +242,8 @@ function ReviewRowActions({
             >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              type="button"
               className={LIGHT_ALERT.destructive}
               disabled={deleteMutation.isPending}
               onClick={(e) => {
@@ -224,12 +260,12 @@ function ReviewRowActions({
               }}
             >
               {deleteMutation.isPending ? (
-                <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
-                <Trash2 className="size-3.5 sm:size-4" />
+                <Trash2 className="size-4" aria-hidden />
               )}
-              {deleteMutation.isPending ? "Deleting…" : "Delete review"}
-            </AlertDialogAction>
+              {deleteMutation.isPending ? "Deleting…" : "Delete Review"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

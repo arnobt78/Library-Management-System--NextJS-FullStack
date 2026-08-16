@@ -141,6 +141,8 @@ interface SupportTicketListItem {
   userName: string;
   userEmail: string;
   userUniversityCard: string | null;
+  /** Requester student ID — delete-dialog / parties DNA */
+  userUniversityId: number;
   assignedToId: string | null;
   assignedToName: string | null;
   assignedToEmail: string | null;

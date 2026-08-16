@@ -52,6 +52,7 @@ Browser
 - UX polish trio (2026-08-15): BookForm `isConfirmSettling` keeps confirm spinner through soft-nav; bell unread `h-5 min-w-5` circle; `/admin/users` default sort in filters only (no `?sort=created` rewrite); PrefetchLink warms `ADMIN_USERS_UNFILTERED`.
 - Phase A (2026-08-15, no LLM): Insights formulaVersion `C2-v2` + overdueTrend / fineForecast / genreDemandPressure; Overview empties via `AdminDetailEmptyState`; delete book navigate-first + inactive detail remove; `/api/cron/due-reminders` (07:00) + REMINDER_DUE / HOLD_READY in-app; User 360 advisory Next actions.
 - Bulk Automation (2026-08-15): live UUID dialogs + pending loaders; DEC-0109 densifyBookDelete + reminder stamp-fail closed; no Coming Soon redirects.
+- Densify consistency closeout (2026-08-16): `finiteTotal` + create absolute reconcile + thin unfiltered total sync; early hard-delete densify (book/review/ticket); paged SSR seed; list `count` coerce; bulk activate/user/admin/borrow densify + admin pending clear; reminder bell unread/total bump; debug ingest stripped. Deferred: ImageKit upload-limit UX.
 
 ## Admin Stockly chrome (2026-08-07)
 

@@ -30,7 +30,7 @@ import {
 } from "@/lib/services/supportTickets";
 import { mergeDensifiedDetail } from "@/lib/utils/mergeDensifiedDetail";
 import { fetchBookDetailPreservingDensify } from "@/lib/books/fetchBookDetailPreservingDensify";
-import { ADMIN_USERS_UNFILTERED } from "@/lib/ui/adminListUniverse";
+import { ADMIN_BOOKS_UNFILTERED, ADMIN_USERS_UNFILTERED } from "@/lib/ui/adminListUniverse";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 
 export type PrefetchKind =
@@ -406,9 +406,10 @@ export default function PrefetchLink({
       case "admin-books":
         // staleTime 0 — after book.write densify, hover prefetch must not reuse
         // a 30s-fresh pre-mutation catalog (stale create/delete on soft-nav).
+        // Warm the SAME key AdminBooksList KPIs use (ADMIN_BOOKS_UNFILTERED).
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.books.adminList({}),
-          queryFn: () => getBooksList({}),
+          queryKey: queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+          queryFn: () => getBooksList(ADMIN_BOOKS_UNFILTERED),
           staleTime: 0,
         });
         break;

@@ -587,6 +587,42 @@ describe("patchBookCaches", () => {
     expect(filtered?.books.some((b) => b.id === "book-new")).toBe(false);
   });
 
+  it("densifyBookWrite create keeps complete-universe rows (SSR limit===length trap)", () => {
+    const client = new QueryClient();
+    const books = Array.from({ length: 17 }, (_, i) => ({
+      id: `book-${i + 1}`,
+      title: `Title ${String(i + 1).padStart(2, "0")}`,
+      isActive: true,
+      availableCopies: 1,
+      totalCopies: 1,
+    })) as BooksListResponse["books"];
+    // Mimic AdminBooksList SSR seed before limit fix + densify insert.
+    client.setQueryData(queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED), {
+      books,
+      total: 17,
+      page: 1,
+      totalPages: 1,
+      limit: 17,
+    });
+
+    densifyBookWrite(client, {
+      id: "book-new",
+      title: "AAA New",
+      genre: "Science",
+      availableCopies: 1,
+      totalCopies: 1,
+      isActive: true,
+    });
+
+    const universe = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+    );
+    expect(universe?.total).toBe(18);
+    expect(universe?.books).toHaveLength(18);
+    expect(universe?.books.some((b) => b.id === "book-new")).toBe(true);
+    expect(universe?.limit).toBeGreaterThanOrEqual(18);
+  });
+
   it("densifyBookDelete backfills page-12 hole from next warm page", () => {
     const client = new QueryClient();
     const page1Filters = { page: 1, limit: 12, sort: "title" as const };
@@ -636,6 +672,58 @@ describe("patchBookCaches", () => {
     expect(page2?.books).toHaveLength(1);
     expect(page2?.books[0]?.id).toBe("book-14");
     expect(page2?.total).toBe(17);
+  });
+
+  it("densifyBookDelete reconciles drifted total to books.length on universe", () => {
+    const client = new QueryClient();
+    // Mimic create densify that bumped total without inserting the row.
+    client.setQueryData(queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED), {
+      books: Array.from({ length: 17 }, (_, i) => ({
+        id: `book-${i + 1}`,
+        title: `T${i}`,
+        isActive: true,
+        availableCopies: 2,
+        totalCopies: 2,
+      })) as BooksListResponse["books"],
+      total: 18,
+      page: 1,
+      totalPages: 1,
+      limit: 1000,
+    });
+    client.setQueryData(queryKeys.admin.navCounts, {
+      ...EMPTY_ADMIN_NAV_COUNTS,
+      books: 18,
+    });
+
+    densifyBookDelete(client, ["ghost-never-in-list"], [
+      {
+        id: "ghost-never-in-list",
+        isActive: true,
+        totalCopies: 2,
+        availableCopies: 2,
+        isbn: null,
+        publisher: null,
+        pageCount: null,
+        title: "Ghost",
+        author: null,
+        rating: null,
+        coverUrl: null,
+        coverColor: null,
+        genre: null,
+        publicationYear: null,
+        language: null,
+      },
+    ]);
+
+    const universe = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+    );
+    const nav = client.getQueryData<{ books: number }>(
+      queryKeys.admin.navCounts,
+    );
+    expect(universe?.books).toHaveLength(17);
+    expect(universe?.total).toBe(17);
+    expect(nav?.books).toBe(17);
   });
 
   it("densifyBookDelete decrements limit:1 universe total without the deleted row", () => {
@@ -806,5 +894,84 @@ describe("patchBookCaches", () => {
     expect(stats?.booksByLanguage.some(([l]) => l === "Bengali")).toBe(true);
     expect(stats?.booksByYear.some(([y]) => y === "2011")).toBe(false);
     expect(stats?.booksByYear.some(([y]) => y === "2020")).toBe(true);
+  });
+
+  it("densifyBookWrite create coerces string total and absolute-reconciles universe", () => {
+    const client = new QueryClient();
+    const seedBooks = Array.from({ length: 17 }, (_, i) => ({
+      id: `seed-${i}`,
+      title: `Seed ${String(i).padStart(2, "0")}`,
+    })) as BooksListResponse["books"];
+    client.setQueryData(queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED), {
+      books: seedBooks,
+      // pg count(*) string — must not concat to "171"
+      total: "17" as unknown as number,
+      page: 1,
+      totalPages: 1,
+      limit: 1000,
+    });
+    client.setQueryData(queryKeys.admin.navCounts, {
+      ...EMPTY_ADMIN_NAV_COUNTS,
+      books: 17,
+    });
+
+    densifyBookWrite(client, {
+      id: "new-book",
+      title: "Zebra New",
+      author: "A",
+      availableCopies: 1,
+      totalCopies: 1,
+      isActive: true,
+    });
+
+    const universe = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+    );
+    expect(typeof universe?.total).toBe("number");
+    expect(universe?.total).toBe(18);
+    expect(universe?.books).toHaveLength(18);
+    expect(universe?.books.some((b) => b.id === "new-book")).toBe(true);
+  });
+
+  it("densifyBookDelete syncs unfiltered thin limit:12 total from universe", () => {
+    const client = new QueryClient();
+    const thinFilters = { page: 1, limit: 12, sort: "title" as const };
+    const books = Array.from({ length: 17 }, (_, i) => ({
+      id: `b-${i}`,
+      title: `Book ${String(i).padStart(2, "0")}`,
+    })) as BooksListResponse["books"];
+
+    client.setQueryData(queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED), {
+      books,
+      total: 17,
+      page: 1,
+      totalPages: 1,
+      limit: 1000,
+    });
+    // Drifted thin key (missed a prior create bump) — must heal to universe after delete.
+    client.setQueryData(queryKeys.books.adminList(thinFilters), {
+      books: books.slice(0, 12),
+      total: 16,
+      page: 1,
+      totalPages: 2,
+      limit: 12,
+    });
+    client.setQueryData(queryKeys.admin.navCounts, {
+      ...EMPTY_ADMIN_NAV_COUNTS,
+      books: 17,
+    });
+
+    densifyBookDelete(client, ["b-0"]);
+
+    const universe = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(ADMIN_BOOKS_UNFILTERED),
+    );
+    const thin = client.getQueryData<BooksListResponse>(
+      queryKeys.books.adminList(thinFilters),
+    );
+    expect(universe?.total).toBe(16);
+    expect(universe?.books).toHaveLength(16);
+    expect(thin?.total).toBe(16);
+    expect(thin?.books.some((b) => b.id === "b-0")).toBe(false);
   });
 });

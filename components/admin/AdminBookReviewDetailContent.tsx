@@ -39,6 +39,7 @@ import { FIELD_LABEL_TEXT } from "@/lib/ui/fieldLabelStyles";
 import { cn } from "@/lib/utils";
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
+import UniversityIdMeta from "@/components/UniversityIdMeta";
 import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
 import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
@@ -49,7 +50,6 @@ import { ReviewDetailKpiGrid } from "@/components/reviews/ReviewDetailKpiGrid";
 import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
 import { TicketSectionHeader } from "@/components/support-tickets/TicketSectionHeader";
-import CopyableText from "@/components/ui/CopyableText";
 import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   ModerateReviewAlertDialog,
@@ -176,16 +176,10 @@ export default function AdminBookReviewDetailContent({
   // Review Context only: University ID under email, then Submitted.
   const reviewerMeta = (
     <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-      {review.userUniversityId > 0 ? (
-        <span className="inline-flex min-w-0 flex-wrap items-center gap-1 text-xs leading-none text-gray-600">
-          <span className="opacity-70">University ID</span>
-          <CopyableText
-            value={String(review.userUniversityId)}
-            label="university ID"
-            className="text-xs text-gray-800"
-          />
-        </span>
-      ) : null}
+      <UniversityIdMeta
+        universityId={review.userUniversityId}
+        variant="light"
+      />
       <TicketDateMeta
         createdAt={review.createdAt}
         createdLabel="Submitted"
@@ -254,15 +248,46 @@ export default function AdminBookReviewDetailContent({
                       undone.
                     </p>
                     <div className={LIGHT_ALERT.preview}>
-                      <StarRow
-                        rating={review.rating}
-                        starClassName="size-4"
-                        filledClassName="fill-yellow-400 text-yellow-400"
-                        emptyClassName="fill-gray-300 text-gray-300"
-                      />
-                      <p className="mt-1.5 line-clamp-3 text-sm">
-                        {review.comment}
-                      </p>
+                      <div className="space-y-3">
+                        <ReviewBookIdentity
+                          variant="light"
+                          showMeta
+                          catalogRatingMode="number"
+                          title={review.bookTitle}
+                          author={review.bookAuthor}
+                          coverUrl={review.bookCoverUrl}
+                          coverColor={review.bookCoverColor}
+                          genre={review.bookGenre}
+                          bookRating={review.bookRating}
+                        />
+                        <PersonAttribution
+                          variant="light"
+                          person={{
+                            id: review.userId,
+                            fullName: review.userName,
+                            email: review.userEmail,
+                            universityCard: review.userUniversityCard,
+                          }}
+                          meta={
+                            <UniversityIdMeta
+                              universityId={review.userUniversityId}
+                              variant="light"
+                            />
+                          }
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <StarRow
+                            rating={review.rating}
+                            starClassName="size-4"
+                            filledClassName="fill-yellow-400 text-yellow-400"
+                            emptyClassName="fill-gray-300 text-gray-300"
+                          />
+                          <span className="text-sm font-medium text-amber-600">
+                            {review.rating}
+                          </span>
+                        </div>
+                        <p className="line-clamp-3 text-sm">{review.comment}</p>
+                      </div>
                     </div>
                   </div>
                 </AlertDialogDescription>
@@ -274,21 +299,21 @@ export default function AdminBookReviewDetailContent({
                 >
                   Cancel
                 </AlertDialogCancel>
-                <button
+                <Button
                   type="button"
+                  disabled={deletePending}
+                  className={LIGHT_ALERT.destructive}
                   onClick={() => {
                     void handleDelete();
                   }}
-                  disabled={deletePending}
-                  className={LIGHT_ALERT.destructive}
                 >
                   {deletePending ? (
-                    <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
                   ) : (
-                    <Trash2 className="size-3.5 sm:size-4" />
+                    <Trash2 className="size-4" aria-hidden />
                   )}
-                  {deletePending ? "Deleting…" : "Delete review"}
-                </button>
+                  {deletePending ? "Deleting…" : "Delete Review"}
+                </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

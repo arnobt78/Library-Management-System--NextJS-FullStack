@@ -246,12 +246,24 @@ export async function getBorrowsList(
 
   // Handle different response formats
   if (data.borrows && Array.isArray(data.borrows)) {
+    const total = Number(
+      data.pagination?.totalRecords ?? data.total ?? data.borrows.length,
+    );
+    const page = Number(
+      data.pagination?.currentPage ?? data.page ?? 1,
+    );
+    const limit = Number(
+      data.pagination?.recordsPerPage ?? data.limit ?? data.borrows.length,
+    );
+    const totalPages = Number(
+      data.pagination?.totalPages ?? data.totalPages ?? 1,
+    );
     return {
       borrows: data.borrows,
-      total: data.total || data.borrows.length,
-      page: data.page || 1,
-      totalPages: data.totalPages || 1,
-      limit: data.limit || data.borrows.length,
+      total: Number.isFinite(total) ? total : data.borrows.length,
+      page: Number.isFinite(page) && page > 0 ? page : 1,
+      totalPages: Number.isFinite(totalPages) ? totalPages : 1,
+      limit: Number.isFinite(limit) && limit > 0 ? limit : data.borrows.length,
     };
   }
 

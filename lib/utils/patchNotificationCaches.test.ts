@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { queryKeys } from "@/lib/query/keys";
 import type { NotificationItem } from "@/lib/services/notifications";
 import {
+  densifyNotificationBellBump,
   densifyNotificationDelete,
   densifyNotificationMarkAllRead,
   densifyNotificationMarkRead,
@@ -84,6 +85,24 @@ describe("patchNotificationCaches", () => {
     ]);
     expect(client.getQueryData(queryKeys.notifications.unreadCount)).toBe(0);
     expect(client.getQueryData(queryKeys.notifications.totalCount)).toBe(1);
+  });
+
+  it("densifyNotificationBellBump increments unread and total by send count", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.notifications.unreadCount, 2);
+    client.setQueryData(queryKeys.notifications.totalCount, 5);
+
+    densifyNotificationBellBump(client, { unreadDelta: 3 });
+
+    expect(client.getQueryData(queryKeys.notifications.unreadCount)).toBe(5);
+    expect(client.getQueryData(queryKeys.notifications.totalCount)).toBe(8);
+  });
+
+  it("densifyNotificationBellBump no-ops on non-positive count", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.notifications.unreadCount, 1);
+    densifyNotificationBellBump(client, { unreadDelta: 0 });
+    expect(client.getQueryData(queryKeys.notifications.unreadCount)).toBe(1);
   });
 
   it("densifyNotificationDelete of a read row decrements total only", () => {

@@ -17,7 +17,6 @@ import StarRow from "@/components/ui/StarRow";
 import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -25,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -238,18 +238,19 @@ function ReviewCard({
                   >
                     Cancel
                   </AlertDialogCancel>
-                  <AlertDialogAction
+                  <Button
+                    type="button"
                     onClick={handleDeleteConfirm}
                     disabled={isDeleting}
                     className={GLASS_ALERT.destructive}
                   >
                     {isDeleting ? (
-                      <Loader2 className="size-3.5 animate-spin sm:size-4" />
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
                     ) : (
-                      <Trash2 className="size-3.5 sm:size-4" />
+                      <Trash2 className="size-4" aria-hidden />
                     )}
-                    {isDeleting ? "Deleting…" : "Delete review"}
-                  </AlertDialogAction>
+                    {isDeleting ? "Deleting…" : "Delete Review"}
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

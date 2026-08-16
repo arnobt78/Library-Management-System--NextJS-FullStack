@@ -36,6 +36,8 @@ import { GLASS_ALERT } from "@/lib/ui/glassActionChrome";
 import { SKY_LINK_DARK } from "@/lib/ui/skyLinkStyles";
 import { buildTicketActivityTimeline } from "@/lib/ui/ticketActivity";
 import PersonAttribution from "@/components/PersonAttribution";
+import UniversityIdMeta from "@/components/UniversityIdMeta";
+import { Button } from "@/components/ui/button";
 import { AllAdminLabel } from "@/components/support-tickets/AllAdminLabel";
 import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
 import { TicketDateMeta } from "@/components/support-tickets/TicketDateMeta";
@@ -125,6 +127,23 @@ export default function SupportTicketDetailContent({
                 <p className="line-clamp-2 text-sm font-medium">
                   {ticket.subject}
                 </p>
+                <div className="mt-2">
+                  <PersonAttribution
+                    variant="dark"
+                    person={{
+                      id: ticket.userId,
+                      fullName: ticket.userName,
+                      email: ticket.userEmail,
+                      universityCard: ticket.userUniversityCard ?? null,
+                    }}
+                    meta={
+                      <UniversityIdMeta
+                        universityId={ticket.userUniversityId}
+                        variant="dark"
+                      />
+                    }
+                  />
+                </div>
                 <p className="mt-1.5 line-clamp-3 text-xs opacity-80">
                   {ticket.description}
                 </p>
@@ -139,21 +158,21 @@ export default function SupportTicketDetailContent({
           >
             Cancel
           </AlertDialogCancel>
-          <button
+          <Button
             type="button"
+            disabled={deletePending}
+            className={GLASS_ALERT.destructive}
             onClick={() => {
               void handleDelete();
             }}
-            disabled={deletePending}
-            className={GLASS_ALERT.destructive}
           >
             {deletePending ? (
-              <Loader2 className="size-3.5 animate-spin sm:size-4" />
+              <Loader2 className="size-4 animate-spin" aria-hidden />
             ) : (
-              <Trash2 className="size-3.5 sm:size-4" />
+              <Trash2 className="size-4" aria-hidden />
             )}
-            {deletePending ? "Deleting…" : "Delete ticket"}
-          </button>
+            {deletePending ? "Deleting…" : "Delete Ticket"}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -35,6 +35,7 @@ interface SupportTicketRowRaw {
   userName: string;
   userEmail: string;
   userUniversityCard: string | null;
+  userUniversityId: number;
   assignedToId: string | null;
   assignedToName: string | null;
   assignedToEmail: string | null;
@@ -77,6 +78,7 @@ function baseTicketSelect() {
       userName: users.fullName,
       userEmail: users.email,
       userUniversityCard: users.universityCard,
+      userUniversityId: users.universityId,
       assignedToId: supportTickets.assignedToId,
       assignedToName: assignee.fullName,
       assignedToEmail: assignee.email,
@@ -106,6 +108,7 @@ function mapListItem(
     userName: row.userName,
     userEmail: row.userEmail,
     userUniversityCard: row.userUniversityCard ?? null,
+    userUniversityId: row.userUniversityId ?? 0,
     assignedToId: row.assignedToId,
     assignedToName: row.assignedToName,
     assignedToEmail: row.assignedToEmail ?? null,

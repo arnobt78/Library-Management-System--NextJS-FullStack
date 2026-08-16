@@ -31,6 +31,7 @@ function toListItem(ticket: SupportTicketDetail): SupportTicketListItem {
     userName: ticket.userName,
     userEmail: ticket.userEmail,
     userUniversityCard: ticket.userUniversityCard,
+    userUniversityId: ticket.userUniversityId ?? 0,
     assignedToId: ticket.assignedToId,
     assignedToName: ticket.assignedToName,
     assignedToEmail: ticket.assignedToEmail,
