@@ -2,15 +2,15 @@
 
 - Project: University Library Management System
 - Cycle: C2
-- Stage: 4 - Prove (local) densify consistency closeout Waves 1–3 closed; nonlocal Verify / EvalGate still outstanding
+- Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - densify consistency closeout shipped (`cfe291d`)
+- Status: ACTIVE - 404 contrast + Sentry filter Prove closed locally; commit pending
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `cfe291d`
-- Latest HEAD: `cfe291d`
+- Latest HEAD: `0683dc8`
 - Started: 2026-08-01
-- Last updated: 2026-08-16 (densify consistency closeout tip-bind)
+- Last updated: 2026-08-16 (404 contrast + Sentry closeout)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,28 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: Densify consistency closeout Waves 1–3 shipped; ImageKit upload-limit UX deferred; owner prod smoke
+- Active plan: Densify closeout shipped; Sentry expected-auth filter + admin redirect; ImageKit upload-limit deferred; owner Verify / name next Build
+
+## Reconciliation snapshot (2026-08-16, 404 contrast + Sentry closeout)
+
+- **Done**: Root `#not-found` h4/p → dark tokens; Browse link `SKY_LINK_LIGHT`. Sentry auth filter already in WT.
+- **Remaining**: owner commit (Sentry + 404); Resolve old Sentry issues after deploy; book CRUD Verify after `seed:reset`.
+- **Next exact task**: commit when owner asks.
+
+## Reconciliation snapshot (2026-08-16, Sentry auth denial noise)
+
+- **Done**: `beforeSend` drops `AuthorizationError` (server/edge/client); admin RSC pages use `requireAdminActorOrRedirect` (sign-in / home) so denials are not digests. typecheck + eslint + filter/auth unit tests PASS.
+- **Remaining**: EvalGate / Gate 2; owner Resolve old Sentry issues after deploy; book CRUD Verify after `seed:reset`.
+- **Next exact task**: owner commit/deploy when ready.
+
+## Reconciliation snapshot (2026-08-16, Agile V resume)
+
+- **Done**: Loaded `docs/AGILE_V_PROTOCOL.md` + CLAUDE + AGENTS + STATE; tip `cfe291d` / HEAD `0683dc8` == `origin/main`; WT clean except untracked `.agile-v/plans/` + `agile_v_skills/`.
+- **Mismatch fixed in STATE**: tip was stale-equal to HEAD; tip = densify impl, HEAD = tip-bind docs.
+- **Request**: prompt after `----` empty — Halt (unclear Done / no new REQ scope).
+- **Deferred carry**: ImageKit upload 429 UX; Insights invent densify; shipping-payments N/A; EvalGate FAIL blocks Gate 2.
+- **Remaining**: owner name next Build OR run Verify (`npm run seed:reset` → 2 accounts + 17 books smoke).
+- **Next exact task**: Human-Decision — paste product request or choose Verify-only / ImageKit upload-limit / other.
 
 ## Reconciliation snapshot (2026-08-16, densify consistency closeout)
 

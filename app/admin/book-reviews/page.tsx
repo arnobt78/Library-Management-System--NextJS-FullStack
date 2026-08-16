@@ -5,7 +5,7 @@
  * Also SSR-loads currentAdmin (DB fullName/email/card) so Approver densify
  * does not depend on useSession (often null → "an admin" stomp).
  */
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import { getAdminBookReviews } from "@/lib/server/reviewData";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
@@ -15,7 +15,7 @@ import BookReviewList from "@/components/admin/BookReviewList";
 export const runtime = "nodejs";
 
 const Page = async () => {
-  const actor = await requireAdminActor();
+  const actor = await requireAdminActorOrRedirect();
   const [initialReviews, adminRow] = await Promise.all([
     getAdminBookReviews(),
     db

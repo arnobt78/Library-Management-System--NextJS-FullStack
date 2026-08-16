@@ -6,7 +6,7 @@
 
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import { getAdminUserProfile } from "@/lib/admin/userProfile";
 import { parseEntityId, parseProfilePagination } from "@/lib/actionInputs";
 import { db } from "@/database/drizzle";
@@ -24,7 +24,7 @@ export default async function SignupRequestDetailPage({
   params: Promise<{ userId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const actor = await requireAdminActor();
+  const actor = await requireAdminActorOrRedirect();
   const [{ userId: rawUserId }, query] = await Promise.all([
     params,
     searchParams,

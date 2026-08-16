@@ -5,6 +5,7 @@
  */
 
 import * as Sentry from "@sentry/nextjs";
+import { dropExpectedAuthorizationErrors } from "@/lib/sentry/dropExpectedAuthorizationErrors";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 const isDev = process.env.NODE_ENV === "development";
@@ -33,6 +34,9 @@ if (dsn) {
       "ResizeObserver loop completed with undelivered notifications",
       "Non-Error promise rejection captured",
     ],
+    beforeSend(event, hint) {
+      return dropExpectedAuthorizationErrors(event, hint);
+    },
   });
 }
 

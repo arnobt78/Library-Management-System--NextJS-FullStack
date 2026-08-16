@@ -6,14 +6,14 @@
  * filters refetch through TanStack Query against `/api/support-tickets`.
  */
 import React from "react";
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import { getAdminSupportTickets, getAssignableAdmins } from "@/lib/server/supportTicketData";
 import SupportTicketList from "@/components/admin/SupportTicketList";
 
 export const runtime = "nodejs";
 
 const Page = async () => {
-  await requireAdminActor();
+  await requireAdminActorOrRedirect();
   const [initialTickets, assignableAdmins] = await Promise.all([
     getAdminSupportTickets(),
     getAssignableAdmins(),

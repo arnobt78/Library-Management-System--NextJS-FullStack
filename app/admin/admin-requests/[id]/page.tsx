@@ -6,7 +6,7 @@
 
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import { getAdminRequestDetail } from "@/lib/admin/actions/admin-requests";
 import { getAdminUserProfile } from "@/lib/admin/userProfile";
 import { parseEntityId, parseProfilePagination } from "@/lib/actionInputs";
@@ -25,7 +25,7 @@ export default async function AdminRequestPrivilegePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const actor = await requireAdminActor();
+  const actor = await requireAdminActorOrRedirect();
   const [{ id: rawId }, query] = await Promise.all([params, searchParams]);
 
   let requestId: string;

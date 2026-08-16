@@ -7,7 +7,7 @@
  */
 import React from "react";
 import { redirect } from "next/navigation";
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import {
   getAssignableAdmins,
   getSupportTicketDetail,
@@ -18,7 +18,7 @@ import AdminSupportTicketDetailContent from "@/components/admin/AdminSupportTick
 export const runtime = "nodejs";
 
 const Page = async ({ params }: { params: Promise<{ id: string }> }) => {
-  const actor = await requireAdminActor();
+  const actor = await requireAdminActorOrRedirect();
   const { id } = await params;
 
   const [ticket, assignableAdmins, auditEvents] = await Promise.all([

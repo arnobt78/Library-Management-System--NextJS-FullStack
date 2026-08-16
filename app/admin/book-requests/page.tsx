@@ -5,7 +5,7 @@
 
 import React from "react";
 import { eq } from "drizzle-orm";
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import { getAllBorrowRequests } from "@/lib/admin/actions/borrow";
 import { db } from "@/database/drizzle";
 import { reservations, users } from "@/database/schema";
@@ -19,7 +19,7 @@ const Page = async ({
   searchParams: Promise<{ success?: string; error?: string }>;
 }) => {
   const params = await searchParams;
-  const actor = await requireAdminActor();
+  const actor = await requireAdminActorOrRedirect();
 
   const [result, adminRow, reservationsWaitingRows] = await Promise.all([
     getAllBorrowRequests(),

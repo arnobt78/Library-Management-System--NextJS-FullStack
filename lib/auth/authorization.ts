@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 
 export type ActorRole = "USER" | "ADMIN";
 export type ActorStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -157,6 +158,22 @@ export function requireAuthenticatedActor(): Promise<AuthorizedActor> {
 
 export function requireAdminActor(): Promise<AuthorizedActor> {
   return requireActor("ADMIN");
+}
+
+/**
+ * Admin RSC pages — match layout: sign-in if unauthenticated, home if not admin.
+ * Avoids AuthorizationError digests / Sentry noise on soft-nav / prefetch races.
+ */
+export async function requireAdminActorOrRedirect(): Promise<AuthorizedActor> {
+  try {
+    return await requireAdminActor();
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      if (error.code === "UNAUTHENTICATED") redirect("/sign-in");
+      redirect("/");
+    }
+    throw error;
+  }
 }
 
 /** Authenticated user of any approval status (view-capable surfaces). */

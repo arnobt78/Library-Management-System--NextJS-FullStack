@@ -7,14 +7,14 @@
  * against `/api/activity-logs`.
  */
 import React from "react";
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import { getActivityLogs } from "@/lib/server/activityLogData";
 import ActivityLogSection from "@/components/admin/ActivityLogSection";
 
 export const runtime = "nodejs";
 
 const Page = async () => {
-  await requireAdminActor();
+  await requireAdminActorOrRedirect();
   const initialLogs = await getActivityLogs({ period: "7days" });
 
   return (

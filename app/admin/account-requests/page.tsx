@@ -9,7 +9,7 @@
 import React from "react";
 import { getAllUsers } from "@/lib/admin/actions/user";
 import { getRecentSignupStatusDecisions } from "@/lib/admin/signupStatusDecisions";
-import { requireAdminActor } from "@/lib/auth/authorization";
+import { requireAdminActorOrRedirect } from "@/lib/auth/authorization";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { eq } from "drizzle-orm";
@@ -24,9 +24,9 @@ const Page = async ({
 }) => {
   const params = await searchParams;
 
-  // Fetch actor + pending queue + recent decisions in parallel for SSR
-  const [actor, result, decisionsResult] = await Promise.all([
-    requireAdminActor(),
+  // Auth first so denial redirects (not Promise.all race with data loaders).
+  const actor = await requireAdminActorOrRedirect();
+  const [result, decisionsResult] = await Promise.all([
     getAllUsers(),
     getRecentSignupStatusDecisions(),
   ]);

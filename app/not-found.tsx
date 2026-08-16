@@ -1,11 +1,13 @@
 /**
- * Root branded 404 — uses existing `#not-found` / `.not-found-btn` tokens.
- * Wrapped by `app/layout.tsx` only (no admin chrome).
+ * Root branded 404 — light shell (`app/layout` only; no dark root-container).
+ * Copy uses dark CSS tokens; secondary CTA uses shared sky link (admin light).
  * Parent: delete-detail 404 flash + branded not-found
  */
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
+import { cn } from "@/lib/utils";
 
 export default function NotFound() {
   return (
@@ -19,7 +21,7 @@ export default function NotFound() {
         <Button asChild className="not-found-btn">
           <Link href="/">Go home</Link>
         </Button>
-        <Button asChild variant="link" className="mt-3 text-light-100">
+        <Button asChild variant="link" className={cn("mt-3", SKY_LINK_LIGHT)}>
           <Link href="/all-books">Browse all books</Link>
         </Button>
       </div>
