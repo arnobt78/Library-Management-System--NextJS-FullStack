@@ -4,11 +4,11 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - root 404 dark shell + Lucide CTAs Prove closed locally; commit pending
+- Status: ACTIVE - root 404 dark shell shipped (`9a5ff07`)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `073afae`
-- Latest HEAD: `7a32100`
+- Latest implementation tip: `9a5ff07`
+- Latest HEAD: `32723e9`
 - Started: 2026-08-01
 - Last updated: 2026-08-16 (root 404 dark shell)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
@@ -46,7 +46,7 @@
 
 ## Reconciliation snapshot (2026-08-16, Agile V resume)
 
-- **Done**: Loaded `docs/AGILE_V_PROTOCOL.md` + CLAUDE + AGENTS + STATE; tip `cfe291d` / HEAD `0683dc8` == `origin/main`; WT clean except untracked `.agile-v/plans/` + `agile_v_skills/`.
+- **Done**: Loaded `docs/AGILE_V_PROTOCOL.md` + CLAUDE + AGENTS + STATE; tip `9a5ff07` / HEAD `32723e9` == `origin/main`; WT clean except untracked `.agile-v/plans/` + `agile_v_skills/`.
 - **Mismatch fixed in STATE**: tip was stale-equal to HEAD; tip = densify impl, HEAD = tip-bind docs.
 - **Request**: prompt after `----` empty — Halt (unclear Done / no new REQ scope).
 - **Deferred carry**: ImageKit upload 429 UX; Insights invent densify; shipping-payments N/A; EvalGate FAIL blocks Gate 2.
