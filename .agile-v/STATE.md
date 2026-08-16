@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout Waves 1–3 closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - densify consistency closeout shipped; tip bind after commit
+- Status: ACTIVE - densify consistency closeout shipped (`cfe291d`)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `4b255dc`
-- Latest HEAD: `6c60c1b`
+- Latest implementation tip: `cfe291d`
+- Latest HEAD: `cfe291d`
 - Started: 2026-08-01
-- Last updated: 2026-08-16 (densify consistency closeout Waves 1–3)
+- Last updated: 2026-08-16 (densify consistency closeout tip-bind)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -34,8 +34,8 @@
 - **Deferred**: ImageKit upload rate-limit UX (owner later). Insights invent densify / shipping-payments out of scope.
 - **Security**: uncommitted densify diff — no medium/high/critical; privileged writes remain server-gated.
 - **Prove**: typecheck + eslint + **310** unit tests PASS (11 skipped).
-- **Remaining**: EvalGate / Gate 2; tip-bind after push.
-- **Next exact task**: owner Verify after Vercel deploy.
+- **Remaining**: EvalGate / Gate 2; owner Verify after Vercel deploy.
+- **Next exact task**: owner prod smoke.
 
 ## Reconciliation snapshot (2026-08-15, tip-bind never-paint 404)
 
