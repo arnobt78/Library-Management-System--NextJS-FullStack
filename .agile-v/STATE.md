@@ -7,8 +7,8 @@
 - Status: ACTIVE - Fines closeout polish shipped (dead SQL removed, due-reminders ACCRUING sync, admin on-behalf dispute dialog, 327 unit + 12 integration PASS, build PASS; DB re-seeded)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `9606f01`
-- Latest HEAD: `558d5ef`
+- Latest implementation tip: `558d5ef`
+- Latest HEAD: `c81711b`
 - Started: 2026-08-01
 - Last updated: 2026-08-18 (Fines closeout polish)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
