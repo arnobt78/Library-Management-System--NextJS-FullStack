@@ -77,6 +77,8 @@ interface SupportTicketDialogProps {
   decisionActor?: AdminRequestReviewer | null;
   /** Deep-link prefill for related catalog book. */
   initialRelatedBookId?: string;
+  /** Admin filing on behalf of borrower — server-validated requesterUserId. */
+  requesterUserId?: string;
 }
 
 type FormProps = Omit<SupportTicketDialogProps, "isOpen" | "onClose"> & {
@@ -100,6 +102,7 @@ function SupportTicketDialogForm({
   onUpdated,
   decisionActor,
   initialRelatedBookId,
+  requesterUserId,
 }: FormProps) {
   const isDark = variant === "dark";
   const PRIORITY_OPTIONS = ticketPriorityMultiOptions(isDark ? "dark" : "light");
@@ -157,6 +160,7 @@ function SupportTicketDialogForm({
         description: trimmedDescription,
         priority,
         relatedBookId: initialRelatedBookId ?? null,
+        ...(requesterUserId ? { requesterUserId } : {}),
       },
       {
         onSuccess: (ticket) => {

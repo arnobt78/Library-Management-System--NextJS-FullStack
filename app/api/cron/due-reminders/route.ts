@@ -1,10 +1,12 @@
 /**
  * Daily due-soon + overdue reminder cron (email + in-app REMINDER_DUE).
+ * 07:00 — sync ACCRUING status before overdue emails; stamp cron at 08:00 persists amounts.
  * Auth mirrors reservation-notifications (Bearer CRON_SECRET).
  * Parent: REQ-0032 / Phase A Wave 3
  */
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { syncOverdueAccruingStatus } from "@/lib/admin/actions/fines";
 import {
   sendDueSoonReminders,
   sendOverdueReminders,
@@ -37,14 +39,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const sync = await syncOverdueAccruingStatus();
     const [dueSoon, overdue] = await Promise.all([
       sendDueSoonReminders(),
       sendOverdueReminders(),
     ]);
+    if (sync.synced > 0) {
+      revalidateMutationPaths("fine.write");
+    }
     // Bell shells: REMINDER_DUE rows may have been inserted (paths empty today; keep domain wired).
     revalidateMutationPaths("notification.write");
     return NextResponse.json({
       success: true,
+      syncedAccruing: sync.synced,
       dueSoonSent: dueSoon.filter((r) => r.status === "sent").length,
       dueSoonFailed: dueSoon.filter((r) => r.status === "failed").length,
       overdueSent: overdue.filter((r) => r.status === "sent").length,

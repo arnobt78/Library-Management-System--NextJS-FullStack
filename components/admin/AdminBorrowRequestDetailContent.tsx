@@ -10,6 +10,7 @@
  */
 
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Bell,
@@ -57,7 +58,7 @@ import { AdminBookDetailsPanel } from "@/components/admin/AdminBookDetailsPanel"
 import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
 import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { AdminBorrowFineMenu } from "@/components/admin/AdminBorrowFineMenu";
-import PrefetchLink from "@/components/PrefetchLink";
+import SupportTicketDialog from "@/components/support-tickets/SupportTicketDialog";
 import { BorrowLifecycleDateMeta } from "@/components/admin/BorrowLifecycleDateMeta";
 import {
   BorrowLifecycleAlertDialog,
@@ -241,6 +242,7 @@ export default function AdminBorrowRequestDetailContent({
   currentAdmin?: AdminRequestReviewer | null;
 }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const decisionActor =
     resolveDecisionActor(currentAdmin, session?.user) ?? undefined;
   const handleBack = useBackWithRefresh(
@@ -268,6 +270,7 @@ export default function AdminBorrowRequestDetailContent({
     useState<BorrowLifecycleConfirmKind | null>(null);
   const [actionKind, setActionKind] =
     useState<BorrowLifecycleConfirmKind | null>(null);
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
 
   const busy =
     approveMutation.isPending ||
@@ -347,6 +350,13 @@ export default function AdminBorrowRequestDetailContent({
     overdueDays > 0
       ? `Accrued balance · ${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue`
       : "Accrued balance · No overdue days";
+
+  const disputeSubject = "Fine dispute — borrow request";
+  const disputeDescription = [
+    `Borrower: ${request.userName || "Unknown"} (${request.userEmail || "—"})`,
+    `Borrow request: ${request.id}`,
+    "I would like to dispute the fine on this borrow request.",
+  ].join("\n");
 
   const totalCopies = request.bookTotalCopies ?? null;
   const availableCopies = request.bookAvailableCopies ?? null;
@@ -638,12 +648,13 @@ export default function AdminBorrowRequestDetailContent({
             </p>
             <AdminBorrowFineMenu recordId={request.id} disabled={busy} />
           </div>
-          <PrefetchLink
-            href={`/support-tickets?create=1&borrowId=${request.id}&bookId=${request.bookId}`}
+          <button
+            type="button"
+            onClick={() => setDisputeDialogOpen(true)}
             className="mt-1 inline-block text-xs text-sky-700 hover:text-sky-900"
           >
-            Open support ticket
-          </PrefetchLink>
+            Open dispute ticket
+          </button>
         </DetailKpiShell>
         <DetailKpiShell
           variant="light"
@@ -817,6 +828,19 @@ export default function AdminBorrowRequestDetailContent({
         isPending={busy && actionKind === confirmKind}
         onConfirm={(payload) => {
           if (confirmKind) runLifecycle(confirmKind, payload);
+        }}
+      />
+
+      <SupportTicketDialog
+        variant="light"
+        isOpen={disputeDialogOpen}
+        onClose={() => setDisputeDialogOpen(false)}
+        initialSubject={disputeSubject}
+        initialDescription={disputeDescription}
+        initialRelatedBookId={request.bookId}
+        requesterUserId={request.userId}
+        onCreated={(ticket) => {
+          router.push(`/admin/support-tickets/${ticket.id}`);
         }}
       />
     </section>

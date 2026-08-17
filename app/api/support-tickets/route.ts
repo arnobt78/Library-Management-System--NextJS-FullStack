@@ -16,12 +16,13 @@ import {
   getUserSupportTickets,
 } from "@/lib/server/supportTicketData";
 import {
+  adminCreateSupportTicketSchema,
   createSupportTicketSchema,
   ticketPrioritySchema,
   ticketStatusSchema,
 } from "@/lib/validations/supportTicket";
 import { db } from "@/database/drizzle";
-import { supportTickets } from "@/database/schema";
+import { supportTickets, users } from "@/database/schema";
 import { logActivity, truncateForLog } from "@/lib/admin/activityLog";
 import {
   createInAppNotificationForUsers,
@@ -29,6 +30,7 @@ import {
 } from "@/lib/notifications/inApp";
 import { notifyTicketCreated } from "@/lib/email/supportTicketEmails";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
+import { and, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -97,26 +99,103 @@ export async function POST(request: NextRequest) {
     const { actor } = authorization;
 
     const body = await request.json();
-    const parsed = createSupportTicketSchema.safeParse(body);
-    if (!parsed.success) {
+    const rawRequesterId =
+      typeof body === "object" &&
+      body !== null &&
+      "requesterUserId" in body &&
+      typeof (body as { requesterUserId?: unknown }).requesterUserId === "string"
+        ? (body as { requesterUserId: string }).requesterUserId
+        : undefined;
+
+    if (rawRequesterId && actor.role !== "ADMIN") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Forbidden",
+          message: "Only admins may file tickets on behalf of another user.",
+        },
+        { status: 403 },
+      );
+    }
+
+    const adminParsed = rawRequesterId
+      ? adminCreateSupportTicketSchema.safeParse(body)
+      : null;
+    const userParsed = adminParsed
+      ? null
+      : createSupportTicketSchema.safeParse(body);
+
+    if (adminParsed && !adminParsed.success) {
       return NextResponse.json(
         {
           success: false,
           error: "Invalid ticket data",
-          message: parsed.error.issues.map((issue) => issue.message).join(", "),
+          message: adminParsed.error.issues
+            .map((issue) => issue.message)
+            .join(", "),
+        },
+        { status: 400 },
+      );
+    }
+    if (userParsed && !userParsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid ticket data",
+          message: userParsed.error.issues.map((issue) => issue.message).join(", "),
         },
         { status: 400 },
       );
     }
 
+    const ticketFields = (adminParsed?.success
+      ? adminParsed.data
+      : userParsed!.data)!;
+    let ticketUserId = actor.id;
+    let requesterName = actor.name;
+    let onBehalfOf: string | undefined;
+
+    if (adminParsed?.success === true) {
+      const requesterUserId = adminParsed.data.requesterUserId;
+      const [requester] = await db
+        .select({
+          id: users.id,
+          fullName: users.fullName,
+          status: users.status,
+        })
+        .from(users)
+        .where(
+          and(
+            eq(users.id, requesterUserId),
+            eq(users.status, "APPROVED"),
+          ),
+        )
+        .limit(1);
+
+      if (!requester) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid requester",
+            message: "Borrower must exist and be APPROVED.",
+          },
+          { status: 400 },
+        );
+      }
+
+      ticketUserId = requester.id;
+      requesterName = requester.fullName;
+      onBehalfOf = requester.id;
+    }
+
     const [created] = await db
       .insert(supportTickets)
       .values({
-        subject: parsed.data.subject,
-        description: parsed.data.description,
-        priority: parsed.data.priority ?? "MEDIUM",
-        relatedBookId: parsed.data.relatedBookId ?? null,
-        userId: actor.id,
+        subject: ticketFields.subject,
+        description: ticketFields.description,
+        priority: ticketFields.priority ?? "MEDIUM",
+        relatedBookId: ticketFields.relatedBookId ?? null,
+        userId: ticketUserId,
       })
       .returning({ id: supportTickets.id });
 
@@ -127,30 +206,47 @@ export async function POST(request: NextRequest) {
       action: "CREATE",
       entityType: "ticket",
       entityId: created.id,
-      details: { subject: truncateForLog(parsed.data.subject) },
+      details: {
+        subject: truncateForLog(ticketFields.subject),
+        ...(onBehalfOf ? { onBehalfOf } : {}),
+      },
     });
 
     // Fan out to admins — fire-and-forget, never blocks the response.
     void (async () => {
       const admins = await getAllAdminUsers(actor.id);
-      if (admins.length === 0) return;
+      const creatorLabel = onBehalfOf
+        ? `${actor.name} (on behalf of ${requesterName})`
+        : actor.name;
 
-      await createInAppNotificationForUsers(
-        admins.map((admin) => admin.id),
-        {
+      if (admins.length > 0) {
+        await createInAppNotificationForUsers(
+          admins.map((admin) => admin.id),
+          {
+            type: "TICKET_CREATED",
+            title: "New support ticket",
+            message: `${creatorLabel} submitted: "${ticketFields.subject}"`,
+            link: `/admin/support-tickets/${created.id}`,
+          },
+        );
+
+        await notifyTicketCreated({
+          recipients: admins.map((admin) => admin.email),
+          creatorName: creatorLabel,
+          ticketId: created.id,
+          ticketSubject: ticketFields.subject,
+        });
+      }
+
+      // Notify borrower when admin filed on their behalf (skip if actor is the requester).
+      if (onBehalfOf && onBehalfOf !== actor.id) {
+        await createInAppNotificationForUsers([onBehalfOf], {
           type: "TICKET_CREATED",
-          title: "New support ticket",
-          message: `${actor.name} submitted: "${parsed.data.subject}"`,
-          link: `/admin/support-tickets/${created.id}`,
-        },
-      );
-
-      await notifyTicketCreated({
-        recipients: admins.map((admin) => admin.email),
-        creatorName: actor.name,
-        ticketId: created.id,
-        ticketSubject: parsed.data.subject,
-      });
+          title: "Support ticket opened",
+          message: `A ticket was opened on your behalf: "${ticketFields.subject}"`,
+          link: `/support-tickets/${created.id}`,
+        });
+      }
     })();
 
     const ticket = await getSupportTicketDetail(created.id);

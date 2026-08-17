@@ -322,10 +322,7 @@ export async function stampOpenOverdueFines(options?: {
       skipped += 1;
       continue;
     }
-    if (
-      !options?.force &&
-      (row.fineStatus === "WAIVED" || row.fineStatus === "PAID")
-    ) {
+    if (row.fineStatus === "WAIVED" || row.fineStatus === "PAID") {
       skipped += 1;
       continue;
     }

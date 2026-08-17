@@ -178,3 +178,9 @@ Commands: eslint touched PASS | vitest formulas+outbox 9/9 PASS | outstanding=sa
 Scope: [built/verified] W1 reviews/avatar/overview/delete; W2 C2-v2 overdueTrend/fineForecast/genreDemandPressure + User 360 next actions + ops chips; W3 `/api/cron/due-reminders`, REMINDER_DUE/HOLD_READY, Automation copy. No LLM.
 
 Commands: eslint touched PASS | vitest formulas+outbox 9/9 PASS | outstanding=same nonlocal EvalGate class.
+
+## Fines closeout polish - Local Prove - 2026-08-18
+
+Scope: dead SQL removed; due-reminders ACCRUING sync; admin on-behalf dispute ticket; stamp WAIVED/PAID skip; integration TRUNCATE CASCADE.
+
+Commands: typecheck/lint PASS | 327 unit + 12 integration PASS | build PASS | seed:reset after integration.

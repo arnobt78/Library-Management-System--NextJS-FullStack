@@ -26,6 +26,8 @@ export interface CreateTicketInput {
   description: string;
   priority?: TicketPriority;
   relatedBookId?: string | null;
+  /** Admin-only — server sets ticket userId from this APPROVED borrower. */
+  requesterUserId?: string;
 }
 
 export interface UpdateTicketInput {

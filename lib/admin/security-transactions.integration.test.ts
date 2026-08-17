@@ -143,7 +143,7 @@ integration("PostgreSQL lifecycle invariants", () => {
   beforeEach(async () => {
     if (!testDatabaseUrl) return;
     await setupPool.query(
-      "DROP TRIGGER IF EXISTS fail_book_delete ON books; DROP TRIGGER IF EXISTS fail_request_update ON admin_requests; DROP FUNCTION IF EXISTS raise_test_failure(); TRUNCATE circulation_commands, reservation_events, reservations, fine_rate_history, system_config, book_reviews, admin_requests, borrow_records, books, users;",
+      "DROP TRIGGER IF EXISTS fail_book_delete ON books; DROP TRIGGER IF EXISTS fail_request_update ON admin_requests; DROP FUNCTION IF EXISTS raise_test_failure(); TRUNCATE circulation_commands, reservation_events, reservations, fine_rate_history, system_config, book_reviews, admin_requests, borrow_records, books, users CASCADE;",
     );
     await setupPool.query(
       `INSERT INTO users (id, full_name, email, university_id, password, university_card, status, role)

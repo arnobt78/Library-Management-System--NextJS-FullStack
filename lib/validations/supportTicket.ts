@@ -32,6 +32,11 @@ export const createSupportTicketSchema = z.object({
   relatedBookId: z.string().uuid().optional().nullable(),
 });
 
+/** Admin filing on behalf of an APPROVED borrower — server sets userId from requesterUserId. */
+export const adminCreateSupportTicketSchema = createSupportTicketSchema.extend({
+  requesterUserId: z.string().uuid(),
+});
+
 /**
  * Admin-only mutable fields (status/assignment/notes). Priority is also
  * creator-editable while OPEN/IN_PROGRESS — enforced in ticketPolicy + route.
