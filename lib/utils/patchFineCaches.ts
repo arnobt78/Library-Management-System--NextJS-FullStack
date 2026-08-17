@@ -42,7 +42,7 @@ export function densifyOverdueFines(
   }
 
   for (const r of updated) {
-    const amount = r.verifiedFineAmount ?? r.fineAmount;
+    const amount = String(r.verifiedFineAmount ?? r.fineAmount ?? "0.00");
     patchBorrowFineUpdate(queryClient, r.recordId, {
       fineAmount: amount,
       displayFineAmount: amount,

@@ -184,3 +184,9 @@ Commands: eslint touched PASS | vitest formulas+outbox 9/9 PASS | outstanding=sa
 Scope: dead SQL removed; due-reminders ACCRUING sync; admin on-behalf dispute ticket; stamp WAIVED/PAID skip; integration TRUNCATE CASCADE.
 
 Commands: typecheck/lint PASS | 327 unit + 12 integration PASS | build PASS | seed:reset after integration.
+
+## Demo seed + Fine NaN fix - Local Prove - 2026-08-18
+
+Scope: enriched `seed:demo` (full schema ops overlay); Borrow Queue `parseStoredFine`; densify string fine amounts.
+
+Commands: typecheck/lint/327 unit/build PASS | seed:reset && seed:demo verified.

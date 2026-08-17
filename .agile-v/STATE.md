@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Fines closeout polish shipped (dead SQL removed, due-reminders ACCRUING sync, admin on-behalf dispute dialog, 327 unit + 12 integration PASS, build PASS; DB re-seeded)
+- Status: ACTIVE - Demo seed enriched + Borrow Queue Fine NaN fix; UI polish deferred to next session
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `558d5ef`
-- Latest HEAD: `c81711b`
+- Latest implementation tip: pending commit
+- Latest HEAD: `058bd8f`
 - Started: 2026-08-01
-- Last updated: 2026-08-18 (Fines closeout polish)
+- Last updated: 2026-08-18 (demo seed + Fine NaN fix)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`

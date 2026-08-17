@@ -33,6 +33,7 @@ import {
 } from "@/hooks/useMutations";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 import { borrowDaysOverdue } from "@/lib/admin/borrowDaysOverdue";
+import { parseStoredFine } from "@/lib/fines/liveFine";
 import { cn } from "@/lib/utils";
 import type { AdminDashboardStats } from "@/lib/admin/adminDashboardStatsTypes";
 import { queryKeys } from "@/lib/query/keys";
@@ -448,7 +449,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
         header: "Fine",
         cell: ({ row }) => {
           const r = row.original;
-          const amount = Number.parseFloat(
+          const amount = parseStoredFine(
             r.displayFineAmount ?? r.fineAmount ?? "0",
           );
           const overdueDays = borrowDaysOverdue(r.status, r.dueDate);
