@@ -114,6 +114,8 @@ type BorrowRowPatch = {
   dueDate?: string | null;
   returnDate?: string | null;
   fineAmount?: string | null;
+  displayFineAmount?: string | null;
+  fineStatus?: string | null;
   borrowedBy?: string | null;
   returnedBy?: string | null;
   borrowDate?: Date | string | null;
@@ -1011,4 +1013,33 @@ export function patchBorrowCachesOnRenewal(
     dueDate: nextDue,
     renewalCount: args.renewalCount,
   });
+}
+
+/** Densify fine fields after waive/adjust/paid/stamp (fine.write). */
+export function patchBorrowFineUpdate(
+  queryClient: QueryClient,
+  recordId: string,
+  patch: {
+    fineAmount: string;
+    displayFineAmount?: string;
+    fineStatus?: string | null;
+  },
+): void {
+  const displayFineAmount = patch.displayFineAmount ?? patch.fineAmount;
+  const rowPatch: BorrowRowPatch = {
+    fineAmount: patch.fineAmount,
+    displayFineAmount,
+    fineStatus: patch.fineStatus ?? null,
+  };
+
+  queryClient.setQueriesData<BorrowRecordFull[]>(
+    { queryKey: queryKeys.borrows.userRoot },
+    (old) => (old ? applyRowPatch(old, recordId, rowPatch) : old),
+  );
+
+  mapRequestLists(queryClient, (rows) =>
+    applyRowPatch(rows, recordId, rowPatch),
+  );
+  upsertBorrowRequestDetail(queryClient, recordId, rowPatch);
+  evictAnalyticsCaches(queryClient);
 }

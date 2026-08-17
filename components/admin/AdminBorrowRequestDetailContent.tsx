@@ -40,6 +40,7 @@ import {
   useApproveBorrow,
   useRejectBorrow,
   useReturnBook,
+  useFineFreeReturn,
 } from "@/hooks/useMutations";
 import { LIGHT_GLASS_CTA } from "@/lib/ui/glassActionChrome";
 import {
@@ -55,6 +56,8 @@ import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 import { AdminBookDetailsPanel } from "@/components/admin/AdminBookDetailsPanel";
 import { AdminDetailIdChip } from "@/components/admin/AdminDetailIdChip";
 import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
+import { AdminBorrowFineMenu } from "@/components/admin/AdminBorrowFineMenu";
+import PrefetchLink from "@/components/PrefetchLink";
 import { BorrowLifecycleDateMeta } from "@/components/admin/BorrowLifecycleDateMeta";
 import {
   BorrowLifecycleAlertDialog,
@@ -260,6 +263,7 @@ export default function AdminBorrowRequestDetailContent({
   const approveMutation = useApproveBorrow();
   const rejectMutation = useRejectBorrow();
   const returnMutation = useReturnBook();
+  const fineFreeReturnMutation = useFineFreeReturn();
   const [confirmKind, setConfirmKind] =
     useState<BorrowLifecycleConfirmKind | null>(null);
   const [actionKind, setActionKind] =
@@ -268,7 +272,8 @@ export default function AdminBorrowRequestDetailContent({
   const busy =
     approveMutation.isPending ||
     rejectMutation.isPending ||
-    returnMutation.isPending;
+    returnMutation.isPending ||
+    fineFreeReturnMutation.isPending;
 
   const hasActions =
     request.status === "PENDING" || request.status === "BORROWED";
@@ -278,7 +283,10 @@ export default function AdminBorrowRequestDetailContent({
     setActionKind(null);
   };
 
-  const runLifecycle = (kind: BorrowLifecycleConfirmKind) => {
+  const runLifecycle = (
+    kind: BorrowLifecycleConfirmKind,
+    payload?: { reason?: string },
+  ) => {
     if (busy) return;
     setActionKind(kind);
     const onSettled = () => {
@@ -308,6 +316,18 @@ export default function AdminBorrowRequestDetailContent({
       );
       return;
     }
+    if (kind === "fine-free-return") {
+      fineFreeReturnMutation.mutate(
+        {
+          recordId: request.id,
+          bookTitle: request.bookTitle || undefined,
+          reason: payload?.reason,
+          decisionActor,
+        },
+        { onSettled },
+      );
+      return;
+    }
     returnMutation.mutate(
       {
         recordId: request.id,
@@ -318,8 +338,9 @@ export default function AdminBorrowRequestDetailContent({
     );
   };
 
-  const fineDisplay = request.fineAmount
-    ? `$${Number(request.fineAmount).toFixed(2)}`
+  const fineDisplay = request.displayFineAmount ?? request.fineAmount;
+  const fineDisplayFormatted = fineDisplay
+    ? `$${Number(fineDisplay).toFixed(2)}`
     : "$0.00";
   const overdueDays = borrowDaysOverdue(request.status, request.dueDate);
   const fineHint =
@@ -498,22 +519,40 @@ export default function AdminBorrowRequestDetailContent({
               </>
             ) : null}
             {request.status === "BORROWED" ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setConfirmKind("return")}
-                className={cn(
-                  LIGHT_GLASS_CTA.host,
-                  "bg-emerald-700 text-white hover:bg-emerald-800",
-                )}
-              >
-                {actionKind === "return" && busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Undo2 className="size-4" />
-                )}
-                <span>Mark Returned</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setConfirmKind("return")}
+                  className={cn(
+                    LIGHT_GLASS_CTA.host,
+                    "bg-emerald-700 text-white hover:bg-emerald-800",
+                  )}
+                >
+                  {actionKind === "return" && busy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Undo2 className="size-4" />
+                  )}
+                  <span>Mark Returned</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setConfirmKind("fine-free-return")}
+                  className={cn(
+                    LIGHT_GLASS_CTA.host,
+                    "bg-sky-800 text-white hover:bg-sky-900",
+                  )}
+                >
+                  {actionKind === "fine-free-return" && busy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Undo2 className="size-4" />
+                  )}
+                  <span>Fine-Free Return</span>
+                </button>
+              </>
             ) : null}
           </>
         }
@@ -593,9 +632,18 @@ export default function AdminBorrowRequestDetailContent({
           label="Fine Balance"
           hint={fineHint}
         >
-          <p className="text-lg font-medium tabular-nums text-dark-400">
-            {fineDisplay}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-lg font-medium tabular-nums text-dark-400">
+              {fineDisplayFormatted}
+            </p>
+            <AdminBorrowFineMenu recordId={request.id} disabled={busy} />
+          </div>
+          <PrefetchLink
+            href={`/support-tickets?create=1&borrowId=${request.id}&bookId=${request.bookId}`}
+            className="mt-1 inline-block text-xs text-sky-700 hover:text-sky-900"
+          >
+            Open support ticket
+          </PrefetchLink>
         </DetailKpiShell>
         <DetailKpiShell
           variant="light"
@@ -767,8 +815,8 @@ export default function AdminBorrowRequestDetailContent({
         kind={confirmKind}
         request={request}
         isPending={busy && actionKind === confirmKind}
-        onConfirm={() => {
-          if (confirmKind) runLifecycle(confirmKind);
+        onConfirm={(payload) => {
+          if (confirmKind) runLifecycle(confirmKind, payload);
         }}
       />
     </section>

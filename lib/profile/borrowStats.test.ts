@@ -33,9 +33,21 @@ describe("borrowStats", () => {
   it("computes overdue days and live fines", () => {
     expect(getOverdueDays("BORROWED", "2026-08-01", now)).toBe(2);
     expect(getOverdueDays("BORROWED", "2026-08-10", now)).toBe(0);
-    expect(getRecordFine({ status: "BORROWED", dueDate: "2026-08-01", fineAmount: 0 }, now)).toBe(
-      2,
+    expect(getRecordFine({ status: "BORROWED", dueDate: "2026-08-01", fineAmount: 0 }, 0.5, now)).toBe(
+      1,
     );
+    expect(
+      getRecordFine(
+        {
+          status: "BORROWED",
+          dueDate: "2026-08-01",
+          fineAmount: 5,
+          fineStatus: "WAIVED",
+        },
+        0.5,
+        now,
+      ),
+    ).toBe(0);
   });
 
   it("aggregates KPIs from mixed records", () => {
@@ -96,6 +108,7 @@ describe("borrowStats", () => {
         },
       ],
       3,
+      0.5,
       now,
     );
 

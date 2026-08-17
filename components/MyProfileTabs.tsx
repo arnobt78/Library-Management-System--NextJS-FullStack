@@ -105,7 +105,7 @@ import {
 import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 import { showToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/query/keys";
-import { computeBorrowStats } from "@/lib/profile/borrowStats";
+import { computeBorrowStats, getRecordFine } from "@/lib/profile/borrowStats";
 import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
 import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
 import {
@@ -113,6 +113,8 @@ import {
   profileTabHref,
   type ProfileTab,
 } from "@/lib/profile/profileTabs";
+import { useFineConfig } from "@/hooks/useQueries";
+import type { FineRateHistoryRow } from "@/lib/fines/types";
 
 // Define the actual data structure from the database query
 interface BorrowRecordWithBook {
@@ -126,6 +128,8 @@ interface BorrowRecordWithBook {
   borrowedBy?: string | null;
   returnedBy?: string | null;
   fineAmount: number;
+  displayFineAmount?: number;
+  fineStatus?: string | null;
   notes?: string | null;
   renewalCount: number;
   lastReminderSent?: Date | null;
@@ -378,6 +382,14 @@ interface MyProfileTabsProps {
    */
   initialReservations?: ReservationSummary[];
   /**
+   * SSR daily fine rate from system_config (live overdue accrual).
+   */
+  dailyFineRate: number;
+  /**
+   * SSR fine rate history for pro-rata live accrual.
+   */
+  rateHistory?: FineRateHistoryRow[];
+  /**
    * Legacy props for backward compatibility (deprecated, use initial* props instead)
    */
   activeBorrows?: BorrowRecordWithBook[];
@@ -399,6 +411,8 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   initialBorrowHistory,
   initialReviews,
   initialReservations = [],
+  dailyFineRate,
+  rateHistory = [],
   // Legacy props kept for external callers — allBorrows memo is the authoritative source.
   activeBorrows: _legacyActiveBorrows,
   pendingRequests: _legacyPendingRequests,
@@ -406,6 +420,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: liveFineConfig } = useFineConfig();
+  const effectiveDailyRate =
+    typeof liveFineConfig?.fineAmount === "number"
+      ? liveFineConfig.fineAmount
+      : dailyFineRate;
 
   // Use React Query mutation for returning book
   const returnBookMutation = useReturnBook();
@@ -453,6 +472,16 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           typeof record.fineAmount === "number"
             ? record.fineAmount.toString()
             : String(record.fineAmount || "0"),
+        displayFineAmount:
+          typeof (record as { displayFineAmount?: string | number })
+            .displayFineAmount === "number"
+            ? String(
+                (record as { displayFineAmount?: number }).displayFineAmount,
+              )
+            : ((record as { displayFineAmount?: string }).displayFineAmount ??
+              undefined),
+        fineStatus:
+          (record as { fineStatus?: string | null }).fineStatus ?? null,
         notes: record.notes ?? null,
         renewalCount: record.renewalCount,
         lastReminderSent: record.lastReminderSent ?? null,
@@ -570,6 +599,13 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         typeof record.fineAmount === "string"
           ? parseFloat(record.fineAmount)
           : record.fineAmount || 0,
+      displayFineAmount:
+        typeof record.displayFineAmount === "string"
+          ? parseFloat(record.displayFineAmount)
+          : typeof record.displayFineAmount === "number"
+            ? record.displayFineAmount
+            : undefined,
+      fineStatus: record.fineStatus ?? null,
       notes: record.notes,
       renewalCount: record.renewalCount || 0,
       lastReminderSent: getStableDate(record.lastReminderSent),
@@ -669,8 +705,15 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   }, [searchParams, router]);
 
   const borrowStats = React.useMemo(
-    () => computeBorrowStats(allBorrows, liveTotalReviews),
-    [allBorrows, liveTotalReviews],
+    () =>
+      computeBorrowStats(
+        allBorrows,
+        liveTotalReviews,
+        effectiveDailyRate,
+        new Date(),
+        rateHistory,
+      ),
+    [allBorrows, liveTotalReviews, effectiveDailyRate, rateHistory],
   );
 
   const sortedHistory = React.useMemo(
@@ -1108,7 +1151,17 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 (1000 * 60 * 60 * 24),
             )
           : 0;
-      const calculatedFine = isOverdue ? daysOverdue * 1.0 : 0;
+      const displayFine = getRecordFine(
+        {
+          status: record.status,
+          dueDate: record.dueDate,
+          fineAmount: record.fineAmount,
+          fineStatus: record.fineStatus,
+        },
+        effectiveDailyRate,
+        new Date(),
+        rateHistory,
+      );
 
       const rowAccent =
         record.status === "PENDING"
@@ -1291,15 +1344,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
                 {/* Fine and Renewal Info */}
                 <div className="mb-2 flex flex-wrap gap-2">
-                  {(record.fineAmount > 0 || calculatedFine > 0) && (
+                  {(record.fineAmount > 0 || displayFine > 0) && (
                     <div className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
                       <AlertTriangle className="inline size-3 text-red-400 sm:size-4" />
                       <span className="text-xs font-medium text-red-400 sm:text-sm">
                         $
-                        {(record.fineAmount > 0
-                          ? record.fineAmount
-                          : calculatedFine
-                        ).toFixed(2)}
+                        {displayFine.toFixed(2)}
                       </span>
                       <span className="text-xs text-red-300/70 sm:text-sm">
                         {isOverdue ? "overdue fine" : "fine"}

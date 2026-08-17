@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeFineForecast,
   computeGenreDemandPressure,
+  computeLiveOutstandingFine,
   normalizeOverdueTrend,
   safePercentage,
   safeRatio,
@@ -17,6 +18,12 @@ describe("deterministic insight formulas", () => {
   it("returns zero for every zero-denominator formula", () => {
     expect(safePercentage(0, 0)).toBe(0);
     expect(safeRatio(10, 0)).toBe(0);
+  });
+
+  it("computes live outstanding from overdue days × daily rate", () => {
+    expect(computeLiveOutstandingFine([46, 15, 4], 0.5)).toBe(32.5);
+    expect(computeLiveOutstandingFine([], 0.5)).toBe(0);
+    expect(computeLiveOutstandingFine([-2, 0], 0.5)).toBe(0);
   });
 
   it("computes advisory fine forecast from overdue count × rate × horizon", () => {

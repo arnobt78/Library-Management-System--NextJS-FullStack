@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       action: "UPDATE",
       entityType: "borrow",
       entityId: null,
-      details: { status: "FINE_CONFIG", amount: fineAmount },
+      details: { status: "FINE_RATE_CHANGE", amount: fineAmount },
     });
 
     return NextResponse.json({

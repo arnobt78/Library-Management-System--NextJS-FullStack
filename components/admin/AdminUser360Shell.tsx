@@ -334,6 +334,7 @@ export default function AdminUser360Shell({
                           </div>
                         </td>
                         <td className="whitespace-nowrap py-3 align-middle tabular-nums">
+                          {/* Loader-normalized: live days × rate for open overdue. */}
                           ${Number(record.fineAmount ?? 0).toFixed(2)}
                         </td>
                         <td className="whitespace-nowrap py-3 text-right align-middle tabular-nums">

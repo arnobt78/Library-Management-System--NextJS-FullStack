@@ -8,6 +8,9 @@ import MyProfileTabs from "@/components/MyProfileTabs";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import { loadUserReservationsSsr } from "@/lib/circulation/loadUserReservationsSsr";
 import { getUserBookReviews } from "@/lib/server/reviewData";
+import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 
 const signupDecisionUsers = alias(users, "signup_decision_actor");
 
@@ -76,6 +79,7 @@ const Page = async () => {
       borrowedBy: borrowRecords.borrowedBy,
       returnedBy: borrowRecords.returnedBy,
       fineAmount: borrowRecords.fineAmount,
+      fineStatus: borrowRecords.fineStatus,
       notes: borrowRecords.notes,
       renewalCount: borrowRecords.renewalCount,
       lastReminderSent: borrowRecords.lastReminderSent,
@@ -184,6 +188,41 @@ const Page = async () => {
   });
 
   const initialReservations = await loadUserReservationsSsr(session.user.id);
+  const [dailyFineRate, rateHistory] = await Promise.all([
+    getDailyFineAmount(),
+    getFineRateHistory(),
+  ]);
+
+  const mapProfileFine = <
+    T extends {
+      status: string;
+      dueDate: Date | string | null;
+      fineAmount: string | number | null;
+      fineStatus?: string | null;
+    },
+  >(
+    record: T,
+  ) => {
+    const { displayFineAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: record.status,
+        dueDate: record.dueDate,
+        fineAmount: record.fineAmount,
+        fineStatus: record.fineStatus,
+      },
+      dailyFineRate,
+      rateHistory,
+    );
+    return {
+      ...record,
+      displayFineAmount: parseFloat(displayFineAmount || "0"),
+      fineAmount: parseFloat(displayFineAmount || "0"),
+    };
+  };
+
+  const activeBorrowsMapped = activeBorrows.map(mapProfileFine);
+  const pendingRequestsMapped = pendingRequests.map(mapProfileFine);
+  const borrowHistoryMapped = borrowHistory.map(mapProfileFine);
 
   return (
     <>
@@ -194,9 +233,11 @@ const Page = async () => {
         accountCreatedAt={accountCreatedAt}
         accountDecidedAt={accountDecidedAt}
         accountDecisionActor={accountDecisionActor}
-        initialActiveBorrows={activeBorrows}
-        initialPendingRequests={pendingRequests}
-        initialBorrowHistory={borrowHistory}
+        dailyFineRate={dailyFineRate}
+        rateHistory={rateHistory}
+        initialActiveBorrows={activeBorrowsMapped}
+        initialPendingRequests={pendingRequestsMapped}
+        initialBorrowHistory={borrowHistoryMapped}
         initialReviews={userReviews}
         initialReservations={initialReservations}
       />

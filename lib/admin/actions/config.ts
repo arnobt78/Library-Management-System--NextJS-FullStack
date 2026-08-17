@@ -87,12 +87,24 @@ export async function setDailyFineAmount(
   amount: number,
   updatedBy?: string
 ): Promise<{ success: boolean; error?: string }> {
-  return setConfigValue(
+  const previous = await getDailyFineAmount();
+  const result = await setConfigValue(
     CONFIG_KEYS.DAILY_FINE_AMOUNT,
     amount.toString(),
     "Daily fine amount for overdue books",
     updatedBy
   );
+
+  if (result.success && amount !== previous) {
+    const { appendFineRateHistory } = await import("@/lib/fines/rateHistory");
+    const { notifyOpenOverdueUsersOfRateChange } = await import(
+      "@/lib/admin/actions/fines"
+    );
+    await appendFineRateHistory(amount, new Date(), updatedBy ?? null);
+    await notifyOpenOverdueUsersOfRateChange(amount);
+  }
+
+  return result;
 }
 
 // Initialize default configurations

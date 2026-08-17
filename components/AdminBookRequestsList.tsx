@@ -32,6 +32,8 @@ import {
   useReturnBook,
 } from "@/hooks/useMutations";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
+import { borrowDaysOverdue } from "@/lib/admin/borrowDaysOverdue";
+import { cn } from "@/lib/utils";
 import type { AdminDashboardStats } from "@/lib/admin/adminDashboardStatsTypes";
 import { queryKeys } from "@/lib/query/keys";
 import { ADMIN_BORROW_REQUESTS_UNFILTERED } from "@/lib/ui/adminListUniverse";
@@ -435,6 +437,33 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
                 />
               }
             />
+          );
+        },
+      },
+      {
+        id: "fine",
+        accessorKey: "displayFineAmount",
+        size: 96,
+        minSize: 80,
+        header: "Fine",
+        cell: ({ row }) => {
+          const r = row.original;
+          const amount = Number.parseFloat(
+            r.displayFineAmount ?? r.fineAmount ?? "0",
+          );
+          const overdueDays = borrowDaysOverdue(r.status, r.dueDate);
+          if (!Number.isFinite(amount) || amount <= 0) {
+            return <span className="text-xs tabular-nums text-gray-400">—</span>;
+          }
+          return (
+            <span
+              className={cn(
+                "text-xs font-medium tabular-nums",
+                overdueDays > 0 ? "text-rose-700" : "text-dark-400",
+              )}
+            >
+              ${amount.toFixed(2)}
+            </span>
           );
         },
       },

@@ -20,6 +20,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -49,6 +56,7 @@ import { BulkOperationDialog } from "@/components/admin/BulkOperationDialog";
 import { useReminderStats, useExportStats } from "@/hooks/useQueries";
 import { showToast } from "@/lib/toast";
 import FineManagement from "@/components/FineManagement";
+import { AdminReminderPreviewDialog } from "@/components/admin/AdminReminderPreviewDialog";
 import { useRouter } from "next/navigation";
 import { commitMutationCache } from "@/lib/query/mutationGateway";
 import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
@@ -77,6 +85,8 @@ import {
   UserX,
   Wand2,
   X,
+  MoreHorizontal,
+  Eye,
 } from "lucide-react";
 import { StatCard, StatCardGrid } from "@/components/ui/StatCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
@@ -129,6 +139,9 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [exportBusyKind, setExportBusyKind] = useState<string | null>(null);
+  const [reminderPreviewType, setReminderPreviewType] = useState<
+    "due" | "overdue" | null
+  >(null);
 
   // React Query hooks for dynamic stats (updates immediately)
   const { data: reminderStatsData } = useReminderStats(initialReminderStats);
@@ -721,16 +734,43 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
           <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Due Soon Reminders */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <h4 className="font-medium text-gray-900">
                   Due Soon Reminders
                 </h4>
-                <Badge
-                  variant="outline"
-                  className="border-blue-200 text-blue-600"
-                >
-                  {reminderStats?.dueSoon || 0} books
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <Badge
+                    variant="outline"
+                    className="border-blue-200 text-blue-600"
+                  >
+                    {reminderStats?.dueSoon || 0} books
+                  </Badge>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 shrink-0"
+                        aria-label="Due soon reminder actions"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => setReminderPreviewType("due")}
+                      >
+                        <Eye className="size-4" />
+                        Preview recipients
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSendDueSoonReminders}>
+                        <Send className="size-4" />
+                        Send now
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
               <p className="text-sm text-gray-600">
                 Send reminders to users whose books are due within 2 days
@@ -774,14 +814,49 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
 
             {/* Overdue Reminders */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <h4 className="font-medium text-gray-900">Overdue Reminders</h4>
-                <Badge
-                  variant="outline"
-                  className="border-red-200 text-red-600"
-                >
-                  {reminderStats?.overdue || 0} books
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <Badge
+                    variant="outline"
+                    className="border-red-200 text-red-600"
+                  >
+                    {reminderStats?.overdue || 0} books
+                  </Badge>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 shrink-0"
+                        aria-label="Overdue reminder actions"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => setReminderPreviewType("overdue")}
+                      >
+                        <Eye className="size-4" />
+                        Preview recipients
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSendOverdueReminders}>
+                        <Send className="size-4" />
+                        Send now
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() =>
+                          router.push("/admin/book-requests?status=BORROWED")
+                        }
+                      >
+                        View overdue queue
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
               <p className="text-sm text-gray-600">
                 Send urgent reminders for books that are past their due date
@@ -1530,6 +1605,13 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
           </div>
         </CardContent>
       </Card>
+      <AdminReminderPreviewDialog
+        open={reminderPreviewType != null}
+        onOpenChange={(open) => {
+          if (!open) setReminderPreviewType(null);
+        }}
+        type={reminderPreviewType ?? "due"}
+      />
     </AdminPageShell>
   );
 };

@@ -14,6 +14,7 @@ import {
   canReturnBorrow,
 } from "./borrowTransitionPolicy";
 import { offerNextReservation } from "@/lib/circulation/reservations";
+import { computeLiveFineForRow, formatFineAmount } from "@/lib/fines/liveFine";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -165,10 +166,19 @@ async function returnWithTransaction(
         )
       )
     : 0;
-  const fineAmount =
-    daysOverdue > 0
-      ? (daysOverdue * dailyFineAmount).toFixed(2)
-      : "0.00";
+  const rateHistory = await (
+    await import("@/lib/fines/rateHistory")
+  ).getFineRateHistory();
+  const liveFine = computeLiveFineForRow({
+    status: "BORROWED",
+    dueDate: record.dueDate,
+    storedFine: "0",
+    dailyRate: dailyFineAmount,
+    rateHistory,
+    now: returnDate,
+  });
+  const fineAmount = formatFineAmount(liveFine);
+  const fineStatus = liveFine > 0 ? "STAMPED" : "NONE";
 
   const updated = await tx
     .update(borrowRecords)
@@ -178,6 +188,7 @@ async function returnWithTransaction(
       returnedBy: actor.email,
       borrowedBy: record.borrowedBy || record.userEmail,
       fineAmount,
+      fineStatus,
       updatedAt: new Date(),
       updatedBy: actor.email,
     })
@@ -240,6 +251,103 @@ export function returnBorrowRecord(
   return db.transaction((tx) =>
     returnWithTransaction(tx, recordId, actor, dailyFineAmount)
   );
+}
+
+/** Admin fine-free return — stamps WAIVED / $0.00. */
+export async function returnBorrowRecordWithoutFine(
+  recordId: string,
+  actor: AuthorizedActor,
+  reason?: string,
+): Promise<BorrowActionResult<ReturnResult>> {
+  return db.transaction(async (tx) => {
+    const [record] = await tx
+      .select({
+        bookId: borrowRecords.bookId,
+        userId: borrowRecords.userId,
+        status: borrowRecords.status,
+        dueDate: borrowRecords.dueDate,
+        borrowedBy: borrowRecords.borrowedBy,
+        notes: borrowRecords.notes,
+        userEmail: users.email,
+      })
+      .from(borrowRecords)
+      .innerJoin(users, eq(borrowRecords.userId, users.id))
+      .where(eq(borrowRecords.id, recordId))
+      .limit(1)
+      .for("update");
+
+    if (!record) {
+      return { success: false, error: "Borrow record not found" };
+    }
+
+    assertOwnerOrAdmin(actor, record.userId);
+    const decision = canReturnBorrow(record.status);
+    if (!decision.allowed) {
+      return { success: false, error: decision.error };
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const noteLine = reason?.trim()
+      ? `Fine-free return: ${reason.trim()}`
+      : "Fine-free return by admin";
+    const notes = record.notes ? `${record.notes}\n${noteLine}` : noteLine;
+
+    const updated = await tx
+      .update(borrowRecords)
+      .set({
+        status: "RETURNED",
+        returnDate: today,
+        returnedBy: actor.email,
+        borrowedBy: record.borrowedBy || record.userEmail,
+        fineAmount: "0.00",
+        fineStatus: "WAIVED",
+        notes,
+        updatedAt: new Date(),
+        updatedBy: actor.email,
+      })
+      .where(
+        and(
+          eq(borrowRecords.id, recordId),
+          eq(borrowRecords.status, "BORROWED"),
+        ),
+      )
+      .returning({ id: borrowRecords.id });
+
+    if (updated.length !== 1) {
+      return { success: false, error: "This book has already been returned" };
+    }
+
+    await tx
+      .update(books)
+      .set({
+        availableCopies: sql`LEAST(${books.totalCopies}, ${books.availableCopies} + 1)`,
+        updatedAt: new Date(),
+      })
+      .where(eq(books.id, record.bookId));
+
+    const offeredReservationId = await offerNextReservation(
+      tx,
+      record.bookId,
+      actor.email,
+    );
+
+    const [bookAfter] = await tx
+      .select({ availableCopies: books.availableCopies })
+      .from(books)
+      .where(eq(books.id, record.bookId))
+      .limit(1);
+
+    return {
+      success: true,
+      data: {
+        fineAmount: 0,
+        daysOverdue: 0,
+        isOverdue: false,
+        availableCopies: bookAfter?.availableCopies ?? 0,
+        offeredReservationId,
+      },
+    };
+  });
 }
 
 export async function rejectBorrowRecord(

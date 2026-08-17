@@ -18,6 +18,8 @@ import {
   safeRatio,
 } from "@/lib/insights/formulas";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 
 function boundedInteger(value: number | undefined, fallback: number, maximum: number) {
   return Number.isFinite(value)
@@ -110,11 +112,10 @@ export async function getUserActivityPatterns(limit = 20) {
 export async function getOverdueAnalysis() {
   const now = new Date();
 
-  // Get current daily fine amount from system config
-  const { getDailyFineAmount } = await import("./config");
-  const dailyFineAmount = await getDailyFineAmount();
-
-  const dailyFineAmountSql = sql`${dailyFineAmount}::numeric`;
+  const [dailyFineAmount, rateHistory] = await Promise.all([
+    getDailyFineAmount(),
+    getFineRateHistory(),
+  ]);
 
   const overdueBooks = await db
     .select({
@@ -135,15 +136,13 @@ export async function getOverdueAnalysis() {
       userUniversityCard: users.universityCard,
       borrowDate: borrowRecords.borrowDate,
       dueDate: borrowRecords.dueDate,
+      status: borrowRecords.status,
+      storedFineAmount: borrowRecords.fineAmount,
+      fineStatus: borrowRecords.fineStatus,
       daysOverdue: sql<number>`CASE 
         WHEN ${borrowRecords.dueDate} IS NOT NULL 
         THEN (${now}::date - ${borrowRecords.dueDate}::date)
         ELSE 0 
-      END`,
-      fineAmount: sql<string>`CASE 
-        WHEN ${borrowRecords.dueDate} IS NOT NULL AND ${borrowRecords.dueDate} < ${now}
-        THEN ((${now}::date - ${borrowRecords.dueDate}::date) * ${dailyFineAmountSql})::text
-        ELSE '0.00'
       END`,
     })
     .from(borrowRecords)
@@ -157,31 +156,60 @@ export async function getOverdueAnalysis() {
     )
     .orderBy(sql`(${now}::date - ${borrowRecords.dueDate}::date) DESC`);
 
-  return overdueBooks;
+  return overdueBooks.map((row) => {
+    const { displayFineAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: row.status,
+        dueDate: row.dueDate,
+        fineAmount: row.storedFineAmount,
+        fineStatus: row.fineStatus,
+      },
+      dailyFineAmount,
+      rateHistory,
+      now,
+    );
+    return {
+      recordId: row.recordId,
+      bookId: row.bookId,
+      userId: row.userId,
+      bookTitle: row.bookTitle,
+      bookAuthor: row.bookAuthor,
+      bookCoverUrl: row.bookCoverUrl,
+      bookCoverColor: row.bookCoverColor,
+      bookGenre: row.bookGenre,
+      bookRating: row.bookRating,
+      bookAvailableCopies: row.bookAvailableCopies,
+      bookTotalCopies: row.bookTotalCopies,
+      userName: row.userName,
+      userEmail: row.userEmail,
+      userUniversityId: row.userUniversityId,
+      userUniversityCard: row.userUniversityCard,
+      borrowDate: row.borrowDate,
+      dueDate: row.dueDate,
+      daysOverdue: row.daysOverdue,
+      fineAmount: displayFineAmount,
+    };
+  });
 }
 
 // Get overdue statistics
 export async function getOverdueStats() {
-  const now = new Date();
-
-  // Get current daily fine amount from system config
-  const { getDailyFineAmount } = await import("./config");
-  const dailyFineAmount = await getDailyFineAmount();
-
-  const dailyFineAmountSql = sql`${dailyFineAmount}::numeric`;
-
-  const stats = await db
-    .select({
-      totalOverdue: sql<number>`count(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then 1 end)`,
-      totalFines: sql<number>`COALESCE(sum(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then ((${now}::date - ${borrowRecords.dueDate}::date) * ${dailyFineAmountSql}) end), 0)`,
-      avgDaysOverdue: sql<number>`COALESCE(AVG(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then (${now}::date - ${borrowRecords.dueDate}::date) end), 0)`,
-    })
-    .from(borrowRecords);
+  const overdueBooks = await getOverdueAnalysis();
+  const totalOverdue = overdueBooks.length;
+  const totalFines = overdueBooks.reduce(
+    (sum, row) => sum + Number.parseFloat(row.fineAmount || "0"),
+    0,
+  );
+  const avgDaysOverdue =
+    totalOverdue > 0
+      ? overdueBooks.reduce((sum, row) => sum + Number(row.daysOverdue || 0), 0) /
+        totalOverdue
+      : 0;
 
   return {
-    totalOverdue: stats[0]?.totalOverdue || 0,
-    totalFines: stats[0]?.totalFines || 0,
-    avgDaysOverdue: Number(stats[0]?.avgDaysOverdue) || 0,
+    totalOverdue,
+    totalFines,
+    avgDaysOverdue,
   };
 }
 
@@ -298,7 +326,9 @@ export async function getSystemHealth() {
 
 /** Versioned formulas keep insight output reproducible and provider-independent (C2-v2). */
 export async function getDeterministicInsights(): Promise<DeterministicInsights> {
-  const [result, trendResult, genreResult, dailyRate] = await Promise.all([
+  const dailyRate = await getDailyFineAmount();
+
+  const [result, trendResult, genreResult, overdueBooks] = await Promise.all([
     db.execute(sql`
     WITH circulation AS (
       SELECT
@@ -308,8 +338,7 @@ export async function getDeterministicInsights(): Promise<DeterministicInsights>
         COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS active,
         COUNT(*) FILTER (WHERE status = 'BORROWED' AND due_date < CURRENT_DATE)::int AS overdue,
         COUNT(*) FILTER (WHERE renewal_count > 0)::int AS renewed,
-        COUNT(*)::int AS total,
-        COALESCE(SUM(fine_amount) FILTER (WHERE status = 'BORROWED'), 0)::numeric AS fines
+        COUNT(*)::int AS total
       FROM borrow_records
     ), inventory AS (
       SELECT COALESCE(SUM(total_copies), 0)::numeric AS copies FROM books WHERE is_active = true
@@ -324,7 +353,6 @@ export async function getDeterministicInsights(): Promise<DeterministicInsights>
       circulation.returned,
       circulation.active,
       circulation.overdue,
-      circulation.fines,
       circulation.renewed,
       circulation.total,
       inventory.copies,
@@ -366,12 +394,15 @@ export async function getDeterministicInsights(): Promise<DeterministicInsights>
     ORDER BY COALESCE(SUM(bb.borrows), 0) DESC, b.genre ASC
     LIMIT 8
   `),
-    getDailyFineAmount(),
+    getOverdueAnalysis(),
   ]);
 
   const row = result.rows[0];
   const overdueCount = Number(row?.overdue ?? 0);
-  const outstanding = Number(row?.fines ?? 0);
+  const outstanding = overdueBooks.reduce(
+    (sum, book) => sum + Number.parseFloat(book.fineAmount || "0"),
+    0,
+  );
 
   const overdueTrend = normalizeOverdueTrend(
     (trendResult.rows as { date?: string; overdue_count?: number }[]).map(

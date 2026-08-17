@@ -4,6 +4,7 @@
  * User 360 status/action KPI row — Reg + Privilege densify via existing
  * users.detail / signupRequestDetail (same keys as header + panels).
  * Fine / Overdue stay SSR metrics props (no invent densify).
+ * Fine is live (today − due) × daily rate from getAdminUserProfile.
  */
 
 import { useState } from "react";
@@ -80,7 +81,7 @@ export default function AdminUser360StatusKpiRow({
         variant="light"
         icon={<DollarSign className="size-4" />}
         label="Outstanding fine"
-        hint="Unpaid fines"
+        hint="This user only · live accrual"
       >
         <span
           className={cn(

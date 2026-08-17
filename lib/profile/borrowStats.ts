@@ -3,6 +3,13 @@
  * Computes from the client/SSR borrow list — no extra network calls.
  */
 
+import {
+  computeLiveFineForRow,
+  getOverdueDaysForBorrow,
+  parseStoredFine,
+} from "@/lib/fines/liveFine";
+import type { FineRateHistoryRow } from "@/lib/fines/types";
+
 export interface BorrowStatsInput {
   id: string;
   bookId: string;
@@ -12,6 +19,7 @@ export interface BorrowStatsInput {
   borrowDate?: Date | string | null;
   createdAt?: Date | string | null;
   fineAmount: number | string;
+  fineStatus?: string | null;
   renewalCount?: number | null;
 }
 
@@ -36,7 +44,6 @@ export interface BorrowStats {
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24;
-const FINE_PER_DAY = 1;
 
 function toDate(value: Date | string | null | undefined): Date | null {
   if (!value) return null;
@@ -49,9 +56,7 @@ function utcDay(d: Date): Date {
 }
 
 function parseFine(fineAmount: number | string): number {
-  if (typeof fineAmount === "number") return Number.isFinite(fineAmount) ? fineAmount : 0;
-  const n = parseFloat(String(fineAmount));
-  return Number.isFinite(n) ? n : 0;
+  return parseStoredFine(fineAmount);
 }
 
 function daysBetweenUtc(later: Date, earlier: Date): number {
@@ -64,27 +69,36 @@ export function getOverdueDays(
   dueDate: Date | string | null | undefined,
   now: Date = new Date(),
 ): number {
-  if (status !== "BORROWED") return 0;
-  const due = toDate(dueDate);
-  if (!due) return 0;
-  const days = daysBetweenUtc(now, due);
-  return days > 0 ? days : 0;
+  return getOverdueDaysForBorrow(status, dueDate, now);
 }
 
 /** Fine for one record: live overdue accrual or stored fine. */
 export function getRecordFine(
-  record: Pick<BorrowStatsInput, "status" | "dueDate" | "fineAmount">,
+  record: Pick<
+    BorrowStatsInput,
+    "status" | "dueDate" | "fineAmount" | "fineStatus"
+  >,
+  dailyRate: number,
   now: Date = new Date(),
+  rateHistory?: readonly FineRateHistoryRow[],
 ): number {
-  const overdueDays = getOverdueDays(record.status, record.dueDate, now);
-  if (overdueDays > 0) return overdueDays * FINE_PER_DAY;
-  return parseFine(record.fineAmount);
+  return computeLiveFineForRow({
+    status: record.status,
+    dueDate: record.dueDate,
+    storedFine: record.fineAmount,
+    dailyRate,
+    fineStatus: record.fineStatus,
+    rateHistory,
+    now,
+  });
 }
 
 export function computeBorrowStats(
   records: BorrowStatsInput[],
   totalReviews: number,
+  dailyRate: number,
   now: Date = new Date(),
+  rateHistory?: readonly FineRateHistoryRow[],
 ): BorrowStats {
   let pending = 0;
   let active = 0;
@@ -108,7 +122,7 @@ export function computeBorrowStats(
     uniqueBookIds.add(r.bookId);
     totalRenewals += r.renewalCount ?? 0;
 
-    const fine = getRecordFine(r, now);
+    const fine = getRecordFine(r, dailyRate, now, rateHistory);
     totalFines += fine;
     if (fine > 0) withFines += 1;
 

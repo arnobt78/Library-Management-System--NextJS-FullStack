@@ -71,6 +71,13 @@ export const TICKET_PRIORITY_ENUM = pgEnum("ticket_priority", [
   "HIGH",
   "URGENT",
 ]);
+export const FINE_STATUS_ENUM = pgEnum("fine_status", [
+  "NONE",
+  "ACCRUING",
+  "STAMPED",
+  "WAIVED",
+  "PAID",
+]);
 
 /**
  * Users Table
@@ -208,6 +215,7 @@ export const borrowRecords = pgTable("borrow_records", {
   fineAmount: decimal("fine_amount", { precision: 10, scale: 2 }).default(
     "0.00"
   ), // Late return fines (calculated on return or via automation)
+  fineStatus: FINE_STATUS_ENUM("fine_status").default("NONE").notNull(),
   notes: text("notes"), // Additional notes about the borrowing (admin notes, special conditions)
   renewalCount: integer("renewal_count").default(0).notNull(), // How many times the book was renewed
   lastReminderSent: timestamp("last_reminder_sent", { withTimezone: true }), // Track reminder notifications (prevents spam)
@@ -284,6 +292,14 @@ export const operationTelemetry = pgTable("operation_telemetry", {
  * - Settings are persisted in database
  * - Audit trail via updatedBy and updatedAt
  */
+export const fineRateHistory = pgTable("fine_rate_history", {
+  id: uuid("id").notNull().primaryKey().defaultRandom(),
+  rate: decimal("rate", { precision: 10, scale: 2 }).notNull(),
+  effectiveFrom: date("effective_from").notNull(),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const systemConfig = pgTable("system_config", {
   id: uuid("id").notNull().primaryKey().defaultRandom().unique(),
   key: varchar("key", { length: 100 }).notNull().unique(), // Setting identifier (unique)

@@ -9,8 +9,8 @@ import type {
   FineConfig,
   OverdueFineUpdateResult,
 } from "@/lib/services/admin";
-import type { BorrowRecordFull, BorrowRecordWithDetails } from "@/lib/services/borrows";
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
+import { patchBorrowFineUpdate } from "@/lib/utils/patchBorrowCaches";
 
 /** Write fine-config KPI after admin saves daily amount. */
 export function densifyFineConfig(
@@ -23,8 +23,8 @@ export function densifyFineConfig(
 }
 
 /**
- * Patch fineAmount on cached borrow rows after overdue fine recalculation.
- * Soft-nav profile / borrow queue must show new fines without a second visit.
+ * Patch fineAmount + fineStatus on profile, queue list, and open detail after
+ * overdue fine recalculation (force update / stamp).
  */
 export function densifyOverdueFines(
   queryClient: QueryClient,
@@ -35,37 +35,18 @@ export function densifyOverdueFines(
     return;
   }
 
-  const byId = new Map(
-    results
-      .filter((r) => r.updated && r.recordId)
-      .map((r) => [r.recordId, r.verifiedFineAmount ?? r.fineAmount] as const),
-  );
-  if (byId.size === 0) {
+  const updated = results.filter((r) => r.updated && r.recordId);
+  if (updated.length === 0) {
     evictAnalyticsCaches(queryClient);
     return;
   }
 
-  queryClient.setQueriesData<BorrowRecordFull[]>(
-    { queryKey: queryKeys.borrows.userRoot },
-    (old) =>
-      old
-        ? old.map((row) => {
-            const next = byId.get(row.id);
-            return next !== undefined ? { ...row, fineAmount: next } : row;
-          })
-        : old,
-  );
-
-  queryClient.setQueriesData<BorrowRecordWithDetails[]>(
-    { queryKey: queryKeys.borrows.requestsRoot },
-    (old) =>
-      old
-        ? old.map((row) => {
-            const next = byId.get(row.id);
-            return next !== undefined ? { ...row, fineAmount: next } : row;
-          })
-        : old,
-  );
-
-  evictAnalyticsCaches(queryClient);
+  for (const r of updated) {
+    const amount = r.verifiedFineAmount ?? r.fineAmount;
+    patchBorrowFineUpdate(queryClient, r.recordId, {
+      fineAmount: amount,
+      displayFineAmount: amount,
+      fineStatus: "STAMPED",
+    });
+  }
 }

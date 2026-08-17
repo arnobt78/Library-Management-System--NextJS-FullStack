@@ -29,6 +29,7 @@ import {
   approveBorrowRequest,
   rejectBorrowRequest,
   returnBook,
+  fineFreeReturnBook,
 } from "@/lib/admin/actions/borrow";
 import {
   approveAdminRequest,
@@ -2331,6 +2332,222 @@ export const useReturnBook = () => {
   });
 };
 
+/** Admin fine-free return — closes loan with WAIVED / $0.00 fine. */
+export const useFineFreeReturn = () => {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async ({
+      recordId,
+      reason,
+    }: {
+      recordId: string;
+      bookTitle?: string;
+      reason?: string;
+      decisionActor?: {
+        id?: string | null;
+        fullName?: string | null;
+        email?: string | null;
+        universityCard?: string | null;
+      } | null;
+    }) => {
+      const result = await fineFreeReturnBook(recordId, reason);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to fine-free return book");
+      }
+      return result.data;
+    },
+    onMutate: async ({ recordId, decisionActor, bookTitle }) => {
+      const pending = showToast.pending(
+        "Fine-free return…",
+        `Returning "${resolveActionBookTitle(bookTitle)}" without fine. Please wait…`,
+      );
+      await queryClient.cancelQueries({ queryKey: queryKeys.borrows.userRoot });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.borrows.requestDetail(recordId),
+      });
+      const previousRequests = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.requestsRoot,
+      });
+      const previousUserBorrows = queryClient.getQueriesData({
+        queryKey: queryKeys.borrows.userRoot,
+      });
+      const previousDetail = queryClient.getQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+      );
+      const meta = findCachedBorrowMeta(queryClient, recordId);
+      const fromStatus = meta?.status ?? null;
+      const returnDate = new Date().toISOString().slice(0, 10);
+      const actor = resolveBorrowLifecycleActor(decisionActor, session);
+      const detailPatch = {
+        status: "RETURNED" as const,
+        returnDate,
+        fineAmount: "0.00",
+        displayFineAmount: "0.00",
+        fineStatus: "WAIVED",
+        ...(actor
+          ? {
+              returnedBy: actor.email,
+              returnedByActor: actor,
+              updatedBy: actor.email,
+              updatedAt: new Date(),
+            }
+          : {}),
+      };
+      const patchStatus = (old: unknown) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((row: { id?: string; status?: string }) =>
+          row?.id === recordId ? { ...row, ...detailPatch } : row,
+        );
+      };
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.requestsRoot },
+        patchStatus,
+      );
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.borrows.userRoot },
+        patchStatus,
+      );
+      queryClient.setQueryData(
+        queryKeys.borrows.requestDetail(recordId),
+        (old: unknown) =>
+          old && typeof old === "object" ? { ...old, ...detailPatch } : old,
+      );
+      if (meta?.bookId) {
+        patchBookInventory(queryClient, meta.bookId, {
+          activeDelta: -1,
+          returnedDelta: 1,
+        });
+      }
+      return {
+        pending,
+        previousRequests,
+        previousUserBorrows,
+        previousDetail,
+        meta,
+        fromStatus,
+        returnDate,
+        actor,
+      };
+    },
+    onSuccess: async (data, variables, context) => {
+      const meta =
+        context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
+      const fromStatus = context?.fromStatus ?? null;
+      const returnDate =
+        context?.returnDate ?? new Date().toISOString().slice(0, 10);
+      const actor =
+        context?.actor ??
+        resolveBorrowLifecycleActor(variables.decisionActor, session);
+      await commitMutationCache(queryClient, "borrow.lifecycle", {
+        snapshot: (qc) =>
+          snapshotBorrowCacheBaselines(
+            qc,
+            meta?.bookId ? [meta.bookId] : [],
+          ),
+        densify: (baselines) => {
+          const hasAbsoluteCopies =
+            typeof data?.availableCopies === "number" &&
+            Number.isFinite(data.availableCopies);
+          patchBorrowCachesOnStatusChange(
+            queryClient,
+            {
+              recordId: variables.recordId,
+              patch: {
+                status: "RETURNED",
+                returnDate,
+                fineAmount: "0.00",
+                displayFineAmount: "0.00",
+                fineStatus: "WAIVED",
+                ...(actor
+                  ? {
+                      returnedBy: actor.email,
+                      returnedByActor: actor,
+                      updatedBy: actor.email,
+                      updatedAt: new Date(),
+                    }
+                  : {}),
+              },
+              userId: meta?.userId,
+              bookId: meta?.bookId,
+              fromStatus,
+              restoreInventory:
+                !hasAbsoluteCopies && Boolean(meta?.bookId),
+            },
+            baselines,
+          );
+          applyReturnInventoryDensify(queryClient, {
+            bookId: meta?.bookId,
+            availableCopies: data?.availableCopies,
+            offeredReservationId: data?.offeredReservationId,
+          });
+          densifyActivityLog(queryClient, {
+            ...activityActorFromSession(session, variables.decisionActor),
+            action: "UPDATE",
+            entityType: "borrow",
+            entityId: variables.recordId,
+            details: {
+              status: "RETURNED",
+              fineFree: true,
+              ...(meta?.userId ? { userId: meta.userId } : {}),
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+          });
+          prependBorrowAuditEvent(queryClient, {
+            recordId: variables.recordId,
+            action: "UPDATE",
+            details: {
+              status: "RETURNED",
+              fineFree: true,
+              ...(variables.bookTitle ? { title: variables.bookTitle } : {}),
+            },
+            ...activityActorFromSession(session, variables.decisionActor),
+          });
+        },
+      });
+
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
+      context?.pending?.success(
+        `Fine-free return: ${bookTitle}`,
+        `"${bookTitle}" was returned with the fine waived.`,
+      );
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previousRequests) {
+        for (const [key, data] of context.previousRequests) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context?.previousUserBorrows) {
+        for (const [key, data] of context.previousUserBorrows) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      if (context && "previousDetail" in context) {
+        queryClient.setQueryData(
+          queryKeys.borrows.requestDetail(variables.recordId),
+          context.previousDetail,
+        );
+      }
+      if (context?.meta?.bookId) {
+        patchBookInventory(queryClient, context.meta.bookId, {
+          activeDelta: 1,
+          returnedDelta: -1,
+        });
+      }
+      const bookTitle = resolveActionBookTitle(variables.bookTitle);
+      context?.pending?.error(
+        "Fine-free return failed",
+        error.message || `Unable to return "${bookTitle}" without fine.`,
+      );
+    },
+  });
+};
+
 /**
  * Hook to create a new book review.
  * Automatically invalidates related queries and shows success/error toasts.
@@ -3523,7 +3740,7 @@ export const useUpdateFineConfig = () => {
       // Show success toast
       showToast.success(
         "Fine Configuration Updated",
-        `Daily fine amount has been updated to $${variables.fineAmount.toFixed(2)} per day.`
+        `Daily rate is now $${variables.fineAmount.toFixed(2)}/day. Live dashboards update immediately; stored fines stay unchanged until return or Force Update.`,
       );
     },
     onError: (error: Error) => {

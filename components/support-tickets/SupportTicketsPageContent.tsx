@@ -8,6 +8,7 @@
  */
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { CheckCircle2, CircleDot, Loader2, Plus, Ticket } from "lucide-react";
 import { useUserSupportTickets } from "@/hooks/useQueries";
@@ -52,10 +53,23 @@ export default function SupportTicketsPageContent({
   currentUserId: string;
   initialTickets: SupportTicketListItem[];
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkCreate = searchParams.get("create") === "1";
+  const deepLinkBorrowId = searchParams.get("borrowId")?.trim() ?? "";
+  const deepLinkBookId = searchParams.get("bookId")?.trim() ?? undefined;
+  const [manualCreateOpen, setManualCreateOpen] = useState(false);
+  const createOpen = deepLinkCreate || manualCreateOpen;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
-  const [createOpen, setCreateOpen] = useState(false);
+  const prefillSubject = deepLinkBorrowId
+    ? "Fine dispute — borrow request"
+    : "";
+  const prefillDescription = deepLinkBorrowId
+    ? `I would like to dispute the fine on borrow request ${deepLinkBorrowId}.`
+    : "";
+  const prefillBookId = deepLinkBookId;
 
   // Always fetch the user's full ticket set — filters are client-side so KPIs
   // stay on the unfiltered totals.
@@ -286,7 +300,7 @@ export default function SupportTicketsPageContent({
         trailing={
           <button
             type="button"
-            onClick={() => setCreateOpen(true)}
+            onClick={() => setManualCreateOpen(true)}
             className="profile-action-btn profile-action-btn--submit inline-flex items-center gap-1.5"
           >
             <Plus className="size-4" />
@@ -377,7 +391,15 @@ export default function SupportTicketsPageContent({
       <SupportTicketDialog
         mode="create"
         isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => {
+          setManualCreateOpen(false);
+          if (deepLinkCreate) {
+            router.replace("/support-tickets");
+          }
+        }}
+        initialSubject={prefillSubject}
+        initialDescription={prefillDescription}
+        initialRelatedBookId={prefillBookId}
       />
     </section>
   );

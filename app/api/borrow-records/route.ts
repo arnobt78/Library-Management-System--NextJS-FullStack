@@ -27,6 +27,9 @@ import { authorizeAuthenticatedRoute } from "@/lib/auth/routeAuthorization";
 import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { parsePagination } from "@/lib/pagination";
+import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 
 export const runtime = "nodejs";
 
@@ -154,6 +157,7 @@ export async function GET(request: NextRequest) {
         borrowedBy: borrowRecords.borrowedBy,
         returnedBy: borrowRecords.returnedBy,
         fineAmount: borrowRecords.fineAmount,
+        fineStatus: borrowRecords.fineStatus,
         notes: borrowRecords.notes,
         renewalCount: borrowRecords.renewalCount,
         lastReminderSent: borrowRecords.lastReminderSent,
@@ -202,9 +206,31 @@ export async function GET(request: NextRequest) {
     const totalRecords = Number(totalRecordsResult[0]?.count ?? 0);
     const totalPages = Math.max(1, Math.ceil(totalRecords / limit) || 1);
 
+    const [dailyRate, rateHistory] = await Promise.all([
+      getDailyFineAmount(),
+      getFineRateHistory(),
+    ]);
+
+    const borrows = allBorrowRecords.map((record) => {
+      const { displayFineAmount } = computeDisplayFineForBorrowRow(
+        {
+          status: record.status,
+          dueDate: record.dueDate,
+          fineAmount: record.fineAmount,
+          fineStatus: record.fineStatus,
+        },
+        dailyRate,
+        rateHistory,
+      );
+      return {
+        ...record,
+        displayFineAmount,
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      borrows: allBorrowRecords,
+      borrows,
       pagination: {
         currentPage: page,
         totalPages,

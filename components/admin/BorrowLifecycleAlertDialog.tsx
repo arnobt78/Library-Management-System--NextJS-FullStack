@@ -9,6 +9,7 @@
 "use client";
 
 import { CheckCircle, Loader2, Star, Undo2, XCircle } from "lucide-react";
+import { useState } from "react";
 import BookCover from "@/components/BookCover";
 import PersonAttribution from "@/components/PersonAttribution";
 import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
@@ -29,7 +30,11 @@ import { cn } from "@/lib/utils";
 import { useBook } from "@/hooks/useQueries";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 
-export type BorrowLifecycleConfirmKind = "approve" | "reject" | "return";
+export type BorrowLifecycleConfirmKind =
+  | "approve"
+  | "reject"
+  | "return"
+  | "fine-free-return";
 
 const COPY: Record<
   BorrowLifecycleConfirmKind,
@@ -66,6 +71,14 @@ const COPY: Record<
     actionClass: "bg-emerald-600 hover:bg-emerald-700",
     Icon: Undo2,
   },
+  "fine-free-return": {
+    title: "Fine-free return?",
+    body: "Closes the loan with a waived $0.00 fine. Inventory returns to circulation.",
+    confirm: "Fine-Free Return",
+    pending: "Returning…",
+    actionClass: "bg-sky-700 hover:bg-sky-800",
+    Icon: Undo2,
+  },
 };
 
 export function BorrowLifecycleAlertDialog({
@@ -81,10 +94,11 @@ export function BorrowLifecycleAlertDialog({
   kind: BorrowLifecycleConfirmKind | null;
   request: BorrowRecordWithDetails;
   isPending: boolean;
-  onConfirm: () => void;
+  onConfirm: (payload?: { reason?: string }) => void;
 }) {
   const copy = kind ? COPY[kind] : null;
   const Icon = copy?.Icon ?? CheckCircle;
+  const [reason, setReason] = useState("");
   const catalogRating =
     typeof request.bookRating === "number" ? request.bookRating : 0;
 
@@ -193,6 +207,25 @@ export function BorrowLifecycleAlertDialog({
                   />
                 </div>
               </div>
+              {kind === "fine-free-return" ? (
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="fine-free-reason"
+                    className="text-xs font-medium text-gray-600"
+                  >
+                    Reason (optional)
+                  </label>
+                  <textarea
+                    id="fine-free-reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    disabled={isPending}
+                    rows={2}
+                    className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm text-dark-400"
+                    placeholder="e.g. goodwill waiver, equipment failure"
+                  />
+                </div>
+              ) : null}
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -211,7 +244,11 @@ export function BorrowLifecycleAlertDialog({
             )}
             onClick={(e) => {
               e.preventDefault();
-              onConfirm();
+              onConfirm(
+                kind === "fine-free-return"
+                  ? { reason: reason.trim() || undefined }
+                  : undefined,
+              );
             }}
           >
             {isPending ? (

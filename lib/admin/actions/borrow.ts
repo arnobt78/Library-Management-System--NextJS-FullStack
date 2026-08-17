@@ -29,6 +29,7 @@ import {
   approveBorrowRecord,
   rejectBorrowRecord,
   returnBorrowRecord,
+  returnBorrowRecordWithoutFine,
 } from "@/lib/admin/borrowLifecycle";
 import {
   loadAllBorrowRequestsRows,
@@ -38,6 +39,10 @@ import { parseEntityId } from "@/lib/actionInputs";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { scheduleReservationOutboxDelivery } from "@/lib/circulation/scheduleOutbox";
 import { logActivity } from "@/lib/admin/activityLog";
+import { computeLiveFineForRow, formatFineAmount } from "@/lib/fines/liveFine";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
+import { getDailyFineAmount } from "@/lib/admin/actions/config";
 
 /** Cheap join for activity-log details (userId + title) after lifecycle writes. */
 async function borrowActivityDetails(recordId: string): Promise<{
@@ -91,6 +96,10 @@ export const getAllBorrowRequests = async () => {
 export async function loadBorrowRequestById(recordId: string) {
   try {
     const safeId = parseEntityId(recordId);
+    const [dailyRate, rateHistory] = await Promise.all([
+      getDailyFineAmount(),
+      getFineRateHistory(),
+    ]);
     const approverUsers = alias(users, "borrow_approver_users");
     const returnerUsers = alias(users, "borrow_returner_users");
     const cancelerUsers = alias(users, "borrow_canceler_users");
@@ -108,6 +117,7 @@ export async function loadBorrowRequestById(recordId: string) {
         borrowedBy: borrowRecords.borrowedBy,
         returnedBy: borrowRecords.returnedBy,
         fineAmount: borrowRecords.fineAmount,
+        fineStatus: borrowRecords.fineStatus,
         notes: borrowRecords.notes,
         renewalCount: borrowRecords.renewalCount,
         lastReminderSent: borrowRecords.lastReminderSent,
@@ -165,9 +175,20 @@ export async function loadBorrowRequestById(recordId: string) {
     if (!row) {
       return { success: false as const, error: "Borrow request not found" };
     }
+    const mapped = mapBorrowRequestRow(row);
+    const { displayFineAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: mapped.status,
+        dueDate: mapped.dueDate,
+        fineAmount: mapped.fineAmount,
+        fineStatus: mapped.fineStatus,
+      },
+      dailyRate,
+      rateHistory,
+    );
     return {
       success: true as const,
-      data: mapBorrowRequestRow(row),
+      data: { ...mapped, displayFineAmount },
     };
   } catch (error) {
     console.error("Error loading borrow request detail:", error);
@@ -378,6 +399,7 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
    */
   const { getDailyFineAmount } = await import("./config");
   const dailyFineAmount = customFineAmount ?? (await getDailyFineAmount());
+  const rateHistory = await getFineRateHistory();
 
   /**
    * Only update fines for overdue books that don't have fines calculated yet
@@ -409,20 +431,28 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
     for (const record of overdueRecords) {
       if (!record.dueDate) continue;
 
-      const dueDate = new Date(record.dueDate);
+      const liveFine = computeLiveFineForRow({
+        status: "BORROWED",
+        dueDate: record.dueDate,
+        storedFine: record.fineAmount,
+        dailyRate: dailyFineAmount,
+        rateHistory,
+        now: today,
+      });
+      const fineAmount = formatFineAmount(liveFine);
       const daysOverdue = Math.max(
         0,
         Math.floor(
-          (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
-        )
+          (today.getTime() - new Date(record.dueDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
       );
-      const fineAmount =
-        daysOverdue > 0 ? (daysOverdue * dailyFineAmount).toFixed(2) : "0.00";
 
       await tx
         .update(borrowRecords)
         .set({
           fineAmount,
+          fineStatus: liveFine > 0 ? "STAMPED" : "NONE",
           updatedAt: new Date(),
           updatedBy: actor.email,
         })
@@ -463,6 +493,7 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
   // Import getDailyFineAmount dynamically to avoid circular dependency
   const { getDailyFineAmount } = await import("./config");
   const dailyFineAmount = customFineAmount ?? (await getDailyFineAmount());
+  const rateHistory = await getFineRateHistory();
 
   // Update ALL overdue books regardless of existing fine amounts
   const result = await db.transaction(async (tx) => {
@@ -485,22 +516,29 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
     for (const record of overdueRecords) {
       if (!record.dueDate) continue;
 
-      const dueDate = new Date(record.dueDate);
+      const liveFine = computeLiveFineForRow({
+        status: "BORROWED",
+        dueDate: record.dueDate,
+        storedFine: record.currentFineAmount,
+        dailyRate: dailyFineAmount,
+        rateHistory,
+        now: today,
+      });
+      const fineAmount = formatFineAmount(liveFine);
       const daysOverdue = Math.max(
         0,
         Math.floor(
-          (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
-        )
+          (today.getTime() - new Date(record.dueDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
       );
-
-      const fineAmount =
-        daysOverdue > 0 ? (daysOverdue * dailyFineAmount).toFixed(2) : "0.00";
 
       // Persist overdue fine on the borrow record
       await tx
         .update(borrowRecords)
         .set({
           fineAmount,
+          fineStatus: liveFine > 0 ? "STAMPED" : "NONE",
           updatedAt: new Date(),
           updatedBy: actor.email,
         })
@@ -567,6 +605,44 @@ export const returnBook = async (recordId: string) => {
     return {
       success: false as const,
       error: getActionErrorMessage(error, "Failed to return book"),
+    };
+  }
+};
+
+/** Admin fine-free return — closes loan with WAIVED / $0.00 fine. */
+export const fineFreeReturnBook = async (recordId: string, reason?: string) => {
+  try {
+    const actor = await requireAdminActor();
+    const safeRecordId = parseEntityId(recordId);
+    const result = await returnBorrowRecordWithoutFine(
+      safeRecordId,
+      actor,
+      reason,
+    );
+    if (result.success) {
+      scheduleReservationOutboxDelivery();
+      const meta = await borrowActivityDetails(safeRecordId);
+      await logActivity({
+        actorId: actor.id,
+        action: "UPDATE",
+        entityType: "borrow",
+        entityId: safeRecordId,
+        details: {
+          status: "RETURNED",
+          fineFree: true,
+          ...(reason?.trim() ? { reason: reason.trim() } : {}),
+          ...(meta?.userId ? { userId: meta.userId } : {}),
+          ...(meta?.title ? { title: meta.title } : {}),
+        },
+      });
+      revalidateMutationPaths("borrow.lifecycle");
+    }
+    return result;
+  } catch (error) {
+    console.error("Error fine-free returning book:", error);
+    return {
+      success: false as const,
+      error: getActionErrorMessage(error, "Failed to fine-free return book"),
     };
   }
 };

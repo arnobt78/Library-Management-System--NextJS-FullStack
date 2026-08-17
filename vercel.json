@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/due-reminders",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/stamp-overdue-fines",
+      "schedule": "0 8 * * *"
     }
   ],
   "headers": [

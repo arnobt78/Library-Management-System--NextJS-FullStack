@@ -5,6 +5,9 @@ import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/database/drizzle";
 import { requireAdminActor } from "@/lib/auth/authorization";
 import { getDeterministicInsights } from "@/lib/admin/actions/analytics";
+import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 import { parseProfilePagination } from "@/lib/actionInputs";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type { AdminPrivilegeHistoryEntry } from "@/lib/admin/adminPrivilegeHistory";
@@ -31,6 +34,11 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
   await requireAdminActor();
   const { page: safePage, size: safeSize } = parseProfilePagination(page, size);
   const offset = (safePage - 1) * safeSize;
+  // Live outstanding matches Insights overdue table; does not persist fine_amount.
+  const [dailyRate, rateHistory] = await Promise.all([
+    getDailyFineAmount(),
+    getFineRateHistory(),
+  ]);
 
   const [
     userRow,
@@ -41,6 +49,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     ticketHistory,
     activityHistory,
     metrics,
+    userOverdueRows,
     genres,
     libraryInsights,
     signupDecisions,
@@ -80,7 +89,8 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         borrowDate: borrowRecords.borrowDate,
         dueDate: borrowRecords.dueDate,
         returnDate: borrowRecords.returnDate,
-        fineAmount: borrowRecords.fineAmount,
+        storedFineAmount: borrowRecords.fineAmount,
+        fineStatus: borrowRecords.fineStatus,
         renewalCount: borrowRecords.renewalCount,
         createdAt: borrowRecords.createdAt,
         updatedAt: borrowRecords.updatedAt,
@@ -195,8 +205,23 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
       .orderBy(desc(activityLogs.createdAt))
       .limit(25),
     db.execute(
-      sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'PENDING')::int AS pending, COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS current, COUNT(*) FILTER (WHERE status = 'RETURNED')::int AS returned, COUNT(*) FILTER (WHERE status = 'BORROWED' AND due_date < CURRENT_DATE)::int AS overdue, COALESCE(SUM(fine_amount) FILTER (WHERE status = 'BORROWED'), 0)::numeric AS outstanding_fine, COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR return_date <= due_date)) / NULLIF(COUNT(*) FILTER (WHERE status = 'RETURNED'), 0), 1), 0)::numeric AS on_time_rate, COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (COALESCE(return_date::timestamp, CURRENT_DATE::timestamp) - borrow_date)) / 86400.0), 1), 0)::numeric AS average_loan_days FROM borrow_records WHERE user_id = ${userId}`,
+      sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'PENDING')::int AS pending, COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS current, COUNT(*) FILTER (WHERE status = 'RETURNED')::int AS returned, COUNT(*) FILTER (WHERE status = 'BORROWED' AND due_date < CURRENT_DATE)::int AS overdue, COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR return_date <= due_date)) / NULLIF(COUNT(*) FILTER (WHERE status = 'RETURNED'), 0), 1), 0)::numeric AS on_time_rate, COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (COALESCE(return_date::timestamp, CURRENT_DATE::timestamp) - borrow_date)) / 86400.0), 1), 0)::numeric AS average_loan_days FROM borrow_records WHERE user_id = ${userId}`,
     ),
+    db
+      .select({
+        status: borrowRecords.status,
+        dueDate: borrowRecords.dueDate,
+        fineAmount: borrowRecords.fineAmount,
+        fineStatus: borrowRecords.fineStatus,
+      })
+      .from(borrowRecords)
+      .where(
+        and(
+          eq(borrowRecords.userId, userId),
+          eq(borrowRecords.status, "BORROWED"),
+          sql`${borrowRecords.dueDate} < CURRENT_DATE`,
+        ),
+      ),
     db
       .select({ genre: books.genre, count: sql<number>`COUNT(*)::int` })
       .from(borrowRecords)
@@ -297,9 +322,43 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     })),
   );
 
+  const historyMapped = history.map((row) => {
+    const { displayFineAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: row.status,
+        dueDate: row.dueDate,
+        fineAmount: row.storedFineAmount,
+        fineStatus: row.fineStatus,
+      },
+      dailyRate,
+      rateHistory,
+    );
+    const { storedFineAmount: _stored, fineStatus: _status, ...rest } = row;
+    return { ...rest, fineAmount: displayFineAmount };
+  });
+
+  const userOutstandingFine = userOverdueRows.reduce((sum, row) => {
+    const { liveAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: row.status,
+        dueDate: row.dueDate,
+        fineAmount: row.fineAmount,
+        fineStatus: row.fineStatus,
+      },
+      dailyRate,
+      rateHistory,
+    );
+    return sum + liveAmount;
+  }, 0);
+
+  const metricsRow: Record<string, string | number> = {
+    ...(metrics.rows[0] as Record<string, string | number>),
+    outstanding_fine: userOutstandingFine.toFixed(2),
+  };
+
   return {
     user,
-    history,
+    history: historyMapped,
     reviewHistory: reviewHistoryMapped,
     requestHistory,
     reservationHistory,
@@ -307,13 +366,13 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
     activityHistory: activityHistoryAnnotated,
     /** Full user_status_decisions ledger — densify via signupRequestDetail. */
     signupDecisions: signupDecisions as SignupRequestDecisionEntry[],
-    metrics: metrics.rows[0] as Record<string, string | number>,
+    metrics: metricsRow,
     topGenres: genres,
     libraryInsights,
     pagination: {
       page: safePage,
       size: safeSize,
-      total: Number(metrics.rows[0]?.total ?? 0),
+      total: Number(metricsRow.total ?? 0),
     },
   };
 }

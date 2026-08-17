@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Optional trailer + Insights header polish tip shipping
+- Status: ACTIVE - Fines Platform closeout committed locally (pro-rata all surfaces, densify/invalidation, lifecycle UX, ACCRUING cron, 323 unit tests + build PASS; integration skipped — no disposable TEST_DATABASE_URL)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `9606f01`
-- Latest HEAD: `0be41a1`
+- Latest HEAD: `7494248`
 - Started: 2026-08-01
-- Last updated: 2026-08-17 (optional trailer + Insights polish)
+- Last updated: 2026-08-18 (Fines Platform closeout)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,25 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: owner Verify create-without-trailer + Insights; EvalGate blocks Gate 2
+- Active plan: owner Verify User 360 Fine KPI vs Insights; EvalGate blocks Gate 2
+
+## Reconciliation snapshot (2026-08-17, User 360 live outstanding)
+
+- **Done**: User 360 `outstanding_fine` + open-overdue Fine cells = live days × rate; settled rows keep stored `fine_amount`. RSC User 360 sibling paths on borrow/reservation/renewal. No invent Fine densify.
+- **Remaining**: EvalGate / Gate 2; owner Verify Test User 360 Fine vs Insights.
+- **Next exact task**: Verify User 360 Fine KPI matches Insights outstanding.
+
+## Reconciliation snapshot (2026-08-17, live Insights outstanding)
+
+- **Done**: C2-v2 outstanding + forecast base = live `(CURRENT_DATE − due) × dailyRate` (matches overdue table); `computeLiveOutstandingFine`; stored `fine_amount` unchanged.
+- **Remaining**: EvalGate / Gate 2; owner Verify `/admin/business-insights` KPI vs table.
+- **Next exact task**: Verify Fines Outstanding equals Overdue Analysis total fines.
+
+## Reconciliation snapshot (2026-08-17, Agile V resume)
+
+- **Done**: Repo vs STATE: tip `9606f01` on `main`; HEAD `7494248` (was recorded `0be41a1`). Working tree clean except untracked `.agile-v/plans/` + `agile_v_skills/` (not product). No PENDING interrupt for this session. C2 Gate 2 still EvalGate-blocked.
+- **Remaining**: Owner UI Verify (cover-only create + Insights); EvalGate / Gate 2.
+- **Next exact task**: Halt until owner names a Build request (empty payload after `----`).
 
 ## Reconciliation snapshot (2026-08-17, optional book trailer)
 

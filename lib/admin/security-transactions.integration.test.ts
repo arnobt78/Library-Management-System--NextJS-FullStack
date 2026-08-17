@@ -129,13 +129,21 @@ integration("PostgreSQL lifecycle invariants", () => {
         value text NOT NULL, description text, updated_at timestamptz,
         updated_by text, created_at timestamptz
       );
+      ALTER TABLE borrow_records ADD COLUMN IF NOT EXISTS fine_status text NOT NULL DEFAULT 'NONE';
+      CREATE TABLE IF NOT EXISTS fine_rate_history (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        rate numeric(10,2) NOT NULL,
+        effective_from date NOT NULL,
+        created_by text,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
     `);
   });
 
   beforeEach(async () => {
     if (!testDatabaseUrl) return;
     await setupPool.query(
-      "DROP TRIGGER IF EXISTS fail_book_delete ON books; DROP TRIGGER IF EXISTS fail_request_update ON admin_requests; DROP FUNCTION IF EXISTS raise_test_failure(); TRUNCATE circulation_commands, reservation_events, reservations, system_config, book_reviews, admin_requests, borrow_records, books, users;",
+      "DROP TRIGGER IF EXISTS fail_book_delete ON books; DROP TRIGGER IF EXISTS fail_request_update ON admin_requests; DROP FUNCTION IF EXISTS raise_test_failure(); TRUNCATE circulation_commands, reservation_events, reservations, fine_rate_history, system_config, book_reviews, admin_requests, borrow_records, books, users;",
     );
     await setupPool.query(
       `INSERT INTO users (id, full_name, email, university_id, password, university_card, status, role)
@@ -519,5 +527,76 @@ integration("PostgreSQL lifecycle invariants", () => {
       [bookId],
     );
     expect(inventory.rows[0].available_copies).toBe(1);
+  });
+
+  it("waive/adjust/paid/stamp/sync fine lifecycle invariants", async () => {
+    const fineRecordId = "30000000-0000-4000-8000-000000000002";
+    await setupPool.query(
+      `INSERT INTO borrow_records (id, user_id, book_id, borrow_date, due_date, status, renewal_count, fine_status, fine_amount)
+       VALUES ($1, $2, $3, now() - interval '10 days', CURRENT_DATE - 3, 'BORROWED', 0, 'ACCRUING', '0.00')`,
+      [fineRecordId, readerId, bookId],
+    );
+    await setupPool.query(
+      `INSERT INTO system_config (key, value) VALUES ('daily_fine_amount', '1.00')
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+    );
+
+    const { waiveBorrowFine, adjustBorrowFine, markFinePaid, stampOpenOverdueFines, syncOverdueAccruingStatus } =
+      await import("./actions/fines");
+
+    const waived = await waiveBorrowFine(fineRecordId, "integration test");
+    expect(waived.success).toBe(true);
+    const waivedRow = await setupPool.query(
+      "SELECT fine_status, fine_amount FROM borrow_records WHERE id = $1",
+      [fineRecordId],
+    );
+    expect(waivedRow.rows[0]).toMatchObject({
+      fine_status: "WAIVED",
+      fine_amount: "0.00",
+    });
+
+    await setupPool.query(
+      "UPDATE borrow_records SET fine_status = 'ACCRUING', fine_amount = '2.50' WHERE id = $1",
+      [fineRecordId],
+    );
+    const adjusted = await adjustBorrowFine(fineRecordId, 4.25, "manual");
+    expect(adjusted.success).toBe(true);
+    const adjustedRow = await setupPool.query(
+      "SELECT fine_status, fine_amount FROM borrow_records WHERE id = $1",
+      [fineRecordId],
+    );
+    expect(adjustedRow.rows[0]).toMatchObject({
+      fine_status: "ACCRUING",
+      fine_amount: "4.25",
+    });
+
+    const paid = await markFinePaid(fineRecordId);
+    expect(paid.success).toBe(true);
+    const paidRow = await setupPool.query(
+      "SELECT fine_status, fine_amount FROM borrow_records WHERE id = $1",
+      [fineRecordId],
+    );
+    expect(paidRow.rows[0].fine_status).toBe("PAID");
+
+    await setupPool.query(
+      "UPDATE borrow_records SET fine_status = 'WAIVED', fine_amount = '0.00' WHERE id = $1",
+      [fineRecordId],
+    );
+    const stampWaived = await stampOpenOverdueFines({ force: true });
+    expect(stampWaived.skipped).toBeGreaterThanOrEqual(1);
+
+    const accruingRecordId = "30000000-0000-4000-8000-000000000003";
+    await setupPool.query(
+      `INSERT INTO borrow_records (id, user_id, book_id, borrow_date, due_date, status, renewal_count, fine_status, fine_amount)
+       VALUES ($1, $2, $3, now() - interval '5 days', CURRENT_DATE - 1, 'BORROWED', 0, 'NONE', '0.00')`,
+      [accruingRecordId, readerId, bookId],
+    );
+    const sync = await syncOverdueAccruingStatus();
+    expect(sync.synced).toBeGreaterThanOrEqual(1);
+    const syncedRow = await setupPool.query(
+      "SELECT fine_status FROM borrow_records WHERE id = $1",
+      [accruingRecordId],
+    );
+    expect(syncedRow.rows[0].fine_status).toBe("ACCRUING");
   });
 });

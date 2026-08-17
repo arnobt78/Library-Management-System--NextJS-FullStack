@@ -22,12 +22,19 @@ describe("patchFineCaches", () => {
     });
   });
 
-  it("densifyOverdueFines patches borrow fineAmount by record id", () => {
+  it("densifyOverdueFines patches borrow fineAmount + fineStatus by record id", () => {
     const client = new QueryClient();
     client.setQueryData(queryKeys.borrows.user("u-1"), [
       { id: "b-1", fineAmount: "0", userId: "u-1", bookId: "book-1" },
       { id: "b-2", fineAmount: "1", userId: "u-1", bookId: "book-2" },
     ]);
+    client.setQueryData(queryKeys.borrows.requestDetail("b-1"), {
+      id: "b-1",
+      fineAmount: "0",
+      userId: "u-1",
+      bookId: "book-1",
+      status: "BORROWED",
+    });
     densifyOverdueFines(client, [
       {
         recordId: "b-1",
@@ -37,10 +44,19 @@ describe("patchFineCaches", () => {
         verifiedFineAmount: "3.00",
       },
     ]);
-    const rows = client.getQueryData<Array<{ id: string; fineAmount: string }>>(
-      queryKeys.borrows.user("u-1"),
-    );
+    const rows = client.getQueryData<
+      Array<{ id: string; fineAmount: string; fineStatus?: string }>
+    >(queryKeys.borrows.user("u-1"));
     expect(rows?.find((r) => r.id === "b-1")?.fineAmount).toBe("3.00");
+    expect(rows?.find((r) => r.id === "b-1")?.fineStatus).toBe("STAMPED");
     expect(rows?.find((r) => r.id === "b-2")?.fineAmount).toBe("1");
+    const detail = client.getQueryData<{
+      fineAmount: string;
+      fineStatus?: string;
+      displayFineAmount?: string;
+    }>(queryKeys.borrows.requestDetail("b-1"));
+    expect(detail?.fineAmount).toBe("3.00");
+    expect(detail?.fineStatus).toBe("STAMPED");
+    expect(detail?.displayFineAmount).toBe("3.00");
   });
 });

@@ -4,6 +4,9 @@ import { eq, and, sql } from "drizzle-orm";
 import { sendEmailWithFallback } from "@/lib/services/email-service";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { createInAppNotification } from "@/lib/notifications/inApp";
+import { getDailyFineAmount } from "./config";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 
 // Email service for sending reminders
 export class EmailService {
@@ -188,6 +191,10 @@ export async function getBooksDueSoon() {
 // Get overdue books
 export async function getOverdueBooks() {
   const now = new Date();
+  const [dailyRate, rateHistory] = await Promise.all([
+    getDailyFineAmount(),
+    getFineRateHistory(),
+  ]);
   // Set to start of today to exclude books due today from overdue
   const startOfToday = new Date(
     now.getFullYear(),
@@ -205,8 +212,10 @@ export async function getOverdueBooks() {
       userEmail: users.email,
       borrowDate: borrowRecords.borrowDate,
       dueDate: borrowRecords.dueDate,
+      status: borrowRecords.status,
       daysOverdue: sql<number>`(${startOfToday}::date - ${borrowRecords.dueDate}::date)`,
-      fineAmount: borrowRecords.fineAmount,
+      storedFineAmount: borrowRecords.fineAmount,
+      fineStatus: borrowRecords.fineStatus,
     })
     .from(borrowRecords)
     .innerJoin(books, eq(borrowRecords.bookId, books.id))
@@ -223,12 +232,38 @@ export async function getOverdueBooks() {
       ),
     );
 
-  return overdueBooks;
+  return overdueBooks.map((row) => {
+    const { displayFineAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: row.status,
+        dueDate: row.dueDate,
+        fineAmount: row.storedFineAmount,
+        fineStatus: row.fineStatus,
+      },
+      dailyRate,
+      rateHistory,
+      now,
+    );
+    return {
+      recordId: row.recordId,
+      userId: row.userId,
+      bookTitle: row.bookTitle,
+      bookAuthor: row.bookAuthor,
+      userName: row.userName,
+      userEmail: row.userEmail,
+      borrowDate: row.borrowDate,
+      dueDate: row.dueDate,
+      daysOverdue: row.daysOverdue,
+      fineAmount: displayFineAmount,
+      storedFineAmount: row.storedFineAmount,
+    };
+  });
 }
 
 // Send due soon reminders
 export async function sendDueSoonReminders() {
   const dueSoonBooks = await getBooksDueSoon();
+  const dailyRate = await getDailyFineAmount();
   const results = [];
 
   for (const book of dueSoonBooks) {
@@ -253,7 +288,7 @@ Book Details:
     }
 • Days Remaining: ${Math.ceil(book.daysUntilDue)} day(s)
 
-Please return the book to the library by the due date to avoid any late fees. You can return the book during our regular operating hours.
+Please return the book to the library by the due date to avoid any late fees. Overdue books accrue a daily fine of $${dailyRate.toFixed(2)} per day after the due date. You can return the book during our regular operating hours.
 
 If you need to renew the book, please contact the library staff before the due date.
 
@@ -324,6 +359,7 @@ This is an automated reminder. For assistance, please contact us at support@book
 // Send overdue reminders
 export async function sendOverdueReminders() {
   const overdueBooks = await getOverdueBooks();
+  const dailyRate = await getDailyFineAmount();
   const results = [];
 
   for (const book of overdueBooks) {
@@ -349,7 +385,7 @@ Book Details:
 • Days Overdue: ${Math.ceil(book.daysOverdue)} day(s)
 • Current Fine Amount: $${book.fineAmount || "0.00"}
 
-Please return this book to the library as soon as possible. Late fees continue to accumulate daily at a rate of $1.00 per day.
+Please return this book to the library as soon as possible. Late fees continue to accumulate daily at a rate of $${dailyRate.toFixed(2)} per day.
 
 To avoid additional charges, please:
 1. Return the book immediately during library hours

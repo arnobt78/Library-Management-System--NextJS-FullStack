@@ -6,7 +6,7 @@ export interface OverdueTrendPoint {
 }
 
 export interface FineForecast {
-  /** Current outstanding fine total on active overdue loans. */
+  /** Live (today − due) × dailyRate on overdue loans — not stored fine_amount. */
   outstanding: number;
   /** Advisory accrual if overdue loans remain open for horizonDays at dailyRate. */
   projectedAccrual: number;
@@ -31,6 +31,7 @@ export interface DeterministicInsights {
   circulation30Days: number;
   onTimeReturnRate: number;
   overdueRatio: number;
+  /** Live overdue days × daily rate (matches overdue table). */
   outstandingFineTotal: number;
   demandToCopyRatio: number;
   holdPressure: number;

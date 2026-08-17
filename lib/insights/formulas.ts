@@ -5,6 +5,7 @@ import type {
   GenreDemandPressure,
   OverdueTrendPoint,
 } from "./types";
+import { computeLiveOutstandingFine as computeLiveOutstandingFineShared } from "@/lib/fines/liveFine";
 
 function round(value: number, digits: number): number {
   const factor = 10 ** digits;
@@ -17,6 +18,17 @@ export function safePercentage(numerator: number, denominator: number): number {
 
 export function safeRatio(numerator: number, denominator: number): number {
   return denominator > 0 ? round(numerator / denominator, 2) : 0;
+}
+
+/**
+ * Live outstanding = sum(max(0, daysOverdue) × dailyRate).
+ * Same product as the overdue table; does not write borrow_records.fine_amount.
+ */
+export function computeLiveOutstandingFine(
+  overdueDayCounts: readonly number[],
+  dailyRate: number,
+): number {
+  return computeLiveOutstandingFineShared(overdueDayCounts, dailyRate);
 }
 
 /** Advisory 7-day accrual if every active overdue loan stays open at dailyRate. */

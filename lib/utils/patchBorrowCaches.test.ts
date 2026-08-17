@@ -18,6 +18,7 @@ import {
   patchBorrowCachesOnRenewal,
   patchBorrowCachesOnStatusChange,
   prependBorrowAuditEvent,
+  patchBorrowFineUpdate,
   setBookAvailableCopiesAbsolute,
   snapshotBorrowCacheBaselines,
   syncBorrowRequestBookFields,
@@ -733,5 +734,35 @@ describe("patchBorrowCaches", () => {
         queryKeys.borrows.requests({}),
       )?.[0]?.bookWaitingHolds,
     ).toBe(1);
+  });
+
+  it("patchBorrowFineUpdate patches list, user, and detail caches", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.borrows.user("u-1"), [
+      { id: "b-1", fineAmount: "1.00", userId: "u-1", bookId: "book-1" },
+    ]);
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      makeRequest({ id: "b-1", fineAmount: "1.00" }),
+    ]);
+    client.setQueryData(
+      queryKeys.borrows.requestDetail("b-1"),
+      makeRequest({ id: "b-1", fineAmount: "1.00" }),
+    );
+
+    patchBorrowFineUpdate(client, "b-1", {
+      fineAmount: "0.00",
+      displayFineAmount: "0.00",
+      fineStatus: "WAIVED",
+    });
+
+    expect(
+      client.getQueryData<BorrowRecordFull[]>(queryKeys.borrows.user("u-1"))?.[0]
+        ?.fineStatus,
+    ).toBe("WAIVED");
+    expect(
+      client.getQueryData<BorrowRecordWithDetails>(
+        queryKeys.borrows.requestDetail("b-1"),
+      )?.displayFineAmount,
+    ).toBe("0.00");
   });
 });

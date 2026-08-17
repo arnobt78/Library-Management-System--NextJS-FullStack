@@ -302,18 +302,19 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
           value={`$${insights.outstandingFineTotal.toFixed(2)}`}
           icon={DollarSign}
           hue="rose"
-          badges={
-            Math.abs(
+          badges={[
+            { label: "All users · live", hue: "slate" },
+            ...(Math.abs(
               insights.fineForecast.total - insights.outstandingFineTotal,
             ) > 0.009
               ? [
                   {
                     label: `Forecast $${insights.fineForecast.total.toFixed(0)}`,
-                    hue: "amber",
+                    hue: "amber" as const,
                   },
                 ]
-              : undefined
-          }
+              : []),
+          ]}
         />
         <StatCard
           title="Pending Borrow Queue"

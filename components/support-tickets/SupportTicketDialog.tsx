@@ -75,6 +75,8 @@ interface SupportTicketDialogProps {
   onUpdated?: (ticket: SupportTicketDetail) => void;
   /** SSR densify actor — Activity universityCard (admin detail). */
   decisionActor?: AdminRequestReviewer | null;
+  /** Deep-link prefill for related catalog book. */
+  initialRelatedBookId?: string;
 }
 
 type FormProps = Omit<SupportTicketDialogProps, "isOpen" | "onClose"> & {
@@ -97,25 +99,18 @@ function SupportTicketDialogForm({
   onCreated,
   onUpdated,
   decisionActor,
+  initialRelatedBookId,
 }: FormProps) {
   const isDark = variant === "dark";
   const PRIORITY_OPTIONS = ticketPriorityMultiOptions(isDark ? "dark" : "light");
   const STATUS_OPTIONS = ticketStatusMultiOptions(isDark ? "dark" : "light");
 
-  const [subject, setSubject] = useState(
-    mode === "create" ? "" : initialSubject,
-  );
-  const [description, setDescription] = useState(
-    mode === "create" ? "" : initialDescription,
-  );
-  const [priority, setPriority] = useState<TicketPriority>(
-    mode === "create" ? "MEDIUM" : initialPriority,
-  );
-  const [status, setStatus] = useState<TicketStatus>(
-    mode === "create" ? "OPEN" : initialStatus,
-  );
+  const [subject, setSubject] = useState(initialSubject);
+  const [description, setDescription] = useState(initialDescription);
+  const [priority, setPriority] = useState<TicketPriority>(initialPriority);
+  const [status, setStatus] = useState<TicketStatus>(initialStatus);
   const [assignedToId, setAssignedToId] = useState<string>(
-    mode === "create" ? UNASSIGNED : (initialAssignedToId ?? UNASSIGNED),
+    initialAssignedToId ?? UNASSIGNED,
   );
 
   const createMutation = useCreateSupportTicket();
@@ -161,6 +156,7 @@ function SupportTicketDialogForm({
         subject: trimmedSubject,
         description: trimmedDescription,
         priority,
+        relatedBookId: initialRelatedBookId ?? null,
       },
       {
         onSuccess: (ticket) => {
@@ -453,8 +449,8 @@ export default function SupportTicketDialog({
     if (!open && !isPending) onClose();
   };
 
-  // Unmount on close (`isOpen ? …`) remounts with live props; key by ticket only.
-  const formKey = `${mode}|${formProps.ticketId ?? "new"}`;
+  // Unmount on close (`isOpen ? …`) remounts with live props; key by ticket + prefill.
+  const formKey = `${mode}|${formProps.ticketId ?? "new"}|${formProps.initialSubject ?? ""}|${formProps.initialRelatedBookId ?? ""}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>

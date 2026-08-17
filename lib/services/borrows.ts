@@ -36,6 +36,9 @@ export interface BorrowRecord {
   borrowedBy: string | null;
   returnedBy: string | null;
   fineAmount: string | null; // Stored as decimal string in DB
+  /** Live or stored fine for UI (open overdue uses daily rate). */
+  displayFineAmount?: string | null;
+  fineStatus?: "NONE" | "ACCRUING" | "STAMPED" | "WAIVED" | "PAID" | string | null;
   notes: string | null;
   renewalCount: number;
   lastReminderSent: Date | null;

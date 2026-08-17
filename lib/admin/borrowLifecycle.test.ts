@@ -22,6 +22,9 @@ vi.mock("@/database/schema", () => schema);
 vi.mock("@/lib/auth/authorization", () => ({
   assertOwnerOrAdmin: vi.fn(),
 }));
+vi.mock("@/lib/fines/rateHistory", () => ({
+  getFineRateHistory: vi.fn(async () => []),
+}));
 vi.mock("drizzle-orm", () => ({
   and: vi.fn(() => "and"),
   eq: vi.fn(() => "eq"),

@@ -10,6 +10,9 @@ import { borrowRecords, books, reservations, users } from "@/database/schema";
 import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
+import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
 
 export type BorrowRequestListFilters = {
   status?: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED" | string | null;
@@ -28,6 +31,8 @@ export function mapBorrowRequestRow(record: {
   borrowedBy: string | null;
   returnedBy: string | null;
   fineAmount: string | null;
+  displayFineAmount?: string | null;
+  fineStatus?: string | null;
   notes: string | null;
   renewalCount: number;
   lastReminderSent: Date | null;
@@ -104,6 +109,8 @@ export function mapBorrowRequestRow(record: {
     borrowedBy: record.borrowedBy,
     returnedBy: record.returnedBy,
     fineAmount: record.fineAmount || "0.00",
+    displayFineAmount: record.displayFineAmount ?? record.fineAmount ?? "0.00",
+    fineStatus: (record.fineStatus as BorrowRecordWithDetails["fineStatus"]) ?? "NONE",
     notes: record.notes,
     renewalCount: record.renewalCount,
     lastReminderSent: record.lastReminderSent,
@@ -180,6 +187,10 @@ const bookWaitingHoldsSql = sql<number>`(
 export async function loadAllBorrowRequestsRows(
   filters?: BorrowRequestListFilters,
 ): Promise<BorrowRecordWithDetails[]> {
+  const [dailyRate, rateHistory] = await Promise.all([
+    getDailyFineAmount(),
+    getFineRateHistory(),
+  ]);
   const approverUsers = alias(users, "borrow_approver_users");
   const returnerUsers = alias(users, "borrow_returner_users");
   const cancelerUsers = alias(users, "borrow_canceler_users");
@@ -221,6 +232,7 @@ export async function loadAllBorrowRequestsRows(
       borrowedBy: borrowRecords.borrowedBy,
       returnedBy: borrowRecords.returnedBy,
       fineAmount: borrowRecords.fineAmount,
+      fineStatus: borrowRecords.fineStatus,
       notes: borrowRecords.notes,
       renewalCount: borrowRecords.renewalCount,
       lastReminderSent: borrowRecords.lastReminderSent,
@@ -261,5 +273,18 @@ export async function loadAllBorrowRequestsRows(
     .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
     .orderBy(desc(borrowRecords.createdAt));
 
-  return rows.map((row) => mapBorrowRequestRow(row));
+  return rows.map((row) => {
+    const mapped = mapBorrowRequestRow(row);
+    const { displayFineAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: mapped.status,
+        dueDate: mapped.dueDate,
+        fineAmount: mapped.fineAmount,
+        fineStatus: mapped.fineStatus,
+      },
+      dailyRate,
+      rateHistory,
+    );
+    return { ...mapped, displayFineAmount };
+  });
 }

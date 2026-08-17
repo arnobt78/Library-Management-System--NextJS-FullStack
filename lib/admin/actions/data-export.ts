@@ -1,6 +1,10 @@
 import { db } from "@/database/drizzle";
 import { books, users, borrowRecords } from "@/database/schema";
 import { eq, sql, desc, and, gte, lt, count } from "drizzle-orm";
+import { getDailyFineAmount } from "./config";
+import { liveOutstandingFineSumSql } from "@/lib/fines/liveFineSql";
+import { getFineRateHistory } from "@/lib/fines/rateHistory";
+import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 
 // Export types
 export type ExportFormat = "csv" | "json" | "pdf";
@@ -150,6 +154,10 @@ export async function exportBorrows(
   format: ExportFormat = "csv",
   dateRange?: { start: Date; end: Date }
 ) {
+  const [dailyRate, rateHistory] = await Promise.all([
+    getDailyFineAmount(),
+    getFineRateHistory(),
+  ]);
   const baseQuery = db
     .select({
       id: borrowRecords.id,
@@ -161,7 +169,8 @@ export async function exportBorrows(
       dueDate: borrowRecords.dueDate,
       returnDate: borrowRecords.returnDate,
       status: borrowRecords.status,
-      fineAmount: borrowRecords.fineAmount,
+      storedFine: borrowRecords.fineAmount,
+      fineStatus: borrowRecords.fineStatus,
       notes: borrowRecords.notes,
       renewalCount: borrowRecords.renewalCount,
       createdAt: borrowRecords.createdAt,
@@ -171,7 +180,7 @@ export async function exportBorrows(
     .innerJoin(books, eq(borrowRecords.bookId, books.id))
     .innerJoin(users, eq(borrowRecords.userId, users.id));
 
-  const borrowsData = dateRange
+  const rawRows = dateRange
     ? await baseQuery
         .where(
           and(
@@ -181,6 +190,23 @@ export async function exportBorrows(
         )
         .orderBy(desc(borrowRecords.createdAt))
     : await baseQuery.orderBy(desc(borrowRecords.createdAt));
+
+  const borrowsData = rawRows.map((row) => {
+    const { displayFineAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: row.status,
+        dueDate: row.dueDate,
+        fineAmount: row.storedFine,
+        fineStatus: row.fineStatus,
+      },
+      dailyRate,
+      rateHistory,
+    );
+    return {
+      ...row,
+      liveFineAtExport: displayFineAmount,
+    };
+  });
 
   if (format === "csv") {
     const headers = [
@@ -193,7 +219,8 @@ export async function exportBorrows(
       "Due Date",
       "Return Date",
       "Status",
-      "Fine Amount",
+      "Stored Fine",
+      "Live Fine At Export",
       "Notes",
       "Renewal Count",
       "Created At",
@@ -221,6 +248,11 @@ export async function exportBorrows(
 // Export analytics data
 export async function exportAnalytics(format: ExportFormat = "csv") {
   const now = new Date();
+  const [dailyRate, rateHistory] = await Promise.all([
+    getDailyFineAmount(),
+    getFineRateHistory(),
+  ]);
+  const liveFinesSum = liveOutstandingFineSumSql(dailyRate, now);
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -230,6 +262,7 @@ export async function exportAnalytics(format: ExportFormat = "csv") {
     userActivity,
     overdueStats,
     systemHealth,
+    overdueRowsForFines,
   ] = await Promise.all([
     // Borrowing trends
     db
@@ -276,7 +309,7 @@ export async function exportAnalytics(format: ExportFormat = "csv") {
     db
       .select({
         totalOverdue: sql<number>`count(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then 1 end)`,
-        totalFines: sql<number>`COALESCE(sum(case when ${borrowRecords.dueDate} < ${now} and ${borrowRecords.status} = 'BORROWED' then ${borrowRecords.fineAmount} end), 0)`,
+        totalFines: sql<number>`${liveFinesSum}`,
       })
       .from(borrowRecords),
 
@@ -290,7 +323,37 @@ export async function exportAnalytics(format: ExportFormat = "csv") {
       .from(books)
       .leftJoin(users, sql`1=1`)
       .leftJoin(borrowRecords, sql`1=1`),
+
+    db
+      .select({
+        status: borrowRecords.status,
+        dueDate: borrowRecords.dueDate,
+        fineAmount: borrowRecords.fineAmount,
+        fineStatus: borrowRecords.fineStatus,
+      })
+      .from(borrowRecords)
+      .where(
+        and(
+          eq(borrowRecords.status, "BORROWED"),
+          sql`${borrowRecords.dueDate} < ${now}`,
+        ),
+      ),
   ]);
+
+  const totalFines = overdueRowsForFines.reduce((sum, row) => {
+    const { liveAmount } = computeDisplayFineForBorrowRow(
+      {
+        status: row.status,
+        dueDate: row.dueDate,
+        fineAmount: row.fineAmount,
+        fineStatus: row.fineStatus,
+      },
+      dailyRate,
+      rateHistory,
+      now,
+    );
+    return sum + liveAmount;
+  }, 0);
 
   const analyticsData = {
     summary: {
@@ -299,11 +362,19 @@ export async function exportAnalytics(format: ExportFormat = "csv") {
       totalUsers: systemHealth[0]?.totalUsers || 0,
       activeBorrows: systemHealth[0]?.activeBorrows || 0,
       totalOverdue: overdueStats[0]?.totalOverdue || 0,
-      totalFines: overdueStats[0]?.totalFines || 0,
+      totalFines,
     },
     borrowingTrends,
     popularBooks,
     userActivity,
+    fine_rate_history: rateHistory.map((row) => ({
+      rate: row.rate,
+      effectiveFrom:
+        row.effectiveFrom instanceof Date
+          ? row.effectiveFrom.toISOString().slice(0, 10)
+          : String(row.effectiveFrom),
+      createdBy: row.createdBy,
+    })),
   };
 
   if (format === "csv") {
@@ -313,6 +384,7 @@ export async function exportAnalytics(format: ExportFormat = "csv") {
       { name: "Borrowing_Trends", data: borrowingTrends },
       { name: "Popular_Books", data: popularBooks },
       { name: "User_Activity", data: userActivity },
+      { name: "Fine_Rate_History", data: analyticsData.fine_rate_history },
     ];
 
     let csvContent = "";
