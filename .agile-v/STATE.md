@@ -29,8 +29,8 @@
 ## Reconciliation snapshot (2026-08-19, densify instant UI closeout)
 
 - **Done**: Wave A–D + audit closeout — SSR timestamp parity; `users.fineMetrics` densify; User 360 KPI + `AdminUser360NextActionsList` live on fine/borrow mutations; Insights prefetch warm. Prove: typecheck/lint/**353** unit/build PASS.
-- **Remaining**: Push/deploy; prod smoke waive KPI + Next Actions; EvalGate / Gate 2 unchanged.
-- **Next exact task**: Post-deploy smoke Test User 360 waive from borrow detail.
+- **Remaining**: Prod smoke waive KPI live update (manual screenshot); EvalGate / Gate 2 unchanged.
+- **Next exact task**: User 360 → waive overdue fine → confirm KPI + Next Actions drop without refresh.
 
 ## Reconciliation snapshot (2026-08-19, prod clock smoke + profile strips)
 
