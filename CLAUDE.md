@@ -98,7 +98,7 @@ Parent: REQ-0018, REQ-0024. Keep this file compact; details belong in `docs/PROJ
 - Signup Recent: SSR `currentAdmin` (card) preferred for optimistic actor; session fallback name/email only.
 - Densify actor card: `AuthorizedActor.universityCard` from DB; `resolveDecisionActor` + SSR `currentAdmin` on All Users / Admin Requests / Sign-up / User 360 / Book Reviews (no JWT card; session fallback null-card intentional).
 - Never set `TEST_DATABASE_URL` to shared/prod demo DB — integration suite TRUNCATEs tables.
-- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip/HEAD `d7585c9`; ImageKit upload-limit deferred; EvalGate FAIL blocks Gate 2.
+- Agile V: C2 active; Gate 1 `GATE-0006` + CR-0003 `GATE-0007`; tip/HEAD `7f9091b`; ImageKit upload-limit deferred; EvalGate FAIL blocks Gate 2.
 - Auth JWT idle: `SESSION_MAX_AGE_SECONDS` = 1d (`auth.ts`); hard-reload keeps cookies; clear cookies to logout.
 - Densify closeout (2026-08-16): book `finiteTotal`/thin-key sync; early delete densify book+review+ticket; bulk densify (+admin pending clear); reminder bell bump; debug ingest gone.
 - Sentry (2026-08-16): drop expected `AuthorizationError` via shared `beforeSend`; admin pages `requireAdminActorOrRedirect` (no digest noise).

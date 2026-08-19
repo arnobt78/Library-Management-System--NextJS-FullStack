@@ -262,3 +262,4 @@
 | SPAN-0256 | 2026-08-19 | C2 | Tip-bind fines display | Compliance | Bound tip/HEAD to `d7585c9` | decision_log_append_only | REQ-0029–0031, REQ-0033 | PASS |
 | SPAN-0257 | 2026-08-19 | C2 | Due/return timestamptz + approved_at | Build Agent JS | mig 0019; Approved not updatedAt; Queue Fine Waived; 347 unit PASS | require_parent_requirement | REQ-0033 | PASS local; owner reseed remaining |
 | SPAN-0258 | 2026-08-19 | C2 | Cancel/renew stamps + leftover 0019 map | Build Agent JS | mig 0020 cancelled_at/renewed_at; profile approvedAt map; 350 unit PASS | require_parent_requirement | REQ-0033 | PASS local; owner reseed remaining |
+| SPAN-0259 | 2026-08-19 | C2 | Tip-bind clocks 0019+0020 | Compliance | Bound tip/HEAD to `7f9091b` | decision_log_append_only | REQ-0033 | PASS |
