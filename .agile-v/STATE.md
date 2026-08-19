@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Densify instant UI closeout Prove PASS (local); deploy before User 360 fine KPI prod smoke
+- Status: ACTIVE - Densify instant UI closeout Prove PASS (local + prod waive KPI smoke)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `79a4986`
-- Latest HEAD: `79a4986`
+- Latest HEAD: `3cc02b1`
 - Started: 2026-08-01
-- Last updated: 2026-08-19 (densify instant UI closeout Waves A–D)
+- Last updated: 2026-08-19 (densify prod smoke PASS)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,13 +24,14 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline, executing-plans
-- Active plan: densify instant UI closeout — local Prove PASS; owner deploy + prod smoke User 360 waive KPI
+- Active plan: densify instant UI closeout — **closed** (local + prod smoke PASS)
 
 ## Reconciliation snapshot (2026-08-19, densify instant UI closeout)
 
 - **Done**: Wave A–D + audit closeout — SSR timestamp parity; `users.fineMetrics` densify; User 360 KPI + `AdminUser360NextActionsList` live on fine/borrow mutations; Insights prefetch warm. Prove: typecheck/lint/**353** unit/build PASS.
-- **Remaining**: Prod smoke waive KPI live update (manual screenshot); EvalGate / Gate 2 unchanged.
-- **Next exact task**: User 360 → waive overdue fine → confirm KPI + Next Actions drop without refresh.
+- **Prod smoke PASS** (`test@admin.com`): User 360 baseline Fine **$55**/4 overdue → waive Assembly Language **$38** on borrow detail → User 360 Fine **$17** + Next Actions **$17** (no hard refresh); Borrow Queue Fine **Waived**; Insights Fines Outstanding **$17**; All Users + Support Tickets load OK.
+- **Remaining**: EvalGate / Gate 2 unchanged; deferred cold-cache edge + Insights chart invent-densify.
+- **Next exact task**: none for densify closeout; optional owner re-seed if demo fine totals drift.
 
 ## Reconciliation snapshot (2026-08-19, prod clock smoke + profile strips)
 

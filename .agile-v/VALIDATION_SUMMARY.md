@@ -201,5 +201,11 @@ Commands: eslint `MyProfileTabs.tsx` PASS | outstanding=EvalGate (`ER-C2-FINAL-C
 
 Scope: SSR `initialDataUpdatedAt` list hooks; `BookCollection` `useUserBorrows`; `users.fineMetrics` + densify tails; User 360 KPI + Next Actions; Insights prefetch; DEC-0118.
 
-Commands: typecheck/lint PASS | 353 unit PASS | Next build PASS | prod smoke pending deploy.
+Commands: typecheck/lint PASS | 353 unit PASS | Next build PASS.
+
+## Densify instant UI closeout - Prod smoke - 2026-08-19
+
+Scope: waive Assembly Language $38 → User 360 Fine $55→$17 + Next Actions; queue Waived; Insights $17; All Users/tickets OK.
+
+Result: PASS on `https://university-library-managment.vercel.app/` as `test@admin.com`. No reseed required.
 
