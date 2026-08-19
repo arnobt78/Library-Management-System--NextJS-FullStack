@@ -269,5 +269,5 @@
 | SPAN-0263 | 2026-08-19 | C2 | Densify audit closeout prove | Build Agent JS | AdminUser360NextActionsList live metrics; full typecheck/lint/test/build PASS | require_independent_verification | REQ-0033 | PASS local |
 | SPAN-0264 | 2026-08-19 | C2 | Densify prod smoke waive KPI | Build Agent JS | Assembly Language waive $38 → User 360 Fine $55→$17 + Next Actions; queue Waived; Insights $17 | require_independent_verification | REQ-0033 | PASS prod |
 | SPAN-0265 | 2026-08-19 | C2 | User 360 fine KPI delta densify | Build Agent JS | patchUserFineMetricsDelta + partial-cache guard; back-nav waive $0 flash fix | require_independent_verification | REQ-0033 | 356 unit + build PASS |
-| SPAN-0266 | 2026-08-19 | C2 | Admin fine UI + book links | Build Agent JS | adminRoutes/AdminBookContextLinks; Fine Actions LIGHT_MENU; KPI refetch guards; admin book href sweep | require_independent_verification | REQ-0033 | 358 unit + build PASS; commit pending |
+| SPAN-0266 | 2026-08-19 | C2 | Admin fine UI + book links | Build Agent JS | adminRoutes/AdminBookContextLinks; Fine Actions LIGHT_MENU; KPI refetch guards; admin book href sweep | require_independent_verification | REQ-0033 | 358 unit + build PASS; tip `c5f1441` |
 
