@@ -1172,6 +1172,10 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       const approvedAt = formatLocalClock(record.approvedAt);
       const requestedAt = formatLocalClock(record.borrowDate);
       const returnedOn = formatLocalClock(record.returnDate);
+      const cancelledOn = formatLocalClock(
+        record.cancelledAt ?? record.updatedAt,
+      );
+      const renewedOn = formatLocalClock(record.renewedAt);
 
       return (
         <div role="article" className={cn("profile-borrow-row", rowAccent)}>
@@ -1322,6 +1326,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                               ? `Due soon · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left · ${formatDate(record.dueDate)}`
                               : `Due on ${formatDate(record.dueDate)}`}
                         {approvedAt ? ` · approved ${approvedAt}` : ""}
+                        {renewedOn ? ` · renewed ${renewedOn}` : ""}
                       </span>
                     </div>
                   )}
@@ -1332,6 +1337,16 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       <span className="text-xs text-emerald-400 sm:text-sm">
                         Successfully returned
                         {returnedOn ? ` · ${returnedOn}` : ""}
+                      </span>
+                    </div>
+                  )}
+
+                  {record.status === "CANCELLED" && (
+                    <div className="flex flex-wrap items-center gap-1.5 rounded bg-rose-500/10 px-2 py-1 sm:gap-2">
+                      <Ban className="size-3 shrink-0 text-rose-400 sm:size-4" />
+                      <span className="text-xs text-rose-400 sm:text-sm">
+                        Cancelled
+                        {cancelledOn ? ` · ${cancelledOn}` : ""}
                       </span>
                     </div>
                   )}

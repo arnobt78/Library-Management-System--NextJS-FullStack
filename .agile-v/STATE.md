@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Clocks 0019+0020 at `7f9091b`; owner prod smoke remaining
+- Status: ACTIVE - Clocks 0019+0020 prod-smoked; profile Cancelled/renewed strips pending deploy
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `7f9091b`
 - Latest HEAD: `7f9091b`
 - Started: 2026-08-01
-- Last updated: 2026-08-19 (clocks 0019+0020 committed)
+- Last updated: 2026-08-19 (prod clock smoke + profile cancelled/renewed strips)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,13 +24,19 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline, executing-plans
-- Active plan: clocks 0019+0020 at `7f9091b`; owner prod smoke
+- Active plan: clocks 0019+0020 prod-smoked; profile Cancelled/renewed strips to deploy
+
+## Reconciliation snapshot (2026-08-19, prod clock smoke + profile strips)
+
+- **Done**: Prod UI smoke on `https://university-library-managment.vercel.app/` as Test Admin + Test User. Queue/detail PASS: Due date-only; Software Fine Waived $0 (Approved Jul 30 1:30 PM ≠ Updated Jul 31 12:30 PM); Distilled Approved Jul 22 1:30 PM ≠ Renewed Jul 30 11:30 AM; Fundamentals Approved Aug 1 1:30 PM ≠ Renewed Aug 9 11:30 AM (count 2); Lean Paid $5 Due Jun 30; Eloquent/Cracking Cancelled clocks. Profile compact rows were missing Cancelled/`renewed` copy — shipped in this tip. Agent rule: compact docs after audit; smoke UI on prod URL.
+- **Remaining**: Deploy this tip then re-smoke `/my-profile` Cancelled + renewed clocks. EvalGate / Gate 2 unchanged.
+- **Next exact task**: Push/deploy; confirm profile history Cancelled strip + Fundamentals `renewed` under Due on prod.
 
 ## Reconciliation snapshot (2026-08-19, cancel/renew stamps + leftover 0019 map)
 
 - **Done**: mig `0020` applied on `.env` DATABASE_URL (`cancelled_at` once on reject/owner cancel; `renewed_at` last renew). Queue/profile/detail Cancelled paint `cancelledAt` not later `updatedAt`. Renewed meta under Due (not Approved). Profile RQ `getStableDate`/`memo` keep `approvedAt`. Prove: typecheck PASS, lint on touched files PASS, **350** unit tests PASS. `drizzle-kit push` skipped (unrelated system_config unique TTY prompt).
-- **Remaining**: Owner prod smoke after deploy: Distilled approve ≠ waive, Cancelled clock, renew clock, Due date-only, Queue Fine Waived. Apply `0020` on any env not yet migrated. EvalGate / Gate 2 unchanged.
-- **Next exact task**: Owner smoke live demo URL after deploy.
+- **Remaining**: Deploy profile Cancelled/renewed strips; EvalGate / Gate 2 unchanged.
+- **Next exact task**: Deploy then re-smoke `/my-profile` Cancelled + renewed clocks on prod.
 
 ## Reconciliation snapshot (2026-08-19, due/return timestamptz + approved_at)
 

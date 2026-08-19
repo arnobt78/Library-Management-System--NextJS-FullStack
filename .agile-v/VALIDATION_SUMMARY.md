@@ -190,3 +190,10 @@ Commands: typecheck/lint PASS | 327 unit + 12 integration PASS | build PASS | se
 Scope: enriched `seed:demo` (full schema ops overlay); Borrow Queue `parseStoredFine`; densify string fine amounts.
 
 Commands: typecheck/lint/327 unit/build PASS | seed:reset && seed:demo verified.
+
+## Clocks 0019+0020 prod smoke - 2026-08-19
+
+Scope: queue/detail clocks PASS on prod; profile Cancelled + renewed strips added (`MyProfileTabs`).
+
+Commands: eslint `MyProfileTabs.tsx` PASS | outstanding=EvalGate (`ER-C2-FINAL-CORRECTIVE-5`); re-smoke `/my-profile` after deploy.
+
