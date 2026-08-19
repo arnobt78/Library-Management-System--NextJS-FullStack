@@ -50,6 +50,7 @@ import {
 } from "@/lib/ui/fieldLabelStyles";
 import { formatMediumDate } from "@/lib/ui/formatMediumDate";
 import { getBookAvailabilityStatus } from "@/lib/books/bookDetailsViewModel";
+import { adminBookDetailHref } from "@/lib/admin/adminRoutes";
 import { borrowDaysOverdue } from "@/lib/admin/borrowDaysOverdue";
 import { borrowFineKpiHint } from "@/lib/fines/queueFineLabel";
 import { cn } from "@/lib/utils";
@@ -578,6 +579,7 @@ export default function AdminBorrowRequestDetailContent({
           coverUrl={request.bookCoverUrl}
           coverColor={request.bookCoverColor}
           bookId={request.bookId}
+          bookHref={adminBookDetailHref(request.bookId)}
           genre={request.bookGenre}
           bookRating={request.bookRating}
           showMeta
@@ -646,19 +648,23 @@ export default function AdminBorrowRequestDetailContent({
           label="Fine Balance"
           hint={fineHint}
         >
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-1.5">
             <p className="text-lg font-medium tabular-nums text-dark-400">
               {fineDisplayFormatted}
             </p>
-            <AdminBorrowFineMenu recordId={request.id} disabled={busy} />
+            <AdminBorrowFineMenu
+              recordId={request.id}
+              disabled={busy}
+              layout="kpi-row"
+            />
+            <button
+              type="button"
+              onClick={() => setDisputeDialogOpen(true)}
+              className="inline-block text-xs text-sky-700 hover:text-sky-900"
+            >
+              Open dispute ticket
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setDisputeDialogOpen(true)}
-            className="mt-1 inline-block text-xs text-sky-700 hover:text-sky-900"
-          >
-            Open dispute ticket
-          </button>
         </DetailKpiShell>
         <DetailKpiShell
           variant="light"

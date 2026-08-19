@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Clock,
   Eye,
-  Library,
   Loader2,
   MoreVertical,
   Star,
@@ -32,7 +31,6 @@ import { SortableHeader } from "@/components/ui/SortableHeader";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { DismissibleFilterChips } from "@/components/ui/DismissibleFilterChips";
-import { Badge } from "@/components/ui/badge";
 import { ReviewStatusBadge } from "@/lib/ui/semanticBadges";
 import {
   reviewRatingTone,
@@ -40,7 +38,7 @@ import {
 } from "@/lib/ui/reviewOptions";
 import StarRow from "@/components/ui/StarRow";
 import PersonAttribution from "@/components/PersonAttribution";
-import CircleBookCover from "@/components/reviews/CircleBookCover";
+import { AdminBookIdentityCell } from "@/components/admin/AdminBookIdentityCell";
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
 import UniversityIdMeta from "@/components/UniversityIdMeta";
 import { Button } from "@/components/ui/button";
@@ -363,54 +361,18 @@ export default function BookReviewList({
         ),
         cell: ({ row }) => {
           const r = row.original;
-          // Title → public book detail (PrefetchLink warms detail + reviews).
-          // Comment column keeps the admin review-detail link.
-          const bookHref = `/books/${r.bookId}`;
           return (
-            <div className="flex min-w-0 items-center gap-2">
-              <CircleBookCover
-                coverUrl={r.bookCoverUrl}
-                coverColor={r.bookCoverColor}
-                title={r.bookTitle}
-                size={36}
-                className="size-9 border border-gray-200 sm:size-9"
-              />
-              {/* Kebab stack — no mt / space-y / gap between title→author→meta */}
-              <div className="flex min-w-0 flex-1 flex-col leading-none">
-                <PrefetchLink
-                  href={bookHref}
-                  prefetch={false}
-                  className={cn(TABLE_CELL_TITLE, "truncate", SKY_LINK_LIGHT)}
-                >
-                  {r.bookTitle}
-                </PrefetchLink>
-                {r.bookAuthor ? (
-                  <span className="truncate text-xs text-muted-foreground">
-                    {r.bookAuthor}
-                  </span>
-                ) : null}
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  {r.bookGenre ? (
-                    <Badge
-                      variant="outline"
-                      className="gap-0.5 px-1.5 py-0 text-[10px] font-normal text-violet-700"
-                    >
-                      <Library className="size-2.5" aria-hidden />
-                      {r.bookGenre}
-                    </Badge>
-                  ) : null}
-                  {r.bookRating > 0 ? (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] tabular-nums text-amber-600">
-                      <Star
-                        className="size-2.5 fill-amber-400 text-amber-400"
-                        aria-hidden
-                      />
-                      {r.bookRating}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
+            <AdminBookIdentityCell
+              bookId={r.bookId}
+              title={r.bookTitle}
+              author={r.bookAuthor}
+              coverUrl={r.bookCoverUrl}
+              coverColor={r.bookCoverColor}
+              genre={r.bookGenre}
+              rating={r.bookRating}
+              reviewId={r.id}
+              showBookDetailLink
+            />
           );
         },
       },

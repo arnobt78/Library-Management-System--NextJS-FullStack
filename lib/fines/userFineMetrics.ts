@@ -130,6 +130,15 @@ export function isPartialFineMetricsRecompute(
   return next.overdueCount < existing.overdueCount;
 }
 
+/** True when warmed borrow rows cannot represent full user overdue set. */
+export function isPartialBorrowCacheForUser(
+  cachedRowCount: number,
+  existing: UserFineMetrics | null | undefined,
+): boolean {
+  if (!existing) return false;
+  return cachedRowCount < existing.overdueCount;
+}
+
 /** Read one borrow row (user + queue caches) before fine patch. */
 export function findCachedBorrowRowForFine(
   queryClient: QueryClient,
@@ -217,13 +226,26 @@ export function recomputeUserFineMetricsFromCache(
   if (rows.length === 0) {
     return existing ?? null;
   }
+  const dailyRate = dailyRateFromCache(queryClient);
+  // Without fineConfig warmed, live recompute zeros KPI — keep densified/SSR baseline.
+  if (dailyRate === 0 && existing) {
+    return existing;
+  }
   const next = computeUserFineMetrics(
     rows,
-    dailyRateFromCache(queryClient),
+    dailyRate,
     rateHistory,
   );
   if (isPartialFineMetricsRecompute(existing, next)) {
     return existing ?? next;
+  }
+  // refetchOnMount partial cache must not zero densified outstanding fine (User 360 back-nav)
+  if (
+    existing &&
+    isPartialBorrowCacheForUser(rows.length, existing) &&
+    next.outstandingFine < existing.outstandingFine
+  ) {
+    return { ...next, outstandingFine: existing.outstandingFine };
   }
   return next;
 }

@@ -19,6 +19,8 @@ export type ReviewBookIdentityProps = {
   coverColor?: string | null;
   /** When set, title links to book detail. */
   bookId?: string | null;
+  /** Override title href — admin callers pass `/admin/books/[id]`. */
+  bookHref?: string | null;
   genre?: string | null;
   /** Catalog average rating (0 hides). */
   bookRating?: number | null;
@@ -41,6 +43,7 @@ export default function ReviewBookIdentity({
   coverUrl,
   coverColor,
   bookId,
+  bookHref,
   genre,
   bookRating,
   showMeta = false,
@@ -51,9 +54,11 @@ export default function ReviewBookIdentity({
 }: ReviewBookIdentityProps) {
   const rating = typeof bookRating === "number" ? bookRating : 0;
   const isLight = variant === "light";
-  const titleNode = bookId ? (
+  const resolvedBookHref =
+    bookHref !== undefined ? bookHref : bookId ? `/books/${bookId}` : null;
+  const titleNode = resolvedBookHref ? (
     <PrefetchLink
-      href={`/books/${bookId}`}
+      href={resolvedBookHref}
       className={cn(
         "truncate text-base font-medium sm:text-lg",
         isLight

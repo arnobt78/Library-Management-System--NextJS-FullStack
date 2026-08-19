@@ -304,6 +304,7 @@ export default function AdminUser360Shell({
                             coverColor={record.bookCoverColor}
                             genre={record.bookGenre}
                             rating={record.bookRating}
+                            borrowRecordId={record.id}
                           />
                         </td>
                         <td className="min-w-0 py-3 align-middle">
@@ -393,17 +394,9 @@ export default function AdminUser360Shell({
                               coverColor={review.bookCoverColor}
                               genre={review.bookGenre}
                               rating={review.bookRating}
+                              reviewId={review.id}
+                              showBookDetailLink
                             />
-                            <Link
-                              prefetch={false}
-                              href={`/admin/book-reviews/${review.id}`}
-                              className={cn(
-                                "mt-1 block truncate text-xs",
-                                SKY_LINK_LIGHT,
-                              )}
-                            >
-                              View review detail
-                            </Link>
                           </td>
                           <td className="whitespace-nowrap py-3 align-middle">
                             <span

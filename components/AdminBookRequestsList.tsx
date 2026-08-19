@@ -407,6 +407,7 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
               rating={r.bookRating}
               availableCopies={r.bookAvailableCopies}
               totalCopies={r.bookTotalCopies}
+              borrowRecordId={r.id}
             />
           );
         },

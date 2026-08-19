@@ -217,3 +217,11 @@ Commands: typecheck/lint PASS | 356 unit PASS | Next build PASS.
 
 Result: fixes waive back-nav $0 when cache lacks sibling overdue rows; owner re-test after deploy.
 
+## Admin fine UI + book links + KPI refetch guard - Local Prove - 2026-08-19
+
+Scope: Fine Balance KPI stack + LIGHT_MENU Fine Actions; `adminRoutes`/`AdminBookContextLinks`; admin title default `/admin/books/[id]`; secondary borrow/review links; `recomputeUserFineMetricsFromCache` partial + dailyRate guards.
+
+Commands: typecheck/lint PASS | 358 unit PASS | Next build PASS.
+
+Result: owner Test 1 (waive → back-nav $17) pending after deploy.
+

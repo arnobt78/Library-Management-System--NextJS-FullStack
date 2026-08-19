@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { Loader2, MoreHorizontal } from "lucide-react";
+import {
+  Ban,
+  CheckCircle2,
+  CircleDollarSign,
+  Loader2,
+  MoreVertical,
+  Pencil,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,16 +18,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { AdminAdjustFineDialog } from "@/components/admin/AdminAdjustFineDialog";
 import { commitMutationCache } from "@/lib/query/mutationGateway";
-import { patchBorrowFineUpdate, prependBorrowAuditEvent } from "@/lib/utils/patchBorrowCaches";
+import {
+  patchBorrowFineUpdate,
+  prependBorrowAuditEvent,
+} from "@/lib/utils/patchBorrowCaches";
 import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
+import { LIGHT_MENU } from "@/lib/ui/glassActionChrome";
 import { showToast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 interface AdminBorrowFineMenuProps {
   recordId: string;
   disabled?: boolean;
+  /** KPI card row — full-width justify-between trigger. */
+  layout?: "default" | "kpi-row";
 }
 
 async function patchFine(
@@ -48,6 +61,7 @@ function fineAuditStatus(action: string): string {
 export function AdminBorrowFineMenu({
   recordId,
   disabled,
+  layout = "default",
 }: AdminBorrowFineMenuProps) {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -99,39 +113,67 @@ export function AdminBorrowFineMenu({
     }
   };
 
+  const isKpiRow = layout === "kpi-row";
+
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
             disabled={disabled || busy}
-            className="h-8 gap-1 border-gray-200"
-          >
-            {busy ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <MoreHorizontal className="size-3.5" />
+            aria-label="Fine actions"
+            className={cn(
+              isKpiRow
+                ? "flex h-8 w-full items-center justify-between gap-2 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-dark-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                : LIGHT_MENU.trigger,
             )}
-            Fine actions
-          </Button>
+          >
+            {isKpiRow ? (
+              <>
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                  {busy ? (
+                    <Loader2 className="size-3.5 shrink-0 animate-spin text-gray-500" />
+                  ) : (
+                    <CircleDollarSign className="size-3.5 shrink-0 text-emerald-700" />
+                  )}
+                  <span className="truncate">Fine Actions</span>
+                </span>
+                <MoreVertical className="size-3.5 shrink-0 text-gray-500" />
+              </>
+            ) : (
+              <>
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <MoreVertical className="size-4" />
+                )}
+              </>
+            )}
+          </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className={LIGHT_MENU.content}>
           <DropdownMenuItem
+            className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
             onClick={() => run("Fine waived", { action: "waive" })}
           >
-            Waive fine
+            <Ban className="size-3.5" />
+            Waive Fine
           </DropdownMenuItem>
           <DropdownMenuItem
+            className={`${LIGHT_MENU.item} text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-emerald-700`}
             onClick={() => run("Marked paid", { action: "paid" })}
           >
-            Mark paid
+            <CheckCircle2 className="size-3.5" />
+            Mark Paid
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setAdjustOpen(true)}>
-            Adjust amount…
+          <DropdownMenuSeparator className={LIGHT_MENU.separator} />
+          <DropdownMenuItem
+            className={LIGHT_MENU.item}
+            onClick={() => setAdjustOpen(true)}
+          >
+            <Pencil className="size-3.5" />
+            Adjust Amount…
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

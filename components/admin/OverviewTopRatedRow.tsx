@@ -9,6 +9,7 @@ import PrefetchLink from "@/components/PrefetchLink";
 import { Star } from "lucide-react";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import type { AdminDashboardTopRatedBook } from "@/lib/admin/adminDashboardStatsTypes";
+import { adminBookDetailHref } from "@/lib/admin/adminRoutes";
 import { OverviewGenreChip } from "@/lib/ui/overviewGenreChip";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,9 @@ export function OverviewTopRatedRow({
       />
       <div className="min-w-0 flex-1 space-y-0.5">
         <PrefetchLink
-          href={`/books/${book.id}`}
+          href={adminBookDetailHref(book.id)}
+          prefetchKind="admin-book-catalog-detail"
+          prefetch={false}
           className={cn(
             "block truncate text-sm font-medium",
             SKY_LINK_LIGHT,

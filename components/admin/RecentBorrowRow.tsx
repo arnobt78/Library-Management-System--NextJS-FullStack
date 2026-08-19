@@ -8,10 +8,12 @@
 "use client";
 
 import PrefetchLink from "@/components/PrefetchLink";
+import { AdminBookContextLinks } from "@/components/admin/AdminBookContextLinks";
 import { Star } from "lucide-react";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
 import { ReviewBorrowMeta } from "@/components/reviews/ReviewBorrowMeta";
 import PersonAttribution from "@/components/PersonAttribution";
+import { adminBookDetailHref } from "@/lib/admin/adminRoutes";
 import { OverviewGenreChip } from "@/lib/ui/overviewGenreChip";
 import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
@@ -22,7 +24,7 @@ import type { OverviewRecentBorrow } from "@/lib/admin/adminDashboardStatsTypes"
 export type { OverviewRecentBorrow };
 
 export function RecentBorrowRow({ borrow }: { borrow: OverviewRecentBorrow }) {
-  const bookHref = `/books/${borrow.bookId}`;
+  const bookHref = adminBookDetailHref(borrow.bookId);
   const userHref = `/admin/users/${borrow.borrower.id}`;
 
   return (
@@ -60,6 +62,11 @@ export function RecentBorrowRow({ borrow }: { borrow: OverviewRecentBorrow }) {
               </span>
             ) : null}
           </div>
+          <AdminBookContextLinks
+            bookId={borrow.bookId}
+            borrowRecordId={borrow.id}
+            showBookDetail={false}
+          />
         </div>
       </div>
 

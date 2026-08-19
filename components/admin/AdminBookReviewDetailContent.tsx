@@ -45,6 +45,7 @@ import { AdminDetailToolbar } from "@/components/admin/AdminDetailToolbar";
 import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
 import ReviewDateMeta from "@/components/reviews/ReviewDateMeta";
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
+import { adminBookDetailHref } from "@/lib/admin/adminRoutes";
 import { ReviewBorrowMeta } from "@/components/reviews/ReviewBorrowMeta";
 import { ReviewDetailKpiGrid } from "@/components/reviews/ReviewDetailKpiGrid";
 import { TicketActivityTimeline } from "@/components/support-tickets/TicketActivityTimeline";
@@ -257,6 +258,8 @@ export default function AdminBookReviewDetailContent({
                           author={review.bookAuthor}
                           coverUrl={review.bookCoverUrl}
                           coverColor={review.bookCoverColor}
+                          bookId={review.bookId}
+                          bookHref={adminBookDetailHref(review.bookId)}
                           genre={review.bookGenre}
                           bookRating={review.bookRating}
                         />
@@ -329,6 +332,7 @@ export default function AdminBookReviewDetailContent({
           coverUrl={review.bookCoverUrl}
           coverColor={review.bookCoverColor}
           bookId={review.bookId}
+          bookHref={adminBookDetailHref(review.bookId)}
           genre={review.bookGenre}
           bookRating={review.bookRating}
           showMeta
@@ -392,6 +396,7 @@ export default function AdminBookReviewDetailContent({
             coverUrl={review.bookCoverUrl}
             coverColor={review.bookCoverColor}
             bookId={review.bookId}
+            bookHref={adminBookDetailHref(review.bookId)}
             genre={review.bookGenre}
             bookRating={review.bookRating}
             showMeta

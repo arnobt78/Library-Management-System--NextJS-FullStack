@@ -76,6 +76,7 @@ export default function AdminUserReservationsPanel({
                         coverColor={item.coverColor}
                         genre={item.genre}
                         rating={item.bookRating}
+                        showBookDetailLink
                       />
                     </td>
                     <td className="min-w-0 overflow-hidden py-3 align-middle">

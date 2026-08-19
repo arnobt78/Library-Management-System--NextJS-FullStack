@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Densify instant UI closeout Prove PASS (local + prod waive KPI smoke)
+- Status: ACTIVE - Admin fine UI + admin book links + KPI refetch guard Prove PASS (local)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `c01dab7`
-- Latest HEAD: `c01dab7`
+- Latest implementation tip: (commit pending)
+- Latest HEAD: (commit pending)
 - Started: 2026-08-01
-- Last updated: 2026-08-19 (User 360 fine KPI delta densify fix)
+- Last updated: 2026-08-19 (admin fine UI + book links + KPI refetch guard)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,8 +23,14 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, executing-plans
-- Active plan: User 360 fine KPI cold-cache fix — local Prove pending deploy + owner re-test
+- Skills applied this session: agile-v-core, executing-plans
+- Active plan: Admin fine UI + book links — local Prove PASS; deploy + owner Test 1 re-smoke
+
+## Reconciliation snapshot (2026-08-19, admin fine UI + book links + KPI guard)
+
+- **Done**: Fine Balance KPI vertical stack (amount → Fine Actions `LIGHT_MENU` → dispute link); admin book title default `/admin/books/[id]` via `AdminBookIdentityCell` + `adminRoutes`/`AdminBookContextLinks`; secondary View book/borrow/review links on queue/360/Insights/reviews/overview; `recomputeUserFineMetricsFromCache` guards partial cache + missing `fineConfig` refetch zeroing.
+- **Prove**: typecheck/lint/**358** unit/build PASS.
+- **Next exact task**: deploy → owner Test 1 (User 360 $55 → waive Assembly $38 → back-nav **$17** without refresh) + spot-check admin book links.
 
 ## Reconciliation snapshot (2026-08-19, User 360 fine KPI delta densify)
 

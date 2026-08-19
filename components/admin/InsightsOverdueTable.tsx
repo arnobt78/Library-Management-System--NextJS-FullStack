@@ -111,6 +111,7 @@ const columns: ColumnDef<OverdueBook>[] = [
           rating={r.bookRating}
           availableCopies={r.bookAvailableCopies}
           totalCopies={r.bookTotalCopies}
+          borrowRecordId={r.recordId}
         />
       );
     },

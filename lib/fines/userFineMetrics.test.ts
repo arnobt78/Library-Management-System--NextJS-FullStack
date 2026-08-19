@@ -148,4 +148,60 @@ describe("recomputeUserFineMetricsFromCache partial guard", () => {
 
     expect(metrics).toEqual({ outstandingFine: 55, overdueCount: 4 });
   });
+
+  it("preserves delta densified outstanding fine on partial refetch after waive", () => {
+    const client = new QueryClient();
+    const userId = "user-1";
+    client.setQueryData(queryKeys.users.fineMetrics(userId), {
+      outstandingFine: 17,
+      overdueCount: 4,
+    });
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      {
+        id: "b-1",
+        userId,
+        status: "BORROWED",
+        dueDate: "2020-01-01T12:00:00.000Z",
+        fineAmount: "0.00",
+        displayFineAmount: "0.00",
+        fineStatus: "WAIVED",
+      },
+    ]);
+    client.setQueryData(queryKeys.admin.fineConfig, { fineAmount: 1 });
+
+    const metrics = recomputeUserFineMetricsFromCache(client, userId);
+
+    expect(metrics).toEqual({ outstandingFine: 17, overdueCount: 4 });
+  });
+
+  it("keeps existing metrics when fineConfig is not warmed (dailyRate 0)", () => {
+    const client = new QueryClient();
+    const userId = "user-1";
+    client.setQueryData(queryKeys.users.fineMetrics(userId), {
+      outstandingFine: 17,
+      overdueCount: 4,
+    });
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      {
+        id: "b-1",
+        userId,
+        status: "BORROWED",
+        dueDate: "2020-01-01T12:00:00.000Z",
+        fineAmount: "12.00",
+        fineStatus: "ACCRUING",
+      },
+      {
+        id: "b-2",
+        userId,
+        status: "BORROWED",
+        dueDate: "2020-01-02T12:00:00.000Z",
+        fineAmount: "5.00",
+        fineStatus: "ACCRUING",
+      },
+    ]);
+
+    const metrics = recomputeUserFineMetricsFromCache(client, userId);
+
+    expect(metrics).toEqual({ outstandingFine: 17, overdueCount: 4 });
+  });
 });

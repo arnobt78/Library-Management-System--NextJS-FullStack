@@ -8,8 +8,10 @@
  */
 
 import PrefetchLink from "@/components/PrefetchLink";
+import { AdminBookContextLinks } from "@/components/admin/AdminBookContextLinks";
 import { BookOpen, Star } from "lucide-react";
 import CircleBookCover from "@/components/reviews/CircleBookCover";
+import { adminBookDetailHref } from "@/lib/admin/adminRoutes";
 import { getBookAvailabilityStatus } from "@/lib/books/bookDetailsViewModel";
 import { OverviewGenreChip } from "@/lib/ui/overviewGenreChip";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
@@ -32,8 +34,14 @@ export type AdminBookIdentityCellProps = {
   genre?: string | null;
   /** Catalog average rating (0 / null hides star). */
   rating?: number | null;
-  /** Title link — default `/books/{bookId}`. */
+  /** Title link — default admin catalog `/admin/books/{bookId}`. */
   titleHref?: string | null;
+  /** Optional borrow request id — renders "View borrow detail" below meta. */
+  borrowRecordId?: string | null;
+  /** Optional review id — renders "View review detail" below meta. */
+  reviewId?: string | null;
+  /** When false, hides "View book detail" secondary link (title already links). */
+  showBookDetailLink?: boolean;
   /** When both finite, show compact Available/Total inline with genre/star. */
   availableCopies?: number | null;
   totalCopies?: number | null;
@@ -49,11 +57,16 @@ export function AdminBookIdentityCell({
   genre,
   rating,
   titleHref,
+  borrowRecordId,
+  reviewId,
+  showBookDetailLink = false,
   availableCopies,
   totalCopies,
   className,
 }: AdminBookIdentityCellProps) {
-  const href = titleHref ?? `/books/${bookId}`;
+  const href = titleHref ?? adminBookDetailHref(bookId);
+  const showContextLinks =
+    showBookDetailLink || Boolean(borrowRecordId) || Boolean(reviewId);
   const catalogRating = typeof rating === "number" ? rating : 0;
   const hasInventory =
     typeof availableCopies === "number" &&
@@ -77,6 +90,7 @@ export function AdminBookIdentityCell({
         <PrefetchLink
           href={href}
           prefetch={false}
+          prefetchKind="admin-book-catalog-detail"
           className={cn(TABLE_CELL_TITLE, "block truncate", SKY_LINK_LIGHT)}
         >
           {title}
@@ -128,6 +142,14 @@ export function AdminBookIdentityCell({
             </span>
           ) : null}
         </div>
+        {showContextLinks ? (
+          <AdminBookContextLinks
+            bookId={bookId}
+            borrowRecordId={borrowRecordId}
+            reviewId={reviewId}
+            showBookDetail={showBookDetailLink}
+          />
+        ) : null}
       </div>
     </div>
   );
