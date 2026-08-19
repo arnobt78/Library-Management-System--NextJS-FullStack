@@ -7,7 +7,7 @@
  * Parent: CR-0003 / REQ-0034
  */
 import { CalendarClock, CalendarPlus } from "lucide-react";
-import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
+import { formatMediumDate, formatMediumDateTime } from "@/lib/ui/formatMediumDate";
 import { cn } from "@/lib/utils";
 
 /** True when updatedAt is a meaningful edit after createdAt (not insert default). */
@@ -40,6 +40,8 @@ export function TicketDateMeta({
   hideUpdated = false,
   /** When true, always format updatedAt (Due/Borrowed pairs) — skip insert-default dash. */
   independentUpdated = false,
+  /** Date-only Created line (borrow Due calendar day — no 2 AM clock). */
+  createdDateOnly = false,
   className,
 }: {
   createdAt?: string | Date | null | undefined;
@@ -51,9 +53,13 @@ export function TicketDateMeta({
   hideCreated?: boolean;
   hideUpdated?: boolean;
   independentUpdated?: boolean;
+  createdDateOnly?: boolean;
   className?: string;
 }) {
   const isDark = variant === "dark";
+  const createdDisplay = createdDateOnly
+    ? formatMediumDate(createdAt)
+    : formatMediumDateTime(createdAt);
   const createdTone = isDark ? "text-emerald-300/90" : "text-emerald-700";
   const updatedTone = isDark ? "text-amber-200/80" : "text-amber-700/90";
   const showCreated = !hideCreated;
@@ -78,7 +84,7 @@ export function TicketDateMeta({
           <span className={cn("inline-flex items-center gap-1", createdTone)}>
             <CalendarPlus className="size-3.5 shrink-0 opacity-80" aria-hidden />
             <span className="opacity-70">{createdLabel}</span>{" "}
-            {formatMediumDateTime(createdAt)}
+            {createdDisplay}
           </span>
         ) : null}
         {showCreated && showUpdated ? (
@@ -109,7 +115,7 @@ export function TicketDateMeta({
         <p className={cn("inline-flex items-center gap-1 leading-none", createdTone)}>
           <CalendarPlus className="size-3 shrink-0 opacity-80" aria-hidden />
           <span className="opacity-70">{createdLabel}:</span>{" "}
-          {formatMediumDateTime(createdAt)}
+          {createdDisplay}
         </p>
       ) : null}
       {showUpdated ? (

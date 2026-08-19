@@ -2,6 +2,7 @@
 
 import { borrowRecords } from "@/database/schema";
 import { sql, type SQL } from "drizzle-orm";
+import { dueUtcDateSql } from "@/lib/fines/dueCalendarSql";
 
 /**
  * Sum flat-rate live fines for open overdue borrows — analytics export only.
@@ -18,8 +19,8 @@ export function liveOutstandingFineSumSql(
     CASE
       WHEN ${borrowRecords.status} = 'BORROWED'
         AND ${borrowRecords.dueDate} IS NOT NULL
-        AND ${borrowRecords.dueDate} < ${nowSql}
-      THEN (${nowSql}::date - ${borrowRecords.dueDate}::date) * ${dailyFineAmountSql}
+        AND ${dueUtcDateSql} < (${nowSql} AT TIME ZONE 'UTC')::date
+      THEN ((${nowSql} AT TIME ZONE 'UTC')::date - ${dueUtcDateSql}) * ${dailyFineAmountSql}
       ELSE 0
     END
   ), 0)`;

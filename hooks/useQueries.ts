@@ -954,6 +954,9 @@ export const useBorrowRequestDetail = (
         return mergeDensifiedDetail(prev, fresh, [
           "auditEvents",
           "approvedByActor",
+          "approvedAt",
+          "cancelledAt",
+          "renewedAt",
           "returnedByActor",
           "cancelledByActor",
         ]);

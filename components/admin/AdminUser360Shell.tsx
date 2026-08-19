@@ -328,6 +328,9 @@ export default function AdminUser360Shell({
                               createdAt={record.createdAt}
                               borrowDate={record.borrowDate}
                               updatedAt={record.updatedAt}
+                              approvedAt={record.approvedAt}
+                              cancelledAt={record.cancelledAt}
+                              renewedAt={record.renewedAt}
                               dueDate={record.dueDate}
                               returnDate={record.returnDate}
                             />

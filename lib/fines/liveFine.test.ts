@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addCalendarDaysUtcNoon,
   computeLiveFineForRow,
   computeLiveOutstandingFine,
   computeProRataFine,
@@ -8,10 +9,26 @@ import {
   getOverdueDaysForBorrow,
   parseStoredFine,
   resolveReturnFine,
+  utcNoonOfUtcDay,
 } from "./liveFine";
 
 describe("liveFine", () => {
   const now = new Date("2026-08-03T12:00:00.000Z");
+
+  it("adds calendar days as UTC noon", () => {
+    expect(addCalendarDaysUtcNoon(new Date("2026-08-05T08:11:00.000Z"), 7).toISOString()).toBe(
+      "2026-08-12T12:00:00.000Z",
+    );
+    expect(utcNoonOfUtcDay(new Date("2026-08-05T23:59:59.000Z")).toISOString()).toBe(
+      "2026-08-05T12:00:00.000Z",
+    );
+  });
+
+  it("treats UTC-noon due timestamps as the same calendar day", () => {
+    expect(
+      getOverdueDaysForBorrow("BORROWED", "2026-08-01T12:00:00.000Z", now),
+    ).toBe(2);
+  });
 
   it("computes overdue days for active borrows only", () => {
     expect(getOverdueDaysForBorrow("BORROWED", "2026-08-01", now)).toBe(2);

@@ -15,6 +15,7 @@ import {
 } from "./borrowTransitionPolicy";
 import { offerNextReservation } from "@/lib/circulation/reservations";
 import {
+  addCalendarDaysUtcNoon,
   getOverdueDaysForBorrow,
   resolveReturnFine,
 } from "@/lib/fines/liveFine";
@@ -37,11 +38,8 @@ interface ReturnResult {
   offeredReservationId: string | null;
 }
 
-function getDueDate(): string {
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + 7);
-  dueDate.setHours(23, 59, 59, 999);
-  return dueDate.toISOString().slice(0, 10);
+function getDueDate(now: Date = new Date()): Date {
+  return addCalendarDaysUtcNoon(now, 7);
 }
 
 async function approveWithTransaction(
@@ -81,14 +79,16 @@ async function approveWithTransaction(
     return { success: false, error: decision.error };
   }
 
+  const now = new Date();
   const updated = await tx
     .update(borrowRecords)
     .set({
       status: "BORROWED",
       // Issuer/admin email — Status & Issuer joins borrowed_by → approvedByActor.
       borrowedBy: actor.email,
-      dueDate: getDueDate(),
-      updatedAt: new Date(),
+      dueDate: getDueDate(now),
+      approvedAt: now,
+      updatedAt: now,
       updatedBy: actor.email,
     })
     .where(
@@ -162,7 +162,6 @@ async function returnWithTransaction(
     return { success: false, error: "Book not found" };
   }
 
-  const today = new Date().toISOString().slice(0, 10);
   const now = new Date();
   const daysOverdue = getOverdueDaysForBorrow(
     "BORROWED",
@@ -187,7 +186,7 @@ async function returnWithTransaction(
     .update(borrowRecords)
     .set({
       status: "RETURNED",
-      returnDate: today,
+      returnDate: now,
       returnedBy: actor.email,
       borrowedBy: record.borrowedBy || record.userEmail,
       fineAmount,
@@ -291,7 +290,7 @@ export async function returnBorrowRecordWithoutFine(
       return { success: false, error: decision.error };
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
     const noteLine = reason?.trim()
       ? `Fine-free return: ${reason.trim()}`
       : "Fine-free return by admin";
@@ -301,7 +300,7 @@ export async function returnBorrowRecordWithoutFine(
       .update(borrowRecords)
       .set({
         status: "RETURNED",
-        returnDate: today,
+        returnDate: now,
         returnedBy: actor.email,
         borrowedBy: record.borrowedBy || record.userEmail,
         fineAmount: "0.00",
@@ -379,11 +378,13 @@ export async function rejectBorrowRecord(
     }
 
     // Soft-cancel: keep the row so profile + admin lists retain history.
+    const now = new Date();
     const updated = await tx
       .update(borrowRecords)
       .set({
         status: "CANCELLED",
-        updatedAt: new Date(),
+        cancelledAt: now,
+        updatedAt: now,
         updatedBy: actorEmail ?? "admin",
         notes: "Rejected by admin",
       })
@@ -435,11 +436,13 @@ export async function cancelOwnBorrowRecord(
       return { success: false, error: decision.error };
     }
 
+    const now = new Date();
     const updated = await tx
       .update(borrowRecords)
       .set({
         status: "CANCELLED",
-        updatedAt: new Date(),
+        cancelledAt: now,
+        updatedAt: now,
         updatedBy: actor.email,
         notes: "Cancelled by borrower",
       })
@@ -496,11 +499,13 @@ export function rejectBorrowRecords(
     }
 
     // Soft-cancel all selected pending rows (preserve audit trail).
+    const now = new Date();
     await tx
       .update(borrowRecords)
       .set({
         status: "CANCELLED",
-        updatedAt: new Date(),
+        cancelledAt: now,
+        updatedAt: now,
         updatedBy: actorEmail ?? "admin",
         notes: "Rejected by admin",
       })

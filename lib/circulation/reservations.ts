@@ -15,6 +15,10 @@ import {
   type AuthorizedActor,
 } from "@/lib/auth/authorization";
 import { RESERVATION_OUTBOX_LOCK_TIMEOUT_MS } from "@/lib/circulation/outboxPolicy";
+import {
+  addCalendarDaysUtcNoon,
+  getCalendarDaysUntilDue,
+} from "@/lib/fines/liveFine";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -350,13 +354,19 @@ export function renewBorrow(
   actor: AuthorizedActor,
   commandId?: string,
 ): Promise<
-  CirculationResult<{ bookId: string; dueDate: string; renewalCount: number }>
+  CirculationResult<{
+    bookId: string;
+    dueDate: string;
+    renewalCount: number;
+    renewedAt: string;
+  }>
 > {
   return db.transaction(async (tx) => {
     type RenewalResult = CirculationResult<{
       bookId: string;
       dueDate: string;
       renewalCount: number;
+      renewedAt: string;
     }>;
     if (commandId) {
       const [claim] = await tx
@@ -411,11 +421,11 @@ export function renewBorrow(
     if (!record)
       return finish({ success: false, error: "Borrow record not found" });
     assertOwnerOrAdmin(actor, record.userId);
-    const today = new Date().toISOString().slice(0, 10);
+    const daysUntilDue = getCalendarDaysUntilDue(record.dueDate);
     if (
       record.status !== "BORROWED" ||
-      !record.dueDate ||
-      record.dueDate < today
+      daysUntilDue == null ||
+      daysUntilDue < 0
     )
       return finish({ success: false, error: "This loan cannot be renewed" });
     const [maxRenewals, duration] = await Promise.all([
@@ -440,16 +450,21 @@ export function renewBorrow(
         success: false,
         error: "Another user is waiting for this book",
       });
-    const dueDate = new Date(`${record.dueDate}T00:00:00Z`);
-    dueDate.setUTCDate(dueDate.getUTCDate() + duration);
-    const nextDate = dueDate.toISOString().slice(0, 10);
+    const dueBase =
+      record.dueDate instanceof Date
+        ? record.dueDate
+        : new Date(String(record.dueDate));
+    const nextDue = addCalendarDaysUtcNoon(dueBase, duration);
+    const nextDate = nextDue.toISOString();
     const renewalCount = record.renewalCount + 1;
+    const now = new Date();
     await tx
       .update(borrowRecords)
       .set({
-        dueDate: nextDate,
+        dueDate: nextDue,
         renewalCount,
-        updatedAt: new Date(),
+        renewedAt: now,
+        updatedAt: now,
         updatedBy: actor.email,
       })
       .where(
@@ -460,7 +475,12 @@ export function renewBorrow(
       );
     return finish({
       success: true,
-      data: { bookId: record.bookId, dueDate: nextDate, renewalCount },
+      data: {
+        bookId: record.bookId,
+        dueDate: nextDate,
+        renewalCount,
+        renewedAt: now.toISOString(),
+      },
     });
   });
 }
@@ -514,9 +534,8 @@ export function fulfillReservation(
       return { success: false, error: "Reservation has expired" };
     }
     const duration = await numericConfig(tx, "borrow_duration_days", 7);
-    const due = new Date();
-    due.setUTCDate(due.getUTCDate() + duration);
-    const dueDate = due.toISOString().slice(0, 10);
+    const now = new Date();
+    const dueDate = addCalendarDaysUtcNoon(now, duration);
     const [borrow] = await tx
       .insert(borrowRecords)
       .values({
@@ -525,6 +544,7 @@ export function fulfillReservation(
         status: "BORROWED",
         borrowedBy: actor.email,
         dueDate,
+        approvedAt: now,
         updatedBy: actor.email,
       })
       .returning({ id: borrowRecords.id });
@@ -544,7 +564,7 @@ export function fulfillReservation(
       );
     return {
       success: true,
-      data: { bookId: reservation.bookId, borrowId: borrow.id, dueDate },
+      data: { bookId: reservation.bookId, borrowId: borrow.id, dueDate: dueDate.toISOString() },
     };
   });
 }

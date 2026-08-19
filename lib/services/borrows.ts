@@ -31,6 +31,9 @@ export interface BorrowRecord {
   borrowDate: Date | null;
   dueDate: string | null; // Can be null for pending requests
   returnDate: string | null;
+  approvedAt?: string | Date | null;
+  cancelledAt?: string | Date | null;
+  renewedAt?: string | Date | null;
   status: BorrowStatus;
   // Enhanced tracking fields
   borrowedBy: string | null;

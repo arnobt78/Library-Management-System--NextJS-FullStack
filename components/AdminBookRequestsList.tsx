@@ -34,6 +34,7 @@ import {
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
 import { borrowDaysOverdue } from "@/lib/admin/borrowDaysOverdue";
 import { parseStoredFine } from "@/lib/fines/liveFine";
+import { borrowQueueFineLabel } from "@/lib/fines/queueFineLabel";
 import { cn } from "@/lib/utils";
 import type { AdminDashboardStats } from "@/lib/admin/adminDashboardStatsTypes";
 import { queryKeys } from "@/lib/query/keys";
@@ -453,17 +454,21 @@ const AdminBookRequestsList: React.FC<AdminBookRequestsListProps> = ({
             r.displayFineAmount ?? r.fineAmount ?? "0",
           );
           const overdueDays = borrowDaysOverdue(r.status, r.dueDate);
-          if (!Number.isFinite(amount) || amount <= 0) {
-            return <span className="text-xs tabular-nums text-gray-400">—</span>;
-          }
+          const label = borrowQueueFineLabel({
+            fineStatus: r.fineStatus,
+            amount,
+            overdueDays,
+          });
           return (
             <span
               className={cn(
-                "text-xs font-medium tabular-nums",
-                overdueDays > 0 ? "text-rose-700" : "text-dark-400",
+                "text-xs tabular-nums",
+                label.tone === "muted" && "text-gray-400",
+                label.tone === "overdue" && "font-medium text-rose-700",
+                label.tone === "plain" && "font-medium text-dark-400",
               )}
             >
-              ${amount.toFixed(2)}
+              {label.display}
             </span>
           );
         },

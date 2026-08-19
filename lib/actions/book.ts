@@ -10,6 +10,7 @@ import {
 import { parseEntityId } from "@/lib/actionInputs";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { logActivity } from "@/lib/admin/activityLog";
+import { serializeBorrowTimestamp } from "@/lib/borrows/serializeBorrowTimestamp";
 import { cancelOwnBorrowRecord } from "@/lib/admin/borrowLifecycle";
 
 /**
@@ -32,6 +33,9 @@ export type BorrowBookResponse =
         borrowDate: Date | null;
         dueDate: string | null;
         returnDate: string | null;
+        approvedAt?: string | null;
+        cancelledAt?: string | null;
+        renewedAt?: string | null;
         status: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
         borrowedBy: string | null;
         returnedBy: string | null;
@@ -136,7 +140,17 @@ export const borrowBook = async (
       });
       revalidateMutationPaths("borrow.lifecycle");
       // Strip audit-only bookTitle from the client response contract.
-      return { success: true as const, data: result.data };
+      return {
+        success: true as const,
+        data: result.data.map((row) => ({
+          ...row,
+          dueDate: serializeBorrowTimestamp(row.dueDate),
+          returnDate: serializeBorrowTimestamp(row.returnDate),
+          approvedAt: serializeBorrowTimestamp(row.approvedAt),
+          cancelledAt: serializeBorrowTimestamp(row.cancelledAt),
+          renewedAt: serializeBorrowTimestamp(row.renewedAt),
+        })),
+      };
     }
     return result;
   } catch (error: unknown) {

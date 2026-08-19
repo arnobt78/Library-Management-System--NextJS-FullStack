@@ -81,7 +81,7 @@ export function BorrowQueueStatusActorCell({
           badge={<BorrowStatusBadge status="CANCELLED" />}
           actorLabel="Self-cancelled"
           actorLabelClassName="text-rose-700"
-          decidedAt={r.updatedAt}
+          decidedAt={r.cancelledAt ?? r.updatedAt}
           showActor
         />
       );
@@ -91,7 +91,7 @@ export function BorrowQueueStatusActorCell({
       return (
         <div className="flex min-w-0 flex-col items-start gap-1 leading-none">
           <BorrowStatusBadge status="CANCELLED" />
-          <DecisionDateMeta status="CANCELLED" at={r.updatedAt} />
+          <DecisionDateMeta status="CANCELLED" at={r.cancelledAt ?? r.updatedAt} />
         </div>
       );
     }
@@ -107,7 +107,7 @@ export function BorrowQueueStatusActorCell({
           universityCard: actor!.universityCard,
         }}
         actorHref={actor!.id ? `/admin/users/${actor!.id}` : null}
-        decidedAt={r.updatedAt}
+        decidedAt={r.cancelledAt ?? r.updatedAt}
         showActor
       />
     );
@@ -130,7 +130,7 @@ export function BorrowQueueStatusActorCell({
             : null
         }
         actorHref={actor?.id ? `/admin/users/${actor.id}` : null}
-        decidedAt={r.updatedAt}
+        decidedAt={r.approvedAt}
         decisionLabel="Approved:"
         showActor={Boolean(actor?.fullName || actor?.email)}
         extraMeta={<BorrowDueMeta dueDate={r.dueDate} />}

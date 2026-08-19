@@ -206,8 +206,11 @@ export const borrowRecords = pgTable("borrow_records", {
   borrowDate: timestamp("borrow_date", { withTimezone: true })
     .defaultNow()
     .notNull(), // When borrow request was created
-  dueDate: date("due_date"), // Nullable - set when admin approves (7 days from approval)
-  returnDate: date("return_date"), // When book was actually returned
+  dueDate: timestamp("due_date", { withTimezone: true }), // UTC noon of due calendar day (set on approve)
+  returnDate: timestamp("return_date", { withTimezone: true }), // When the book was actually returned
+  approvedAt: timestamp("approved_at", { withTimezone: true }), // Set only on approve — not waive/renew/return
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }), // Set once on reject / owner cancel
+  renewedAt: timestamp("renewed_at", { withTimezone: true }), // Last successful renew
   status: BORROW_STATUS_ENUM("status").default("BORROWED").notNull(), // Current status
   // Enhanced tracking and control fields
   borrowedBy: text("borrowed_by"), // Who actually borrowed (email for readability, not UUID)

@@ -142,6 +142,7 @@ const columns: ColumnDef<OverdueBook>[] = [
               <TicketDateMeta
                 createdAt={r.dueDate}
                 createdLabel="Due"
+                createdDateOnly
                 updatedAt={r.borrowDate}
                 updatedLabel="Borrowed"
                 hideUpdated={!r.borrowDate}

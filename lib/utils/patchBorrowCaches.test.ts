@@ -38,6 +38,9 @@ function makeUserBorrow(
     borrowDate: overrides.borrowDate ?? new Date("2026-08-01"),
     dueDate: overrides.dueDate ?? null,
     returnDate: overrides.returnDate ?? null,
+    approvedAt: overrides.approvedAt,
+    cancelledAt: overrides.cancelledAt,
+    renewedAt: overrides.renewedAt,
     status: overrides.status ?? "PENDING",
     borrowedBy: overrides.borrowedBy ?? null,
     returnedBy: overrides.returnedBy ?? null,
@@ -79,6 +82,9 @@ function makeRequest(
     borrowDate: overrides.borrowDate ?? new Date("2026-08-01"),
     dueDate: overrides.dueDate ?? null,
     returnDate: overrides.returnDate ?? null,
+    approvedAt: overrides.approvedAt,
+    cancelledAt: overrides.cancelledAt,
+    renewedAt: overrides.renewedAt,
     status: overrides.status ?? "PENDING",
     borrowedBy: overrides.borrowedBy ?? null,
     returnedBy: overrides.returnedBy ?? null,
@@ -558,6 +564,38 @@ describe("patchBorrowCaches", () => {
     expect(next?.cancelledByActor).toEqual(actor);
   });
 
+  it("CANCELLED densify keeps cancelledAt when a later updatedAt patch omits it", () => {
+    const client = new QueryClient();
+    const cancelledAt = "2026-08-10T10:00:00.000Z";
+    const detail = makeRequest({ id: "c-2", status: "PENDING" });
+    client.setQueryData(queryKeys.borrows.requestDetail("c-2"), detail);
+    client.setQueryData(queryKeys.borrows.requests({}), [detail]);
+
+    patchBorrowCachesOnStatusChange(client, {
+      recordId: "c-2",
+      patch: {
+        status: "CANCELLED",
+        cancelledAt,
+        updatedAt: new Date(cancelledAt),
+      },
+      userId: "user-1",
+      bookId: "book-1",
+      fromStatus: "PENDING",
+    });
+    patchBorrowCachesOnStatusChange(client, {
+      recordId: "c-2",
+      patch: { updatedAt: new Date("2026-08-19T16:00:00.000Z") },
+      userId: "user-1",
+      bookId: "book-1",
+    });
+
+    const next = client.getQueryData<BorrowRecordWithDetails>(
+      queryKeys.borrows.requestDetail("c-2"),
+    );
+    expect(next?.cancelledAt).toBe(cancelledAt);
+    expect(next?.updatedAt).toEqual(new Date("2026-08-19T16:00:00.000Z"));
+  });
+
   it("prependBorrowAuditEvent enriches null card from approvedByActor", () => {
     const client = new QueryClient();
     client.setQueryData(
@@ -626,6 +664,7 @@ describe("patchBorrowCaches", () => {
       userId: "user-1",
       dueDate: "2026-08-17",
       renewalCount: 1,
+      renewedAt: "2026-08-12T09:30:00.000Z",
     });
 
     const detail = client.getQueryData<BorrowRecordWithDetails>(
@@ -633,6 +672,7 @@ describe("patchBorrowCaches", () => {
     );
     expect(detail?.dueDate).toBe("2026-08-17");
     expect(detail?.renewalCount).toBe(1);
+    expect(detail?.renewedAt).toBe("2026-08-12T09:30:00.000Z");
   });
 
   it("patchBookInventory syncs bookAvailableCopies onto queue and detail rows", () => {

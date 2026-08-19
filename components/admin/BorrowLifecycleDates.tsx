@@ -6,8 +6,8 @@
  * Parent: dialog inventory + dates DNA
  */
 
-import { Calendar, CalendarX, CheckCircle2, Clock } from "lucide-react";
-import { formatMediumDate } from "@/lib/ui/formatMediumDate";
+import { Calendar, CalendarX, CheckCircle2, Clock, RotateCcw } from "lucide-react";
+import { formatMediumDate, formatMediumDateTime } from "@/lib/ui/formatMediumDate";
 import { cn } from "@/lib/utils";
 
 type BorrowLifecycleStatus =
@@ -24,6 +24,7 @@ function DateLine({
   tone,
   iconTone,
   valueTone,
+  withTime = false,
 }: {
   label: string;
   value: string | Date | null | undefined;
@@ -31,8 +32,9 @@ function DateLine({
   tone: string;
   iconTone: string;
   valueTone: string;
+  withTime?: boolean;
 }) {
-  const text = formatMediumDate(value);
+  const text = withTime ? formatMediumDateTime(value) : formatMediumDate(value);
   if (!value || text === "—") return null;
   // w-max + nowrap — icon+label+date stay one line; Status col grows to fit
   return (
@@ -54,6 +56,9 @@ export function BorrowLifecycleDates({
   createdAt,
   borrowDate,
   updatedAt,
+  approvedAt,
+  cancelledAt,
+  renewedAt,
   dueDate,
   returnDate,
   className,
@@ -63,6 +68,9 @@ export function BorrowLifecycleDates({
   createdAt?: string | Date | null;
   borrowDate?: string | Date | null;
   updatedAt?: string | Date | null;
+  approvedAt?: string | Date | null;
+  cancelledAt?: string | Date | null;
+  renewedAt?: string | Date | null;
   dueDate?: string | Date | null;
   returnDate?: string | Date | null;
   className?: string;
@@ -73,10 +81,13 @@ export function BorrowLifecycleDates({
   const valueTone = isDark ? "text-light-200" : "text-gray-700";
   const requested = createdAt ?? borrowDate;
   const showApproved =
-    (status === "BORROWED" || status === "RETURNED") && updatedAt;
+    (status === "BORROWED" || status === "RETURNED") && Boolean(approvedAt);
   const showDue = Boolean(dueDate) && status !== "CANCELLED";
+  const showRenewed =
+    Boolean(renewedAt) && status !== "CANCELLED" && status !== "PENDING";
   const showReturned = status === "RETURNED" && returnDate;
-  const showCancelled = status === "CANCELLED" && updatedAt;
+  const cancelledStamp = cancelledAt ?? updatedAt;
+  const showCancelled = status === "CANCELLED" && cancelledStamp;
 
   return (
     <div className={cn("mt-1 flex flex-col gap-0.5 leading-none", className)}>
@@ -87,15 +98,17 @@ export function BorrowLifecycleDates({
         tone={isDark ? "text-sky-300" : "text-sky-700"}
         iconTone={isDark ? "text-sky-300" : "text-sky-600"}
         valueTone={valueTone}
+        withTime
       />
       {showApproved ? (
         <DateLine
           label="Approved"
-          value={updatedAt}
+          value={approvedAt}
           icon={CheckCircle2}
           tone={isDark ? "text-blue-300" : "text-blue-700"}
           iconTone={isDark ? "text-blue-300" : "text-blue-600"}
           valueTone={valueTone}
+          withTime
         />
       ) : null}
       {showDue ? (
@@ -108,6 +121,17 @@ export function BorrowLifecycleDates({
           valueTone={valueTone}
         />
       ) : null}
+      {showRenewed ? (
+        <DateLine
+          label="Renewed"
+          value={renewedAt}
+          icon={RotateCcw}
+          tone={isDark ? "text-purple-300" : "text-purple-700"}
+          iconTone={isDark ? "text-purple-300" : "text-purple-600"}
+          valueTone={valueTone}
+          withTime
+        />
+      ) : null}
       {showReturned ? (
         <DateLine
           label="Returned"
@@ -116,16 +140,18 @@ export function BorrowLifecycleDates({
           tone={isDark ? "text-emerald-300" : "text-emerald-700"}
           iconTone={isDark ? "text-emerald-300" : "text-emerald-600"}
           valueTone={valueTone}
+          withTime
         />
       ) : null}
       {showCancelled ? (
         <DateLine
           label="Cancelled"
-          value={updatedAt}
+          value={cancelledStamp}
           icon={CalendarX}
           tone={isDark ? "text-rose-300" : "text-slate-600"}
           iconTone={isDark ? "text-rose-300" : "text-slate-500"}
           valueTone={valueTone}
+          withTime
         />
       ) : null}
     </div>

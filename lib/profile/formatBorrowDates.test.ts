@@ -12,6 +12,10 @@ describe("formatBorrowDates", () => {
     );
   });
 
+  it("formats UTC-noon due timestamps as calendar date only", () => {
+    expect(formatBorrowDate("2026-03-15T12:00:00.000Z")).toBe("Mar 15, 2026");
+  });
+
   it("formats timestamps with UTC time", () => {
     expect(formatBorrowDateTime("2026-03-15T14:30:00.000Z")).toBe(
       "Mar 15, 2026, 2:30 PM",

@@ -8,6 +8,7 @@ import { getDeterministicInsights } from "@/lib/admin/actions/analytics";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
 import { getFineRateHistory } from "@/lib/fines/rateHistory";
 import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
+import { dueUtcBeforeTodaySql } from "@/lib/fines/dueCalendarSql";
 import { parseProfilePagination } from "@/lib/actionInputs";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
 import type { AdminPrivilegeHistoryEntry } from "@/lib/admin/adminPrivilegeHistory";
@@ -89,6 +90,9 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         borrowDate: borrowRecords.borrowDate,
         dueDate: borrowRecords.dueDate,
         returnDate: borrowRecords.returnDate,
+        approvedAt: borrowRecords.approvedAt,
+        cancelledAt: borrowRecords.cancelledAt,
+        renewedAt: borrowRecords.renewedAt,
         storedFineAmount: borrowRecords.fineAmount,
         fineStatus: borrowRecords.fineStatus,
         renewalCount: borrowRecords.renewalCount,
@@ -205,7 +209,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
       .orderBy(desc(activityLogs.createdAt))
       .limit(25),
     db.execute(
-      sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'PENDING')::int AS pending, COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS current, COUNT(*) FILTER (WHERE status = 'RETURNED')::int AS returned, COUNT(*) FILTER (WHERE status = 'BORROWED' AND due_date < CURRENT_DATE)::int AS overdue, COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR return_date <= due_date)) / NULLIF(COUNT(*) FILTER (WHERE status = 'RETURNED'), 0), 1), 0)::numeric AS on_time_rate, COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (COALESCE(return_date::timestamp, CURRENT_DATE::timestamp) - borrow_date)) / 86400.0), 1), 0)::numeric AS average_loan_days FROM borrow_records WHERE user_id = ${userId}`,
+      sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'PENDING')::int AS pending, COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS current, COUNT(*) FILTER (WHERE status = 'RETURNED')::int AS returned, COUNT(*) FILTER (WHERE status = 'BORROWED' AND (due_date AT TIME ZONE 'UTC')::date < CURRENT_DATE)::int AS overdue, COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR (return_date AT TIME ZONE 'UTC')::date <= (due_date AT TIME ZONE 'UTC')::date)) / NULLIF(COUNT(*) FILTER (WHERE status = 'RETURNED'), 0), 1), 0)::numeric AS on_time_rate, COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (COALESCE(return_date, CURRENT_DATE::timestamptz) - borrow_date)) / 86400.0), 1), 0)::numeric AS average_loan_days FROM borrow_records WHERE user_id = ${userId}`,
     ),
     db
       .select({
@@ -219,7 +223,7 @@ export async function getAdminUserProfile(userId: string, page = 1, size = 25) {
         and(
           eq(borrowRecords.userId, userId),
           eq(borrowRecords.status, "BORROWED"),
-          sql`${borrowRecords.dueDate} < CURRENT_DATE`,
+          dueUtcBeforeTodaySql,
         ),
       ),
     db

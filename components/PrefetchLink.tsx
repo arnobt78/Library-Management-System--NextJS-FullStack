@@ -275,6 +275,9 @@ export default function PrefetchLink({
               mergeDensifiedDetail(prevDetail, hit, [
                 "auditEvents",
                 "approvedByActor",
+                "approvedAt",
+                "cancelledAt",
+                "renewedAt",
                 "returnedByActor",
                 "cancelledByActor",
               ]),
@@ -291,6 +294,9 @@ export default function PrefetchLink({
             return mergeDensifiedDetail(cached, fresh, [
               "auditEvents",
               "approvedByActor",
+              "approvedAt",
+              "cancelledAt",
+              "renewedAt",
               "returnedByActor",
               "cancelledByActor",
             ]);

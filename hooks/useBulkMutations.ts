@@ -6,6 +6,7 @@
 "use client";
 
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { addCalendarDaysUtcNoon } from "@/lib/fines/liveFine";
 import {
   bulkActivateBooks,
   bulkApproveBorrowRequests,
@@ -129,11 +130,9 @@ function densifyBulkBorrowStatus(
     status === "BORROWED"
       ? snapshotBorrowCacheBaselines(queryClient, bookIds)
       : undefined;
-  const dueDate = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().slice(0, 10);
-  })();
+  const dueDate = addCalendarDaysUtcNoon(new Date(), 7).toISOString();
+  const approvedAt = new Date().toISOString();
+  const cancelledAt = new Date().toISOString();
 
   for (const recordId of recordIds) {
     const meta = findCachedBorrowMeta(queryClient, recordId);
@@ -149,8 +148,8 @@ function densifyBulkBorrowStatus(
         recordId,
         patch:
           status === "BORROWED"
-            ? { status: "BORROWED", dueDate }
-            : { status: "CANCELLED" },
+            ? { status: "BORROWED", dueDate, approvedAt }
+            : { status: "CANCELLED", cancelledAt },
         userId: meta?.userId,
         bookId: meta?.bookId,
         fromStatus,

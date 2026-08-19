@@ -201,6 +201,9 @@ export function BorrowLifecycleAlertDialog({
                     createdAt={request.createdAt}
                     borrowDate={request.borrowDate}
                     updatedAt={request.updatedAt}
+                    approvedAt={request.approvedAt}
+                    cancelledAt={request.cancelledAt}
+                    renewedAt={request.renewedAt}
                     dueDate={request.dueDate}
                     returnDate={request.returnDate}
                     className="mt-0"

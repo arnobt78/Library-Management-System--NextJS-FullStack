@@ -100,6 +100,9 @@ interface BorrowRecord {
   borrowDate: Date;
   dueDate: Date | null; // Can be null for pending requests
   returnDate?: Date | null;
+  approvedAt?: Date | null;
+  cancelledAt?: Date | null;
+  renewedAt?: Date | null;
   status: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
   // Enhanced tracking and control fields
   borrowedBy?: string | null;

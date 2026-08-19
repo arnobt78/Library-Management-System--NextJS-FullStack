@@ -391,8 +391,8 @@ async function seedBorrowRecords() {
         userId: row.user_id,
         bookId: row.book_id,
         borrowDate: parseDate(row.borrow_date) || new Date(),
-        dueDate: formatDateForPostgres(parseDate(row.due_date)),
-        returnDate: formatDateForPostgres(parseDate(row.return_date)),
+        dueDate: parseDate(row.due_date),
+        returnDate: parseDate(row.return_date),
         status:
           (row.status as "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED") || "BORROWED",
         borrowedBy: row.borrowed_by || null,

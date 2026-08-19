@@ -113,6 +113,9 @@ type BorrowRowPatch = {
   status?: BorrowStatus;
   dueDate?: string | null;
   returnDate?: string | null;
+  approvedAt?: string | Date | null;
+  cancelledAt?: string | Date | null;
+  renewedAt?: string | Date | null;
   fineAmount?: string | null;
   displayFineAmount?: string | null;
   fineStatus?: string | null;
@@ -162,6 +165,24 @@ function upsertBorrowRequestDetail(
           : patch.updatedAt
             ? new Date(patch.updatedAt)
             : null,
+    approvedAt:
+      patch.approvedAt === undefined
+        ? existing.approvedAt
+        : patch.approvedAt instanceof Date
+          ? patch.approvedAt.toISOString()
+          : patch.approvedAt,
+    cancelledAt:
+      patch.cancelledAt === undefined
+        ? existing.cancelledAt
+        : patch.cancelledAt instanceof Date
+          ? patch.cancelledAt.toISOString()
+          : patch.cancelledAt,
+    renewedAt:
+      patch.renewedAt === undefined
+        ? existing.renewedAt
+        : patch.renewedAt instanceof Date
+          ? patch.renewedAt.toISOString()
+          : patch.renewedAt,
   };
   queryClient.setQueryData<BorrowRecordWithDetails>(key, next);
 }
@@ -804,6 +825,9 @@ function buildRequestRowFromCreate(
     borrowDate: args.serverRecord.borrowDate ?? userBorrow?.borrowDate ?? null,
     dueDate: args.serverRecord.dueDate ?? null,
     returnDate: args.serverRecord.returnDate ?? null,
+    approvedAt: args.serverRecord.approvedAt ?? null,
+    cancelledAt: args.serverRecord.cancelledAt ?? null,
+    renewedAt: args.serverRecord.renewedAt ?? null,
     status: args.serverRecord.status ?? "PENDING",
     borrowedBy: args.serverRecord.borrowedBy ?? null,
     returnedBy: args.serverRecord.returnedBy ?? null,
@@ -895,6 +919,9 @@ export function patchBorrowCachesOnCreate(
           borrowDate: args.serverRecord.borrowDate ?? null,
           dueDate: args.serverRecord.dueDate ?? null,
           returnDate: args.serverRecord.returnDate ?? null,
+          approvedAt: args.serverRecord.approvedAt ?? null,
+          cancelledAt: args.serverRecord.cancelledAt ?? null,
+          renewedAt: args.serverRecord.renewedAt ?? null,
           borrowedBy: args.serverRecord.borrowedBy ?? null,
           returnedBy: args.serverRecord.returnedBy ?? null,
           fineAmount: args.serverRecord.fineAmount ?? null,
@@ -972,6 +999,7 @@ export function patchBorrowCachesOnRenewal(
     userId: string;
     dueDate: string | Date | null;
     renewalCount: number;
+    renewedAt?: string | Date | null;
   },
   baselines?: BorrowListBaselines,
 ): void {
@@ -980,6 +1008,12 @@ export function patchBorrowCachesOnRenewal(
     args.dueDate instanceof Date
       ? args.dueDate.toISOString()
       : args.dueDate;
+  const nextRenewedAt: string | null =
+    args.renewedAt === undefined
+      ? new Date().toISOString()
+      : args.renewedAt instanceof Date
+        ? args.renewedAt.toISOString()
+        : args.renewedAt;
   mapUserBorrowLists(
     queryClient,
     args.userId,
@@ -990,6 +1024,7 @@ export function patchBorrowCachesOnRenewal(
               ...r,
               dueDate: nextDue as BorrowRecordFull["dueDate"],
               renewalCount: args.renewalCount,
+              renewedAt: nextRenewedAt,
             } as BorrowRecordFull)
           : r,
       ),
@@ -1004,6 +1039,7 @@ export function patchBorrowCachesOnRenewal(
               ...r,
               dueDate: nextDue as BorrowRecordWithDetails["dueDate"],
               renewalCount: args.renewalCount,
+              renewedAt: nextRenewedAt,
             } as BorrowRecordWithDetails)
           : r,
       ),
@@ -1012,6 +1048,7 @@ export function patchBorrowCachesOnRenewal(
   upsertBorrowRequestDetail(queryClient, args.recordId, {
     dueDate: nextDue,
     renewalCount: args.renewalCount,
+    renewedAt: nextRenewedAt,
   });
 }
 

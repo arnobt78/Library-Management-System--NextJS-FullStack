@@ -20,10 +20,12 @@ import ReservationsPanel, {
 import { countActiveHolds } from "@/lib/profile/activeHolds";
 import { FilterSelect } from "@/components/ui/filter-select";
 import type { AdminRequestReviewer } from "@/lib/admin/adminRequestTypes";
+import { formatBorrowDate } from "@/lib/profile/formatBorrowDates";
+import { formatMediumDateTime } from "@/lib/ui/formatMediumDate";
 import {
-  formatBorrowDate,
-  formatBorrowDateTime,
-} from "@/lib/profile/formatBorrowDates";
+  serializeBorrowTimestamp,
+  toStableBorrowDate,
+} from "@/lib/borrows/serializeBorrowTimestamp";
 import {
   activeBorrowStatusFilterOptions,
   borrowHistoryStatusFilterOptions,
@@ -130,6 +132,9 @@ interface BorrowRecordWithBook {
   borrowDate: Date;
   dueDate: Date | null; // Can be null for pending requests
   returnDate?: Date | null;
+  approvedAt?: Date | string | null;
+  cancelledAt?: Date | string | null;
+  renewedAt?: Date | string | null;
   status: "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED";
   borrowedBy?: string | null;
   returnedBy?: string | null;
@@ -466,11 +471,20 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         bookId: record.bookId,
         borrowDate: record.borrowDate,
         dueDate: record.dueDate
-          ? new Date(record.dueDate).toISOString().split("T")[0]
+          ? serializeBorrowTimestamp(record.dueDate)
           : null,
         returnDate: record.returnDate
-          ? new Date(record.returnDate).toISOString().split("T")[0]
+          ? serializeBorrowTimestamp(record.returnDate)
           : null,
+        approvedAt: serializeBorrowTimestamp(
+          (record as { approvedAt?: string | Date | null }).approvedAt,
+        ),
+        cancelledAt: serializeBorrowTimestamp(
+          (record as { cancelledAt?: string | Date | null }).cancelledAt,
+        ),
+        renewedAt: serializeBorrowTimestamp(
+          (record as { renewedAt?: string | Date | null }).renewedAt,
+        ),
         status: record.status,
         borrowedBy: record.borrowedBy ?? null,
         returnedBy: record.returnedBy ?? null,
@@ -577,16 +591,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       return [];
     }
 
-    const getStableDate = (
-      dateString: string | Date | null | undefined,
-    ): Date | null => {
-      if (!dateString) return null;
-      const timestamp =
-        typeof dateString === "string"
-          ? new Date(dateString).getTime()
-          : dateString.getTime();
-      return new Date(timestamp);
-    };
+    const getStableDate = toStableBorrowDate;
 
     // reactQueryBorrows is BorrowRecordFull[] — `record.book` is properly typed,
     // no any-casting needed. The API's INNER JOIN guarantees book is present
@@ -598,6 +603,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
       borrowDate: getStableDate(record.borrowDate) || new Date(),
       dueDate: getStableDate(record.dueDate),
       returnDate: getStableDate(record.returnDate),
+      approvedAt: getStableDate(record.approvedAt),
+      cancelledAt: getStableDate(record.cancelledAt),
+      renewedAt: getStableDate(record.renewedAt),
       status: record.status,
       borrowedBy: record.borrowedBy,
       returnedBy: record.returnedBy,
@@ -1050,8 +1058,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
   const formatDate = (date: Date | string | null) =>
     formatBorrowDate(date) ?? "N/A";
-  const formatDateTime = (date: Date | string | null) =>
-    formatBorrowDateTime(date);
+  const formatLocalClock = (date: Date | string | null | undefined) => {
+    if (!date) return null;
+    const text = formatMediumDateTime(date);
+    return text === "—" ? null : text;
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -1158,9 +1169,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                   ? "profile-borrow-row--borrowed"
                   : "";
 
-      const approvedAt = formatDateTime(record.updatedAt);
-      const requestedAt = formatDateTime(record.borrowDate);
-      const returnedOn = formatBorrowDate(record.returnDate);
+      const approvedAt = formatLocalClock(record.approvedAt);
+      const requestedAt = formatLocalClock(record.borrowDate);
+      const returnedOn = formatLocalClock(record.returnDate);
 
       return (
         <div role="article" className={cn("profile-borrow-row", rowAccent)}>
@@ -1484,6 +1495,12 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           nextProps.record.dueDate?.getTime() &&
         prevProps.record.returnDate?.getTime() ===
           nextProps.record.returnDate?.getTime() &&
+        toStableBorrowDate(prevProps.record.approvedAt)?.getTime() ===
+          toStableBorrowDate(nextProps.record.approvedAt)?.getTime() &&
+        toStableBorrowDate(prevProps.record.cancelledAt)?.getTime() ===
+          toStableBorrowDate(nextProps.record.cancelledAt)?.getTime() &&
+        toStableBorrowDate(prevProps.record.renewedAt)?.getTime() ===
+          toStableBorrowDate(nextProps.record.renewedAt)?.getTime() &&
         prevProps.record.updatedAt?.getTime() ===
           nextProps.record.updatedAt?.getTime() &&
         prevProps.record.fineAmount === nextProps.record.fineAmount &&
@@ -1577,6 +1594,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                     ...item,
                     dueDate: result.data.dueDate,
                     renewalCount: result.data.renewalCount,
+                    renewedAt: result.data.renewedAt ?? new Date().toISOString(),
                   }
                 : item,
             ),
@@ -1591,6 +1609,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                 userId,
                 dueDate: result.data.dueDate,
                 renewalCount: result.data.renewalCount,
+                renewedAt: result.data.renewedAt ?? new Date().toISOString(),
               },
               baselines,
             );
@@ -1671,6 +1690,9 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
           createdAt={record.createdAt}
           borrowDate={record.borrowDate}
           updatedAt={record.updatedAt}
+          approvedAt={record.approvedAt}
+          cancelledAt={record.cancelledAt}
+          renewedAt={record.renewedAt}
           dueDate={record.dueDate}
           returnDate={record.returnDate}
           variant="dark"

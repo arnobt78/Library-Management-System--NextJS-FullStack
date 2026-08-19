@@ -10,6 +10,7 @@ import type { BorrowRecord } from "@/lib/services/borrows";
 import type { UserReservationItem } from "@/lib/services/reservations";
 import { getHomepageHeroBook } from "@/lib/admin/actions/book";
 import { loadUserReservationsSsr } from "@/lib/circulation/loadUserReservationsSsr";
+import { mapSsrBorrowRecord } from "@/lib/borrows/mapSsrBorrowRecord";
 
 const Home = async () => {
   const session = await auth();
@@ -40,6 +41,9 @@ const Home = async () => {
         borrowDate: borrowRecords.borrowDate,
         dueDate: borrowRecords.dueDate,
         returnDate: borrowRecords.returnDate,
+        approvedAt: borrowRecords.approvedAt,
+        cancelledAt: borrowRecords.cancelledAt,
+        renewedAt: borrowRecords.renewedAt,
         status: borrowRecords.status,
         borrowedBy: borrowRecords.borrowedBy,
         returnedBy: borrowRecords.returnedBy,
@@ -55,51 +59,7 @@ const Home = async () => {
       .where(eq(borrowRecords.userId, session.user.id))
       .orderBy(desc(borrowRecords.createdAt));
 
-    // Transform to match BorrowRecord type
-    // Drizzle's date() type returns strings (YYYY-MM-DD), timestamp() returns Date objects
-    // BorrowRecord expects: borrowDate as Date, dueDate/returnDate as string, fineAmount as string
-    initialUserBorrows = userBorrowRecords.map((record) => {
-      // Handle dueDate: Drizzle date() returns string (YYYY-MM-DD format)
-      const dueDateValue = record.dueDate as string | Date | null;
-      let dueDateStr: string | null = null;
-      if (dueDateValue) {
-        if (typeof dueDateValue === "string") {
-          dueDateStr = dueDateValue;
-        } else {
-          dueDateStr = dueDateValue.toISOString().split("T")[0];
-        }
-      }
-
-      // Handle returnDate: Drizzle date() returns string (YYYY-MM-DD format)
-      const returnDateValue = record.returnDate as string | Date | null;
-      let returnDateStr: string | null = null;
-      if (returnDateValue) {
-        if (typeof returnDateValue === "string") {
-          returnDateStr = returnDateValue;
-        } else {
-          returnDateStr = returnDateValue.toISOString().split("T")[0];
-        }
-      }
-
-      return {
-        id: record.id,
-        userId: record.userId,
-        bookId: record.bookId,
-        borrowDate: record.borrowDate, // timestamp() returns Date object
-        dueDate: dueDateStr,
-        returnDate: returnDateStr,
-        status: record.status as "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED",
-        borrowedBy: record.borrowedBy,
-        returnedBy: record.returnedBy,
-        fineAmount: record.fineAmount || "0.00",
-        notes: record.notes,
-        renewalCount: record.renewalCount,
-        lastReminderSent: record.lastReminderSent, // timestamp() returns Date object
-        updatedAt: record.updatedAt, // timestamp() returns Date object
-        updatedBy: record.updatedBy,
-        createdAt: record.createdAt, // timestamp() returns Date object
-      };
-    });
+    initialUserBorrows = userBorrowRecords.map(mapSsrBorrowRecord);
 
     // Waitlisted CTA densify seed — same key as book detail / Holds
     initialReservations = await loadUserReservationsSsr(session.user.id);

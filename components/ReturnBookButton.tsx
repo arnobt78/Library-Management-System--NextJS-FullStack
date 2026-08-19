@@ -38,6 +38,9 @@ interface Props {
   createdAt?: Date | string | null;
   borrowDate?: Date | string | null;
   updatedAt?: Date | string | null;
+  approvedAt?: Date | string | null;
+  cancelledAt?: Date | string | null;
+  renewedAt?: Date | string | null;
   returnDate?: Date | string | null;
 }
 
@@ -54,6 +57,9 @@ const ReturnBookButton = ({
   createdAt,
   borrowDate,
   updatedAt,
+  approvedAt,
+  cancelledAt,
+  renewedAt,
   returnDate,
 }: Props) => {
   const returnBookMutation = useReturnBook();
@@ -172,8 +178,11 @@ const ReturnBookButton = ({
                       status={status}
                       createdAt={createdAt}
                       borrowDate={borrowDate}
-                      updatedAt={updatedAt}
-                      dueDate={dueDate}
+          updatedAt={updatedAt}
+          approvedAt={approvedAt}
+          cancelledAt={cancelledAt}
+          renewedAt={renewedAt}
+          dueDate={dueDate}
                       returnDate={returnDate}
                       variant="dark"
                       className="mt-0"

@@ -218,4 +218,4 @@ Repo reconciled: tip `ad1cc69`, HEAD `e2fbd4b` == `origin/main`. Fines Platform 
 
 ## Session resume note (2026-08-19, fines display shipped)
 
-BL-0018 fines display: calendar overdue, waive/return keeps WAIVED `$0`, Force Update skips WAIVED/PAID (DEC-0114). Owner smoke remaining. EvalGate FAIL / Gate 2 unchanged.
+BL-0018 clocks: mig `0019`/`0020` (`approved_at`, `cancelled_at`, `renewed_at`). Owner prod smoke Distilled approve ≠ waive, Cancelled/renew clocks, Due date-only, Queue Fine Waived. EvalGate FAIL / Gate 2 unchanged.

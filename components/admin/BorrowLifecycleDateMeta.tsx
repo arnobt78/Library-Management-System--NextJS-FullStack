@@ -11,9 +11,11 @@ import {
   CalendarCheck2,
   CalendarX2,
   Clock,
+  RefreshCw,
   ShieldCheck,
   Undo2,
 } from "lucide-react";
+import { formatMediumDate, formatMediumDateTime } from "@/lib/ui/formatMediumDate";
 import { ATTRIBUTION_META_SIZE } from "@/lib/ui/attributionStyles";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +23,13 @@ function formatWhen(value: string | Date | null | undefined): string {
   if (!value) return "N/A";
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "N/A";
-  return d.toLocaleString();
+  return formatMediumDateTime(d);
+}
+
+function formatDueDay(value: string | Date | null | undefined): string {
+  if (!value) return "N/A";
+  const text = formatMediumDate(value);
+  return text === "—" ? "N/A" : text;
 }
 
 type BorrowLifecycleStatus =
@@ -36,6 +44,9 @@ export type BorrowLifecycleDateMetaProps = {
   createdAt?: string | Date | null;
   borrowDate?: string | Date | null;
   updatedAt?: string | Date | null;
+  approvedAt?: string | Date | null;
+  cancelledAt?: string | Date | null;
+  renewedAt?: string | Date | null;
   dueDate?: string | Date | null;
   returnDate?: string | Date | null;
   className?: string;
@@ -48,6 +59,9 @@ export function BorrowLifecycleDateMeta({
   createdAt,
   borrowDate,
   updatedAt,
+  approvedAt,
+  cancelledAt,
+  renewedAt,
   dueDate,
   returnDate,
   className,
@@ -60,6 +74,7 @@ export function BorrowLifecycleDateMeta({
     requested: isDark ? "text-emerald-300/90" : "text-emerald-700",
     approved: isDark ? "text-sky-300/90" : "text-sky-700",
     due: isDark ? "text-violet-300/90" : "text-violet-700",
+    renewed: isDark ? "text-purple-300/90" : "text-purple-700",
     returned: isDark ? "text-emerald-300/90" : "text-emerald-700",
     cancelled: isDark ? "text-rose-300/90" : "text-rose-700",
     updated: isDark ? "text-amber-200/80" : "text-amber-700/90",
@@ -73,32 +88,45 @@ export function BorrowLifecycleDateMeta({
     {
       key: "requested",
       icon: CalendarCheck2,
-      label: `Requested ${formatWhen(createdAt)}`,
+      label: `Requested ${formatWhen(createdAt ?? borrowDate)}`,
     },
   ];
 
-  const approvedAt = borrowDate ?? updatedAt;
+  const approvedStamp = approvedAt;
   if (
     (status === "BORROWED" || status === "RETURNED") &&
-    approvedAt &&
-    formatWhen(approvedAt) !== "N/A"
+    approvedStamp &&
+    formatWhen(approvedStamp) !== "N/A"
   ) {
     chips.push({
       key: "approved",
       icon: ShieldCheck,
-      label: `Approved ${formatWhen(approvedAt)}`,
+      label: `Approved ${formatWhen(approvedStamp)}`,
     });
   }
 
   if (
     dueDate &&
     status !== "CANCELLED" &&
-    formatWhen(dueDate) !== "N/A"
+    formatDueDay(dueDate) !== "N/A"
   ) {
     chips.push({
       key: "due",
       icon: Clock,
-      label: `Due ${formatWhen(dueDate)}`,
+      label: `Due ${formatDueDay(dueDate)}`,
+    });
+  }
+
+  if (
+    renewedAt &&
+    status !== "CANCELLED" &&
+    status !== "PENDING" &&
+    formatWhen(renewedAt) !== "N/A"
+  ) {
+    chips.push({
+      key: "renewed",
+      icon: RefreshCw,
+      label: `Renewed ${formatWhen(renewedAt)}`,
     });
   }
 
@@ -114,15 +142,16 @@ export function BorrowLifecycleDateMeta({
     });
   }
 
+  const cancelledStamp = cancelledAt ?? updatedAt;
   if (
     status === "CANCELLED" &&
-    updatedAt &&
-    formatWhen(updatedAt) !== "N/A"
+    cancelledStamp &&
+    formatWhen(cancelledStamp) !== "N/A"
   ) {
     chips.push({
       key: "cancelled",
       icon: CalendarX2,
-      label: `Cancelled ${formatWhen(updatedAt)}`,
+      label: `Cancelled ${formatWhen(cancelledStamp)}`,
     });
   }
 

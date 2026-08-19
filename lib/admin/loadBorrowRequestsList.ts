@@ -10,6 +10,7 @@ import { borrowRecords, books, reservations, users } from "@/database/schema";
 import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { BorrowRecordWithDetails } from "@/lib/services/borrows";
+import { serializeBorrowTimestamp } from "@/lib/borrows/serializeBorrowTimestamp";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
 import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 import { getFineRateHistory } from "@/lib/fines/rateHistory";
@@ -27,6 +28,9 @@ export function mapBorrowRequestRow(record: {
   borrowDate: Date | null;
   dueDate: string | Date | null;
   returnDate: string | Date | null;
+  approvedAt?: string | Date | null;
+  cancelledAt?: string | Date | null;
+  renewedAt?: string | Date | null;
   status: string;
   borrowedBy: string | null;
   returnedBy: string | null;
@@ -74,22 +78,6 @@ export function mapBorrowRequestRow(record: {
   cancelledByEmail?: string | null;
   cancelledByCard?: string | null;
 }): BorrowRecordWithDetails {
-  const dueDateValue = record.dueDate;
-  let dueDateStr: string | null = null;
-  if (dueDateValue) {
-    dueDateStr =
-      typeof dueDateValue === "string"
-        ? dueDateValue
-        : dueDateValue.toISOString().split("T")[0];
-  }
-  const returnDateValue = record.returnDate;
-  let returnDateStr: string | null = null;
-  if (returnDateValue) {
-    returnDateStr =
-      typeof returnDateValue === "string"
-        ? returnDateValue
-        : returnDateValue.toISOString().split("T")[0];
-  }
   const isCancelled = record.status === "CANCELLED";
   const waitingRaw = record.bookWaitingHolds;
   const waitingHolds =
@@ -103,8 +91,11 @@ export function mapBorrowRequestRow(record: {
     userId: record.userId,
     bookId: record.bookId,
     borrowDate: record.borrowDate,
-    dueDate: dueDateStr,
-    returnDate: returnDateStr,
+    dueDate: serializeBorrowTimestamp(record.dueDate),
+    returnDate: serializeBorrowTimestamp(record.returnDate),
+    approvedAt: serializeBorrowTimestamp(record.approvedAt),
+    cancelledAt: serializeBorrowTimestamp(record.cancelledAt),
+    renewedAt: serializeBorrowTimestamp(record.renewedAt),
     status: record.status as "PENDING" | "BORROWED" | "RETURNED" | "CANCELLED",
     borrowedBy: record.borrowedBy,
     returnedBy: record.returnedBy,
@@ -227,6 +218,9 @@ export async function loadAllBorrowRequestsRows(
       borrowDate: borrowRecords.borrowDate,
       dueDate: borrowRecords.dueDate,
       returnDate: borrowRecords.returnDate,
+      approvedAt: borrowRecords.approvedAt,
+      cancelledAt: borrowRecords.cancelledAt,
+      renewedAt: borrowRecords.renewedAt,
       status: borrowRecords.status,
       createdAt: borrowRecords.createdAt,
       borrowedBy: borrowRecords.borrowedBy,

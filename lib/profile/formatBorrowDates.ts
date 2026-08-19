@@ -1,7 +1,8 @@
 /**
  * Borrow record date formatters for My Profile status lines.
- * - formatBorrowDate: SQL date / calendar day (UTC) — dueDate, returnDate
- * - formatBorrowDateTime: timestamptz — borrowDate (requested), updatedAt (approved proxy)
+ * - formatBorrowDate: UTC calendar day — dueDate (no clock)
+ * - formatBorrowDateTime: UTC clock — auth/signup timestamps
+ * Approved/Returned/Requested on borrow cards use formatMediumDateTime (local).
  */
 
 export function formatBorrowDate(

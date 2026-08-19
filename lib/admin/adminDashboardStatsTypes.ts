@@ -18,6 +18,7 @@ export type OverviewRecentBorrow = {
   createdAt: string | null;
   /** Soft-cancel / reject timestamp — Cancelled chip on Recent 5. */
   updatedAt: string | null;
+  cancelledAt?: string | null;
   dueDate: string | null;
   returnDate: string | null;
   borrower: {

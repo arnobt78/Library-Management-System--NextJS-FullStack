@@ -36,6 +36,7 @@ export type AdminStatsBorrowRow = {
   borrowDate: Date | string | null;
   createdAt: Date | string | null;
   updatedAt?: Date | string | null;
+  cancelledAt?: Date | string | null;
   dueDate: Date | string | null;
   returnDate: Date | string | null;
   userName: string;
@@ -113,6 +114,7 @@ export function mapOverviewRecentBorrow(
     borrowDate: toAdminStatsIso(borrow.borrowDate),
     createdAt: toAdminStatsIso(borrow.createdAt),
     updatedAt: toAdminStatsIso(borrow.updatedAt ?? null),
+    cancelledAt: toAdminStatsIso(borrow.cancelledAt ?? null),
     dueDate: toAdminStatsIso(borrow.dueDate),
     returnDate: toAdminStatsIso(borrow.returnDate),
     borrower: {

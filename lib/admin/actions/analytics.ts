@@ -18,8 +18,15 @@ import {
   safeRatio,
 } from "@/lib/insights/formulas";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import {
+  dueUtcBeforeTodaySql,
+  dueUtcDateSql,
+  dueUtcOnOrAfterTodaySql,
+  dueUtcWithinTwoDaysSql,
+} from "@/lib/fines/dueCalendarSql";
 import { getFineRateHistory } from "@/lib/fines/rateHistory";
 import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
+import { serializeBorrowTimestamp } from "@/lib/borrows/serializeBorrowTimestamp";
 
 function boundedInteger(value: number | undefined, fallback: number, maximum: number) {
   return Number.isFinite(value)
@@ -141,7 +148,7 @@ export async function getOverdueAnalysis() {
       fineStatus: borrowRecords.fineStatus,
       daysOverdue: sql<number>`CASE 
         WHEN ${borrowRecords.dueDate} IS NOT NULL 
-        THEN (CURRENT_DATE - ${borrowRecords.dueDate}::date)
+        THEN (CURRENT_DATE - ${dueUtcDateSql})
         ELSE 0 
       END`,
     })
@@ -151,10 +158,10 @@ export async function getOverdueAnalysis() {
     .where(
       and(
         eq(borrowRecords.status, "BORROWED"),
-        sql`${borrowRecords.dueDate} < CURRENT_DATE`
+        dueUtcBeforeTodaySql,
       )
     )
-    .orderBy(sql`(CURRENT_DATE - ${borrowRecords.dueDate}::date) DESC`);
+    .orderBy(sql`(CURRENT_DATE - ${dueUtcDateSql}) DESC`);
 
   return overdueBooks.map((row) => {
     const { displayFineAmount } = computeDisplayFineForBorrowRow(
@@ -185,7 +192,7 @@ export async function getOverdueAnalysis() {
       userUniversityId: row.userUniversityId,
       userUniversityCard: row.userUniversityCard,
       borrowDate: row.borrowDate,
-      dueDate: row.dueDate,
+      dueDate: serializeBorrowTimestamp(row.dueDate),
       daysOverdue: Number(row.daysOverdue) || 0,
       fineAmount: displayFineAmount,
     };
@@ -278,7 +285,7 @@ export async function getSystemHealth() {
       .from(borrowRecords)
       .where(
         and(
-          sql`${borrowRecords.dueDate} < CURRENT_DATE`,
+          dueUtcBeforeTodaySql,
           eq(borrowRecords.status, "BORROWED")
         )
       ),
@@ -288,8 +295,8 @@ export async function getSystemHealth() {
       .where(
         and(
           eq(borrowRecords.status, "BORROWED"),
-          sql`${borrowRecords.dueDate} >= CURRENT_DATE`,
-          sql`${borrowRecords.dueDate} <= CURRENT_DATE + INTERVAL '2 days'`,
+          dueUtcOnOrAfterTodaySql,
+          dueUtcWithinTwoDaysSql,
         )
       ),
     db
@@ -334,9 +341,9 @@ export async function getDeterministicInsights(): Promise<DeterministicInsights>
       SELECT
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '29 days')::int AS recent,
         COUNT(*) FILTER (WHERE status = 'RETURNED')::int AS returned,
-        COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR return_date <= due_date))::int AS on_time,
+        COUNT(*) FILTER (WHERE status = 'RETURNED' AND (return_date IS NULL OR due_date IS NULL OR (return_date AT TIME ZONE 'UTC')::date <= (due_date AT TIME ZONE 'UTC')::date))::int AS on_time,
         COUNT(*) FILTER (WHERE status = 'BORROWED')::int AS active,
-        COUNT(*) FILTER (WHERE status = 'BORROWED' AND due_date < CURRENT_DATE)::int AS overdue,
+        COUNT(*) FILTER (WHERE status = 'BORROWED' AND (due_date AT TIME ZONE 'UTC')::date < CURRENT_DATE)::int AS overdue,
         COUNT(*) FILTER (WHERE renewal_count > 0)::int AS renewed,
         COUNT(*)::int AS total
       FROM borrow_records
@@ -370,9 +377,9 @@ export async function getDeterministicInsights(): Promise<DeterministicInsights>
     ) AS d(day)
     LEFT JOIN borrow_records br ON
       br.due_date IS NOT NULL
-      AND br.due_date < d.day::date
+      AND (br.due_date AT TIME ZONE 'UTC')::date < d.day::date
       AND COALESCE(br.borrow_date, br.created_at)::date <= d.day::date
-      AND (br.return_date IS NULL OR br.return_date::date > d.day::date)
+      AND (br.return_date IS NULL OR (br.return_date AT TIME ZONE 'UTC')::date > d.day::date)
     GROUP BY d.day
     ORDER BY d.day
   `),

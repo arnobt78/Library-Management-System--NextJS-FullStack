@@ -239,12 +239,14 @@ export function patchAdminStatsOnBorrowStatusChange(
       status: args.toStatus,
       id: args.recordId,
     };
-    // Soft-cancel / reject — stamp Cancelled chip time when densify omits updatedAt
-    if (
-      args.toStatus === "CANCELLED" &&
-      (merged.updatedAt == null || merged.updatedAt === "")
-    ) {
-      merged.updatedAt = new Date().toISOString();
+    // Soft-cancel / reject — stamp Cancelled chip time when densify omits cancelledAt
+    if (args.toStatus === "CANCELLED") {
+      if (merged.cancelledAt == null || merged.cancelledAt === "") {
+        merged.cancelledAt = new Date().toISOString();
+      }
+      if (merged.updatedAt == null || merged.updatedAt === "") {
+        merged.updatedAt = merged.cancelledAt;
+      }
     }
     next.recentBorrows[idx] = merged;
   } else if (args.recentRow) {

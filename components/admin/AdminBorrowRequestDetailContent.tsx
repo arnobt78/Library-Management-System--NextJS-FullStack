@@ -51,6 +51,7 @@ import {
 import { formatMediumDate } from "@/lib/ui/formatMediumDate";
 import { getBookAvailabilityStatus } from "@/lib/books/bookDetailsViewModel";
 import { borrowDaysOverdue } from "@/lib/admin/borrowDaysOverdue";
+import { borrowFineKpiHint } from "@/lib/fines/queueFineLabel";
 import { cn } from "@/lib/utils";
 import PersonAttribution from "@/components/PersonAttribution";
 import ReviewBookIdentity from "@/components/reviews/ReviewBookIdentity";
@@ -346,10 +347,10 @@ export default function AdminBorrowRequestDetailContent({
     ? `$${Number(fineDisplay).toFixed(2)}`
     : "$0.00";
   const overdueDays = borrowDaysOverdue(request.status, request.dueDate);
-  const fineHint =
-    overdueDays > 0
-      ? `Accrued balance · ${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue`
-      : "Accrued balance · No overdue days";
+  const fineHint = borrowFineKpiHint({
+    fineStatus: request.fineStatus,
+    overdueDays,
+  });
 
   const disputeSubject = "Fine dispute — borrow request";
   const disputeDescription = [
@@ -407,7 +408,7 @@ export default function AdminBorrowRequestDetailContent({
         person={request.approvedByActor}
         href={`/admin/users/${request.approvedByActor.id}`}
         status="APPROVED"
-        at={request.borrowDate ?? request.updatedAt}
+        at={request.approvedAt}
         decisionLabel="Approved:"
       />,
     );
@@ -445,7 +446,7 @@ export default function AdminBorrowRequestDetailContent({
           key="cancelled-self"
           label="Cancelled By"
           status="CANCELLED"
-          at={request.updatedAt}
+          at={request.cancelledAt ?? request.updatedAt}
           decisionLabel="Cancelled:"
           selfLabel="Self-cancelled"
         />,
@@ -458,7 +459,7 @@ export default function AdminBorrowRequestDetailContent({
           person={request.cancelledByActor}
           href={`/admin/users/${request.cancelledByActor.id}`}
           status="CANCELLED"
-          at={request.updatedAt}
+          at={request.cancelledAt ?? request.updatedAt}
           decisionLabel="Cancelled:"
         />,
       );
@@ -587,6 +588,9 @@ export default function AdminBorrowRequestDetailContent({
           createdAt={request.createdAt}
           borrowDate={request.borrowDate}
           updatedAt={request.updatedAt}
+          approvedAt={request.approvedAt}
+          cancelledAt={request.cancelledAt}
+          renewedAt={request.renewedAt}
           dueDate={request.dueDate}
           returnDate={request.returnDate}
           variant="light"

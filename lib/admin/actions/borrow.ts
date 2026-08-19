@@ -44,6 +44,7 @@ import { isImmutableFineStatus } from "@/lib/fines/status";
 import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 import { getFineRateHistory } from "@/lib/fines/rateHistory";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import { dueUtcBeforeTodaySql } from "@/lib/fines/dueCalendarSql";
 
 /** Cheap join for activity-log details (userId + title) after lifecycle writes. */
 async function borrowActivityDetails(recordId: string): Promise<{
@@ -113,6 +114,9 @@ export async function loadBorrowRequestById(recordId: string) {
         borrowDate: borrowRecords.borrowDate,
         dueDate: borrowRecords.dueDate,
         returnDate: borrowRecords.returnDate,
+        approvedAt: borrowRecords.approvedAt,
+        cancelledAt: borrowRecords.cancelledAt,
+        renewedAt: borrowRecords.renewedAt,
         status: borrowRecords.status,
         createdAt: borrowRecords.createdAt,
         borrowedBy: borrowRecords.borrowedBy,
@@ -423,7 +427,7 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
       .where(
         and(
           eq(borrowRecords.status, "BORROWED"),
-          sql`${borrowRecords.dueDate} < ${today}`,
+          dueUtcBeforeTodaySql,
           sql`${borrowRecords.fineAmount} IS NULL OR ${borrowRecords.fineAmount} = '0.00'`,
           notInArray(borrowRecords.fineStatus, ["WAIVED", "PAID"]),
         )
@@ -513,7 +517,7 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
       .where(
         and(
           eq(borrowRecords.status, "BORROWED"),
-          sql`${borrowRecords.dueDate} < ${today}`,
+          dueUtcBeforeTodaySql,
           notInArray(borrowRecords.fineStatus, ["WAIVED", "PAID"]),
         )
       )

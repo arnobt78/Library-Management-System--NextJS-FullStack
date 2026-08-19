@@ -19,6 +19,29 @@ function utcDay(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
+/** UTC noon of a calendar day — persist due_date without TZ day-shift. */
+export function utcNoonOfUtcDay(value: Date): Date {
+  const day = utcDay(value);
+  return new Date(
+    Date.UTC(
+      day.getUTCFullYear(),
+      day.getUTCMonth(),
+      day.getUTCDate(),
+      12,
+      0,
+      0,
+      0,
+    ),
+  );
+}
+
+/** Add calendar days and persist as UTC noon (approve +7 / renew). */
+export function addCalendarDaysUtcNoon(from: Date, days: number): Date {
+  const day = utcDay(from);
+  day.setUTCDate(day.getUTCDate() + days);
+  return utcNoonOfUtcDay(day);
+}
+
 function daysBetweenUtc(later: Date, earlier: Date): number {
   return Math.floor((utcDay(later).getTime() - utcDay(earlier).getTime()) / DAY_MS);
 }

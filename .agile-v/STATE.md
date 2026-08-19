@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Fines display + waive/return + Automation skip WAIVED/PAID; owner smoke remaining
+- Status: ACTIVE - Cancel/renew stamps (0020) + leftover approvedAt map; owner reseed smoke remaining
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `d7585c9`
 - Latest HEAD: `d7585c9`
 - Started: 2026-08-01
-- Last updated: 2026-08-19 (fines display commit `d7585c9`)
+- Last updated: 2026-08-19 (cancel/renew stamps + leftover 0019 map)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,8 +23,21 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline, agile-v-lifecycle, agile-v-compliance, agile-v-product-owner
-- Active plan: fines display + Automation skip shipped; owner smoke then tip-bind after push
+- Skills applied this session: agile-v-core, agile-v-pipeline, executing-plans
+- Active plan: cancel/renew stamps shipped locally; owner `seed:reset` + `seed:demo` then smoke
+
+## Reconciliation snapshot (2026-08-19, cancel/renew stamps + leftover 0019 map)
+
+- **Done**: mig `0020` applied on `.env` DATABASE_URL (`cancelled_at` once on reject/owner cancel; `renewed_at` last renew). Queue/profile/detail Cancelled paint `cancelledAt` not later `updatedAt`. Renewed meta under Due (not Approved). Profile RQ `getStableDate`/`memo` keep `approvedAt`. Prove: typecheck PASS, lint on touched files PASS, **350** unit tests PASS. `drizzle-kit push` skipped (unrelated system_config unique TTY prompt).
+- **Remaining**: Owner prod smoke after deploy: Distilled approve ≠ waive, Cancelled clock, renew clock, Due date-only, Queue Fine Waived. Apply `0020` on any env not yet migrated. EvalGate / Gate 2 unchanged.
+- **Next exact task**: Commit/push clocks; owner smoke live demo URL.
+
+## Reconciliation snapshot (2026-08-19, due/return timestamptz + approved_at)
+
+- **Done**: mig `0019` applied on `.env` DATABASE_URL (`due_date`/`return_date` timestamptz UTC noon due; `approved_at` stamp-on-approve). Return writes `now()`. Approved chips use `approvedAt` not `updatedAt`. Queue Fine Waived. Waived Fine KPI copy. Overdue SQL `(due AT TIME ZONE 'UTC')::date`. Prove: typecheck PASS, lint on touched files PASS, **347** unit tests PASS. `drizzle-kit push` skipped (unrelated system_config unique TTY prompt); 0019 SQL is the schema change.
+- **Remaining**: Owner `npm run seed:reset && npm run seed:demo` then smoke Distilled approve date, return clock, queue Waived vs Lean Startup $5, Due date-only (no 2 AM). EvalGate / Gate 2 unchanged.
+- **Next exact task**: Owner reseed + smoke; then tip-bind after commit/push if requested.
+
 
 ## Reconciliation snapshot (2026-08-19, Automation skip WAIVED/PAID)
 

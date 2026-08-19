@@ -194,19 +194,34 @@ async function main() {
   ) => {
     const dueDate =
       fields.dueDaysFromNow != null
-        ? dateDaysFromNow(fields.dueDaysFromNow)
+        ? `${dateDaysFromNow(fields.dueDaysFromNow)}T12:00:00.000Z`
         : fields.dueDaysAgo != null
-          ? dateDaysAgo(fields.dueDaysAgo)
+          ? `${dateDaysAgo(fields.dueDaysAgo)}T12:00:00.000Z`
           : null;
     const lastReminder =
       fields.lastReminderDaysAgo != null
         ? isoDaysAgo(fields.lastReminderDaysAgo)
         : null;
+    const approvedAt =
+      fields.status === "BORROWED" || fields.status === "RETURNED"
+        ? isoDaysAgo(fields.borrowDaysAgo, 11)
+        : null;
+    const returnAt =
+      fields.returnDaysAgo != null
+        ? isoDaysAgo(fields.returnDaysAgo, 15)
+        : null;
+    const updatedAt = isoDaysAgo(Math.max(0, fields.borrowDaysAgo - 1));
+    const cancelledAt =
+      fields.status === "CANCELLED" ? updatedAt : null;
+    const renewedAt =
+      (fields.renewalCount ?? 0) > 0
+        ? isoDaysAgo(Math.max(0, fields.borrowDaysAgo - 8), 9)
+        : null;
 
     await db.execute(sql`
       INSERT INTO borrow_records (
         id, user_id, book_id, status,
-        borrow_date, due_date, return_date,
+        borrow_date, due_date, return_date, approved_at, cancelled_at, renewed_at,
         borrowed_by, returned_by,
         fine_amount, fine_status, renewal_count, notes,
         last_reminder_sent,
@@ -214,14 +229,17 @@ async function main() {
       ) VALUES (
         ${id}::uuid, ${borrowerId}::uuid, ${bookId}::uuid, ${fields.status},
         ${isoDaysAgo(fields.borrowDaysAgo)}::timestamptz,
-        ${dueDate}::date,
-        ${fields.returnDaysAgo != null ? dateDaysAgo(fields.returnDaysAgo) : null}::date,
+        ${dueDate}::timestamptz,
+        ${returnAt}::timestamptz,
+        ${approvedAt}::timestamptz,
+        ${cancelledAt}::timestamptz,
+        ${renewedAt}::timestamptz,
         ${fields.borrowedBy}, ${fields.returnedBy ?? null},
         ${fields.fineAmount ?? "0.00"}, ${fields.fineStatus ?? "NONE"},
         ${fields.renewalCount ?? 0}, ${fields.notes ?? null},
         ${lastReminder}::timestamptz,
         ${isoDaysAgo(fields.borrowDaysAgo)}::timestamptz,
-        ${isoDaysAgo(Math.max(0, fields.borrowDaysAgo - 1))}::timestamptz,
+        ${updatedAt}::timestamptz,
         ${fields.updatedBy ?? null}
       )
     `);
@@ -242,10 +260,11 @@ async function main() {
     borrowedBy: "test@user.com",
   });
 
+  // Renewable due-soon (0 renewals) — Due in 48h KPI; renew should clear it.
   await insertBorrow(DEMO.borrowOnTime, userId, BOOK.html, {
     status: "BORROWED",
     borrowDaysAgo: 3,
-    dueDaysFromNow: 5,
+    dueDaysFromNow: 2,
     borrowedBy: "test@user.com",
     updatedBy: "test@admin.com",
     fineStatus: "NONE",
@@ -296,6 +315,7 @@ async function main() {
     notes: "Fine waived — demo fixture",
   });
 
+  // Maxed renewals (cap 2) — still in the 48h window (renew blocked).
   await insertBorrow(DEMO.borrowRenewed, userId, BOOK.db, {
     status: "BORROWED",
     borrowDaysAgo: 18,

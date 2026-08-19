@@ -82,6 +82,7 @@ import {
 } from "@/lib/services/supportTickets";
 import { resolveActionBookTitle, showToast } from "@/lib/toast";
 import { commitMutationCache } from "@/lib/query/mutationGateway";
+import { addCalendarDaysUtcNoon } from "@/lib/fines/liveFine";
 import {
   densifyBookDelete,
   densifyBookWrite,
@@ -1556,15 +1557,13 @@ export const useApproveBorrow = () => {
         queryKeys.borrows.requestDetail(recordId),
       );
       const meta = findCachedBorrowMeta(queryClient, recordId);
-      const dueDate = (() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 7);
-        return d.toISOString().slice(0, 10);
-      })();
+      const dueDate = addCalendarDaysUtcNoon(new Date(), 7).toISOString();
+      const approvedAt = new Date().toISOString();
       const actor = resolveBorrowLifecycleActor(decisionActor, session);
       const detailPatch = {
         status: "BORROWED" as const,
         dueDate,
+        approvedAt,
         ...(actor
           ? {
               borrowedBy: actor.email,
@@ -1609,6 +1608,7 @@ export const useApproveBorrow = () => {
         meta,
         fromStatus: meta?.status ?? null,
         dueDate,
+        approvedAt,
         actor,
       };
     },
@@ -1648,12 +1648,8 @@ export const useApproveBorrow = () => {
       // Prefer onMutate-captured status — findCachedBorrowMeta now sees optimistic BORROWED.
       const fromStatus = context?.fromStatus ?? null;
       const dueDate =
-        context?.dueDate ??
-        (() => {
-          const d = new Date();
-          d.setDate(d.getDate() + 7);
-          return d.toISOString().slice(0, 10);
-        })();
+        context?.dueDate ?? addCalendarDaysUtcNoon(new Date(), 7).toISOString();
+      const approvedAt = context?.approvedAt ?? new Date().toISOString();
       const actor =
         context?.actor ??
         resolveBorrowLifecycleActor(variables.decisionActor, session);
@@ -1671,6 +1667,7 @@ export const useApproveBorrow = () => {
               patch: {
                 status: "BORROWED",
                 dueDate,
+                approvedAt,
                 ...(actor
                   ? {
                       borrowedBy: actor.email,
@@ -1789,8 +1786,10 @@ export const useRejectBorrow = () => {
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
       const actor = resolveBorrowLifecycleActor(decisionActor, session);
+      const cancelledAt = new Date().toISOString();
       const detailPatch = {
         status: "CANCELLED" as const,
+        cancelledAt,
         ...(actor
           ? {
               updatedBy: actor.email,
@@ -1826,6 +1825,7 @@ export const useRejectBorrow = () => {
         meta,
         fromStatus,
         actor,
+        cancelledAt,
       };
     },
     onError: (error: Error, variables, context) => {
@@ -1859,6 +1859,8 @@ export const useRejectBorrow = () => {
       const actor =
         context?.actor ??
         resolveBorrowLifecycleActor(variables.decisionActor, session);
+      const cancelledAt =
+        context?.cancelledAt ?? new Date().toISOString();
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: (qc) =>
           snapshotBorrowCacheBaselines(
@@ -1872,6 +1874,7 @@ export const useRejectBorrow = () => {
               recordId: variables.recordId,
               patch: {
                 status: "CANCELLED",
+                cancelledAt,
                 ...(actor
                   ? {
                       updatedBy: actor.email,
@@ -1960,8 +1963,10 @@ export const useCancelPendingBorrow = () => {
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
       const actor = resolveBorrowLifecycleActor(undefined, session);
+      const cancelledAt = new Date().toISOString();
       const detailPatch = {
         status: "CANCELLED" as const,
+        cancelledAt,
         ...(actor
           ? {
               updatedBy: actor.email,
@@ -1996,6 +2001,7 @@ export const useCancelPendingBorrow = () => {
         meta,
         fromStatus,
         actor,
+        cancelledAt,
       };
     },
     onError: (error: Error, variables, context) => {
@@ -2028,6 +2034,8 @@ export const useCancelPendingBorrow = () => {
       const fromStatus = context?.fromStatus ?? null;
       const actor =
         context?.actor ?? resolveBorrowLifecycleActor(undefined, session);
+      const cancelledAt =
+        context?.cancelledAt ?? new Date().toISOString();
       await commitMutationCache(queryClient, "borrow.lifecycle", {
         snapshot: (qc) =>
           snapshotBorrowCacheBaselines(
@@ -2041,6 +2049,7 @@ export const useCancelPendingBorrow = () => {
               recordId: variables.recordId,
               patch: {
                 status: "CANCELLED",
+                cancelledAt,
                 ...(actor
                   ? {
                       updatedBy: actor.email,
@@ -2153,7 +2162,7 @@ export const useReturnBook = () => {
       );
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
-      const returnDate = new Date().toISOString().slice(0, 10);
+      const returnDate = new Date().toISOString();
       const actor = resolveBorrowLifecycleActor(decisionActor, session);
       const detailPatch = {
         status: "RETURNED" as const,
@@ -2209,7 +2218,7 @@ export const useReturnBook = () => {
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
       const fromStatus = context?.fromStatus ?? null;
       const returnDate =
-        context?.returnDate ?? new Date().toISOString().slice(0, 10);
+        context?.returnDate ?? new Date().toISOString();
       const fineAmount =
         data?.fineAmount !== undefined
           ? Number(data.fineAmount).toFixed(2)
@@ -2394,7 +2403,7 @@ export const useFineFreeReturn = () => {
       );
       const meta = findCachedBorrowMeta(queryClient, recordId);
       const fromStatus = meta?.status ?? null;
-      const returnDate = new Date().toISOString().slice(0, 10);
+      const returnDate = new Date().toISOString();
       const actor = resolveBorrowLifecycleActor(decisionActor, session);
       const detailPatch = {
         status: "RETURNED" as const,
@@ -2452,7 +2461,7 @@ export const useFineFreeReturn = () => {
         context?.meta ?? findCachedBorrowMeta(queryClient, variables.recordId);
       const fromStatus = context?.fromStatus ?? null;
       const returnDate =
-        context?.returnDate ?? new Date().toISOString().slice(0, 10);
+        context?.returnDate ?? new Date().toISOString();
       const actor =
         context?.actor ??
         resolveBorrowLifecycleActor(variables.decisionActor, session);

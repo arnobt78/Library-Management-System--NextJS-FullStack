@@ -70,7 +70,9 @@ export function RecentBorrowRow({ borrow }: { borrow: OverviewRecentBorrow }) {
         dueDate={borrow.status === "CANCELLED" ? null : borrow.dueDate}
         returnedAt={borrow.status === "CANCELLED" ? null : borrow.returnDate}
         cancelledAt={
-          borrow.status === "CANCELLED" ? borrow.updatedAt : null
+          borrow.status === "CANCELLED"
+            ? (borrow.cancelledAt ?? borrow.updatedAt)
+            : null
         }
         variant="light"
         className="text-[10px] sm:text-xs"

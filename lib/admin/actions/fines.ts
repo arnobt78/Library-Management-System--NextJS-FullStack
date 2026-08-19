@@ -9,6 +9,7 @@ import { requireAdminActor } from "@/lib/auth/authorization";
 import { logActivity } from "@/lib/admin/activityLog";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
 import { computeLiveFineForRow, formatFineAmount } from "@/lib/fines/liveFine";
+import { dueUtcBeforeTodaySql } from "@/lib/fines/dueCalendarSql";
 import { getFineRateHistory } from "@/lib/fines/rateHistory";
 import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { createInAppNotification } from "@/lib/notifications/inApp";
@@ -248,8 +249,6 @@ export async function markFinePaid(
 
 /** Promote open overdue NONE rows to ACCRUING (skip WAIVED/PAID). */
 export async function syncOverdueAccruingStatus(): Promise<{ synced: number }> {
-  const today = new Date();
-
   const rows = await db
     .select({ id: borrowRecords.id })
     .from(borrowRecords)
@@ -257,7 +256,7 @@ export async function syncOverdueAccruingStatus(): Promise<{ synced: number }> {
       and(
         eq(borrowRecords.status, "BORROWED"),
         sql`${borrowRecords.dueDate} IS NOT NULL`,
-        sql`${borrowRecords.dueDate} < ${today}`,
+        dueUtcBeforeTodaySql,
         eq(borrowRecords.fineStatus, "NONE"),
       ),
     );
@@ -277,7 +276,7 @@ export async function syncOverdueAccruingStatus(): Promise<{ synced: number }> {
       and(
         eq(borrowRecords.status, "BORROWED"),
         sql`${borrowRecords.dueDate} IS NOT NULL`,
-        sql`${borrowRecords.dueDate} < ${today}`,
+        dueUtcBeforeTodaySql,
         eq(borrowRecords.fineStatus, "NONE"),
       ),
     );
@@ -306,7 +305,7 @@ export async function stampOpenOverdueFines(options?: {
       and(
         eq(borrowRecords.status, "BORROWED"),
         sql`${borrowRecords.dueDate} IS NOT NULL`,
-        sql`${borrowRecords.dueDate} < ${today}`,
+        dueUtcBeforeTodaySql,
         options?.force
           ? sql`1=1`
           : eq(borrowRecords.fineStatus, "ACCRUING"),
@@ -371,7 +370,7 @@ export async function notifyOpenOverdueUsersOfRateChange(
       and(
         eq(borrowRecords.status, "BORROWED"),
         sql`${borrowRecords.dueDate} IS NOT NULL`,
-        sql`${borrowRecords.dueDate} < CURRENT_DATE`,
+        dueUtcBeforeTodaySql,
       ),
     );
 

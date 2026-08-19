@@ -28,6 +28,7 @@ import { headers } from "next/headers";
 import ratelimit from "@/lib/ratelimit";
 import { parsePagination } from "@/lib/pagination";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
+import { dueUtcBeforeTodaySql } from "@/lib/fines/dueCalendarSql";
 import { getFineRateHistory } from "@/lib/fines/rateHistory";
 import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
       whereConditions.push(
         and(
           eq(borrowRecords.status, "BORROWED"),
-          sql`${borrowRecords.dueDate} < CURRENT_DATE`
+          dueUtcBeforeTodaySql,
         )
       );
     }
@@ -161,6 +162,9 @@ export async function GET(request: NextRequest) {
         notes: borrowRecords.notes,
         renewalCount: borrowRecords.renewalCount,
         lastReminderSent: borrowRecords.lastReminderSent,
+        approvedAt: borrowRecords.approvedAt,
+        cancelledAt: borrowRecords.cancelledAt,
+        renewedAt: borrowRecords.renewedAt,
         updatedAt: borrowRecords.updatedAt,
         updatedBy: borrowRecords.updatedBy,
         createdAt: borrowRecords.createdAt,
