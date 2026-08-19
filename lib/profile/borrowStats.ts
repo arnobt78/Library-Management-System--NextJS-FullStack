@@ -5,6 +5,7 @@
 
 import {
   computeLiveFineForRow,
+  getCalendarDaysUntilDue,
   getOverdueDaysForBorrow,
   parseStoredFine,
 } from "@/lib/fines/liveFine";
@@ -21,6 +22,7 @@ export interface BorrowStatsInput {
   fineAmount: number | string;
   fineStatus?: string | null;
   renewalCount?: number | null;
+  bookTitle?: string | null;
 }
 
 export interface BorrowStats {
@@ -41,6 +43,8 @@ export interface BorrowStats {
   returnedThisMonth: number;
   pendingOldestWaitDays: number;
   totalReviews: number;
+  dueSoonTitles: string[];
+  dueSoonLeadRemaining: number | null;
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24;
@@ -113,6 +117,8 @@ export function computeBorrowStats(
   let lateReturns = 0;
   let returnedThisMonth = 0;
   let pendingOldestWaitDays = 0;
+  const dueSoonTitles: string[] = [];
+  let dueSoonLeadRemaining: number | null = null;
 
   const uniqueBookIds = new Set<string>();
   const month = now.getUTCMonth();
@@ -142,11 +148,13 @@ export function computeBorrowStats(
       if (overdueDays > 0) {
         overdueNow += 1;
       } else {
-        const due = toDate(r.dueDate);
-        if (due) {
-          const remaining = daysBetweenUtc(due, now);
-          // Due today or within next 2 calendar days
-          if (remaining >= 0 && remaining <= 2) dueSoon += 1;
+        const remaining = getCalendarDaysUntilDue(r.dueDate, now);
+        // Due today or within next 2 calendar days
+        if (remaining != null && remaining >= 0 && remaining <= 2) {
+          dueSoon += 1;
+          if (dueSoonLeadRemaining === null) dueSoonLeadRemaining = remaining;
+          const title = r.bookTitle?.trim();
+          if (title) dueSoonTitles.push(title);
         }
       }
       continue;
@@ -204,5 +212,20 @@ export function computeBorrowStats(
     returnedThisMonth,
     pendingOldestWaitDays,
     totalReviews,
+    dueSoonTitles,
+    dueSoonLeadRemaining,
   };
+}
+
+export function formatDueSoonHint(
+  titles: readonly string[],
+  leadRemainingDays: number | null = null,
+): string {
+  const cleaned = titles.map((title) => title.trim()).filter(Boolean);
+  if (cleaned.length === 0) return "Due today or tomorrow";
+  const prefix = leadRemainingDays === 0 ? "Due today" : "Due soon";
+  if (cleaned.length === 1) return `${prefix}: ${cleaned[0]}`;
+  const shown = cleaned.slice(0, 2).join(" · ");
+  const extra = cleaned.length > 2 ? ` +${cleaned.length - 2} more` : "";
+  return `${prefix}: ${shown}${extra}`;
 }

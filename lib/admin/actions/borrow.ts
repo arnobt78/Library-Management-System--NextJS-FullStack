@@ -18,7 +18,7 @@
 
 import { db } from "@/database/drizzle";
 import { borrowRecords, books, reservations, users } from "@/database/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, notInArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   getActionErrorMessage,
@@ -40,6 +40,7 @@ import { revalidateMutationPaths } from "@/lib/utils/revalidateMutation";
 import { scheduleReservationOutboxDelivery } from "@/lib/circulation/scheduleOutbox";
 import { logActivity } from "@/lib/admin/activityLog";
 import { computeLiveFineForRow, formatFineAmount } from "@/lib/fines/liveFine";
+import { isImmutableFineStatus } from "@/lib/fines/status";
 import { computeDisplayFineForBorrowRow } from "@/lib/fines/mapDisplayFine";
 import { getFineRateHistory } from "@/lib/fines/rateHistory";
 import { getDailyFineAmount } from "@/lib/admin/actions/config";
@@ -416,13 +417,15 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
         id: borrowRecords.id,
         dueDate: borrowRecords.dueDate,
         fineAmount: borrowRecords.fineAmount,
+        fineStatus: borrowRecords.fineStatus,
       })
       .from(borrowRecords)
       .where(
         and(
           eq(borrowRecords.status, "BORROWED"),
           sql`${borrowRecords.dueDate} < ${today}`,
-          sql`${borrowRecords.fineAmount} IS NULL OR ${borrowRecords.fineAmount} = '0.00'`
+          sql`${borrowRecords.fineAmount} IS NULL OR ${borrowRecords.fineAmount} = '0.00'`,
+          notInArray(borrowRecords.fineStatus, ["WAIVED", "PAID"]),
         )
       )
       .for("update");
@@ -430,12 +433,14 @@ export const updateOverdueFines = async (customFineAmount?: number) => {
     const results = [];
     for (const record of overdueRecords) {
       if (!record.dueDate) continue;
+      if (isImmutableFineStatus(record.fineStatus)) continue;
 
       const liveFine = computeLiveFineForRow({
         status: "BORROWED",
         dueDate: record.dueDate,
         storedFine: record.fineAmount,
         dailyRate: dailyFineAmount,
+        fineStatus: record.fineStatus,
         rateHistory,
         now: today,
       });
@@ -495,19 +500,21 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
   const dailyFineAmount = customFineAmount ?? (await getDailyFineAmount());
   const rateHistory = await getFineRateHistory();
 
-  // Update ALL overdue books regardless of existing fine amounts
+  // Update overdue books except WAIVED/PAID (those stay forever).
   const result = await db.transaction(async (tx) => {
     const overdueRecords = await tx
       .select({
         id: borrowRecords.id,
         dueDate: borrowRecords.dueDate,
         currentFineAmount: borrowRecords.fineAmount,
+        fineStatus: borrowRecords.fineStatus,
       })
       .from(borrowRecords)
       .where(
         and(
           eq(borrowRecords.status, "BORROWED"),
-          sql`${borrowRecords.dueDate} < ${today}`
+          sql`${borrowRecords.dueDate} < ${today}`,
+          notInArray(borrowRecords.fineStatus, ["WAIVED", "PAID"]),
         )
       )
       .for("update");
@@ -515,12 +522,14 @@ export const forceUpdateOverdueFines = async (customFineAmount?: number) => {
     const results = [];
     for (const record of overdueRecords) {
       if (!record.dueDate) continue;
+      if (isImmutableFineStatus(record.fineStatus)) continue;
 
       const liveFine = computeLiveFineForRow({
         status: "BORROWED",
         dueDate: record.dueDate,
         storedFine: record.currentFineAmount,
         dailyRate: dailyFineAmount,
+        fineStatus: record.fineStatus,
         rateHistory,
         now: today,
       });

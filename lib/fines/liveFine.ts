@@ -1,6 +1,6 @@
 // Parent: REQ-0029, REQ-0031 — pure live-fine calculations (no I/O)
 
-import type { FineRateHistoryRow, LiveFineInput } from "./types";
+import type { FineRateHistoryRow, FineStatus, LiveFineInput } from "./types";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -44,6 +44,71 @@ export function getOverdueDaysForBorrow(
   if (!due) return 0;
   const days = daysBetweenUtc(now, due);
   return days > 0 ? days : 0;
+}
+
+/**
+ * Calendar days until due (0 = due today, 1–2 = due soon window).
+ * Negative when the due calendar day is already past.
+ */
+export function getCalendarDaysUntilDue(
+  dueDate: Date | string | null | undefined,
+  now: Date = new Date(),
+): number | null {
+  const due = toDate(dueDate);
+  if (!due) return null;
+  return daysBetweenUtc(due, now);
+}
+
+/** End of the due UTC calendar day — Remaining counts down to this instant. */
+export function getDueCalendarEndUtc(
+  dueDate: Date | string | null | undefined,
+): number | null {
+  const due = toDate(dueDate);
+  if (!due) return null;
+  const day = utcDay(due);
+  return Date.UTC(
+    day.getUTCFullYear(),
+    day.getUTCMonth(),
+    day.getUTCDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+}
+
+/** Persistable fine snapshot when a loan is returned. */
+export function resolveReturnFine(input: {
+  fineStatus?: string | null;
+  storedFine: number | string | null;
+  dueDate: Date | string | null;
+  dailyRate: number;
+  rateHistory?: readonly FineRateHistoryRow[];
+  now?: Date;
+}): { fineAmount: string; fineStatus: FineStatus } {
+  const status = input.fineStatus ?? "NONE";
+  if (status === "WAIVED") {
+    return { fineAmount: "0.00", fineStatus: "WAIVED" };
+  }
+  if (status === "PAID") {
+    return {
+      fineAmount: formatFineAmount(parseStoredFine(input.storedFine)),
+      fineStatus: "PAID",
+    };
+  }
+  const live = computeLiveFineForRow({
+    status: "BORROWED",
+    dueDate: input.dueDate,
+    storedFine: input.storedFine,
+    dailyRate: input.dailyRate,
+    fineStatus: status,
+    rateHistory: input.rateHistory,
+    now: input.now,
+  });
+  return {
+    fineAmount: formatFineAmount(live),
+    fineStatus: live > 0 ? "STAMPED" : "NONE",
+  };
 }
 
 function isClosedBorrow(status: string): boolean {

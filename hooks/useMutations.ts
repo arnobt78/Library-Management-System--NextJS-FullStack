@@ -2214,6 +2214,11 @@ export const useReturnBook = () => {
         data?.fineAmount !== undefined
           ? Number(data.fineAmount).toFixed(2)
           : undefined;
+      const displayFineAmount =
+        data?.displayFineAmount !== undefined
+          ? Number(data.displayFineAmount).toFixed(2)
+          : fineAmount;
+      const fineStatus = data?.fineStatus;
       const actor =
         context?.actor ??
         resolveBorrowLifecycleActor(variables.decisionActor, session);
@@ -2235,6 +2240,10 @@ export const useReturnBook = () => {
                 status: "RETURNED",
                 returnDate,
                 ...(fineAmount !== undefined ? { fineAmount } : {}),
+                ...(displayFineAmount !== undefined
+                  ? { displayFineAmount }
+                  : {}),
+                ...(fineStatus !== undefined ? { fineStatus } : {}),
                 ...(actor
                   ? {
                       returnedBy: actor.email,
@@ -2282,10 +2291,14 @@ export const useReturnBook = () => {
       });
 
       const bookTitle = resolveActionBookTitle(variables.bookTitle);
+      const chargedFine =
+        Number(data?.fineAmount) > 0 &&
+        data?.fineStatus !== "WAIVED" &&
+        data?.fineStatus !== "PAID";
       if (
         data?.isOverdue &&
         data.daysOverdue !== undefined &&
-        data.fineAmount !== undefined
+        chargedFine
       ) {
         const days = data.daysOverdue;
         context?.pending?.success(

@@ -3,8 +3,11 @@ import {
   computeLiveFineForRow,
   computeLiveOutstandingFine,
   computeProRataFine,
+  getCalendarDaysUntilDue,
+  getDueCalendarEndUtc,
   getOverdueDaysForBorrow,
   parseStoredFine,
+  resolveReturnFine,
 } from "./liveFine";
 
 describe("liveFine", () => {
@@ -71,5 +74,76 @@ describe("liveFine", () => {
   it("parses stored fines safely", () => {
     expect(parseStoredFine("12.34")).toBe(12.34);
     expect(parseStoredFine(null)).toBe(0);
+  });
+
+  it("treats the due calendar day as not overdue", () => {
+    expect(getOverdueDaysForBorrow("BORROWED", "2026-08-03", now)).toBe(0);
+    expect(getCalendarDaysUntilDue("2026-08-03", now)).toBe(0);
+    expect(getCalendarDaysUntilDue("2026-08-04", now)).toBe(1);
+    expect(getCalendarDaysUntilDue("2026-08-01", now)).toBe(-2);
+  });
+
+  it("counts Remaining to the end of the due UTC day", () => {
+    const end = getDueCalendarEndUtc("2026-08-03");
+    expect(end).toBe(Date.UTC(2026, 7, 3, 23, 59, 59, 999));
+    expect(end).toBeGreaterThan(now.getTime());
+  });
+
+  it("keeps stored amount for PAID open loans", () => {
+    expect(
+      computeLiveFineForRow({
+        status: "BORROWED",
+        dueDate: "2026-08-01",
+        storedFine: "8.00",
+        dailyRate: 0.5,
+        fineStatus: "PAID",
+        now,
+      }),
+    ).toBe(8);
+  });
+
+  it("uses live accrual for open STAMPED overdue (stored snapshot is not display)", () => {
+    expect(
+      computeLiveFineForRow({
+        status: "BORROWED",
+        dueDate: "2026-08-01",
+        storedFine: "0.00",
+        dailyRate: 1,
+        fineStatus: "STAMPED",
+        now,
+      }),
+    ).toBe(2);
+  });
+
+  it("preserves WAIVED and PAID on return; otherwise stamps live", () => {
+    expect(
+      resolveReturnFine({
+        fineStatus: "WAIVED",
+        storedFine: "0.00",
+        dueDate: "2026-08-01",
+        dailyRate: 1,
+        now,
+      }),
+    ).toEqual({ fineAmount: "0.00", fineStatus: "WAIVED" });
+
+    expect(
+      resolveReturnFine({
+        fineStatus: "PAID",
+        storedFine: "5.00",
+        dueDate: "2026-08-01",
+        dailyRate: 1,
+        now,
+      }),
+    ).toEqual({ fineAmount: "5.00", fineStatus: "PAID" });
+
+    expect(
+      resolveReturnFine({
+        fineStatus: "ACCRUING",
+        storedFine: "0.00",
+        dueDate: "2026-08-01",
+        dailyRate: 1,
+        now,
+      }),
+    ).toEqual({ fineAmount: "2.00", fineStatus: "STAMPED" });
   });
 });

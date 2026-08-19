@@ -167,12 +167,12 @@ const columns: ColumnDef<OverdueBook>[] = [
   {
     id: "fine",
     header: "Fine",
-    accessorFn: (r) => Number(r.fineAmount) || 0,
+    accessorFn: (r) => Number.parseFloat(String(r.fineAmount ?? "0")) || 0,
     size: 100,
     cell: ({ row }) => {
       const fine = row.original.fineAmount;
-      const amount = Number(fine);
-      if (!fine || !Number.isFinite(amount) || amount <= 0) {
+      const amount = Number.parseFloat(String(fine ?? "0"));
+      if (!Number.isFinite(amount) || amount <= 0) {
         return <span className="text-xs text-slate-500">No Fine</span>;
       }
       return (

@@ -585,6 +585,17 @@ integration("PostgreSQL lifecycle invariants", () => {
     const stampWaived = await stampOpenOverdueFines({ force: true });
     expect(stampWaived.skipped).toBeGreaterThanOrEqual(1);
 
+    const { forceUpdateOverdueFines } = await import("./actions/borrow");
+    await forceUpdateOverdueFines(1);
+    const afterForce = await setupPool.query(
+      "SELECT fine_status, fine_amount FROM borrow_records WHERE id = $1",
+      [fineRecordId],
+    );
+    expect(afterForce.rows[0]).toMatchObject({
+      fine_status: "WAIVED",
+      fine_amount: "0.00",
+    });
+
     const accruingRecordId = "30000000-0000-4000-8000-000000000003";
     await setupPool.query(
       `INSERT INTO borrow_records (id, user_id, book_id, borrow_date, due_date, status, renewal_count, fine_status, fine_amount)

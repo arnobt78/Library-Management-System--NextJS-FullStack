@@ -14,7 +14,10 @@ import {
   canReturnBorrow,
 } from "./borrowTransitionPolicy";
 import { offerNextReservation } from "@/lib/circulation/reservations";
-import { computeLiveFineForRow, formatFineAmount } from "@/lib/fines/liveFine";
+import {
+  getOverdueDaysForBorrow,
+  resolveReturnFine,
+} from "@/lib/fines/liveFine";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -24,6 +27,8 @@ export type BorrowActionResult<T = undefined> = T extends undefined
 
 interface ReturnResult {
   fineAmount: number;
+  displayFineAmount: number;
+  fineStatus: string;
   daysOverdue: number;
   isOverdue: boolean;
   /** Absolute copies after return + optional FIFO offer. */
@@ -122,6 +127,8 @@ async function returnWithTransaction(
       status: borrowRecords.status,
       dueDate: borrowRecords.dueDate,
       borrowedBy: borrowRecords.borrowedBy,
+      fineAmount: borrowRecords.fineAmount,
+      fineStatus: borrowRecords.fineStatus,
       userEmail: users.email,
     })
     .from(borrowRecords)
@@ -156,29 +163,25 @@ async function returnWithTransaction(
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const dueDate = record.dueDate ? new Date(record.dueDate) : null;
-  const returnDate = new Date(today);
-  const daysOverdue = dueDate
-    ? Math.max(
-        0,
-        Math.floor(
-          (returnDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
-        )
-      )
-    : 0;
+  const now = new Date();
+  const daysOverdue = getOverdueDaysForBorrow(
+    "BORROWED",
+    record.dueDate,
+    now,
+  );
   const rateHistory = await (
     await import("@/lib/fines/rateHistory")
   ).getFineRateHistory();
-  const liveFine = computeLiveFineForRow({
-    status: "BORROWED",
+  const resolved = resolveReturnFine({
+    fineStatus: record.fineStatus,
+    storedFine: record.fineAmount,
     dueDate: record.dueDate,
-    storedFine: "0",
     dailyRate: dailyFineAmount,
     rateHistory,
-    now: returnDate,
+    now,
   });
-  const fineAmount = formatFineAmount(liveFine);
-  const fineStatus = liveFine > 0 ? "STAMPED" : "NONE";
+  const fineAmount = resolved.fineAmount;
+  const fineStatus = resolved.fineStatus;
 
   const updated = await tx
     .update(borrowRecords)
@@ -228,6 +231,8 @@ async function returnWithTransaction(
     success: true,
     data: {
       fineAmount: Number(fineAmount),
+      displayFineAmount: Number(fineAmount),
+      fineStatus,
       daysOverdue,
       isOverdue: daysOverdue > 0,
       availableCopies: bookAfter?.availableCopies ?? 0,
@@ -341,6 +346,8 @@ export async function returnBorrowRecordWithoutFine(
       success: true,
       data: {
         fineAmount: 0,
+        displayFineAmount: 0,
+        fineStatus: "WAIVED",
         daysOverdue: 0,
         isOverdue: false,
         availableCopies: bookAfter?.availableCopies ?? 0,

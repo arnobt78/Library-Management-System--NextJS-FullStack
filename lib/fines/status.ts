@@ -23,6 +23,13 @@ export function isFrozenFineStatus(status: string | null | undefined): boolean {
   );
 }
 
+/** Waive/paid stay forever — return and Automation must not restamp live. */
+export function isImmutableFineStatus(
+  status: string | null | undefined,
+): boolean {
+  return status === "WAIVED" || status === "PAID";
+}
+
 /** Backfill mapping for migration 0017. */
 export function inferFineStatusFromBorrow(input: {
   status: string;

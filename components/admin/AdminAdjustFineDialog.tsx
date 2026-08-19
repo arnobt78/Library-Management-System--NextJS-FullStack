@@ -56,8 +56,9 @@ export function AdminAdjustFineDialog({
             Adjust fine amount
           </AlertDialogTitle>
           <AlertDialogDescription className={LIGHT_ALERT.description}>
-            Set the stored fine balance for this borrow. Live accrual stops once
-            stamped or adjusted.
+            Set the stored fine balance for this borrow. Open overdue loans
+            still accrue until return, waive, or paid. This amount is frozen
+            after the loan is closed.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-3 px-1">

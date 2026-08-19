@@ -105,7 +105,13 @@ import {
 import { densifyActivityLog } from "@/lib/utils/patchActivityCaches";
 import { showToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/query/keys";
-import { computeBorrowStats, getRecordFine } from "@/lib/profile/borrowStats";
+import {
+  computeBorrowStats,
+  formatDueSoonHint,
+  getOverdueDays,
+  getRecordFine,
+} from "@/lib/profile/borrowStats";
+import { getCalendarDaysUntilDue } from "@/lib/fines/liveFine";
 import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
 import { BorrowStatusBadge } from "@/lib/ui/semanticBadges";
 import {
@@ -707,7 +713,19 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
   const borrowStats = React.useMemo(
     () =>
       computeBorrowStats(
-        allBorrows,
+        allBorrows.map((record) => ({
+          id: record.id,
+          bookId: record.bookId,
+          status: record.status,
+          dueDate: record.dueDate,
+          returnDate: record.returnDate,
+          borrowDate: record.borrowDate,
+          createdAt: record.createdAt,
+          fineAmount: record.fineAmount,
+          fineStatus: record.fineStatus,
+          renewalCount: record.renewalCount,
+          bookTitle: record.book?.title,
+        })),
         liveTotalReviews,
         effectiveDailyRate,
         new Date(),
@@ -1105,51 +1123,15 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         setRenewTarget(record);
       };
 
-      // Calculate if book is overdue (only for BORROWED status with dueDate)
-      const today = new Date();
-      // Use UTC dates for consistent comparison
-      const todayUTC = new Date(
-        today.getTime() + today.getTimezoneOffset() * 60000,
+      const daysOverdue = getOverdueDays(
+        record.status,
+        record.dueDate,
+        new Date(),
       );
-      const dueDateUTC = record.dueDate ? new Date(record.dueDate) : null;
-
-      const isOverdue =
-        record.status === "BORROWED" && dueDateUTC && todayUTC > dueDateUTC;
-
-      // Calculate days overdue using date-level comparison (exactly like backend SQL)
-      // Backend: (${now}::date - ${borrowRecords.dueDate}::date)
-      // Use UTC dates to avoid timezone issues
-      const todayDateUTC = new Date(
-        Date.UTC(
-          todayUTC.getUTCFullYear(),
-          todayUTC.getUTCMonth(),
-          todayUTC.getUTCDate(),
-        ),
-      );
-      const dueDateOnlyUTC = dueDateUTC
-        ? new Date(
-            Date.UTC(
-              dueDateUTC.getUTCFullYear(),
-              dueDateUTC.getUTCMonth(),
-              dueDateUTC.getUTCDate(),
-            ),
-          )
-        : null;
-
-      const daysOverdue =
-        isOverdue && dueDateOnlyUTC
-          ? Math.floor(
-              (todayDateUTC.getTime() - dueDateOnlyUTC.getTime()) /
-                (1000 * 60 * 60 * 24),
-            )
-          : 0;
-
+      const isOverdue = daysOverdue > 0;
       const daysRemaining =
-        record.status === "BORROWED" && dueDateUTC && !isOverdue
-          ? Math.ceil(
-              (dueDateUTC.getTime() - todayUTC.getTime()) /
-                (1000 * 60 * 60 * 24),
-            )
+        record.status === "BORROWED" && !isOverdue
+          ? (getCalendarDaysUntilDue(record.dueDate, new Date()) ?? 0)
           : 0;
       const displayFine = getRecordFine(
         {
@@ -1323,9 +1305,11 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
                       >
                         {isOverdue
                           ? `Overdue · ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} late · was due ${formatDate(record.dueDate)}`
-                          : daysRemaining <= 2
-                            ? `Due soon · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left · ${formatDate(record.dueDate)}`
-                            : `Due on ${formatDate(record.dueDate)}`}
+                          : daysRemaining === 0
+                            ? `Due today · ${formatDate(record.dueDate)}`
+                            : daysRemaining <= 2
+                              ? `Due soon · ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left · ${formatDate(record.dueDate)}`
+                              : `Due on ${formatDate(record.dueDate)}`}
                         {approvedAt ? ` · approved ${approvedAt}` : ""}
                       </span>
                     </div>
@@ -1344,18 +1328,31 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
 
                 {/* Fine and Renewal Info */}
                 <div className="mb-2 flex flex-wrap gap-2">
-                  {(record.fineAmount > 0 || displayFine > 0) && (
+                  {record.fineStatus === "WAIVED" ? (
+                    <div className="flex items-center gap-1 rounded bg-slate-500/15 px-1.5 py-0.5 sm:px-2 sm:py-1">
+                      <AlertTriangle className="inline size-3 text-slate-300 sm:size-4" />
+                      <span className="text-xs font-medium text-slate-200 sm:text-sm">
+                        Waived
+                      </span>
+                    </div>
+                  ) : record.fineStatus === "PAID" && displayFine > 0 ? (
+                    <div className="flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
+                      <AlertTriangle className="inline size-3 text-emerald-400 sm:size-4" />
+                      <span className="text-xs font-medium text-emerald-400 sm:text-sm">
+                        Paid ${displayFine.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : displayFine > 0 ? (
                     <div className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
                       <AlertTriangle className="inline size-3 text-red-400 sm:size-4" />
                       <span className="text-xs font-medium text-red-400 sm:text-sm">
-                        $
-                        {displayFine.toFixed(2)}
+                        ${displayFine.toFixed(2)}
                       </span>
                       <span className="text-xs text-red-300/70 sm:text-sm">
                         {isOverdue ? "overdue fine" : "fine"}
                       </span>
                     </div>
-                  )}
+                  ) : null}
 
                   {record.renewalCount > 0 && (
                     <div className="flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
@@ -1490,6 +1487,7 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
         prevProps.record.updatedAt?.getTime() ===
           nextProps.record.updatedAt?.getTime() &&
         prevProps.record.fineAmount === nextProps.record.fineAmount &&
+        prevProps.record.fineStatus === nextProps.record.fineStatus &&
         prevProps.record.book.id === nextProps.record.book.id &&
         prevProps.record.book.title === nextProps.record.book.title &&
         prevProps.record.book.author === nextProps.record.book.author &&
@@ -1749,7 +1747,10 @@ const MyProfileTabs: React.FC<MyProfileTabsProps> = ({
     {
       key: "dueSoon",
       title: "Due in 48h",
-      hint: "Due today or tomorrow",
+      hint: formatDueSoonHint(
+        borrowStats.dueSoonTitles,
+        borrowStats.dueSoonLeadRemaining,
+      ),
       value: borrowStats.dueSoon,
       icon: <Timer className="size-4 shrink-0" />,
       tone: "from-orange-500/25 via-orange-500/10 to-orange-500/5 border-orange-400/30 text-orange-100 shadow-[0_10px_30px_rgba(249,115,22,0.2)]",

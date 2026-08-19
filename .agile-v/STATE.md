@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Demo seed enriched + Borrow Queue Fine NaN fix; UI polish deferred to next session
+- Status: ACTIVE - Fines display + waive/return + Automation skip WAIVED/PAID; owner smoke remaining
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
 - Latest implementation tip: `ad1cc69`
-- Latest HEAD: `ad1cc69`
+- Latest HEAD: `e2fbd4b`
 - Started: 2026-08-01
-- Last updated: 2026-08-18 (demo seed + Fine NaN fix)
+- Last updated: 2026-08-19 (Automation Force Update skips WAIVED/PAID)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -23,8 +23,28 @@
 - C2 Gate 1: APPROVED (`GATE-0006`)
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
-- Skills applied this session: agile-v-core, agile-v-pipeline
-- Active plan: owner Verify User 360 Fine KPI vs Insights; EvalGate blocks Gate 2
+- Skills applied this session: agile-v-core, agile-v-pipeline, agile-v-lifecycle, agile-v-compliance, agile-v-product-owner
+- Active plan: fines display + Automation skip shipped; owner smoke then tip-bind after push
+
+## Reconciliation snapshot (2026-08-19, Automation skip WAIVED/PAID)
+
+- **Done**: `updateOverdueFines` + `forceUpdateOverdueFines` exclude WAIVED/PAID (`notInArray` + `isImmutableFineStatus`); live compute receives `fineStatus`. Cron `stampOpenOverdueFines` already skipped. Unit: `status.test.ts`. Integration: force update after waive stays `$0`/`WAIVED`. Prove: typecheck PASS, lint PASS, 335 unit tests PASS (integration skipped without TEST_DATABASE_URL).
+- **Remaining**: Owner smoke (waive → Return; same-day due; optional Force Update on waived row). EvalGate / Gate 2 unchanged.
+- **Next exact task**: Owner smoke (waive→Return Waived/$0; same-day due; Force Update must not recharge waived); then tip-bind after push.
+
+## Reconciliation snapshot (2026-08-19, fines display + waive/return)
+
+- **Done**: Calendar overdue on profile cards/timer/Insights (`getOverdueDaysForBorrow` / `due_date < CURRENT_DATE`). `returnWithTransaction` preserves WAIVED/PAID via `resolveReturnFine`; return densify writes `fineAmount`/`displayFineAmount`/`fineStatus`. Profile Waived/Paid chips; Due in 48h titles; open STAMPED still live. Prove: typecheck PASS, lint on touched files PASS, 333 unit tests PASS.
+- **Remaining**: Owner smoke — waive overdue then user Return → history Waived/$0; fine-free still $0; same-day due card matches Due in 48h; renew drops that title; Distilled-style STAMPED shows dollars while overdue. EvalGate / Gate 2 unchanged.
+- **Next exact task**: Owner Verify waive-then-return + same-day due on `/my-profile` and Insights overdue Fine column.
+
+## Reconciliation snapshot (2026-08-19, Agile V resume + fines UI polish halt)
+
+- **Done**: Loaded `docs/AGILE_V_PROTOCOL.md` + CLAUDE + AGENTS + STATE; tip `ad1cc69` (demo seed + Fine NaN) / HEAD `e2fbd4b` (docs bind) == `origin/main`. WT: this STATE/plan delta + untracked `.agile-v/plans/` + `agile_v_skills/` (not product). No PENDING interrupt. TRACE lagged behind 2026-08-18 fines spans (catch-up appended).
+- **Owner request**: Fines/demo work “works okay, need to test”; next is “few ui polish based on my instruction.” No screenshots or item list after `----`.
+- **Classification**: Bounded (existing fines/borrow UI under REQ-0033 polish / BL-0018). Halt: `ambiguous_requirement` + `unclear_done_criteria` (POLICY).
+- **Remaining**: Owner paste polish list/screenshots; owner functional Verify of fines; EvalGate / Gate 2.
+- **Next exact task**: Human-Decision — name polish surfaces + expected vs current (or paste screenshots). No Orchestrate until then.
 
 ## Reconciliation snapshot (2026-08-17, User 360 live outstanding)
 

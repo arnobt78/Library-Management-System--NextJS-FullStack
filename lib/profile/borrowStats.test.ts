@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeBorrowStats,
+  formatDueSoonHint,
   getOverdueDays,
   getRecordFine,
 } from "@/lib/profile/borrowStats";
@@ -126,5 +127,45 @@ describe("borrowStats", () => {
     expect(stats.totalReviews).toBe(3);
     expect(stats.pendingOldestWaitDays).toBe(4);
     expect(stats.withFines).toBeGreaterThanOrEqual(2);
+    expect(stats.dueSoonTitles).toEqual([]);
+    expect(stats.dueSoonLeadRemaining).toBe(1);
+  });
+
+  it("lists due-soon titles and does not count due-today as overdue", () => {
+    const stats = computeBorrowStats(
+      [
+        {
+          id: "today",
+          bookId: "b-today",
+          status: "BORROWED",
+          dueDate: "2026-08-03",
+          fineAmount: 0,
+          bookTitle: "Fundamentals of Database Systems",
+        },
+        {
+          id: "soon",
+          bookId: "b-soon",
+          status: "BORROWED",
+          dueDate: "2026-08-04",
+          fineAmount: 0,
+          bookTitle: "HTML and CSS",
+        },
+      ],
+      0,
+      1,
+      now,
+    );
+    expect(stats.overdueNow).toBe(0);
+    expect(stats.dueSoon).toBe(2);
+    expect(stats.dueSoonTitles).toEqual([
+      "Fundamentals of Database Systems",
+      "HTML and CSS",
+    ]);
+    expect(stats.dueSoonLeadRemaining).toBe(0);
+    expect(
+      formatDueSoonHint(stats.dueSoonTitles, stats.dueSoonLeadRemaining),
+    ).toBe(
+      "Due today: Fundamentals of Database Systems · HTML and CSS",
+    );
   });
 });

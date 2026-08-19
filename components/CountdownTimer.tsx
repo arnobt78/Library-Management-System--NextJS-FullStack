@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from "react";
 import { ClockAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getDueCalendarEndUtc } from "@/lib/fines/liveFine";
 
 interface CountdownTimerProps {
   dueDate: Date;
@@ -47,7 +48,8 @@ function computeTimeLeft(dueDateTimestamp: number, now = Date.now()): TimeLeft {
 
 const CountdownTimer: React.FC<CountdownTimerProps> = React.memo(
   ({ dueDate, borrowDate: _borrowDate }) => {
-    const dueDateTimestamp = dueDate.getTime();
+    const dueDateTimestamp =
+      getDueCalendarEndUtc(dueDate) ?? dueDate.getTime();
 
     // Lazy init from real due date — avoids days:0 → destructive red flash
     const [timeLeft, setTimeLeft] = useState<TimeLeft>(() =>
@@ -73,8 +75,8 @@ const CountdownTimer: React.FC<CountdownTimerProps> = React.memo(
       };
     }, [dueDateTimestamp]);
 
-    const isUrgent = timeLeft.isOverdue || timeLeft.days <= 1;
-    const isSoon = !timeLeft.isOverdue && timeLeft.days <= 3;
+    const isUrgent = timeLeft.isOverdue;
+    const isSoon = !timeLeft.isOverdue && timeLeft.days <= 2;
 
     const label = timeLeft.isOverdue
       ? `Overdue: ${timeLeft.days}d ${timeLeft.hours}h ${timeLeft.minutes}m`

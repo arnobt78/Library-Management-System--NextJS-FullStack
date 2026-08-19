@@ -211,3 +211,11 @@ Repo reconciled: tip `028dc23`, HEAD `48822cc`, `main` == `origin/main`, clean t
 ## Book form polish Wave A (2026-08-15)
 
 Owner approved. Delivered: Wave A + CTA gate (silent Zod, no mount errors). Local Prove PASS. Waves B–E pending.
+
+## Session resume note (2026-08-19, fines UI polish halt)
+
+Repo reconciled: tip `ad1cc69`, HEAD `e2fbd4b` == `origin/main`. Fines Platform + polish + `seed:demo` shipped. Owner: functional OK pending test; wants UI polish. **No item list in the request.** Halt per POLICY (`ambiguous_requirement`, `unclear_done_criteria`). Plan: `.agile-v/plans/2026-08-19-fines-ui-polish.md`. **Human-Decision:** paste polish list/screenshots (then approve a locked wave plan) before any coding. EvalGate FAIL / Gate 2 unchanged.
+
+## Session resume note (2026-08-19, fines display shipped)
+
+BL-0018 fines display: calendar overdue, waive/return keeps WAIVED `$0`, Force Update skips WAIVED/PAID (DEC-0114). Owner smoke remaining. EvalGate FAIL / Gate 2 unchanged.

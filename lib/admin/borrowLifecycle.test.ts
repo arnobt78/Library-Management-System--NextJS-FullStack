@@ -72,6 +72,8 @@ describe("borrow transaction rollback", () => {
                     status: state.status,
                     dueDate: null,
                     borrowedBy: "reader@example.test",
+                    fineAmount: "0.00",
+                    fineStatus: "NONE",
                     userEmail: "reader@example.test",
                   },
                 ]

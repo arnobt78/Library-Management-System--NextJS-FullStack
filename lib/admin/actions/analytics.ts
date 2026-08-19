@@ -141,7 +141,7 @@ export async function getOverdueAnalysis() {
       fineStatus: borrowRecords.fineStatus,
       daysOverdue: sql<number>`CASE 
         WHEN ${borrowRecords.dueDate} IS NOT NULL 
-        THEN (${now}::date - ${borrowRecords.dueDate}::date)
+        THEN (CURRENT_DATE - ${borrowRecords.dueDate}::date)
         ELSE 0 
       END`,
     })
@@ -151,10 +151,10 @@ export async function getOverdueAnalysis() {
     .where(
       and(
         eq(borrowRecords.status, "BORROWED"),
-        sql`${borrowRecords.dueDate} < ${now}`
+        sql`${borrowRecords.dueDate} < CURRENT_DATE`
       )
     )
-    .orderBy(sql`(${now}::date - ${borrowRecords.dueDate}::date) DESC`);
+    .orderBy(sql`(CURRENT_DATE - ${borrowRecords.dueDate}::date) DESC`);
 
   return overdueBooks.map((row) => {
     const { displayFineAmount } = computeDisplayFineForBorrowRow(
@@ -186,7 +186,7 @@ export async function getOverdueAnalysis() {
       userUniversityCard: row.userUniversityCard,
       borrowDate: row.borrowDate,
       dueDate: row.dueDate,
-      daysOverdue: row.daysOverdue,
+      daysOverdue: Number(row.daysOverdue) || 0,
       fineAmount: displayFineAmount,
     };
   });
@@ -278,7 +278,7 @@ export async function getSystemHealth() {
       .from(borrowRecords)
       .where(
         and(
-          sql`${borrowRecords.dueDate} < ${now}`,
+          sql`${borrowRecords.dueDate} < CURRENT_DATE`,
           eq(borrowRecords.status, "BORROWED")
         )
       ),

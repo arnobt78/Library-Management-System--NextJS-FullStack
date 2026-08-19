@@ -107,14 +107,14 @@ export async function adjustBorrowFine(
       })
       .where(eq(borrowRecords.id, recordId));
 
-    return { ok: true as const, fineAmount, fineStatus };
+    return { ok: true as const, fineAmount, fineStatus, status: row.status, dueDate: row.dueDate };
   });
 
   if (!result.ok) return { success: false, error: result.error };
 
   const displayFineAmount = await computeDisplayFine({
-    status: "BORROWED",
-    dueDate: null,
+    status: result.status,
+    dueDate: result.dueDate,
     storedFine: result.fineAmount,
     fineStatus: result.fineStatus,
   });
