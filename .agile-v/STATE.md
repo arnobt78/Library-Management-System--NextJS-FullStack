@@ -7,8 +7,8 @@
 - Status: ACTIVE - Clocks 0019+0020 prod-smoked; profile Cancelled/renewed strips pending deploy
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `7f9091b`
-- Latest HEAD: `7f9091b`
+- Latest implementation tip: `cf425c2`
+- Latest HEAD: `cf425c2`
 - Started: 2026-08-01
 - Last updated: 2026-08-19 (prod clock smoke + profile cancelled/renewed strips)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
