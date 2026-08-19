@@ -33,8 +33,11 @@ interface FineManagementProps {
 export default function FineManagement({
   initialFineConfig,
 }: FineManagementProps) {
-  const { data: fineConfig, isLoading: configLoading } =
-    useFineConfig(initialFineConfig);
+  const [ssrTimestamp] = useState(() => Date.now());
+  const { data: fineConfig, isLoading: configLoading } = useFineConfig(
+    initialFineConfig,
+    initialFineConfig ? ssrTimestamp : undefined,
+  );
 
   const updateFineConfigMutation = useUpdateFineConfig();
   const updateOverdueFinesMutation = useUpdateOverdueFines();

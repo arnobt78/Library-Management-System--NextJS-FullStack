@@ -11,6 +11,10 @@ import type {
 } from "@/lib/services/admin";
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 import { patchBorrowFineUpdate } from "@/lib/utils/patchBorrowCaches";
+import {
+  densifyUserFineMetrics,
+} from "@/lib/fines/userFineMetrics";
+import { snapshotBorrowListBaselines } from "@/lib/utils/patchBorrowCaches";
 
 /** Write fine-config KPI after admin saves daily amount. */
 export function densifyFineConfig(
@@ -19,6 +23,10 @@ export function densifyFineConfig(
 ): void {
   if (!config || typeof config.fineAmount !== "number") return;
   queryClient.setQueryData<FineConfig>(queryKeys.admin.fineConfig, config);
+  const baselines = snapshotBorrowListBaselines(queryClient);
+  for (const userId of Object.keys(baselines.users)) {
+    densifyUserFineMetrics(queryClient, userId);
+  }
   evictAnalyticsCaches(queryClient);
 }
 

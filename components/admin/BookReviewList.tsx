@@ -283,11 +283,16 @@ export default function BookReviewList({
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [ssrTimestamp] = useState(() => Date.now());
 
   const {
     data: allReviews = [],
     isPending,
-  } = useAdminBookReviews({}, initialReviews);
+  } = useAdminBookReviews(
+    {},
+    initialReviews,
+    initialReviews.length > 0 ? ssrTimestamp : undefined,
+  );
 
   const reviews = useMemo(() => {
     return allReviews.filter((review) => {

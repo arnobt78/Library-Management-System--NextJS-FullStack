@@ -131,6 +131,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroupConfig[] = [
         route: "/admin/business-insights",
         label: "Business Insights",
         icon: "chart",
+        prefetchKind: "admin-business-insights",
         description: "Circulation analytics and library trends",
       },
       {

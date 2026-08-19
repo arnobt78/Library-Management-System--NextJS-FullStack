@@ -142,9 +142,13 @@ const AdminAutomationClient: React.FC<AdminAutomationClientProps> = ({
   const [reminderPreviewType, setReminderPreviewType] = useState<
     "due" | "overdue" | null
   >(null);
+  const [ssrTimestamp] = useState(() => Date.now());
 
   // React Query hooks for dynamic stats (updates immediately)
-  const { data: reminderStatsData } = useReminderStats(initialReminderStats);
+  const { data: reminderStatsData } = useReminderStats(
+    initialReminderStats,
+    initialReminderStats ? ssrTimestamp : undefined,
+  );
 
   const { data: exportStatsData } = useExportStats(initialExportStats);
 

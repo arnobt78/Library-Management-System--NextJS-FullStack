@@ -15,6 +15,7 @@ import { densifyAdminRequestCreate } from "@/lib/utils/patchAdminRequestCaches";
 import { patchTicketCachesOnDelete } from "@/lib/utils/patchTicketCaches";
 import { densifyNotificationDelete } from "@/lib/utils/patchNotificationCaches";
 import { densifyFineConfig, densifyOverdueFines } from "@/lib/utils/patchFineCaches";
+import { densifyUserFineMetrics } from "@/lib/fines/userFineMetrics";
 import { densifyReminderStats } from "@/lib/utils/patchOpsCaches";
 import { densifyRecommendationWrite } from "@/lib/utils/patchRecommendationCaches";
 
@@ -57,5 +58,6 @@ describe("MUTATION_DENSIFY_REGISTRY", () => {
   it("fine.write exposes config and overdue stamp densify adapters", () => {
     expect(densifyFineConfig).toBeTypeOf("function");
     expect(densifyOverdueFines).toBeTypeOf("function");
+    expect(densifyUserFineMetrics).toBeTypeOf("function");
   });
 });

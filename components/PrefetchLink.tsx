@@ -23,6 +23,7 @@ import {
 import { getAdminRequestDetail } from "@/lib/admin/actions/admin-requests";
 import { getSignupRequestDetail } from "@/lib/admin/signupStatusDecisions";
 import { getAdminStats } from "@/lib/services/admin";
+import { getCompleteAnalytics } from "@/lib/services/analytics";
 import {
   getAdminSupportTickets,
   getSupportTicketDetail,
@@ -42,6 +43,7 @@ export type PrefetchKind =
   | "admin-account-requests"
   | "admin-admin-requests"
   | "admin-dashboard"
+  | "admin-business-insights"
   | "admin-tickets"
   | "user-tickets"
   | "my-profile"
@@ -101,6 +103,7 @@ const PREFETCH_BY_HREF: Record<string, PrefetchKind> = {
   "/admin/account-requests": "admin-account-requests",
   "/admin/admin-requests": "admin-admin-requests",
   "/admin": "admin-dashboard",
+  "/admin/business-insights": "admin-business-insights",
   "/admin/support-tickets": "admin-tickets",
   "/support-tickets": "user-tickets",
   "/my-profile": "my-profile",
@@ -484,6 +487,14 @@ export default function PrefetchLink({
         void queryClient.prefetchQuery({
           queryKey: queryKeys.admin.stats,
           queryFn: () => getAdminStats(),
+          staleTime: 0,
+        });
+        break;
+      case "admin-business-insights":
+        // Charts evict+refetch on visit; warm default snapshot to hide latency.
+        void queryClient.prefetchQuery({
+          queryKey: queryKeys.admin.businessInsights({}),
+          queryFn: () => getCompleteAnalytics({}),
           staleTime: 0,
         });
         break;

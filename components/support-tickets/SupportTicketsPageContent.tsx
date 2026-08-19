@@ -63,6 +63,7 @@ export default function SupportTicketsPageContent({
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
+  const [ssrTimestamp] = useState(() => Date.now());
   const prefillSubject = deepLinkBorrowId
     ? "Fine dispute — borrow request"
     : "";
@@ -77,6 +78,7 @@ export default function SupportTicketsPageContent({
     currentUserId,
     {},
     initialTickets,
+    initialTickets.length > 0 ? ssrTimestamp : undefined,
   );
 
   const tickets = useMemo(() => {

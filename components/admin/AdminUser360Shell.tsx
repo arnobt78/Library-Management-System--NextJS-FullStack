@@ -26,6 +26,7 @@ import AdminUserPrivilegePanel from "@/components/admin/AdminUserPrivilegePanel"
 import AdminUserReservationsPanel from "@/components/admin/AdminUserReservationsPanel";
 import AdminUserActivityPanel from "@/components/admin/AdminUserActivityPanel";
 import AdminUser360StatusKpiRow from "@/components/admin/AdminUser360StatusKpiRow";
+import AdminUser360NextActionsList from "@/components/admin/AdminUser360NextActionsList";
 import { AdminBookIdentityCell } from "@/components/admin/AdminBookIdentityCell";
 import { BorrowLifecycleDates } from "@/components/admin/BorrowLifecycleDates";
 import { DecisionActorStack } from "@/components/admin/DecisionActorStack";
@@ -48,7 +49,6 @@ import {
 } from "@/lib/ui/semanticBadges";
 import { formatMediumDate } from "@/lib/ui/formatMediumDate";
 import { reviewRatingTone } from "@/lib/ui/reviewOptions";
-import { buildUserNextActions } from "@/lib/insights/userNextActions";
 import { SKY_LINK_LIGHT } from "@/lib/ui/skyLinkStyles";
 import { TABLE_CELL_TITLE } from "@/lib/ui/tableCellStyles";
 import type {
@@ -122,6 +122,10 @@ export default function AdminUser360Shell({
 }: AdminUser360ShellProps) {
   const outstandingFine = Number(data.metrics.outstanding_fine ?? 0);
   const overdue = Number(data.metrics.overdue ?? 0);
+  const initialFineMetrics = {
+    outstandingFine,
+    overdueCount: overdue,
+  };
   const avgLoanDays = data.metrics.average_loan_days;
   const waitingHolds = data.reservationHistory.filter(
     (r) => r.status === "WAITING",
@@ -129,13 +133,6 @@ export default function AdminUser360Shell({
   const readyHolds = data.reservationHistory.filter(
     (r) => r.status === "READY",
   ).length;
-  const nextActions = buildUserNextActions({
-    overdue,
-    outstandingFine,
-    pending: Number(data.metrics.pending ?? 0),
-    waitingHolds,
-    readyHolds,
-  });
 
   return (
     <AdminPageShell
@@ -149,12 +146,11 @@ export default function AdminUser360Shell({
       }
       kpis={
         <div className="space-y-3">
-          {/* Status / action — Reg + Privilege densify; Fine/Overdue SSR */}
+          {/* Status / action — Reg + Privilege densify; Fine/Overdue live KPIs */}
           <AdminUser360StatusKpiRow
             initialUser={initialUser}
             initialSignupDetail={initialSignupDetail}
-            outstandingFine={outstandingFine}
-            overdue={overdue}
+            initialFineMetrics={initialFineMetrics}
           />
           {/* Borrow health — Current · Pending · Returned · On-time */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -235,21 +231,13 @@ export default function AdminUser360Shell({
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Next actions (advisory)
               </p>
-              <ul className="mt-2 space-y-2">
-                {nextActions.map((action) => (
-                  <li
-                    key={action.id}
-                    className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700"
-                  >
-                    <span className="font-medium text-gray-900">
-                      {action.label}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-gray-500">
-                      {action.reason}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <AdminUser360NextActionsList
+                userId={initialUser.id}
+                initialFineMetrics={initialFineMetrics}
+                pending={Number(data.metrics.pending ?? 0)}
+                waitingHolds={waitingHolds}
+                readyHolds={readyHolds}
+              />
             </div>
           </AdminSurfacePanel>
         </div>

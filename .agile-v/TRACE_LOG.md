@@ -265,4 +265,6 @@
 | SPAN-0259 | 2026-08-19 | C2 | Tip-bind clocks 0019+0020 | Compliance | Bound tip/HEAD to `7f9091b` | decision_log_append_only | REQ-0033 | PASS |
 | SPAN-0260 | 2026-08-19 | C2 | Prod clock smoke | Build Agent JS | Test Admin/User on university-library-managment.vercel.app; queue/detail clocks PASS; profile Cancelled/renewed strips added | require_independent_verification | REQ-0033 | PASS admin; profile deploy pending |
 | SPAN-0261 | 2026-08-19 | C2 | Tip-bind profile clock strips | Compliance | Bound tip/HEAD to `cf425c2` | decision_log_append_only | REQ-0033 | PASS |
+| SPAN-0262 | 2026-08-19 | C2 | Densify instant UI closeout | Build Agent JS | Waves A–D + Next Actions audit fix; SSR timestamps, users.fineMetrics, Insights prefetch, DEC-0118 | require_independent_verification | REQ-0023, REQ-0029–0031, REQ-0033 | 353 unit + build PASS; commit+deploy pending |
+| SPAN-0263 | 2026-08-19 | C2 | Densify audit closeout prove | Build Agent JS | AdminUser360NextActionsList live metrics; full typecheck/lint/test/build PASS | require_independent_verification | REQ-0033 | PASS local |
 

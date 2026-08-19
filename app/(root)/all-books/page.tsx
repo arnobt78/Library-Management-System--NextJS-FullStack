@@ -183,6 +183,10 @@ const Page = async ({
       }}
       initialLibraryTotalBooks={libraryTotalBooks}
       initialUserBorrows={initialUserBorrows}
+      currentUserId={session.user.id}
+      accountStatus={
+        (session.user as { status?: string }).status ?? "APPROVED"
+      }
     />
   );
 };

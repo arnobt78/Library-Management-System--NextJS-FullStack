@@ -34,7 +34,7 @@ import {
   filterChipDismissXBtnClass,
   filterChipGlassPillClass,
 } from "@/lib/ui/filter-chip-styles";
-import { useAllBooks, useBookGenres } from "@/hooks/useQueries";
+import { useAllBooks, useBookGenres, useUserBorrows } from "@/hooks/useQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
 import {
@@ -148,6 +148,10 @@ interface BookCollectionProps {
    * Initial user borrows from SSR (populates React Query cache for faster navigation to book detail pages)
    */
   initialUserBorrows?: BorrowRecord[];
+  /** Signed-in user id — seeds borrow cache via useUserBorrows (SSR timestamp parity). */
+  currentUserId?: string;
+  /** DB account status — gates borrow fetch when session JWT omits status. */
+  accountStatus?: string | null;
   /**
    * Legacy props for backward compatibility (deprecated, use initial* props instead)
    */
@@ -169,6 +173,8 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   initialSearchParams,
   initialLibraryTotalBooks,
   initialUserBorrows,
+  currentUserId,
+  accountStatus,
   // Legacy props for backward compatibility
   books: legacyBooks,
   genres: legacyGenres,
@@ -178,17 +184,17 @@ const BookCollection: React.FC<BookCollectionProps> = ({
   const router = useRouter();
   const searchParamsHook = useSearchParams();
   const queryClient = useQueryClient();
+  const [ssrTimestamp] = useState(() => Date.now());
 
-  // Initialize React Query cache with SSR user borrows data
-  useEffect(() => {
-    if (initialUserBorrows && initialUserBorrows.length > 0) {
-      const userId = initialUserBorrows[0].userId;
-      if (userId) {
-        const queryKey = queryKeys.borrows.user(userId);
-        queryClient.setQueryData(queryKey, initialUserBorrows);
-      }
-    }
-  }, [initialUserBorrows, queryClient]);
+  useUserBorrows(
+    currentUserId ?? "",
+    undefined,
+    initialUserBorrows,
+    initialUserBorrows && initialUserBorrows.length > 0
+      ? ssrTimestamp
+      : undefined,
+    accountStatus,
+  );
 
   const searchParamsKey = searchParamsHook.toString();
   const urlParams: CollectionSearchParams = useMemo(

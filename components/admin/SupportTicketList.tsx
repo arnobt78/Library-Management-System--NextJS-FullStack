@@ -58,9 +58,12 @@ export default function SupportTicketList({
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
 
+  const [ssrTimestamp] = useState(() => Date.now());
+
   const { data: allTickets = [], isPending } = useAdminSupportTickets(
     {},
     initialTickets,
+    initialTickets.length > 0 ? ssrTimestamp : undefined,
   );
 
   const tickets = useMemo(() => {

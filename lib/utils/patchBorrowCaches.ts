@@ -23,6 +23,10 @@ import {
   syncAdminStatsBorrowCountsFromRows,
 } from "@/lib/utils/patchAdminStatsCaches";
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
+import {
+  densifyUserFineMetrics,
+  densifyUserFineMetricsForBorrow,
+} from "@/lib/fines/userFineMetrics";
 import { isBookActive } from "@/lib/admin/lendableBookCopies";
 import {
   clearDensifiedEmpty,
@@ -767,6 +771,7 @@ export function patchBorrowCachesOnStatusChange(
     queryKeys.borrows.requests({ status: undefined, search: undefined }),
   );
   syncAdminStatsBorrowCountsFromRows(queryClient, universe);
+  densifyUserFineMetrics(queryClient, userId);
   evictAnalyticsCaches(queryClient);
 }
 
@@ -1078,5 +1083,6 @@ export function patchBorrowFineUpdate(
     applyRowPatch(rows, recordId, rowPatch),
   );
   upsertBorrowRequestDetail(queryClient, recordId, rowPatch);
+  densifyUserFineMetricsForBorrow(queryClient, recordId);
   evictAnalyticsCaches(queryClient);
 }

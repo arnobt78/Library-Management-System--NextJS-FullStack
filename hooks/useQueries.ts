@@ -33,6 +33,10 @@ import { getAdminUserDetailCache } from "@/lib/admin/actions/user-detail";
 import { getAdminUserPrivilegeHistory } from "@/lib/admin/actions/admin-privilege-history";
 import { getAdminUserReservations } from "@/lib/admin/actions/admin-user-reservations";
 import { getAdminUserActivityHistory } from "@/lib/admin/actions/admin-user-activity";
+import {
+  recomputeUserFineMetricsFromCache,
+  type UserFineMetrics,
+} from "@/lib/fines/userFineMetrics";
 import type { AdminPrivilegeHistoryEntry } from "@/lib/admin/adminPrivilegeHistory";
 import type { AdminUserActivityEntry } from "@/lib/admin/adminUserActivity";
 import {
@@ -423,7 +427,8 @@ export const useFeaturedBooks = (limit: number = 10, initialData?: Book[]) => {
  */
 export const useAllUsers = (
   filters?: UserFilters,
-  initialData?: UsersListResponse
+  initialData?: UsersListResponse,
+  initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();
@@ -460,6 +465,7 @@ export const useAllUsers = (
     staleTime: 0, // Always refetch when query key changes (filters change)
     refetchOnMount: true, // Refetch on mount
     initialData: seed,
+    initialDataUpdatedAt,
     // Instant filter UX: show previous results until the new key resolves (no empty flash)
     placeholderData: keepPreviousData,
   });
@@ -606,6 +612,31 @@ export const useAdminPrivilegeHistory = (
     staleTime: 30 * 1000,
     refetchOnMount: true,
     initialData: seed,
+    initialDataUpdatedAt,
+  });
+};
+
+/**
+ * User 360 Fine/Overdue KPIs — SSR seed + densify tail on fine.write / borrow.lifecycle.
+ */
+export const useUserFineMetrics = (
+  userId: string,
+  initialData?: UserFineMetrics,
+  initialDataUpdatedAt?: number,
+) => {
+  const queryClient = useQueryClient();
+
+  return useQuery<UserFineMetrics>({
+    queryKey: queryKeys.users.fineMetrics(userId),
+    queryFn: () =>
+      recomputeUserFineMetricsFromCache(queryClient, userId) ?? {
+        outstandingFine: 0,
+        overdueCount: 0,
+      },
+    enabled: !!userId,
+    staleTime: 0,
+    refetchOnMount: true,
+    initialData,
     initialDataUpdatedAt,
   });
 };
@@ -1319,7 +1350,10 @@ export const useServiceHealth = (
  * const { data } = useFineConfig(serverFineConfig);
  * ```
  */
-export const useFineConfig = (initialData?: FineConfig) => {
+export const useFineConfig = (
+  initialData?: FineConfig,
+  initialDataUpdatedAt?: number,
+) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery<FineConfig, Error>({
@@ -1332,6 +1366,7 @@ export const useFineConfig = (initialData?: FineConfig) => {
     staleTime: 0,
     refetchOnMount: true,
     initialData,
+    initialDataUpdatedAt,
   });
 };
 
@@ -1352,7 +1387,10 @@ export const useFineConfig = (initialData?: FineConfig) => {
  * const { data } = useReminderStats(serverReminderStats);
  * ```
  */
-export const useReminderStats = (initialData?: ReminderStats) => {
+export const useReminderStats = (
+  initialData?: ReminderStats,
+  initialDataUpdatedAt?: number,
+) => {
   const { trackQuery } = useQueryPerformance();
 
   return useQuery({
@@ -1365,6 +1403,7 @@ export const useReminderStats = (initialData?: ReminderStats) => {
     staleTime: 0,
     refetchOnMount: true,
     initialData,
+    initialDataUpdatedAt,
   });
 };
 
@@ -1518,6 +1557,7 @@ export const useActivityLogs = (
 export const useAdminSupportTickets = (
   filters?: AdminTicketListFilters,
   initialData?: SupportTicketListItem[],
+  initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();
@@ -1552,6 +1592,7 @@ export const useAdminSupportTickets = (
     refetchOnMount: true,
     placeholderData: keepPreviousData,
     initialData: seed,
+    initialDataUpdatedAt,
   });
 };
 
@@ -1560,6 +1601,7 @@ export const useUserSupportTickets = (
   userId: string,
   filters?: UserTicketListFilters,
   initialData?: SupportTicketListItem[],
+  initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();
@@ -1592,6 +1634,7 @@ export const useUserSupportTickets = (
     refetchOnMount: true,
     placeholderData: keepPreviousData,
     initialData: seed,
+    initialDataUpdatedAt,
   });
 };
 
@@ -1651,6 +1694,7 @@ export const useOpenTicketCount = (initialData?: number) => {
 export const useAdminBookReviews = (
   filters: AdminReviewFilters = {},
   initialData?: AdminBookReviewItem[],
+  initialDataUpdatedAt?: number,
 ) => {
   const { trackQuery } = useQueryPerformance();
   const queryClient = useQueryClient();
@@ -1673,6 +1717,7 @@ export const useAdminBookReviews = (
     refetchOnMount: true,
     placeholderData: keepPreviousData,
     initialData: seed,
+    initialDataUpdatedAt,
   });
 };
 

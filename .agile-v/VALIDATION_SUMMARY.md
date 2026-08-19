@@ -197,3 +197,9 @@ Scope: queue/detail clocks PASS on prod; profile Cancelled + renewed strips adde
 
 Commands: eslint `MyProfileTabs.tsx` PASS | outstanding=EvalGate (`ER-C2-FINAL-CORRECTIVE-5`); re-smoke `/my-profile` after deploy.
 
+## Densify instant UI closeout - Local Prove - 2026-08-19
+
+Scope: SSR `initialDataUpdatedAt` list hooks; `BookCollection` `useUserBorrows`; `users.fineMetrics` + densify tails; User 360 KPI + Next Actions; Insights prefetch; DEC-0118.
+
+Commands: typecheck/lint PASS | 353 unit PASS | Next build PASS | prod smoke pending deploy.
+

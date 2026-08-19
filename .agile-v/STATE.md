@@ -4,13 +4,13 @@
 - Cycle: C2
 - Stage: 4 - Prove (local) densify consistency closeout closed; nonlocal Verify / EvalGate still outstanding
 - SCOPE-V phase: Orchestrate → Prove (EvalGate FAIL blocks Gate 2)
-- Status: ACTIVE - Clocks 0019+0020 prod-smoked; profile Cancelled/renewed strips pending deploy
+- Status: ACTIVE - Densify instant UI closeout Prove PASS (local); deploy before User 360 fine KPI prod smoke
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `cf425c2`
+- Latest implementation tip: uncommitted (densify instant UI closeout)
 - Latest HEAD: `cf425c2`
 - Started: 2026-08-01
-- Last updated: 2026-08-19 (prod clock smoke + profile cancelled/renewed strips)
+- Last updated: 2026-08-19 (densify instant UI closeout Waves A–D)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,7 +24,13 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline, executing-plans
-- Active plan: clocks 0019+0020 prod-smoked; profile Cancelled/renewed strips to deploy
+- Active plan: densify instant UI closeout — local Prove PASS; owner deploy + prod smoke User 360 waive KPI
+
+## Reconciliation snapshot (2026-08-19, densify instant UI closeout)
+
+- **Done**: Wave A–D + audit closeout — SSR timestamp parity; `users.fineMetrics` densify; User 360 KPI + `AdminUser360NextActionsList` live on fine/borrow mutations; Insights prefetch warm. Prove: typecheck/lint/**353** unit/build PASS.
+- **Remaining**: Push/deploy; prod smoke waive KPI + Next Actions; EvalGate / Gate 2 unchanged.
+- **Next exact task**: Post-deploy smoke Test User 360 waive from borrow detail.
 
 ## Reconciliation snapshot (2026-08-19, prod clock smoke + profile strips)
 

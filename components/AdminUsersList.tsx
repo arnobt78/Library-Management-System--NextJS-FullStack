@@ -312,6 +312,8 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     currentSearch || currentStatus !== "all" || currentRole !== "all",
   );
 
+  const [ssrTimestamp] = React.useState(() => Date.now());
+
   const ssrUsersResponse = React.useMemo(
     (): UsersListResponse | undefined =>
       initialUsers
@@ -333,6 +335,7 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
   const { data: universeUsersData } = useAllUsers(
     ADMIN_USERS_UNFILTERED,
     ssrUsersResponse,
+    ssrUsersResponse ? ssrTimestamp : undefined,
   );
   const universeUsers: User[] = React.useMemo(
     () => (universeUsersData?.users ?? initialUsers ?? []) as User[],
@@ -343,7 +346,11 @@ const AdminUsersList: React.FC<AdminUsersListProps> = ({
     isLoading: usersLoading,
     isError: usersError,
     error: usersErrorData,
-  } = useAllUsers(filters, initialUsersData);
+  } = useAllUsers(
+    filters,
+    initialUsersData,
+    initialUsersData ? ssrTimestamp : undefined,
+  );
 
   /** Shared with sidebar — densify via patchAdminNavCounts on admin-request.write. */
   const { data: navCounts } = useAdminNavCounts();

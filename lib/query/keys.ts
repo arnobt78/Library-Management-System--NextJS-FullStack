@@ -43,6 +43,9 @@ export const queryKeys = {
     adminPrivilegeHistoryRoot: ["admin-privilege-history"] as const,
     adminPrivilegeHistory: (userId: string) =>
       ["admin-privilege-history", userId] as const,
+    /** User 360 live Fine/Overdue KPIs (densify on fine.write / borrow.lifecycle). */
+    fineMetricsRoot: ["user-fine-metrics"] as const,
+    fineMetrics: (userId: string) => ["user-fine-metrics", userId] as const,
     currentRoot: ["current-user"] as const,
   },
   borrows: {
