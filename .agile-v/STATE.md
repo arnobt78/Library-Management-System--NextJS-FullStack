@@ -7,10 +7,10 @@
 - Status: ACTIVE - Fines display + waive/return + Automation skip WAIVED/PAID; owner smoke remaining
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `ad1cc69`
-- Latest HEAD: `e2fbd4b`
+- Latest implementation tip: `d7585c9`
+- Latest HEAD: `d7585c9`
 - Started: 2026-08-01
-- Last updated: 2026-08-19 (Automation Force Update skips WAIVED/PAID)
+- Last updated: 2026-08-19 (fines display commit `d7585c9`)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
