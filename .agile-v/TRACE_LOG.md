@@ -268,4 +268,5 @@
 | SPAN-0262 | 2026-08-19 | C2 | Densify instant UI closeout | Build Agent JS | Waves A–D + Next Actions audit fix; SSR timestamps, users.fineMetrics, Insights prefetch, DEC-0118 | require_independent_verification | REQ-0023, REQ-0029–0031, REQ-0033 | 353 unit + build PASS; commit+deploy pending |
 | SPAN-0263 | 2026-08-19 | C2 | Densify audit closeout prove | Build Agent JS | AdminUser360NextActionsList live metrics; full typecheck/lint/test/build PASS | require_independent_verification | REQ-0033 | PASS local |
 | SPAN-0264 | 2026-08-19 | C2 | Densify prod smoke waive KPI | Build Agent JS | Assembly Language waive $38 → User 360 Fine $55→$17 + Next Actions; queue Waived; Insights $17 | require_independent_verification | REQ-0033 | PASS prod |
+| SPAN-0265 | 2026-08-19 | C2 | User 360 fine KPI delta densify | Build Agent JS | patchUserFineMetricsDelta + partial-cache guard; back-nav waive $0 flash fix | require_independent_verification | REQ-0033 | 356 unit + build PASS |
 

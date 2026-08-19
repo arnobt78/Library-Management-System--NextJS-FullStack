@@ -628,11 +628,15 @@ export const useUserFineMetrics = (
 
   return useQuery<UserFineMetrics>({
     queryKey: queryKeys.users.fineMetrics(userId),
-    queryFn: () =>
-      recomputeUserFineMetricsFromCache(queryClient, userId) ?? {
-        outstandingFine: 0,
-        overdueCount: 0,
-      },
+    queryFn: () => {
+      const next = recomputeUserFineMetricsFromCache(queryClient, userId);
+      if (next) return next;
+      return (
+        queryClient.getQueryData<UserFineMetrics>(
+          queryKeys.users.fineMetrics(userId),
+        ) ?? { outstandingFine: 0, overdueCount: 0 }
+      );
+    },
     enabled: !!userId,
     staleTime: 0,
     refetchOnMount: true,

@@ -207,5 +207,13 @@ Commands: typecheck/lint PASS | 353 unit PASS | Next build PASS.
 
 Scope: waive Assembly Language $38 → User 360 Fine $55→$17 + Next Actions; queue Waived; Insights $17; All Users/tickets OK.
 
-Result: PASS on `https://university-library-managment.vercel.app/` as `test@admin.com`. No reseed required.
+Result: PASS on `https://university-library-managment.vercel.app/` as `test@admin.com`. Back-nav $0 flash logged; delta fix below.
+
+## User 360 fine KPI delta densify - Local Prove - 2026-08-19
+
+Scope: `patchUserFineMetricsDelta` + partial-cache guard; `patchBorrowFineUpdate` before/after snapshot; useUserFineMetrics safe refetch.
+
+Commands: typecheck/lint PASS | 356 unit PASS | Next build PASS.
+
+Result: fixes waive back-nav $0 when cache lacks sibling overdue rows; owner re-test after deploy.
 

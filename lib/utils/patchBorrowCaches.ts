@@ -25,7 +25,9 @@ import {
 import { evictAnalyticsCaches } from "@/lib/utils/evictAnalyticsCaches";
 import {
   densifyUserFineMetrics,
-  densifyUserFineMetricsForBorrow,
+  findCachedBorrowRowForFine,
+  patchUserFineMetricsDelta,
+  type BorrowRowForFine,
 } from "@/lib/fines/userFineMetrics";
 import { isBookActive } from "@/lib/admin/lendableBookCopies";
 import {
@@ -1074,6 +1076,8 @@ export function patchBorrowFineUpdate(
     fineStatus: patch.fineStatus ?? null,
   };
 
+  const beforeSnapshot = findCachedBorrowRowForFine(queryClient, recordId);
+
   queryClient.setQueriesData<BorrowRecordFull[]>(
     { queryKey: queryKeys.borrows.userRoot },
     (old) => (old ? applyRowPatch(old, recordId, rowPatch) : old),
@@ -1083,6 +1087,20 @@ export function patchBorrowFineUpdate(
     applyRowPatch(rows, recordId, rowPatch),
   );
   upsertBorrowRequestDetail(queryClient, recordId, rowPatch);
-  densifyUserFineMetricsForBorrow(queryClient, recordId);
+
+  if (beforeSnapshot) {
+    const afterRow: BorrowRowForFine = {
+      ...beforeSnapshot.row,
+      fineAmount: displayFineAmount,
+      fineStatus: patch.fineStatus ?? null,
+    };
+    patchUserFineMetricsDelta(
+      queryClient,
+      beforeSnapshot.userId,
+      beforeSnapshot.row,
+      afterRow,
+    );
+  }
+
   evictAnalyticsCaches(queryClient);
 }

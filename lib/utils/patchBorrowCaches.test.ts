@@ -89,6 +89,8 @@ function makeRequest(
     borrowedBy: overrides.borrowedBy ?? null,
     returnedBy: overrides.returnedBy ?? null,
     fineAmount: overrides.fineAmount ?? "0",
+    displayFineAmount: overrides.displayFineAmount,
+    fineStatus: overrides.fineStatus ?? null,
     notes: overrides.notes ?? null,
     renewalCount: overrides.renewalCount ?? 0,
     lastReminderSent: overrides.lastReminderSent ?? null,
@@ -804,5 +806,46 @@ describe("patchBorrowCaches", () => {
         queryKeys.borrows.requestDetail("b-1"),
       )?.displayFineAmount,
     ).toBe("0.00");
+  });
+
+  it("patchBorrowFineUpdate delta-densifies users.fineMetrics on partial cache", () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.users.fineMetrics("u-1"), {
+      outstandingFine: 55,
+      overdueCount: 4,
+    });
+    client.setQueryData(queryKeys.admin.fineConfig, { fineAmount: 1 });
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      makeRequest({
+        id: "b-1",
+        userId: "u-1",
+        status: "BORROWED",
+        dueDate: "2020-01-01T12:00:00.000Z",
+        fineAmount: "38.00",
+        fineStatus: "PAID",
+      }),
+    ]);
+    client.setQueryData(
+      queryKeys.borrows.requestDetail("b-1"),
+      makeRequest({
+        id: "b-1",
+        userId: "u-1",
+        status: "BORROWED",
+        dueDate: "2020-01-01T12:00:00.000Z",
+        fineAmount: "38.00",
+        fineStatus: "PAID",
+      }),
+    );
+
+    patchBorrowFineUpdate(client, "b-1", {
+      fineAmount: "0.00",
+      displayFineAmount: "0.00",
+      fineStatus: "WAIVED",
+    });
+
+    expect(client.getQueryData(queryKeys.users.fineMetrics("u-1"))).toEqual({
+      outstandingFine: 17,
+      overdueCount: 4,
+    });
   });
 });

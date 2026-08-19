@@ -4,6 +4,8 @@ import { queryKeys } from "@/lib/query/keys";
 import {
   computeUserFineMetrics,
   densifyUserFineMetrics,
+  patchUserFineMetricsDelta,
+  recomputeUserFineMetricsFromCache,
   type BorrowRowForFine,
 } from "@/lib/fines/userFineMetrics";
 
@@ -89,5 +91,61 @@ describe("densifyUserFineMetrics", () => {
     );
     expect(metrics?.overdueCount).toBe(1);
     expect(metrics?.outstandingFine).toBeGreaterThan(0);
+  });
+});
+
+describe("patchUserFineMetricsDelta", () => {
+  const overdueRow: BorrowRowForFine = {
+    status: "BORROWED",
+    dueDate: "2020-01-01T12:00:00.000Z",
+    fineAmount: "38.00",
+    fineStatus: "PAID",
+  };
+
+  it("subtracts waived row live amount from SSR baseline without full cache", () => {
+    const client = new QueryClient();
+    const userId = "user-1";
+    client.setQueryData(queryKeys.users.fineMetrics(userId), {
+      outstandingFine: 55,
+      overdueCount: 4,
+    });
+    client.setQueryData(queryKeys.admin.fineConfig, { fineAmount: 1 });
+
+    patchUserFineMetricsDelta(client, userId, overdueRow, {
+      ...overdueRow,
+      fineAmount: "0.00",
+      fineStatus: "WAIVED",
+    });
+
+    expect(client.getQueryData(queryKeys.users.fineMetrics(userId))).toEqual({
+      outstandingFine: 17,
+      overdueCount: 4,
+    });
+  });
+});
+
+describe("recomputeUserFineMetricsFromCache partial guard", () => {
+  it("keeps SSR metrics when cache has fewer overdue rows than baseline", () => {
+    const client = new QueryClient();
+    const userId = "user-1";
+    client.setQueryData(queryKeys.users.fineMetrics(userId), {
+      outstandingFine: 55,
+      overdueCount: 4,
+    });
+    client.setQueryData(queryKeys.borrows.requests({}), [
+      {
+        id: "b-1",
+        userId,
+        status: "BORROWED",
+        dueDate: "2020-01-01T12:00:00.000Z",
+        fineAmount: "38.00",
+        fineStatus: "WAIVED",
+      },
+    ]);
+    client.setQueryData(queryKeys.admin.fineConfig, { fineAmount: 1 });
+
+    const metrics = recomputeUserFineMetricsFromCache(client, userId);
+
+    expect(metrics).toEqual({ outstandingFine: 55, overdueCount: 4 });
   });
 });

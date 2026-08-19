@@ -108,25 +108,124 @@ function dailyRateFromCache(queryClient: QueryClient): number {
   return typeof fineConfig?.fineAmount === "number" ? fineConfig.fineAmount : 0;
 }
 
+function roundFineAmount(amount: number): number {
+  return Math.round(amount * 100) / 100;
+}
+
+function liveFineAmountForRow(
+  row: BorrowRowForFine | null | undefined,
+  dailyRate: number,
+  rateHistory?: readonly FineRateHistoryRow[],
+): number {
+  if (!row) return 0;
+  return computeDisplayFineForBorrowRow(row, dailyRate, rateHistory).liveAmount;
+}
+
+/** True when cache has fewer overdue rows than SSR/densified KPI baseline. */
+export function isPartialFineMetricsRecompute(
+  existing: UserFineMetrics | null | undefined,
+  next: UserFineMetrics,
+): boolean {
+  if (!existing) return false;
+  return next.overdueCount < existing.overdueCount;
+}
+
+/** Read one borrow row (user + queue caches) before fine patch. */
+export function findCachedBorrowRowForFine(
+  queryClient: QueryClient,
+  recordId: string,
+): { userId: string; row: BorrowRowForFine } | null {
+  for (const [key, rows] of queryClient.getQueriesData<BorrowRecordFull[]>({
+    queryKey: queryKeys.borrows.userRoot,
+  })) {
+    const hit = rows?.find((r) => r.id === recordId);
+    if (hit) {
+      const userId =
+        hit.userId ??
+        (Array.isArray(key) && typeof key[1] === "string" ? key[1] : undefined);
+      if (!userId) continue;
+      return { userId, row: mapBorrowRow(hit) };
+    }
+  }
+
+  for (const [, rows] of queryClient.getQueriesData<
+    Array<BorrowRecordFull & { userId?: string }>
+  >({ queryKey: queryKeys.borrows.requestsRoot })) {
+    const hit = rows?.find((r) => r.id === recordId);
+    if (hit?.userId) {
+      return { userId: hit.userId, row: mapBorrowRow(hit) };
+    }
+  }
+
+  const detail = queryClient.getQueryData<
+    BorrowRecordFull & { userId?: string }
+  >(queryKeys.borrows.requestDetail(recordId));
+  if (detail?.userId) {
+    return { userId: detail.userId, row: mapBorrowRow(detail) };
+  }
+
+  return null;
+}
+
+/**
+ * Delta densify for single-row fine patch — avoids $0 flash when cache lacks
+ * sibling overdue borrows (User 360 back-nav after waive on detail).
+ */
+export function patchUserFineMetricsDelta(
+  queryClient: QueryClient,
+  userId: string,
+  beforeRow: BorrowRowForFine | null | undefined,
+  afterRow: BorrowRowForFine,
+  rateHistory?: readonly FineRateHistoryRow[],
+): void {
+  const dailyRate = dailyRateFromCache(queryClient);
+  const existing = queryClient.getQueryData<UserFineMetrics>(
+    queryKeys.users.fineMetrics(userId),
+  );
+  const beforeLive = liveFineAmountForRow(beforeRow, dailyRate, rateHistory);
+  const afterLive = liveFineAmountForRow(afterRow, dailyRate, rateHistory);
+  const delta = afterLive - beforeLive;
+
+  if (existing) {
+    queryClient.setQueryData<UserFineMetrics>(
+      queryKeys.users.fineMetrics(userId),
+      {
+        outstandingFine: roundFineAmount(
+          Math.max(0, existing.outstandingFine + delta),
+        ),
+        overdueCount: existing.overdueCount,
+      },
+    );
+    return;
+  }
+
+  const cachedRows = collectCachedBorrowRowsForUser(queryClient, userId);
+  const next = computeUserFineMetrics(cachedRows, dailyRate, rateHistory);
+  queryClient.setQueryData(queryKeys.users.fineMetrics(userId), next);
+}
+
 /** Recompute metrics from TanStack cache (refetch / densify tail). */
 export function recomputeUserFineMetricsFromCache(
   queryClient: QueryClient,
   userId: string,
   rateHistory?: readonly FineRateHistoryRow[],
 ): UserFineMetrics | null {
+  const existing = queryClient.getQueryData<UserFineMetrics>(
+    queryKeys.users.fineMetrics(userId),
+  );
   const rows = collectCachedBorrowRowsForUser(queryClient, userId);
   if (rows.length === 0) {
-    return (
-      queryClient.getQueryData<UserFineMetrics>(
-        queryKeys.users.fineMetrics(userId),
-      ) ?? null
-    );
+    return existing ?? null;
   }
-  return computeUserFineMetrics(
+  const next = computeUserFineMetrics(
     rows,
     dailyRateFromCache(queryClient),
     rateHistory,
   );
+  if (isPartialFineMetricsRecompute(existing, next)) {
+    return existing ?? next;
+  }
+  return next;
 }
 
 /** Patch users.fineMetrics after fine/borrow lifecycle densify. */
@@ -145,31 +244,8 @@ export function densifyUserFineMetricsForBorrow(
   queryClient: QueryClient,
   recordId: string,
 ): void {
-  let userId: string | undefined;
-
-  for (const [key, rows] of queryClient.getQueriesData<BorrowRecordFull[]>({
-    queryKey: queryKeys.borrows.userRoot,
-  })) {
-    const hit = rows?.find((r) => r.id === recordId);
-    if (hit) {
-      userId =
-        hit.userId ??
-        (Array.isArray(key) && typeof key[1] === "string" ? key[1] : undefined);
-      break;
-    }
-  }
-
-  if (!userId) {
-    for (const [, rows] of queryClient.getQueriesData<
-      Array<{ id: string; userId?: string }>
-    >({ queryKey: queryKeys.borrows.requestsRoot })) {
-      const hit = rows?.find((r) => r.id === recordId);
-      if (hit?.userId) {
-        userId = hit.userId;
-        break;
-      }
-    }
-  }
-
-  densifyUserFineMetrics(queryClient, userId);
+  densifyUserFineMetrics(
+    queryClient,
+    findCachedBorrowRowForFine(queryClient, recordId)?.userId,
+  );
 }

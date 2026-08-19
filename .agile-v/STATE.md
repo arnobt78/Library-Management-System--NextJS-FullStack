@@ -7,10 +7,10 @@
 - Status: ACTIVE - Densify instant UI closeout Prove PASS (local + prod waive KPI smoke)
 - Baseline commit: `c94e7db`
 - Prior accepted implementation: C1 commit `d9b9fd9`
-- Latest implementation tip: `79a4986`
-- Latest HEAD: `3cc02b1`
+- Latest implementation tip: pending (fine KPI delta densify)
+- Latest HEAD: `a70692e`
 - Started: 2026-08-01
-- Last updated: 2026-08-19 (densify prod smoke PASS)
+- Last updated: 2026-08-19 (User 360 fine KPI delta densify fix)
 - Active requirements revision: C2-approved.2 (REQ-0026 through REQ-0033 approved; REQ-0034 through REQ-0037 approved under `GATE-0007`/CR-0003; C1 approvals unchanged)
 - Active policy: `.agile-v/POLICY.yaml` v1.0.0
 - Current phase directory: living `.agile-v/` artifacts; frozen C1 archive at `.agile-v/cycles/C1/`
@@ -24,13 +24,20 @@
 - C2 Gate 1 delta (CR-0003): APPROVED (`GATE-0007`, REQ-0034–0037)
 - C2 Gate 2: NOT STARTED
 - Skills applied this session: agile-v-core, agile-v-pipeline, executing-plans
-- Active plan: densify instant UI closeout — **closed** (local + prod smoke PASS)
+- Active plan: User 360 fine KPI cold-cache fix — local Prove pending deploy + owner re-test
+
+## Reconciliation snapshot (2026-08-19, User 360 fine KPI delta densify)
+
+- **Fix**: waive on borrow detail no longer zeroes User 360 Outstanding Fine on back-nav when sibling overdue rows are not in TanStack cache.
+- **How**: `patchUserFineMetricsDelta` (SSR baseline ± row live delta); partial-cache guard in `recomputeUserFineMetricsFromCache`; `patchBorrowFineUpdate` snapshots before/after row.
+- **Prove**: typecheck/lint/**356** unit/build PASS.
+- **Next exact task**: deploy → owner reseed → Test 1 waive back-nav expect **$17** without hard refresh.
 
 ## Reconciliation snapshot (2026-08-19, densify instant UI closeout)
 
 - **Done**: Wave A–D + audit closeout — SSR timestamp parity; `users.fineMetrics` densify; User 360 KPI + `AdminUser360NextActionsList` live on fine/borrow mutations; Insights prefetch warm. Prove: typecheck/lint/**353** unit/build PASS.
 - **Prod smoke PASS** (`test@admin.com`): User 360 baseline Fine **$55**/4 overdue → waive Assembly Language **$38** on borrow detail → User 360 Fine **$17** + Next Actions **$17** (no hard refresh); Borrow Queue Fine **Waived**; Insights Fines Outstanding **$17**; All Users + Support Tickets load OK.
-- **Remaining**: EvalGate / Gate 2 unchanged; deferred cold-cache edge + Insights chart invent-densify.
+- **Remaining**: EvalGate / Gate 2 unchanged; Insights chart invent-densify deferred.
 - **Next exact task**: none for densify closeout; optional owner re-seed if demo fine totals drift.
 
 ## Reconciliation snapshot (2026-08-19, prod clock smoke + profile strips)
